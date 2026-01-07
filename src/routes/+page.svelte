@@ -130,11 +130,15 @@
   }
 
   .phase {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    		background: rgba(102, 126, 234, 0.1);
+		backdrop-filter: blur(10px) saturate(180%);
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 12px;
     padding: 1.5rem;
     color: white;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+
   }
 
   .phase h3 {
@@ -162,7 +166,7 @@
     background: #ff3e00;
     color: white;
     text-decoration: none;
-    border-radius: 6px;
+    		background: rgba(255, 62, 0, 0.2);
     font-weight: bold;
     transition: background 0.3s ease;
   }
