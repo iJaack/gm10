@@ -1,7 +1,7 @@
 <script>
 	import { page } from '$app/stores';
 	import logo from './svelte-logo.svg';
-import { theme } from '../theme';
+import { theme } from '../../lib/theme'';
 </script>
 
 function toggleTheme() {
