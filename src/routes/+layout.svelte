@@ -9,7 +9,7 @@
       params: $page.params,
       analyticsId
     })
-  }
+  
 </script>
 
 <Header />
