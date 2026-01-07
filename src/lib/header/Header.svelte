@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/stores';
+  import logo from '../../static/logo.svg';
 </script>
 <header>
 	<div class="corner">
