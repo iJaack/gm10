@@ -1,12 +1,5 @@
 <script>
-	import { page } from '$app/stores';
-	import logo from './svelte-logo.svg';
-import { theme } from '../theme';
 </script>
-
-function toggleTheme() {
-		theme.update(t => t === 'dark' ? 'light' : 'dark');}
-
 <header>
 	<div class="corner">
 		<a href="https://kit.svelte.dev">
@@ -40,18 +33,6 @@ function toggleTheme() {
 			<path d="M0,0 L0,3 C0.5,3 0.5,3 1,2 L2,0 Z" />
 		</svg>
 	</nav>
-<button
-  class="theme-toggle"
-  on:click={toggleTheme}
-  title="Toggle dark/light mode"
-  aria-label="Toggle dark/light mode"
->
-  {#if $theme === 'dark'}
-    ☀️
-  {:else}
-    🌙
-  {/if}
-</button>
 
 	<div class="corner">
 		<!-- TODO put something else here? github link? -->
