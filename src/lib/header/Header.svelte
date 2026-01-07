@@ -5,8 +5,7 @@ import { theme } from '../theme';
 </script>
 
 function toggleTheme() {
-    theme.update(t => t === 'dark' ? 'light' : 'dark');
-}
+		theme.update(t => t === 'dark' ? 'light' : 'dark');}
 
 <header>
 	<div class="corner">
