@@ -4,8 +4,6 @@
   import { browser } from '$app/env';
   import { page } from '$app/stores';
   import '../app.css';
-import { onMount } from 'svelte';
-
   let analyticsId = import.meta.env.VERCEL_ANALYTICS_ID;
 
   $: if (browser && analyticsId) {
