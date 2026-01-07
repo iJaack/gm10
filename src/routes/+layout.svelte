@@ -4,6 +4,13 @@
   import { browser } from '$app/env';
   import { page } from '$app/stores';
   import '../app.css';
+import { theme } from '../lib/theme';
+import { onMount } from 'svelte';
+
+onMount(() => {
+  const storedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', storedTheme);
+});
 
   let analyticsId = import.meta.env.VERCEL_ANALYTICS_ID;
 
