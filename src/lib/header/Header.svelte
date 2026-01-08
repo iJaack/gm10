@@ -1,10 +1,8 @@
 <script>
-  import { page } from '$app/stores';
+	import { page } from '$app/stores';
 </script>
-<header>
-	<div class="corner">
-		v>
 
+<header>
 	<nav>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
 			<path d="M0,0 L1,2 C1.5,3 1.5,3 2,3 L2,0 Z" />
@@ -17,55 +15,35 @@
 			<li class:active={$page.url.pathname === '/todos'}>
 				<a sveltekit:prefetch href="/todos">Todos</a>
 			</li>
-				<li class:active={$page.url.pathname === '/fundraising'}>
-					<a sveltekit:prefetch href="/fundraising">FUNDRAISING</a>
-				</li>
-				<li class:active={$page.url.pathname === '/portfolio'}>
-					<a sveltekit:prefetch href="/portfolio">PORTFOLIO</a>
-				</li>
-				<li class:active={$page.url.pathname === '/governance'}>
-					<a sveltekit:prefetch href="/governance">GOVERNANCE</a>
-				</li>
+			<li class:active={$page.url.pathname === '/fundraising'}>
+				<a sveltekit:prefetch href="/fundraising">FUNDRAISING</a>
+			</li>
+			<li class:active={$page.url.pathname === '/portfolio'}>
+				<a sveltekit:prefetch href="/portfolio">PORTFOLIO</a>
+			</li>
+			<li class:active={$page.url.pathname === '/governance'}>
+				<a sveltekit:prefetch href="/governance">GOVERNANCE</a>
+			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
 			<path d="M0,0 L0,3 C0.5,3 0.5,3 1,2 L2,0 Z" />
 		</svg>
 	</nav>
-
-	<div class="corner">
-		<!-- TODO put something else here? github link? -->
-	</div>
 </header>
 
 <style>
 	header {
 		display: flex;
-		justify-content: space-between;
-	}
-
-	.corner {
-		width: 3em;
-		height: 3em;
-	}
-
-	.corner a {
-		display: flex;
-		align-items: center;
 		justify-content: center;
-		width: 100%;
-		height: 100%;
-	}
-
-	.corner img {
-		width: 2em;
-		height: 2em;
-		object-fit: contain;
+		align-items: center;
+		padding: 1rem 0;
 	}
 
 	nav {
 		display: flex;
 		justify-content: center;
-		--background: rgba(255, 255, 255, 0.7);
+		align-items: center;
+		width: 100%;
 	}
 
 	svg {
@@ -87,8 +65,7 @@
 		justify-content: center;
 		align-items: center;
 		list-style: none;
-		background: var(--background);
-		background-size: contain;
+		gap: 0;
 	}
 
 	li {
@@ -125,19 +102,4 @@
 	a:hover {
 		color: var(--accent-color);
 	}
-
-.theme-toggle {
-  background: none;
-  border: none;
-  color: var(--heading-color);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  margin: 0 1rem;
-  transition: transform 0.2s ease;
-}
-
-.theme-toggle:hover {
-  transform: scale(1.2);
-}
 </style>
