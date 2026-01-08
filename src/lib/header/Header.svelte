@@ -37,6 +37,14 @@
 		justify-content: center;
 		align-items: center;
 		padding: 1rem 0;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 1000;
+		background: var(--primary-color);
+		backdrop-filter: blur(10px);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	}
 
 	nav {
