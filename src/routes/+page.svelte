@@ -123,9 +123,9 @@
 
   .phases {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    		grid-template-columns: 1fr;
     gap: 2rem;
-    max-width: 1000px;
+    		max-width: 100%;
     margin: 2rem auto;
     padding: 0 1rem;
   }
