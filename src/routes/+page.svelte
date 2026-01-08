@@ -70,7 +70,7 @@
 		padding-top: 100px;
 	}
 
-.phases {
+ .phases {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -224,7 +224,8 @@ background: rgba(180, 100, 220, 0.6);		backdrop-filter: blur(10px) saturate(180%
       font-size: 1.4rem;
     }
 
-    .phases {
+    163
+     {
       grid-template-columns: 1fr;
     }
 
