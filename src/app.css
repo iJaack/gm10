@@ -1,17 +1,16 @@
 @import '@fontsource/fira-mono';
 
 :root {
-  font-family: Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
-    Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Roboto', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   --font-mono: 'Fira Mono', monospace;
   --pure-white: #ffffff;
-  --primary-color: #b9c6d2;
-  --secondary-color: #d0dde9;
-  --tertiary-color: #edf0f8;
+  --primary-color: #f5f1ed;
+  --secondary-color: #e8e3dd;
+  --tertiary-color: #ddd8d2;
   --accent-color: #ff3e00;
-  --heading-color: rgba(0, 0, 0, 0.7);
+  --heading-color: #333333;
   --text-color: #444444;
-  --background-without-opacity: rgba(255, 255, 255, 0.7);
+  --background-without-opacity: rgba(245, 241, 237, 0.7);
   --column-width: 42rem;
   --column-margin-top: 4rem;
 }
@@ -20,8 +19,9 @@ body {
   min-height: 100vh;
   margin: 0;
   background-color: var(--primary-color);
-  		background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 25%, #16213e 50%, #0f3460 100%);
-  }
+  background: linear-gradient(135deg, #f5f1ed 0%, #f2ede6 50%, #ebe5dd 100%);
+}
+
 body::before {
   content: '';
   width: 80vw;
@@ -74,65 +74,77 @@ h2 {
 }
 
 pre {
-  font-size: 16px;
   font-family: var(--font-mono);
-  background-color: rgba(255, 255, 255, 0.45);
-  border-radius: 3px;
-  box-shadow: 2px 2px 6px rgb(255 255 255 / 25%);
+  font-size: 0.9em;
+  color: #444;
+  box-sizing: border-box;
   padding: 0.5em;
-  overflow-x: auto;
-  color: var(--text-color);
+  margin: 0.5em 0;
+  background-color: rgba(220, 220, 220, 0.5);
+  border-radius: 2px;
 }
 
-input,
-button {
-  font-size: inherit;
-  font-family: inherit;
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: #555;
 }
 
-button:focus:not(:focus-visible) {
-  outline: none;
-}
-
-@media (min-width: 720px) {
-  h1 {
-    font-size: 2.4rem;
+@media (min-width: 2em) {
+  :global(body) {
+    margin: 0;
   }
 }
 
-/* Light mode */
-[data-theme='light'] {
-  --pure-white: #ffffff;
-  --primary-color: #f0f0f0;
-  --secondary-color: #e0e0e0;
-  --tertiary-color: #d0d0d0;
-  --accent-color: #ff6b35;
-  --heading-color: rgba(0, 0, 0, 0.9);
-  --text-color: #333333;
-  --background-without-opacity: rgba(255, 255, 255, 0.9);
+header {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+  background: rgba(245, 241, 237, 0.95);
+  backdrop-filter: blur(10px);
 }
 
-[data-theme='light'] body {
-  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 25%, #dcdcdc 50%, #d0d0d0 100%);
-  color: #333333;
+header nav {
+  display: flex;
+  justify-content: center;
+  gap: 0;
 }
 
-[data-theme='light'] body::before {
-  background: radial-gradient(
-    50% 50% at 50% 50%,
-    rgba(0, 0, 0, 0.05) 0%,
-    rgba(0, 0, 0, 0) 100%
-  );
+header nav ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 0;
 }
 
-/* Dark mode */
-[data-theme='dark'] {
-  --pure-white: #ffffff;
-  --primary-color: #b9c6d2;
-  --secondary-color: #d0dde9;
-  --tertiary-color: #edf0f8;
-  --accent-color: #ff3e00;
-  --heading-color: rgba(255, 255, 255, 0.8);
-  --text-color: #cccccc;
-  --background-without-opacity: rgba(255, 255, 255, 0.1);
+header nav ul li {
+  position: relative;
+}
+
+header nav ul li a {
+  display: block;
+  padding: 0.5rem 1.5rem;
+  color: var(--heading-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  transition: color 0.2s linear;
+}
+
+header nav ul li a:hover {
+  color: var(--accent-color);
+}
+
+header nav ul li.active::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--accent-color);
 }
