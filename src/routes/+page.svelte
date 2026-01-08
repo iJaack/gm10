@@ -69,6 +69,39 @@
 	section {
 		padding-top: 100px;
 	}
+
+.phases {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 30px;
+	padding: 40px 20px;
+}
+
+.phase {
+	padding: 20px 30px;
+	border-radius: 0;
+	background: transparent !important;
+	box-shadow: none !important;
+	border: none !important;
+	text-align: center;
+	position: relative;
+}
+
+.phase h3 {
+	margin: 0 0 15px 0;
+	font-size: 1.3em;
+	color: var(--primary-color, #FF6B6B);
+}
+
+.phase:not(:last-child)::after {
+	content: '↓';
+	display: block;
+	font-size: 2em;
+	color: var(--primary-color, #FF6B6B);
+	margin-top: 15px;
+	margin-bottom: -15px;
+}
 </style>
 
   <div class="cta">
