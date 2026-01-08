@@ -65,6 +65,12 @@
     <li>Transparent, on-chain portfolio tracking</li>
   </ul>
 
+<style>
+	section {
+		padding-top: 100px;
+	}
+</style>
+
   <div class="cta">
     <a href="/fundraising">Join the Fundraising</a>
     <a href="/portfolio">View Portfolio</a>
