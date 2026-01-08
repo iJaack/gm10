@@ -70,7 +70,7 @@
 		padding-top: 100px;
 	}
 
- .phases {
+  .phases {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
