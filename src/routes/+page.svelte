@@ -223,8 +223,7 @@ background: rgba(180, 100, 220, 0.6);		backdrop-filter: blur(10px) saturate(180%
       font-size: 1.4rem;
     }
 
-    163
-     {
+     .phases {
       grid-template-columns: 1fr;
     }
 
