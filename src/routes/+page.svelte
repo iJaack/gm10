@@ -160,8 +160,7 @@
     text-align: left;
   }
 
-  .30
-  s {
+.phases {
     display: grid;
     		grid-template-columns: 1fr;
     gap: 2rem;
