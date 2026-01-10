@@ -204,9 +204,8 @@ background: rgba(180, 100, 220, 0.6);		backdrop-filter: blur(10px) saturate(180%
     padding: 0.75rem 1.5rem;
     background: #ff3e00;
     color: white;
-    text-decoration: none;
-    		background: rgba(255, 62, 0, 0.2);
-    font-weight: bold;
+    text-decoration: none; 
+  font-weight: bold;
     transition: background 0.3s ease;
   }
 
