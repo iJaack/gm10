@@ -170,7 +170,7 @@
   }
 
   .phase {
-background: rgba(180, 100, 220, 0.6);		backdrop-filter: blur(10px) saturate(180%);
+background: #1a1a2e;		backdrop-filter: blur(10px) saturate(180%);
 		border: 1px solid rgba(255, 255, 255, 0.18);
 		box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
