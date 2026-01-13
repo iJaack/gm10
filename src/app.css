@@ -3,6 +3,17 @@
 :root {
   font-family: 'Roboto', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   --font-mono: 'Fira Mono', monospace;
+
+  /* Ash Strategy Color System */
+  --red-primary: #E63946;
+  --red-dark: #B82E3A;
+  --blue-primary: #1D3557;
+  --blue-light: #457B9D;
+  --blue-pale: #A8DADC;
+  --cream: #F1FAEE;
+  --white: #FFFFFF;
+
+  /* Legacy colors (keeping for backwards compatibility) */
   --pure-white: #ffffff;
   --primary-color: #f5f1ed;
   --secondary-color: #e8e3dd;
@@ -18,9 +29,8 @@
 body {
   min-height: 100vh;
   margin: 0;
-  background-color: var(--primary-color);
-  	color: black;
-  background: linear-gradient(135deg, #f5f1ed 0%, #f2ede6 50%, #ebe5dd 100%);
+  background-color: var(--white);
+  color: var(--blue-primary);
 }
 
 body::before {
@@ -43,7 +53,6 @@ body::before {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-    padding-top: 80px;
 }
 
 h1,
