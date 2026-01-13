@@ -1,154 +1,714 @@
 <script>
+  import Navbar from '$lib/components/Navbar.svelte';
+  import PageHero from '$lib/components/PageHero.svelte';
+  import ProgressBar from '$lib/components/ProgressBar.svelte';
+  import StepFlow from '$lib/components/StepFlow.svelte';
+  import Footer from '$lib/components/Footer.svelte';
+
+  // Mock data
+  const raised = 127450;
+  const goal = 500000;
+  const investors = 142;
+  const countdown = { days: 14, hours: 6, minutes: 32, seconds: 18 };
+
+  const tiers = [
+    {
+      name: 'STARTER',
+      amount: '$100+',
+      popular: false,
+      benefits: ['$CATCH tokens', 'Discord access']
+    },
+    {
+      name: 'TRAINER',
+      amount: '$1,000+',
+      popular: true,
+      benefits: ['$CATCH tokens', 'Discord access', 'Quarterly calls']
+    },
+    {
+      name: 'GYM LEADER',
+      amount: '$10,000+',
+      popular: false,
+      benefits: ['$CATCH tokens', 'Discord access', 'Quarterly calls', 'Advisory board']
+    }
+  ];
+
+  const investSteps = [
+    { number: 1, title: 'Connect Wallet', description: 'Link your Web3 wallet' },
+    { number: 2, title: 'Choose Amount', description: 'Select investment tier' },
+    { number: 3, title: 'Receive $CATCH', description: 'Get your tokens' }
+  ];
+
+  const allocations = [
+    { label: 'Card Acquisition', percentage: 80, color: 'var(--blue-primary)' },
+    { label: 'Operations', percentage: 15, color: 'var(--blue-light)' },
+    { label: 'Legal/Audit', percentage: 5, color: 'var(--blue-pale)' }
+  ];
+
+  const faqs = [
+    { question: 'What is $CATCH?', answer: '$CATCH is the governance token for the Ash Strategy fund, giving holders voting rights on portfolio decisions.' },
+    { question: 'How is the fund value calculated?', answer: 'NAV is calculated based on current market values of all graded cards in the portfolio, updated daily.' },
+    { question: 'Can I redeem my tokens?', answer: 'Token redemption will be available after the initial lock-up period, subject to liquidity and DAO approval.' },
+    { question: 'What are the risks?', answer: 'Investing involves risk of loss. Pokemon cards are collectibles with volatile valuations. Past performance does not guarantee future results.' }
+  ];
+
+  let openFaqIndex = null;
+
+  function toggleFaq(index) {
+    openFaqIndex = openFaqIndex === index ? null : index;
+  }
 </script>
 
 <svelte:head>
   <title>Fundraising - Ash Strategy</title>
-  <meta name="description" content="Join the Ash Strategy fundraising round" />
+  <meta name="description" content="Your chance to invest in Pokemon card alpha" />
 </svelte:head>
 
-<section>
-  <h1>Join the Fundraising Round</h1>
-  <p>Be part of the Pokemon card tokenization revolution</p>
+<div class="page-wrapper">
+  <Navbar />
 
-  <div class="fundraising-info">
-    <div class="metric">
-      <h3>Target Raise</h3>
-      <p class="amount">$1,000,000</p>
-      <p>Minimum to launch</p>
-    </div>
+  <main>
+    <PageHero
+      icon="💰"
+      title="Fundraising Round 1"
+      subtitle="Your chance to invest in Pokemon card alpha"
+    />
 
-    <div class="metric">
-      <h3>Fund Allocation</h3>
-      <p class="amount">80%</p>
-      <p>Card Acquisition</p>
-      <p class="amount" style="font-size: 1.2rem;">20%</p>
-      <p>Operations</p>
-    </div>
+    <!-- Countdown & Progress -->
+    <section class="progress-section">
+      <div class="container">
+        <div class="countdown">
+          <span class="countdown-label">⏰ Closes in:</span>
+          <div class="countdown-numbers">
+            <div class="countdown-item">
+              <span class="number">{countdown.days}</span>
+              <span class="label">days</span>
+            </div>
+            <span class="separator">:</span>
+            <div class="countdown-item">
+              <span class="number">{countdown.hours.toString().padStart(2, '0')}</span>
+              <span class="label">hours</span>
+            </div>
+            <span class="separator">:</span>
+            <div class="countdown-item">
+              <span class="number">{countdown.minutes.toString().padStart(2, '0')}</span>
+              <span class="label">min</span>
+            </div>
+            <span class="separator">:</span>
+            <div class="countdown-item">
+              <span class="number">{countdown.seconds.toString().padStart(2, '0')}</span>
+              <span class="label">sec</span>
+            </div>
+          </div>
+        </div>
 
-    <div class="metric">
-      <h3>Participation</h3>
-      <p class="amount">Buy $CATCH</p>
-      <p>Tokens representing fund shares</p>
-    </div>
-  </div>
+        <div class="progress-container">
+          <h3 class="progress-title">
+            ${raised.toLocaleString()} raised of ${goal.toLocaleString()} goal
+          </h3>
+          <ProgressBar current={raised} goal={goal} />
+          <p class="investors-count">{investors} investors</p>
+        </div>
+      </div>
+    </section>
 
-  <h2>Fundraising Benefits</h2>
-  <ul>
-    <li>Direct exposure to high-growth Pokemon card market</li>
-    <li>Diversified portfolio across all major grading companies</li>
-    <li>Governance rights via $CATCH token voting</li>
-    <li>Transparent on-chain portfolio tracking</li>
-    <li>Professional acquisition strategy with expert selection</li>
-  </ul>
+    <!-- Investment Tiers -->
+    <section class="tiers-section">
+      <div class="container">
+        <h2 class="section-title">Investment Tiers</h2>
+        <div class="tiers-grid">
+          {#each tiers as tier}
+            <div class="tier-card" class:popular={tier.popular}>
+              {#if tier.popular}
+                <div class="popular-badge">⭐ Popular</div>
+              {/if}
+              <h3 class="tier-name">{tier.name}</h3>
+              <div class="tier-amount">{tier.amount}</div>
+              <ul class="tier-benefits">
+                {#each tier.benefits as benefit}
+                  <li>▪ {benefit}</li>
+                {/each}
+              </ul>
+              <button class="tier-btn">Select</button>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </section>
 
-  <div class="cta">
-    <a href="/">Back to Home</a>
-    <button>Interested? Coming Soon</button>
-  </div>
-</section>
+    <!-- Token Economics -->
+    <section class="token-section">
+      <div class="container">
+        <h2 class="section-title">Token Economics</h2>
+        <div class="token-box">
+          <p class="token-price">Round 1 Price: <strong>$1.00 per $CATCH</strong></p>
+
+          <div class="supply-grid">
+            <div class="supply-item">
+              <div class="supply-label">Total Supply</div>
+              <div class="supply-value">100,000</div>
+              <div class="supply-sublabel">tokens</div>
+            </div>
+            <div class="supply-item">
+              <div class="supply-label">Round 1</div>
+              <div class="supply-value">50,000</div>
+              <div class="supply-sublabel">available</div>
+            </div>
+            <div class="supply-item">
+              <div class="supply-label">Future</div>
+              <div class="supply-value">50,000</div>
+              <div class="supply-sublabel">reserved</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fund Allocation -->
+    <section class="allocation-section">
+      <div class="container">
+        <h2 class="section-title">How Funds Will Be Used</h2>
+        <div class="allocation-bars">
+          {#each allocations as allocation}
+            <div class="allocation-row">
+              <div class="allocation-label">{allocation.label}</div>
+              <div class="allocation-bar-container">
+                <div
+                  class="allocation-bar-fill"
+                  style="width: {allocation.percentage}%; background: {allocation.color}"
+                ></div>
+              </div>
+              <div class="allocation-percentage">{allocation.percentage}%</div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </section>
+
+    <!-- How to Invest -->
+    <section class="steps-section">
+      <div class="container">
+        <h2 class="section-title">How to Invest</h2>
+        <StepFlow steps={investSteps} />
+      </div>
+    </section>
+
+    <!-- Investment CTA -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box">
+          <h2>Ready to Invest?</h2>
+          <button class="connect-btn">Connect Wallet</button>
+          <p class="cta-note">Accepting: ETH, USDC, USDT on Base/Ethereum</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-section">
+      <div class="container">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <div class="faq-list">
+          {#each faqs as faq, i}
+            <div class="faq-item" class:open={openFaqIndex === i}>
+              <button class="faq-question" on:click={() => toggleFaq(i)}>
+                <span class="faq-icon">{openFaqIndex === i ? '▼' : '▶'}</span>
+                <span>{faq.question}</span>
+              </button>
+              {#if openFaqIndex === i}
+                <div class="faq-answer">
+                  {faq.answer}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</div>
 
 <style>
-  section {
+  .page-wrapper {
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background: var(--white);
+  }
+
+  main {
+    flex: 1;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--blue-primary);
+    text-align: center;
+    margin: 0 0 3rem 0;
+  }
+
+  /* Progress Section */
+  .progress-section {
+    padding: 3rem 2rem;
+    background: var(--cream);
+  }
+
+  .countdown {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .countdown-label {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--blue-primary);
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .countdown-numbers {
+    display: flex;
     justify-content: center;
     align-items: center;
-    flex: 1;
-    padding: 2rem 1rem;
+    gap: 0.5rem;
   }
 
-  h1 {
-    color: #ff3e00;
+  .countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .countdown-item .number {
     font-size: 2.5rem;
-    margin: 1rem 0;
+    font-weight: 800;
+    color: var(--red-primary);
+    line-height: 1;
+  }
+
+  .countdown-item .label {
+    font-size: 0.85rem;
+    color: var(--blue-light);
+    margin-top: 0.25rem;
+  }
+
+  .separator {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--blue-primary);
+  }
+
+  .progress-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .progress-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--blue-primary);
     text-align: center;
-  }
-
-  h2 {
-    font-size: 1.8rem;
-    margin: 2rem 0 1rem 0;
-    text-align: center;
-  }
-
-  p {
-    text-align: center;
-    margin: 0.5rem 0;
-  }
-
-  .fundraising-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
-    margin: 2rem 0;
-    width: 100%;
-    max-width: 1000px;
-  }
-
-  .metric {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem;
-    border-radius: 12px;
-    color: white;
-    text-align: center;
-  }
-
-  .metric h3 {
-    margin-top: 0;
     margin-bottom: 1rem;
-    font-size: 1.2rem;
   }
 
-  .metric p {
-    margin: 0.5rem 0;
+  .investors-count {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--blue-light);
+    font-weight: 600;
+    margin-top: 1rem;
   }
 
-  .amount {
-    font-size: 1.8rem;
-    font-weight: bold;
-    margin: 0.5rem 0;
+  /* Tiers Section */
+  .tiers-section {
+    padding: 4rem 2rem;
   }
 
-  ul {
-    max-width: 600px;
-    margin: 1rem auto;
+  .tiers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .tier-card {
+    background: var(--white);
+    border: 2px solid var(--blue-pale);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .tier-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(29, 53, 87, 0.15);
+    border-color: var(--blue-light);
+  }
+
+  .tier-card.popular {
+    border-color: var(--red-primary);
+    border-width: 3px;
+  }
+
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--red-primary);
+    color: var(--white);
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .tier-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--blue-primary);
+    margin: 0 0 1rem 0;
+    letter-spacing: 0.05em;
+  }
+
+  .tier-amount {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--red-primary);
+    margin-bottom: 2rem;
+  }
+
+  .tier-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
     text-align: left;
   }
 
-  li {
-    margin: 0.75rem 0;
+  .tier-benefits li {
+    padding: 0.75rem 0;
+    color: var(--blue-primary);
+    font-size: 1rem;
+    border-bottom: 1px solid var(--blue-pale);
   }
 
-  .cta {
-    display: flex;
-    gap: 1rem;
-    margin: 2rem 0;
-    flex-wrap: wrap;
-    justify-content: center;
+  .tier-benefits li:last-child {
+    border-bottom: none;
   }
 
-  .cta a, .cta button {
-    padding: 0.75rem 1.5rem;
-    background: #ff3e00;
-    color: white;
-    text-decoration: none;
+  .tier-btn {
+    width: 100%;
+    padding: 1rem;
+    background: var(--blue-primary);
+    color: var(--white);
     border: none;
     border-radius: 6px;
-    font-weight: bold;
+    font-weight: 700;
+    font-size: 1rem;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.2s ease;
   }
 
-  .cta a:hover, .cta button:hover {
-    background: #e63800;
+  .tier-btn:hover {
+    background: var(--blue-light);
+    transform: translateY(-2px);
   }
 
-  @media (max-width: 768px) {
-    h1 {
-      font-size: 2rem;
+  .tier-card.popular .tier-btn {
+    background: var(--red-primary);
+  }
+
+  .tier-card.popular .tier-btn:hover {
+    background: var(--red-dark);
+  }
+
+  /* Token Section */
+  .token-section {
+    padding: 4rem 2rem;
+    background: var(--cream);
+  }
+
+  .token-box {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--white);
+    border: 2px solid var(--blue-pale);
+    border-radius: 12px;
+    padding: 3rem;
+  }
+
+  .token-price {
+    text-align: center;
+    font-size: 1.5rem;
+    color: var(--blue-primary);
+    margin-bottom: 3rem;
+  }
+
+  .token-price strong {
+    color: var(--red-primary);
+  }
+
+  .supply-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .supply-item {
+    text-align: center;
+    padding: 2rem;
+    background: var(--cream);
+    border-radius: 8px;
+    border: 1px solid var(--blue-pale);
+  }
+
+  .supply-label {
+    font-size: 0.9rem;
+    color: var(--blue-light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  .supply-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--blue-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .supply-sublabel {
+    font-size: 0.85rem;
+    color: var(--blue-light);
+  }
+
+  /* Allocation Section */
+  .allocation-section {
+    padding: 4rem 2rem;
+  }
+
+  .allocation-bars {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .allocation-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 80px;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .allocation-label {
+    font-weight: 600;
+    color: var(--blue-primary);
+    font-size: 1rem;
+  }
+
+  .allocation-bar-container {
+    height: 40px;
+    background: var(--cream);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 2px solid var(--blue-pale);
+  }
+
+  .allocation-bar-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+    border-radius: 18px;
+  }
+
+  .allocation-percentage {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--blue-primary);
+    text-align: right;
+  }
+
+  /* Steps Section */
+  .steps-section {
+    padding: 4rem 2rem;
+    background: var(--cream);
+  }
+
+  /* CTA Section */
+  .cta-section {
+    padding: 5rem 2rem;
+  }
+
+  .cta-box {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 4rem 3rem;
+    background: var(--cream);
+    border: 2px solid var(--blue-pale);
+    border-radius: 12px;
+  }
+
+  .cta-box h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--blue-primary);
+    margin: 0 0 2rem 0;
+  }
+
+  .connect-btn {
+    padding: 1.25rem 3rem;
+    background: var(--red-primary);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+  }
+
+  .connect-btn:hover {
+    background: var(--red-dark);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(230, 57, 70, 0.4);
+  }
+
+  .cta-note {
+    margin-top: 1.5rem;
+    font-size: 0.95rem;
+    color: var(--blue-light);
+  }
+
+  /* FAQ Section */
+  .faq-section {
+    padding: 4rem 2rem;
+    background: var(--cream);
+  }
+
+  .faq-list {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .faq-item {
+    background: var(--white);
+    border: 2px solid var(--blue-pale);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+
+  .faq-item:hover {
+    border-color: var(--blue-light);
+  }
+
+  .faq-question {
+    width: 100%;
+    padding: 1.5rem;
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--blue-primary);
+    text-align: left;
+    transition: background 0.2s ease;
+  }
+
+  .faq-question:hover {
+    background: var(--cream);
+  }
+
+  .faq-icon {
+    font-size: 0.9rem;
+    color: var(--red-primary);
+  }
+
+  .faq-answer {
+    padding: 0 1.5rem 1.5rem 3.5rem;
+    color: var(--blue-light);
+    line-height: 1.6;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive */
+  @media (max-width: 968px) {
+    .tiers-grid {
+      grid-template-columns: 1fr;
+      max-width: 400px;
+      margin: 0 auto;
     }
 
-    .fundraising-info {
+    .supply-grid {
       grid-template-columns: 1fr;
+    }
+
+    .allocation-row {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .allocation-label,
+    .allocation-percentage {
+      text-align: left;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding: 0 1rem;
+    }
+
+    .countdown-item .number {
+      font-size: 1.75rem;
+    }
+
+    .countdown-item .label {
+      font-size: 0.75rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+    }
+
+    .cta-box {
+      padding: 3rem 2rem;
+    }
+
+    .connect-btn {
+      width: 100%;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
     }
   }
 </style>
