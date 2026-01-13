@@ -1,4 +1,77 @@
 <script>
+  import PageHero from '$lib/components/PageHero.svelte';
+  import ProgressBar from '$lib/components/ProgressBar.svelte';
+  import TierCard from '$lib/components/TierCard.svelte';
+  import StepFlow from '$lib/components/StepFlow.svelte';
+  import Accordion from '$lib/components/Accordion.svelte';
+
+  const raised = 127450;
+  const goal = 500000;
+  const investors = 142;
+
+  // Countdown timer (mock - would be calculated from end date in real app)
+  const countdown = '14d 06h 32m 18s';
+
+  // Investment tiers
+  const tiers = [
+    {
+      title: 'STARTER',
+      price: '$100+',
+      benefits: [
+        '$CATCH tokens',
+        'Discord access',
+      ],
+      popular: false
+    },
+    {
+      title: 'TRAINER',
+      price: '$1,000+',
+      benefits: [
+        '$CATCH tokens',
+        'Discord access',
+        'Quarterly calls',
+      ],
+      popular: true
+    },
+    {
+      title: 'GYM LEADER',
+      price: '$10,000+',
+      benefits: [
+        '$CATCH tokens',
+        'Discord access',
+        'Quarterly calls',
+        'Advisory board',
+      ],
+      popular: false
+    }
+  ];
+
+  // Steps for investment process
+  const investmentSteps = [
+    { number: 1, label: 'Connect', subtitle: 'Wallet' },
+    { number: 2, label: 'Choose', subtitle: 'Amount' },
+    { number: 3, label: 'Receive', subtitle: '$CATCH' }
+  ];
+
+  // FAQ items
+  const faqItems = [
+    {
+      question: 'What is $CATCH?',
+      answer: '$CATCH is the governance token for Ash Strategy fund. Each token represents a share in the fund and gives you voting rights on portfolio decisions.'
+    },
+    {
+      question: 'How is the fund value calculated?',
+      answer: 'The Net Asset Value (NAV) is calculated based on the current market value of all cards in the portfolio, divided by the total supply of $CATCH tokens.'
+    },
+    {
+      question: 'Can I redeem my tokens?',
+      answer: 'Token redemption will be available after the initial lock-up period of 12 months. Redemption value is based on the current NAV per token.'
+    },
+    {
+      question: 'What are the risks?',
+      answer: 'Pokemon cards are alternative assets with price volatility. Card values can fluctuate based on market demand, condition, and rarity. Past performance does not guarantee future results.'
+    }
+  ];
 </script>
 
 <svelte:head>
@@ -6,149 +79,469 @@
   <meta name="description" content="Join the Ash Strategy fundraising round" />
 </svelte:head>
 
-<section>
-  <h1>Join the Fundraising Round</h1>
-  <p>Be part of the Pokemon card tokenization revolution</p>
+<div class="fundraising-page">
+  <PageHero
+    icon="💰"
+    title="Fundraising Round 1"
+    subtitle="Your chance to invest in Pokemon card alpha"
+  />
 
-  <div class="fundraising-info">
-    <div class="metric">
-      <h3>Target Raise</h3>
-      <p class="amount">$1,000,000</p>
-      <p>Minimum to launch</p>
+  <!-- Countdown Timer -->
+  <section class="countdown-section">
+    <div class="container">
+      <div class="countdown-banner">
+        <span class="countdown-label">⏰ Closes in:</span>
+        <span class="countdown-time">{countdown}</span>
+      </div>
     </div>
+  </section>
 
-    <div class="metric">
-      <h3>Fund Allocation</h3>
-      <p class="amount">80%</p>
-      <p>Card Acquisition</p>
-      <p class="amount" style="font-size: 1.2rem;">20%</p>
-      <p>Operations</p>
+  <!-- Progress Section -->
+  <section class="progress-section">
+    <div class="container">
+      <div class="progress-card">
+        <div class="progress-header">
+          <h2 class="progress-title">${raised.toLocaleString()} raised of ${goal.toLocaleString()} goal</h2>
+        </div>
+        <ProgressBar
+          current={raised}
+          total={goal}
+          label=""
+          showPercentage={true}
+          color="var(--accent-green)"
+        />
+        <div class="progress-footer">
+          <span class="investor-count">{investors} investors</span>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <div class="metric">
-      <h3>Participation</h3>
-      <p class="amount">Buy $CATCH</p>
-      <p>Tokens representing fund shares</p>
+  <!-- Investment Tiers -->
+  <section class="tiers-section">
+    <div class="container">
+      <h2 class="section-title">Investment Tiers</h2>
+      <div class="tiers-grid">
+        {#each tiers as tier}
+          <TierCard {...tier} />
+        {/each}
+      </div>
     </div>
-  </div>
+  </section>
 
-  <h2>Fundraising Benefits</h2>
-  <ul>
-    <li>Direct exposure to high-growth Pokemon card market</li>
-    <li>Diversified portfolio across all major grading companies</li>
-    <li>Governance rights via $CATCH token voting</li>
-    <li>Transparent on-chain portfolio tracking</li>
-    <li>Professional acquisition strategy with expert selection</li>
-  </ul>
+  <!-- Token Economics -->
+  <section class="economics-section">
+    <div class="container">
+      <div class="economics-card">
+        <h2 class="section-title">Token Economics</h2>
+        <div class="economics-price">
+          Round 1 Price: <strong>$1.00 per $CATCH</strong>
+        </div>
+        <div class="economics-grid">
+          <div class="economics-item">
+            <div class="economics-label">Total Supply</div>
+            <div class="economics-value">100,000</div>
+            <div class="economics-sublabel">tokens</div>
+          </div>
+          <div class="economics-item">
+            <div class="economics-label">Round 1</div>
+            <div class="economics-value">50,000</div>
+            <div class="economics-sublabel">available</div>
+          </div>
+          <div class="economics-item">
+            <div class="economics-label">Future</div>
+            <div class="economics-value">50,000</div>
+            <div class="economics-sublabel">reserved</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <div class="cta">
-    <a href="/">Back to Home</a>
-    <button>Interested? Coming Soon</button>
-  </div>
-</section>
+  <!-- Fund Allocation -->
+  <section class="allocation-section">
+    <div class="container">
+      <div class="allocation-card">
+        <h2 class="section-title">How Funds Will Be Used</h2>
+        <div class="allocation-bars">
+          <div class="allocation-item">
+            <div class="allocation-bar">
+              <div class="allocation-fill" style="width: 80%;"></div>
+            </div>
+            <div class="allocation-info">
+              <span class="allocation-percentage">80%</span>
+              <span class="allocation-label">Cards</span>
+            </div>
+          </div>
+          <div class="allocation-item">
+            <div class="allocation-bar">
+              <div class="allocation-fill" style="width: 15%;"></div>
+            </div>
+            <div class="allocation-info">
+              <span class="allocation-percentage">15%</span>
+              <span class="allocation-label">Operations</span>
+            </div>
+          </div>
+          <div class="allocation-item">
+            <div class="allocation-bar">
+              <div class="allocation-fill" style="width: 5%;"></div>
+            </div>
+            <div class="allocation-info">
+              <span class="allocation-percentage">5%</span>
+              <span class="allocation-label">Legal/Audit</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How to Invest -->
+  <section class="steps-section">
+    <div class="container">
+      <h2 class="section-title">How to Invest</h2>
+      <StepFlow steps={investmentSteps} />
+    </div>
+  </section>
+
+  <!-- Investment CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-card">
+        <button class="connect-btn">Connect Wallet</button>
+        <p class="cta-sublabel">Accepting: ETH, USDC, USDT on Base/Ethereum</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-section">
+    <div class="container">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <Accordion items={faqItems} />
+    </div>
+  </section>
+</div>
 
 <style>
-  section {
+  .fundraising-page {
+    width: 100%;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 2rem 0;
+    text-align: center;
+  }
+
+  /* Countdown Section */
+  .countdown-section {
+    padding: 2rem 0;
+    background: var(--bg-dark);
+  }
+
+  .countdown-banner {
+    background: linear-gradient(135deg, var(--bg-elevated), var(--bg-card));
+    border: 2px solid var(--accent-yellow);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    flex: 1;
-    padding: 2rem 1rem;
-  }
-
-  h1 {
-    color: #ff3e00;
-    font-size: 2.5rem;
-    margin: 1rem 0;
-    text-align: center;
-  }
-
-  h2 {
-    font-size: 1.8rem;
-    margin: 2rem 0 1rem 0;
-    text-align: center;
-  }
-
-  p {
-    text-align: center;
-    margin: 0.5rem 0;
-  }
-
-  .fundraising-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
-    margin: 2rem 0;
-    width: 100%;
-    max-width: 1000px;
-  }
-
-  .metric {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem;
-    border-radius: 12px;
-    color: white;
-    text-align: center;
-  }
-
-  .metric h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-  }
-
-  .metric p {
-    margin: 0.5rem 0;
-  }
-
-  .amount {
-    font-size: 1.8rem;
-    font-weight: bold;
-    margin: 0.5rem 0;
-  }
-
-  ul {
-    max-width: 600px;
-    margin: 1rem auto;
-    text-align: left;
-  }
-
-  li {
-    margin: 0.75rem 0;
-  }
-
-  .cta {
-    display: flex;
-    gap: 1rem;
-    margin: 2rem 0;
+    gap: 1.5rem;
     flex-wrap: wrap;
-    justify-content: center;
   }
 
-  .cta a, .cta button {
-    padding: 0.75rem 1.5rem;
-    background: #ff3e00;
-    color: white;
-    text-decoration: none;
+  .countdown-label {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .countdown-time {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent-yellow);
+  }
+
+  /* Progress Section */
+  .progress-section {
+    padding: 2rem 0 3rem;
+    background: var(--bg-dark);
+  }
+
+  .progress-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .progress-header {
+    text-align: center;
+  }
+
+  .progress-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .progress-footer {
+    text-align: center;
+  }
+
+  .investor-count {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  /* Tiers Section */
+  .tiers-section {
+    padding: 3rem 0;
+    background: var(--bg-dark);
+  }
+
+  .tiers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+
+  /* Economics Section */
+  .economics-section {
+    padding: 3rem 0;
+    background: var(--bg-dark);
+  }
+
+  .economics-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .economics-price {
+    text-align: center;
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+  }
+
+  .economics-price strong {
+    color: var(--accent-yellow);
+    font-size: 1.5rem;
+  }
+
+  .economics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .economics-item {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .economics-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .economics-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .economics-sublabel {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  /* Allocation Section */
+  .allocation-section {
+    padding: 3rem 0;
+    background: var(--bg-dark);
+  }
+
+  .allocation-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 3rem;
+  }
+
+  .allocation-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .allocation-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .allocation-bar {
+    width: 100%;
+    height: 40px;
+    background: var(--bg-elevated);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .allocation-fill {
+    height: 100%;
+    background: var(--accent-green);
+    transition: width 0.3s ease;
+  }
+
+  .allocation-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .allocation-percentage {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .allocation-label {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+  }
+
+  /* Steps Section */
+  .steps-section {
+    padding: 3rem 0;
+    background: var(--bg-dark);
+  }
+
+  /* CTA Section */
+  .cta-section {
+    padding: 3rem 0;
+    background: var(--bg-dark);
+  }
+
+  .cta-card {
+    background: var(--bg-card);
+    border: 2px solid var(--accent-yellow);
+    border-radius: 12px;
+    padding: 4rem 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .connect-btn {
+    padding: 1.25rem 3rem;
+    background: var(--accent-yellow);
+    color: var(--bg-dark);
     border: none;
-    border-radius: 6px;
-    font-weight: bold;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    font-weight: 800;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .cta a:hover, .cta button:hover {
-    background: #e63800;
+  .connect-btn:hover {
+    background: #fde68a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(252, 211, 77, 0.3);
   }
 
-  @media (max-width: 768px) {
-    h1 {
-      font-size: 2rem;
+  .cta-sublabel {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* FAQ Section */
+  .faq-section {
+    padding: 3rem 0 4rem;
+    background: var(--bg-dark);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 968px) {
+    .container {
+      padding: 0 1.5rem;
     }
 
-    .fundraising-info {
+    .economics-grid {
       grid-template-columns: 1fr;
+    }
+
+    .tiers-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding: 0 1rem;
+    }
+
+    .progress-card {
+      padding: 2rem 1.5rem;
+    }
+
+    .progress-title {
+      font-size: 1.35rem;
+    }
+
+    .countdown-banner {
+      padding: 1rem;
+    }
+
+    .countdown-time {
+      font-size: 1.25rem;
+    }
+
+    .economics-card,
+    .allocation-card,
+    .cta-card {
+      padding: 2rem 1.5rem;
+    }
+
+    .connect-btn {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      width: 100%;
     }
   }
 </style>

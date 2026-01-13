@@ -38,9 +38,9 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    background: rgba(29, 53, 87, 0.95);
+    background: rgba(26, 26, 36, 0.95);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border);
   }
 
   .navbar-container {
@@ -57,7 +57,7 @@
     align-items: center;
     gap: 0.75rem;
     text-decoration: none;
-    color: var(--cream);
+    color: var(--text-primary);
   }
 
   .logo {
@@ -83,7 +83,7 @@
   }
 
   .navbar-links a {
-    color: var(--cream);
+    color: var(--text-secondary);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
@@ -91,11 +91,11 @@
   }
 
   .navbar-links a:hover {
-    color: var(--white);
+    color: var(--text-primary);
   }
 
   .navbar-links li.active a {
-    color: var(--white);
+    color: var(--text-primary);
   }
 
   .navbar-links li.active::after {
@@ -105,13 +105,13 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--red-primary);
+    background: var(--accent-yellow);
   }
 
   .navbar-cta .invest-btn {
     padding: 0.6rem 1.5rem;
-    background: var(--red-primary);
-    color: var(--white);
+    background: var(--accent-yellow);
+    color: var(--bg-dark);
     text-decoration: none;
     font-weight: 600;
     font-size: 0.95rem;
@@ -121,9 +121,9 @@
   }
 
   .navbar-cta .invest-btn:hover {
-    background: var(--red-dark);
+    background: #fde68a;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+    box-shadow: 0 4px 12px rgba(252, 211, 77, 0.4);
   }
 
   @media (max-width: 768px) {

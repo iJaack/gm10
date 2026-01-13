@@ -1,33 +1,28 @@
 <script>
-	import Header from '$lib/header/Header.svelte';
-  import { browser } from '$app/env';
+  import Navbar from '$lib/components/Navbar.svelte';
+  import Footer from '$lib/components/Footer.svelte';
   import { page } from '$app/stores';
   import '../app.css';
- 
 </script>
 
-<Header />
+<Navbar />
 
 <main>
-	<slot />
+  <slot />
 </main>
+
+<Footer />
 
 
 
 <style>
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		width: 100%;
-		max-width: 1024px;
-		margin: 0 auto;
-		box-sizing: border-box;
-	}
-
-
-
-
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    padding-top: 80px;
+  }
 
 </style>

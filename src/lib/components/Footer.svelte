@@ -50,10 +50,10 @@
 
 <style>
   .footer {
-    background: var(--blue-primary);
-    color: var(--cream);
+    background: var(--bg-card);
+    color: var(--text-secondary);
     padding: 4rem 2rem 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border);
   }
 
   .footer-container {
@@ -77,15 +77,14 @@
   .footer-brand {
     font-size: 1.5rem;
     font-weight: 800;
-    color: var(--white);
+    color: var(--text-primary);
     margin: 0;
   }
 
   .footer-tagline {
     font-size: 0.95rem;
-    color: var(--cream);
+    color: var(--text-secondary);
     margin: 0;
-    opacity: 0.9;
     line-height: 1.6;
   }
 
@@ -103,20 +102,20 @@
     height: 40px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
-    color: var(--cream);
+    color: var(--text-secondary);
     transition: all 0.2s ease;
   }
 
   .footer-social a:hover {
-    background: var(--red-primary);
-    color: var(--white);
+    background: var(--accent-yellow);
+    color: var(--bg-dark);
     transform: translateY(-2px);
   }
 
   .footer-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--white);
+    color: var(--text-primary);
     margin: 0 0 0.5rem 0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -132,7 +131,7 @@
   }
 
   .footer-links a {
-    color: var(--cream);
+    color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.95rem;
     transition: all 0.2s ease;
@@ -140,7 +139,7 @@
   }
 
   .footer-links a:hover {
-    color: var(--white);
+    color: var(--text-primary);
     transform: translateX(4px);
   }
 
@@ -152,9 +151,8 @@
 
   .footer-copyright {
     font-size: 0.85rem;
-    color: var(--cream);
+    color: var(--text-muted);
     margin: 0;
-    opacity: 0.8;
   }
 
   @media (max-width: 968px) {
