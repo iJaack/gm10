@@ -24,7 +24,13 @@
   "type": "module",
   "dependencies": {
     "@fontsource/fira-mono": "^4.5.0",
+    "@reown/appkit": "^1.6.0",
+    "@reown/appkit-adapter-wagmi": "^1.6.0",
+    "@tanstack/svelte-query": "^5.62.12",
+    "@wagmi/core": "^2.15.3",
     "cookie": "^0.4.1",
+    "viem": "^2.21.56",
+    "wagmi": "^2.13.5",
     "web-vitals": "^2.1.4"
   }
 }
