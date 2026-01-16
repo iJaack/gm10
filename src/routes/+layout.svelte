@@ -1,7 +1,16 @@
 <script>
+  import { onMount } from 'svelte';
   import { browser } from '$app/env';
   import { page } from '$app/stores';
+  import { reconnect } from '@wagmi/core';
+  import { wagmiAdapter } from '$lib/web3';
   import '../app.css';
+
+  onMount(() => {
+    if (browser) {
+      reconnect(wagmiAdapter.wagmiConfig);
+    }
+  });
 
   // Only show header for legacy pages (about, todos)
   $: showLegacyHeader = !['/portfolio', '/fundraising', '/governance', '/'].includes($page.url.pathname);

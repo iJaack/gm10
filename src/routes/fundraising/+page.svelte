@@ -1,4 +1,8 @@
 <script>
+  import { onMount } from 'svelte';
+  import { getAccount, writeContract } from '@wagmi/core';
+  import { parseEther } from 'viem';
+  import { wagmiAdapter } from '$lib/web3';
   import Navbar from '$lib/components/Navbar.svelte';
   import PageHero from '$lib/components/PageHero.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
@@ -11,22 +15,37 @@
   const investors = 142;
   const countdown = { days: 14, hours: 6, minutes: 32, seconds: 18 };
 
+  // Fund Contract details (Replace with deployed address)
+  const FUND_ADDRESS = "0xYOUR_CONTRACT_ADDRESS"; 
+  const INVEST_ABI = [
+    {
+      "inputs": [],
+      "name": "invest",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    }
+  ];
+
   const tiers = [
     {
       name: 'STARTER',
-      amount: '$100+',
+      amount: '$100+', // Display only
+      minEth: '0.1', // Example AVAX amount
       popular: false,
       benefits: ['$CATCH tokens', 'Discord access']
     },
     {
       name: 'TRAINER',
       amount: '$1,000+',
+      minEth: '1.0',
       popular: true,
       benefits: ['$CATCH tokens', 'Discord access', 'Quarterly calls']
     },
     {
       name: 'GYM LEADER',
       amount: '$10,000+',
+      minEth: '10.0',
       popular: false,
       benefits: ['$CATCH tokens', 'Discord access', 'Quarterly calls', 'Advisory board']
     }
@@ -52,15 +71,48 @@
   ];
 
   let openFaqIndex = null;
+  let isConnected = false;
 
   function toggleFaq(index) {
     openFaqIndex = openFaqIndex === index ? null : index;
+  }
+
+  // Check connection status
+  onMount(() => {
+    const account = getAccount(wagmiAdapter.wagmiConfig);
+    isConnected = account.isConnected;
+    
+    // Listen for changes could be added here
+    // For simplicity, we just check on mount or rely on the modal interactions
+  });
+
+  async function handleInvest(tier) {
+    const account = getAccount(wagmiAdapter.wagmiConfig);
+    if (!account.isConnected) {
+      alert("Please connect your wallet first via the Navbar button!");
+      return;
+    }
+
+    try {
+      const result = await writeContract(wagmiAdapter.wagmiConfig, {
+        address: FUND_ADDRESS,
+        abi: INVEST_ABI,
+        functionName: 'invest',
+        value: parseEther(tier.minEth)
+      });
+      console.log("Transaction sent:", result);
+      alert("Investment transaction sent! Hash: " + result);
+    } catch (error) {
+      console.error("Investment failed:", error);
+      alert("Investment failed: " + error.message);
+    }
   }
 </script>
 
 <svelte:head>
   <title>Fundraising - Ash Strategy</title>
   <meta name="description" content="Your chance to invest in Pokemon card alpha" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 </svelte:head>
 
 <div class="page-wrapper">
@@ -128,7 +180,9 @@
                   <li>▪ {benefit}</li>
                 {/each}
               </ul>
-              <button class="tier-btn">Select</button>
+              <button class="tier-btn" on:click={() => handleInvest(tier)}>
+                Invest {tier.minEth} AVAX
+              </button>
             </div>
           {/each}
         </div>
@@ -197,8 +251,11 @@
       <div class="container">
         <div class="cta-box">
           <h2>Ready to Invest?</h2>
-          <button class="connect-btn">Connect Wallet</button>
-          <p class="cta-note">Accepting: ETH, USDC, USDT on Base/Ethereum</p>
+          <!-- AppKit Button -->
+           <div class="connect-wrapper">
+             <w3m-button />
+           </div>
+          <p class="cta-note">Accepting: AVAX on Avalanche C-Chain</p>
         </div>
       </div>
     </section>
@@ -309,6 +366,10 @@
   .progress-container {
     max-width: 800px;
     margin: 0 auto;
+    padding: 2rem;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   }
 
   .progress-title {
@@ -346,6 +407,8 @@
     text-align: center;
     transition: all 0.3s ease;
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
   .tier-card:hover {
@@ -381,7 +444,7 @@
   }
 
   .tier-amount {
-    font-size: 2rem;
+    font-size: 1.5rem; /* Adjusted size */
     font-weight: 800;
     color: var(--red-primary);
     margin-bottom: 2rem;
@@ -392,6 +455,7 @@
     padding: 0;
     margin: 0 0 2rem 0;
     text-align: left;
+    flex-grow: 1;
   }
 
   .tier-benefits li {
@@ -516,6 +580,7 @@
     font-weight: 600;
     color: var(--blue-primary);
     font-size: 1rem;
+    text-align: right;
   }
 
   .allocation-bar-container {
@@ -536,7 +601,7 @@
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--blue-primary);
-    text-align: right;
+    text-align: left;
   }
 
   /* Steps Section */
@@ -567,23 +632,9 @@
     margin: 0 0 2rem 0;
   }
 
-  .connect-btn {
-    padding: 1.25rem 3rem;
-    background: var(--red-primary);
-    color: var(--white);
-    border: none;
-    border-radius: 8px;
-    font-weight: 800;
-    font-size: 1.25rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
-  }
-
-  .connect-btn:hover {
-    background: var(--red-dark);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(230, 57, 70, 0.4);
+  .connect-wrapper {
+    display: flex;
+    justify-content: center;
   }
 
   .cta-note {
@@ -703,12 +754,6 @@
 
     .cta-box {
       padding: 3rem 2rem;
-    }
-
-    .connect-btn {
-      width: 100%;
-      padding: 1rem 2rem;
-      font-size: 1.1rem;
     }
   }
 </style>

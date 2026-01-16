@@ -1,0 +1,30 @@
+{
+  "name": "ash-strategy-contracts",
+  "version": "1.0.0",
+  "description": "Ash Strategy Fund Smart Contracts - Avalanche C-Chain",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "deploy:fuji": "hardhat run scripts/deploy.js --network fuji",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network avalanche",
+    "verify:fuji": "hardhat run scripts/verify.js --network fuji",
+    "verify:mainnet": "hardhat run scripts/verify.js --network avalanche",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.4"
+  },
+  "keywords": [
+    "avalanche",
+    "solidity",
+    "smart-contract",
+    "pokemon",
+    "tokenization",
+    "defi"
+  ],
+  "license": "MIT"
+}
