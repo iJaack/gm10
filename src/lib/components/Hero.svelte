@@ -56,8 +56,31 @@
 
     <div class="hero-image" class:mounted>
       <div class="cards-showcase">
-        <!-- PSA 10 Charizard 1st Edition Base Set -->
+        <!-- BGS 10 Black Label Umbreon VMAX Alt Art -->
         <div class="graded-card card-1">
+          <div class="card-glow bgs-glow"></div>
+          <div class="card-frame bgs-frame">
+            <div class="card-inner">
+              <img
+                src="https://images.pokemontcg.io/swsh7/215_hires.png"
+                alt="Umbreon VMAX Alt Art"
+                class="card-image"
+                loading="eager"
+              />
+            </div>
+            <div class="grade-label bgs-label">
+              <span class="grader-name">BGS</span>
+              <span class="grade-score">BLACK LABEL 10</span>
+            </div>
+          </div>
+          <div class="card-info-tag">
+            <span class="card-name">Umbreon VMAX</span>
+            <span class="card-set">Evolving Skies</span>
+          </div>
+        </div>
+
+        <!-- PSA 10 Charizard 1st Edition -->
+        <div class="graded-card card-2">
           <div class="card-glow psa-glow"></div>
           <div class="card-frame psa-frame">
             <div class="card-inner">
@@ -80,7 +103,7 @@
         </div>
 
         <!-- TAG 10 Pikachu Illustrator -->
-        <div class="graded-card card-2">
+        <div class="graded-card card-3">
           <div class="card-glow tag-glow"></div>
           <div class="card-frame tag-frame">
             <div class="card-inner">
@@ -99,29 +122,6 @@
           <div class="card-info-tag">
             <span class="card-name">Pikachu</span>
             <span class="card-set">Illustrator Promo</span>
-          </div>
-        </div>
-
-        <!-- CGC 10 Pristine Mewtwo -->
-        <div class="graded-card card-3">
-          <div class="card-glow cgc-glow"></div>
-          <div class="card-frame cgc-frame">
-            <div class="card-inner">
-              <img
-                src="https://images.pokemontcg.io/base1/10_hires.png"
-                alt="Mewtwo Base Set"
-                class="card-image"
-                loading="eager"
-              />
-            </div>
-            <div class="grade-label cgc-label">
-              <span class="grader-name">CGC</span>
-              <span class="grade-score">PRISTINE 10</span>
-            </div>
-          </div>
-          <div class="card-info-tag">
-            <span class="card-name">Mewtwo</span>
-            <span class="card-set">Base Set Holo</span>
           </div>
         </div>
       </div>
@@ -429,8 +429,8 @@
     background: linear-gradient(135deg, #ffd93d 0%, #ffb347 100%);
   }
 
-  .cgc-glow {
-    background: linear-gradient(135deg, #6bcf7f 0%, #4ecdc4 100%);
+  .bgs-glow {
+    background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 50%, #1a1a1a 100%);
   }
 
   .card-frame {
@@ -454,9 +454,13 @@
     border: 2px solid #ffd93d;
   }
 
-  .cgc-frame {
-    background: linear-gradient(180deg, #228b22 0%, #1a6b1a 50%, #0f4f0f 100%);
-    border: 2px solid #6bcf7f;
+  .bgs-frame {
+    background: linear-gradient(180deg, #0a0a0a 0%, #000000 50%, #0a0a0a 100%);
+    border: 2px solid #333333;
+    box-shadow:
+      0 25px 80px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0 30px rgba(150, 150, 150, 0.3);
   }
 
   .card-inner {
@@ -498,6 +502,15 @@
     font-weight: 700;
     color: rgba(255, 255, 255, 0.9);
     letter-spacing: 0.1em;
+  }
+
+  .bgs-label .grader-name {
+    color: #cccccc;
+  }
+
+  .bgs-label .grade-score {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
   .card-info-tag {
