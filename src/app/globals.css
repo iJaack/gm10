@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue-primary: #1d3557;
+  --blue-light: #457b9d;
+  --blue-pale: #a8dadc;
+  --cream: #f1faee;
+  --red-primary: #e63946;
+  --red-dark: #c41e3a;
+  --white: #ffffff;
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 10, 15, 28;
+  --background-end-rgb: 13, 24, 41;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+/* Custom Utilities */
+.gradient-text {
+  background: linear-gradient(135deg, #ff6b7a 0%, #ffd93d 50%, #6bcf7f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
