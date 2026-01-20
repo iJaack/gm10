@@ -25,13 +25,13 @@ export default function Hero() {
                     </div>
 
                     <h1 className="text-5xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-0">
-                        Invest in <span className="gradient-text bg-gradient-to-br from-[#56d3ff] via-[#90efff] to-[#4facfe] bg-clip-text text-transparent">$CATCH</span><br />
+                        Buy <span className="gradient-text bg-gradient-to-br from-[#56d3ff] via-[#90efff] to-[#4facfe] bg-clip-text text-transparent">$CATCH</span><br />
                         Graded Card Alpha
                     </h1>
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
                         Buying the $CATCH token gives exposure to the graded card market growth.<br className="hidden md:block" />
-                        Transparent. Liquid. On-chain.
+                        Transparent. Liquid. Onchain.
                     </p>
 
                     <div className="flex flex-wrap gap-4 items-center mt-2">

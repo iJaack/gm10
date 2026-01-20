@@ -38,7 +38,7 @@ export default function Navbar() {
                         <Link
                             to="/"
                             className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${location.pathname === '/'
-                                ? 'text-white bg-red-primary/15'
+                                ? 'text-white bg-blue-primary/15'
                                 : 'text-white/70 hover:text-white hover:bg-white/10'
                                 }`}
                         >
@@ -47,13 +47,24 @@ export default function Navbar() {
                     </li>
                     <li>
                         <Link
-                            to="/fundraising"
-                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${location.pathname === '/fundraising'
-                                ? 'text-white bg-red-primary/15'
+                            to="/how-it-works"
+                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${location.pathname === '/how-it-works'
+                                ? 'text-white bg-blue-primary/15'
                                 : 'text-white/70 hover:text-white hover:bg-white/10'
                                 }`}
                         >
-                            Invest
+                            How it Works
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            to="/fundraising"
+                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${location.pathname === '/fundraising'
+                                ? 'text-white bg-blue-primary/15'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                                }`}
+                        >
+                            Buy
                         </Link>
                     </li>
                 </ul>

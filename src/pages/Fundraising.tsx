@@ -52,7 +52,7 @@ export default function Fundraising() {
 
                 <div className="max-w-md mx-auto relative bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(56,189,248,0.1)]">
                     <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Amount to Invest (AVAX)</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Amount to Buy (AVAX)</label>
                         <div className="relative">
                             <input
                                 type="number"
