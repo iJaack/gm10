@@ -11,8 +11,8 @@ export default function Hero() {
     return (
         <section className="relative min-h-screen flex items-center overflow-hidden py-32 px-4 bg-gradient-to-br from-[#0a0f1c] via-[#1a1f3c] to-[#0d1829] text-cream">
             {/* Background Orbs */}
-            <div className="absolute top-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-radial-red opacity-40 blur-[80px] animate-float delay-0" />
-            <div className="absolute bottom-[-150px] left-[-100px] w-[500px] h-[500px] rounded-full bg-radial-blue opacity-50 blur-[80px] animate-float delay-7000" />
+            <div className="absolute top-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-blue-500/20 opacity-40 blur-[80px] animate-float delay-0" />
+            <div className="absolute bottom-[-150px] left-[-100px] w-[500px] h-[500px] rounded-full bg-cyan-500/20 opacity-50 blur-[80px] animate-float delay-7000" />
 
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(230,57,70,0.15),transparent_50%)] pointer-events-none" />
 
@@ -25,22 +25,22 @@ export default function Hero() {
                     </div>
 
                     <h1 className="text-5xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-0">
-                        Invest in <span className="gradient-text bg-gradient-to-br from-[#ff6b7a] via-[#ffd93d] to-[#6bcf7f] bg-clip-text text-transparent">Pokémon</span><br />
-                        Card Alpha
+                        Invest in <span className="gradient-text bg-gradient-to-br from-[#56d3ff] via-[#90efff] to-[#4facfe] bg-clip-text text-transparent">$CATCH</span><br />
+                        Graded Card Alpha
                     </h1>
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
-                        Tokenized exposure to graded card market growth.<br className="hidden md:block" />
+                        Buying the $CATCH token gives exposure to the graded card market growth.<br className="hidden md:block" />
                         Transparent. Liquid. On-chain.
                     </p>
 
                     <div className="flex flex-wrap gap-4 items-center mt-2">
                         <Link
                             to="/fundraising"
-                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-red-primary to-[#ff6b7a] text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(230,57,70,0.4)] hover:shadow-[0_8px_30px_rgba(230,57,70,0.5)] transition-all duration-300 hover:-translate-y-1"
+                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-blue-500 to-cyan-400 text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(56,189,248,0.4)] hover:shadow-[0_8px_30px_rgba(56,189,248,0.5)] transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out" />
-                            <span>Invest Now</span>
+                            <span>Buy $CATCH</span>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
