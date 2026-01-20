@@ -1,8 +1,7 @@
 'use client'
 
 import React, { ReactNode } from 'react'
-import { config, projectId, networks } from '@/config'
-import { createMetadata } from '@/config'
+import { config, projectId, networks, wagmiAdapter } from '@/config'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { State, WagmiProvider } from 'wagmi'
@@ -19,21 +18,6 @@ const metadata = {
     url: 'https://ashstrategy.com',
     icons: ['https://assets.reown.com/reown-profile-pic.png']
 }
-
-createAppKit({
-    adapters: [config], // AppKit expects the Wagmi adapter/config depending on version, checking docs... adapter logic
-    // Actually for @reown/appkit/react + wagmi adapter, we pass the wagmiAdapter instance usually or the config.
-    // Docs say: adapters: [wagmiAdapter]
-    networks,
-    projectId,
-    metadata,
-    features: {
-        analytics: true
-    }
-})
-
-// Correct setup:
-import { wagmiAdapter } from '@/config'
 
 createAppKit({
     adapters: [wagmiAdapter],
