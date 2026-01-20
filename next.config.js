@@ -5,9 +5,10 @@ const nextConfig = {
     webpack: (config) => {
         config.externals.push("pino-pretty", "lokijs", "encoding");
         config.resolve.fallback = { ...config.resolve.fallback, fs: false, net: false, tls: false };
-        // Fix for 'Can't resolve porto/internal' in @wagmi/connectors
+        // Fix for 'Can't resolve porto' and 'porto/internal' in @wagmi/connectors
         config.resolve.alias = {
             ...config.resolve.alias,
+            'porto': false,
             'porto/internal': false,
         };
         return config;
