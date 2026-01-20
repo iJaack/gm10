@@ -19,7 +19,7 @@ export default function HowItWorks() {
         },
         {
             title: "4. Liquidity & Exit",
-            description: "You can sell your $CATCH tokens back to the pool at any time, allowing for 24/7 liquidity without waiting for buyers.",
+            description: "You won't be able to sell your $CATCH tokens back into the pool, but on the market. This gives way to access or exit the graded card market 24/7.",
             icon: "💧"
         }
     ];
