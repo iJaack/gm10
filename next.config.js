@@ -10,6 +10,7 @@ const nextConfig = {
             ...config.resolve.alias,
             'porto': false,
             'porto/internal': false,
+            '@react-native-async-storage/async-storage': false,
         };
         return config;
     },
