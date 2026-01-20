@@ -1,15 +1,15 @@
 /** @type {import('next').NextConfig} */
-const webpack = require('webpack');
-
 const nextConfig = {
     reactStrictMode: true,
+    transpilePackages: ['@reown/appkit', '@reown/appkit-adapter-wagmi', 'wagmi', 'viem', '@wagmi/connectors'],
     webpack: (config) => {
         config.externals.push("pino-pretty", "lokijs", "encoding");
-        config.plugins.push(
-            new webpack.IgnorePlugin({
-                resourceRegExp: /^porto\/internal$/,
-            })
-        );
+        config.resolve.fallback = { ...config.resolve.fallback, fs: false, net: false, tls: false };
+        // Fix for 'Can't resolve porto/internal' in @wagmi/connectors
+        config.resolve.alias = {
+            ...config.resolve.alias,
+            'porto/internal': false,
+        };
         return config;
     },
 };
