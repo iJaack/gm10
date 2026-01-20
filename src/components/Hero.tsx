@@ -1,8 +1,5 @@
-'use client'
-
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
+import { Link } from 'react-router-dom'
 
 export default function Hero() {
     const [mounted, setMounted] = useState(false)
@@ -39,7 +36,7 @@ export default function Hero() {
 
                     <div className="flex flex-wrap gap-4 items-center mt-2">
                         <Link
-                            href="/fundraising"
+                            to="/fundraising"
                             className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-red-primary to-[#ff6b7a] text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(230,57,70,0.4)] hover:shadow-[0_8px_30px_rgba(230,57,70,0.5)] transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out" />
@@ -50,7 +47,7 @@ export default function Hero() {
                         </Link>
 
                         <Link
-                            href="/portfolio"
+                            to="/portfolio"
                             className="inline-flex items-center gap-2 px-6 py-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md text-white/80 font-semibold hover:bg-white/10 hover:text-white hover:border-white/30 transition-all duration-300"
                         >
                             View Portfolio →

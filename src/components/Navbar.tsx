@@ -1,20 +1,18 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export default function Navbar() {
-    const [scrolled, setScrolled] = useState(false)
-    const pathname = usePathname()
+    const [scrolled, setScrolled] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 20)
-        }
-        window.addEventListener('scroll', handleScroll)
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     return (
         <nav
@@ -25,7 +23,7 @@ export default function Navbar() {
         >
             <div className={`max-w-[1400px] mx-auto flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-4 px-8' : 'py-6 px-8'}`}>
                 <div className="flex items-center gap-3">
-                    <Link href="/" className="flex items-center gap-3 no-underline text-white hover:opacity-90 transition-opacity group">
+                    <Link to="/" className="flex items-center gap-3 no-underline text-white hover:opacity-90 transition-opacity group">
                         <div className="w-10 h-10 flex items-center justify-center bg-red-primary/20 border border-red-primary/30 rounded-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(230,57,70,0.3)]">
                             <span className="text-xl">⚡</span>
                         </div>
@@ -38,8 +36,8 @@ export default function Navbar() {
                 <ul className="hidden md:flex items-center gap-2 m-0 p-0 list-none">
                     <li>
                         <Link
-                            href="/"
-                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${pathname === '/'
+                            to="/"
+                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${location.pathname === '/'
                                     ? 'text-white bg-red-primary/15'
                                     : 'text-white/70 hover:text-white hover:bg-white/10'
                                 }`}
@@ -49,33 +47,25 @@ export default function Navbar() {
                     </li>
                     <li>
                         <Link
-                            href="/portfolio"
-                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${pathname === '/portfolio'
+                            to="/fundraising"
+                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${location.pathname === '/fundraising'
                                     ? 'text-white bg-red-primary/15'
                                     : 'text-white/70 hover:text-white hover:bg-white/10'
                                 }`}
                         >
-                            Portfolio
-                        </Link>
-                    </li>
-                    <li>
-                        <Link
-                            href="/governance"
-                            className={`px-4 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-200 ${pathname === '/governance'
-                                    ? 'text-white bg-red-primary/15'
-                                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                                }`}
-                        >
-                            Governance
+                            Invest
                         </Link>
                     </li>
                 </ul>
 
                 <div>
-                    {/* @ts-ignore */}
-                    <w3m-button />
+                    <ConnectButton
+                        accountStatus="address"
+                        chainStatus="icon"
+                        showBalance={false}
+                    />
                 </div>
             </div>
         </nav>
-    )
+    );
 }
