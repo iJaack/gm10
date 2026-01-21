@@ -185,8 +185,8 @@ export default function Fundraising() {
                             {isConnected ? (
                                 <button
                                     onClick={handleInvest}
-                                    disabled={isPending || isConfirming || !amount || parseFloat(amount) < MIN_INVESTMENT}
-                                    className={`w-full py-4 rounded-xl font-bold text-white transition-all ${isPending || !amount || parseFloat(amount) < MIN_INVESTMENT
+                                    disabled={isPending || isConfirming || !amount || parseFloat(amount) < MIN_INVESTMENT || parseFloat(amount) > MAX_INVESTMENT}
+                                    className={`w-full py-4 rounded-xl font-bold text-white transition-all ${isPending || !amount || parseFloat(amount) < MIN_INVESTMENT || parseFloat(amount) > MAX_INVESTMENT
                                         ? 'bg-gray-600 cursor-not-allowed'
                                         : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/25'
                                         }`}
