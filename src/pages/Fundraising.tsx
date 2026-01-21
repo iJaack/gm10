@@ -19,6 +19,7 @@ const ROUND_TARGET = 50000; // AVAX
 const ROUND_RAISED = 0; // AVAX (placeholder - would read from contract)
 const CURRENT_NAV = 1.0; // AVAX per $CATCH
 const MIN_INVESTMENT = 0.1; // AVAX
+const MAX_INVESTMENT = 200; // AVAX per wallet
 
 export default function Fundraising() {
     const { isConnected } = useAccount();
@@ -107,9 +108,9 @@ export default function Fundraising() {
                                 <div className="text-xs text-gray-400">~${(MIN_INVESTMENT * 25).toFixed(0)} USD</div>
                             </div>
                             <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6">
-                                <div className="text-sm text-gray-400 mb-2">Management Fee</div>
-                                <div className="text-3xl font-bold text-white mb-1">1%</div>
-                                <div className="text-xs text-gray-400">annually on AUM</div>
+                                <div className="text-sm text-gray-400 mb-2">Max Investment</div>
+                                <div className="text-3xl font-bold text-white mb-1">{MAX_INVESTMENT} AVAX</div>
+                                <div className="text-xs text-gray-400">per wallet</div>
                             </div>
                         </div>
 
@@ -156,6 +157,7 @@ export default function Fundraising() {
                                         onChange={(e) => setAmount(e.target.value)}
                                         placeholder="0.0"
                                         min={MIN_INVESTMENT}
+                                        max={MAX_INVESTMENT}
                                         step="0.1"
                                         className="w-full bg-[#0a0f1c] border border-gray-700 rounded-xl px-4 py-4 text-white text-xl font-semibold focus:outline-none focus:border-blue-500 transition-colors"
                                     />
@@ -163,6 +165,9 @@ export default function Fundraising() {
                                 </div>
                                 {amount && parseFloat(amount) < MIN_INVESTMENT && (
                                     <p className="text-xs text-red-400 mt-2">Minimum investment is {MIN_INVESTMENT} AVAX</p>
+                                )}
+                                {amount && parseFloat(amount) > MAX_INVESTMENT && (
+                                    <p className="text-xs text-red-400 mt-2">Maximum investment is {MAX_INVESTMENT} AVAX per wallet</p>
                                 )}
                             </div>
 
@@ -182,8 +187,8 @@ export default function Fundraising() {
                                     onClick={handleInvest}
                                     disabled={isPending || isConfirming || !amount || parseFloat(amount) < MIN_INVESTMENT}
                                     className={`w-full py-4 rounded-xl font-bold text-white transition-all ${isPending || !amount || parseFloat(amount) < MIN_INVESTMENT
-                                            ? 'bg-gray-600 cursor-not-allowed'
-                                            : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/25'
+                                        ? 'bg-gray-600 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/25'
                                         }`}
                                 >
                                     {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Invest in Round 1'}
