@@ -15,9 +15,9 @@ const INVEST_ABI = [
 ] as const;
 
 // Fundraising Round Info (these would come from smart contract in production)
-const ROUND_TARGET = 50000; // AVAX
+const ROUND_TARGET = 10000; // AVAX
 const ROUND_RAISED = 0; // AVAX (placeholder - would read from contract)
-const CURRENT_NAV = 1.0; // AVAX per $CATCH
+const CURRENT_NAV = 0.0025; // AVAX per $CATCH (400 CATCH per 1 AVAX)
 const MIN_INVESTMENT = 0.1; // AVAX
 const MAX_INVESTMENT = 200; // AVAX per wallet
 
