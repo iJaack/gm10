@@ -30,7 +30,7 @@ export default function Hero() {
                     </h1>
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
-                        Buying the $CATCH token gives exposure to the graded card market growth.<br className="hidden md:block" />
+                        Accessible exposure to the graded card market.<br className="hidden md:block" />
                         Transparent. Liquid. <span className="text-white/90 font-semibold">Governed by holders.</span>
                     </p>
 
