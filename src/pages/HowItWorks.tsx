@@ -4,22 +4,22 @@ export default function HowItWorks() {
     const steps = [
         {
             title: "1. Acquire $CATCH",
-            description: "Buy the $CATCH token directly onchain. The token represents your exposure to the performance of the graded card market.",
+            description: "Buy the $CATCH token during fundraising rounds or on Trader Joe DEX. Each token represents fractional ownership in a portfolio of high-graded Pokemon cards.",
             icon: "💎"
         },
         {
             title: "2. Portfolio Growth",
-            description: "The treasury uses funds to acquire high-grade graded cards (PSA/BGS 10s). As the market value of these cards fluctuates, the backing of the token adjusts.",
+            description: "The treasury deploys funds to acquire museum-quality graded cards (PSA/BGS 10s). As the market value of these cards appreciates, the Net Asset Value (NAV) of each $CATCH token adjusts accordingly.",
             icon: "📈"
         },
         {
             title: "3. Governance",
-            description: "Token holders can vote on key decisions, including which cards to acquire or sell, ensuring community-driven management of the portfolio.",
+            description: "Token holders vote on acquisitions, sales, and fund strategy. Minimum 1,000 $CATCH to submit proposals. Your voice shapes the portfolio direction.",
             icon: "🗳️"
         },
         {
             title: "4. Liquidity & Exit",
-            description: "You won't be able to sell your $CATCH tokens back into the pool, but on the market. This gives way to access or exit the graded card market 24/7.",
+            description: "Trade $CATCH 24/7 on Trader Joe or redeem for AVAX at NAV (when enabled). Initial liquidity is permanently locked via burned LP tokens—provably immutable.",
             icon: "💧"
         }
     ];

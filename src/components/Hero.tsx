@@ -31,7 +31,7 @@ export default function Hero() {
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
                         Buying the $CATCH token gives exposure to the graded card market growth.<br className="hidden md:block" />
-                        Transparent. Liquid. Onchain.
+                        Transparent. Liquid. <span className="text-white/90 font-semibold">Governed by holders.</span>
                     </p>
 
                     <div className="flex flex-wrap gap-4 items-center mt-2">
@@ -56,18 +56,18 @@ export default function Hero() {
 
                     <div className="flex items-center gap-6 mt-6 p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md w-fit">
                         <div className="flex flex-col gap-1">
-                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">$127K+</span>
+                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">Coming Soon</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">AUM</span>
                         </div>
                         <div className="w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">23</span>
+                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">--</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">Cards</span>
                         </div>
                         <div className="w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">+18.4%</span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-white/50">YTD</span>
+                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">1% Fee</span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-white/50">MGMT</span>
                         </div>
                     </div>
                 </div>
