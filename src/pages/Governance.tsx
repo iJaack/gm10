@@ -191,8 +191,8 @@ export default function Governance() {
                     <button
                         onClick={() => setActiveTab('active')}
                         className={`px-6 py-3 font-semibold transition-all ${activeTab === 'active'
-                                ? 'text-white border-b-2 border-blue-500'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'text-white border-b-2 border-blue-500'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Active Proposals ({mockProposals.filter(p => p.status === 'active').length})
@@ -200,8 +200,8 @@ export default function Governance() {
                     <button
                         onClick={() => setActiveTab('create')}
                         className={`px-6 py-3 font-semibold transition-all ${activeTab === 'create'
-                                ? 'text-white border-b-2 border-blue-500'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'text-white border-b-2 border-blue-500'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Create Proposal
@@ -209,8 +209,8 @@ export default function Governance() {
                     <button
                         onClick={() => setActiveTab('history')}
                         className={`px-6 py-3 font-semibold transition-all ${activeTab === 'history'
-                                ? 'text-white border-b-2 border-blue-500'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'text-white border-b-2 border-blue-500'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         History
@@ -379,7 +379,7 @@ export default function Governance() {
                                             <ul className="mt-2 space-y-1 ml-4 list-disc">
                                                 <li>Minimum 10,000 $CATCH to submit</li>
                                                 <li>10% quorum required to pass (2.4M votes)</li>
-                                                <li>Simple majority (>50% for) to approve</li>
+                                                <li>Simple majority (&gt;50% for) to approve</li>
                                                 <li>Voting period: 7-30 days</li>
                                             </ul>
                                         </div>
