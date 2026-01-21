@@ -5,6 +5,7 @@ import Fundraising from './pages/Fundraising';
 import Footer from './components/Footer';
 import HowItWorks from './pages/HowItWorks';
 import FAQ from './pages/FAQ';
+import Tokenomics from './pages/Tokenomics';
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                         <Route path="/how-it-works" element={<HowItWorks />} />
                         <Route path="/fundraising" element={<Fundraising />} />
                         <Route path="/faq" element={<FAQ />} />
+                        <Route path="/tokenomics" element={<Tokenomics />} />
                     </Routes>
                 </div>
                 <Footer />
