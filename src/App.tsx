@@ -7,6 +7,7 @@ import HowItWorks from './pages/HowItWorks';
 import FAQ from './pages/FAQ';
 import Tokenomics from './pages/Tokenomics';
 import Governance from './pages/Governance';
+import Portfolio from './pages/Portfolio';
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
                         <Route path="/faq" element={<FAQ />} />
                         <Route path="/tokenomics" element={<Tokenomics />} />
                         <Route path="/governance" element={<Governance />} />
+                        <Route path="/portfolio" element={<Portfolio />} />
                     </Routes>
                 </div>
                 <Footer />
