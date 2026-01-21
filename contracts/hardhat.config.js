@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-ledger");
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -18,14 +19,16 @@ module.exports = {
     avalanche: {
       url: "https://api.avax.network/ext/bc/C/rpc",
       chainId: 43114,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      // accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [], // Legacy private key
+      ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [],
       gasPrice: 25000000000, // 25 gwei
     },
     // Avalanche Fuji Testnet
     fuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       chainId: 43113,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      // accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [],
       gasPrice: 25000000000,
     },
     // Local development
@@ -54,7 +57,7 @@ module.exports = {
     token: "AVAX",
   },
   paths: {
-    sources: "./",
+    sources: "./contracts",
     tests: "./test",
     cache: "./cache",
     artifacts: "./artifacts",
