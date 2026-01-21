@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import HowItWorks from './pages/HowItWorks';
 import FAQ from './pages/FAQ';
 import Tokenomics from './pages/Tokenomics';
+import Governance from './pages/Governance';
 
 function App() {
     return (
@@ -19,6 +20,7 @@ function App() {
                         <Route path="/fundraising" element={<Fundraising />} />
                         <Route path="/faq" element={<FAQ />} />
                         <Route path="/tokenomics" element={<Tokenomics />} />
+                        <Route path="/governance" element={<Governance />} />
                     </Routes>
                 </div>
                 <Footer />
