@@ -8,6 +8,10 @@
     "coverage": "hardhat coverage",
     "deploy:fuji": "hardhat run scripts/deploy.js --network fuji",
     "deploy:mainnet": "hardhat run scripts/deploy.js --network avalanche",
+    "deploy:proxy:fuji": "hardhat run scripts/deployProxy.js --network fuji",
+    "deploy:proxy:mainnet": "hardhat run scripts/deployProxy.js --network avalanche",
+    "upgrade:proxy:fuji": "hardhat run scripts/upgradeProxy.js --network fuji",
+    "upgrade:proxy:mainnet": "hardhat run scripts/upgradeProxy.js --network avalanche",
     "verify:fuji": "hardhat run scripts/verify.js --network fuji",
     "verify:mainnet": "hardhat run scripts/verify.js --network avalanche",
     "clean": "hardhat clean"
@@ -16,6 +20,8 @@
     "@nomicfoundation/hardhat-ledger": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.0.1",
+    "@openzeppelin/contracts-upgradeable": "^5.0.1",
+    "@openzeppelin/hardhat-upgrades": "^3.0.5",
     "dotenv": "^16.3.1",
     "hardhat": "^2.19.4"
   },
