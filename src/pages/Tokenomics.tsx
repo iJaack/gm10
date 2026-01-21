@@ -259,7 +259,7 @@ export default function Tokenomics() {
                         <div>
                             <div className="text-5xl mb-3">🌍</div>
                             <div className="font-bold text-white mb-2">Retail Accessible</div>
-                            <div className="text-sm text-gray-400">0.1 AVAX minimum (~$2.50) enables broad participation</div>
+                            <div className="text-sm text-gray-400">0.1 AVAX minimum enables broad participation</div>
                         </div>
                         <div>
                             <div className="text-5xl mb-3">🔒</div>
