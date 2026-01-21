@@ -23,10 +23,10 @@ async function main() {
   console.log("Performance Fee:", PERFORMANCE_FEE / 100, "%");
 
   // Deploy the contract
-  console.log("\n--- Deploying AshStrategyFund ---");
+  console.log("\n--- Deploying GemMintStrategyFund ---");
 
-  const AshStrategyFund = await hre.ethers.getContractFactory("AshStrategyFund");
-  const fund = await AshStrategyFund.deploy(
+  const GemMintStrategyFund = await hre.ethers.getContractFactory("GemMintStrategyFund");
+  const fund = await GemMintStrategyFund.deploy(
     TREASURY_ADDRESS,
     MANAGEMENT_FEE,
     PERFORMANCE_FEE
@@ -35,7 +35,7 @@ async function main() {
   await fund.waitForDeployment();
   const fundAddress = await fund.getAddress();
 
-  console.log("\nAshStrategyFund deployed to:", fundAddress);
+  console.log("\nGemMintStrategyFund deployed to:", fundAddress);
 
   // Wait for confirmations
   console.log("\nWaiting for block confirmations...");

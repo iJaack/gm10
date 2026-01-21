@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title AshStrategyFund
- * @author Ash Strategy Team
+ * @title GemMintStrategyFund
+ * @author Gem Mint Strategy Team
  * @notice $CATCH Token - Tokenized Pokemon Card Fund on Avalanche C-Chain
  * @dev ERC20 token representing fractional ownership in a curated portfolio of graded Pokemon cards
  *
@@ -23,7 +23,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * - DAO governance integration ready
  * - Emergency pause functionality
  */
-contract AshStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, ReentrancyGuard {
+contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, ReentrancyGuard {
 
     // ============ Roles ============
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -142,7 +142,7 @@ contract AshStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessControl, 
         address _treasury,
         uint256 _managementFee,
         uint256 _performanceFee
-    ) ERC20("Ash Strategy CATCH", "CATCH") {
+    ) ERC20("Gem Mint Strategy", "CATCH") {
         if (_treasury == address(0)) revert ZeroAddress();
         if (_managementFee > MAX_FEE || _performanceFee > MAX_FEE) revert InvalidParameters();
 

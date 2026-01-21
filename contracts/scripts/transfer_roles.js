@@ -16,7 +16,7 @@ async function main() {
     console.log("Target Multisig:", MULTISIG_ADDRESS);
     console.log("Fund Address:", FUND_ADDRESS);
 
-    const fund = await hre.ethers.getContractAt("AshStrategyFund", FUND_ADDRESS);
+    const fund = await hre.ethers.getContractAt("GemMintStrategyFund", FUND_ADDRESS);
 
     // Roles (from contract source)
     const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000";

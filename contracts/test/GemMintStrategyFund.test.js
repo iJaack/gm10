@@ -1,8 +1,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("AshStrategyFund", function () {
-    let AshStrategyFund;
+describe("GemMintStrategyFund", function () {
+    let GemMintStrategyFund;
     let fund;
     let owner;
     let addr1;
@@ -17,8 +17,8 @@ describe("AshStrategyFund", function () {
     beforeEach(async function () {
         [owner, addr1, addr2, addr3, treasury, ...addrs] = await ethers.getSigners();
 
-        AshStrategyFund = await ethers.getContractFactory("AshStrategyFund");
-        fund = await AshStrategyFund.deploy(treasury.address, MANAGEMENT_FEE, PERFORMANCE_FEE);
+        GemMintStrategyFund = await ethers.getContractFactory("GemMintStrategyFund");
+        fund = await GemMintStrategyFund.deploy(treasury.address, MANAGEMENT_FEE, PERFORMANCE_FEE);
         await fund.waitForDeployment();
     });
 
