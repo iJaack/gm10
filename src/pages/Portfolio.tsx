@@ -70,7 +70,26 @@ export default function Portfolio() {
                     ))}
                 </div>
 
+                {/* Disclaimer Banner */}
+                <div className="bg-orange-900/20 border border-orange-500/30 rounded-3xl p-8 mb-16">
+                    <div className="flex items-start gap-4">
+                        <div className="text-3xl flex-shrink-0">⚠️</div>
+                        <div>
+                            <h3 className="text-xl font-bold text-orange-300 mb-2">Example Cards Only</h3>
+                            <p className="text-gray-300 leading-relaxed">
+                                The cards displayed below are <strong>examples for demonstration purposes only</strong> and do not represent current actual ownership.
+                                This gallery will be updated with a real-time overview of our treasury collection after <strong>Round 1 is complete</strong> (February 2026).
+                                All acquired cards will be professionally authenticated, graded, and stored in secure vaults with full transparency.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Cards Gallery */}
+                <div className="mb-4 text-center">
+                    <h2 className="text-2xl font-bold text-gray-400">Example Portfolio Gallery</h2>
+                    <p className="text-sm text-gray-500 mt-1">Not representative of current holdings</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
                     {cards.map((card) => (
                         <div key={card.id} className="group bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-3xl overflow-hidden hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300">
