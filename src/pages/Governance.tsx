@@ -60,7 +60,7 @@ export default function Governance() {
     const { address, isConnected } = useAccount();
     const [activeTab, setActiveTab] = useState<'active' | 'create' | 'history'>('active');
     const [proposalDescription, setProposalDescription] = useState('');
-    const [votingPeriod, setVotingPeriod] = useState('14'); // days
+    const [votingPeriod, setVotingPeriod] = useState('30'); // days
 
     // Read user's $CATCH balance
     const { data: userBalance } = useReadContract({
@@ -119,7 +119,7 @@ export default function Governance() {
             forVotes: 1250000,
             againstVotes: 350000,
             abstainVotes: 100000,
-            quorum: 10,
+            quorum: 30,
             deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days
             status: 'active',
             category: 'Acquisition'
@@ -132,7 +132,7 @@ export default function Governance() {
             forVotes: 890000,
             againstVotes: 1200000,
             abstainVotes: 50000,
-            quorum: 10,
+            quorum: 30,
             deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
             status: 'active',
             category: 'Fee Adjustment'
@@ -366,11 +366,11 @@ export default function Governance() {
                                             type="number"
                                             value={votingPeriod}
                                             onChange={(e) => setVotingPeriod(e.target.value)}
-                                            min="7"
-                                            max="30"
+                                            min="14"
+                                            max="60"
                                             className="w-full px-4 py-3 bg-[#0a0f1c] border border-blue-500/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                                         />
-                                        <div className="text-xs text-gray-500 mt-1">Recommended: 14 days</div>
+                                        <div className="text-xs text-gray-500 mt-1">Recommended: 30 days</div>
                                     </div>
 
                                     <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">
@@ -378,9 +378,9 @@ export default function Governance() {
                                             <strong>Proposal Requirements:</strong>
                                             <ul className="mt-2 space-y-1 ml-4 list-disc">
                                                 <li>Minimum 10,000 $CATCH to submit</li>
-                                                <li>10% quorum required to pass (2.4M votes)</li>
+                                                <li>30% quorum required to pass (7.2M votes)</li>
                                                 <li>Simple majority (&gt;50% for) to approve</li>
-                                                <li>Voting period: 7-30 days</li>
+                                                <li>Voting period: 14-60 days</li>
                                             </ul>
                                         </div>
                                     </div>

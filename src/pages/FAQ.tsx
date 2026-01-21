@@ -6,11 +6,11 @@ export default function FAQ() {
         },
         {
             question: "Can the team rug pull the liquidity?",
-            answer: "No. LP tokens are burned to the dead address (0x...dEaD). It's mathematically impossible to remove liquidity. This is verifiable on-chain and proves our long-term commitment."
+            answer: "No. LP tokens are burned to the dead address (0x...dEaD). It's mathematically impossible to remove liquidity. This is verifiable onchain and proves our long-term commitment."
         },
         {
             question: "How often is NAV updated?",
-            answer: "Oracle updates NAV whenever significant market movements occur, with a minimum of monthly updates. All NAV changes are transparent and verifiable on-chain."
+            answer: "Oracle updates NAV whenever significant market movements occur, with a minimum of monthly updates. All NAV changes are transparent and verifiable onchain."
         },
         {
             question: "Can I redeem my $CATCH for AVAX?",
@@ -30,7 +30,7 @@ export default function FAQ() {
         },
         {
             question: "How do I vote on proposals?",
-            answer: "Hold at least 1,000 $CATCH to submit proposals. Vote weight is proportional to your holdings. Voting is on-chain and transparent. Approved proposals are executed by the multisig."
+            answer: "Hold at least 10,000 $CATCH to submit proposals. Vote weight is proportional to your holdings. Voting is onchain and transparent. Approved proposals are executed by the multisig."
         }
     ];
 

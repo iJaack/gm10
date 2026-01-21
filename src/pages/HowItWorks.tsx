@@ -9,17 +9,17 @@ export default function HowItWorks() {
         },
         {
             title: "2. Portfolio Growth",
-            description: "The treasury deploys funds to acquire museum-quality graded cards (PSA/BGS 10s). As the market value of these cards appreciates, the Net Asset Value (NAV) of each $CATCH token adjusts accordingly.",
+            description: "The treasury acquires premium graded cards as NFTs from platforms like Courtyard, Phygital, or Collector Crypt. Physical cards may also be purchased and tokenized. As card values appreciate, your $CATCH NAV increases.",
             icon: "📈"
         },
         {
             title: "3. Governance",
-            description: "Token holders vote on acquisitions, sales, and fund strategy. Minimum 1,000 $CATCH to submit proposals. Your voice shapes the portfolio direction.",
+            description: "Token holders vote on acquisitions, sales, and fund strategy. Minimum 10,000 $CATCH to submit proposals. 30-day voting periods with 30% quorum. Your voice shapes the portfolio direction.",
             icon: "🗳️"
         },
         {
             title: "4. Liquidity & Exit",
-            description: "Trade $CATCH 24/7 on Trader Joe or redeem for AVAX at NAV (when enabled). Initial liquidity is permanently locked via burned LP tokens—provably immutable.",
+            description: "Trade $CATCH 24/7 on Trader Joe or redeem for AVAX at NAV (when enabled). LP tokens are permanently burned. When cards sell, 10% of proceeds buy AVAX to grow the LP and support price via buybacks.",
             icon: "💧"
         }
     ];
