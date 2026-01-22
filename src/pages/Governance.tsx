@@ -53,7 +53,7 @@ const GOVERNANCE_ABI = [
     }
 ] as const;
 
-const CONTRACT_ADDRESS = '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C' as `0x${string}`; // Upgradeable Proxy
+const CONTRACT_ADDRESS = '0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf' as `0x${string}`; // GemMintGovernor Proxy
 const MIN_PROPOSAL_THRESHOLD = 10000; // 10,000 $CATCH required to propose
 
 export default function Governance() {

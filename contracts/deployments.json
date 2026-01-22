@@ -9,6 +9,12 @@
     "performanceFee": 1000,
     "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
     "deployedAt": "2026-01-22T07:52:30.578Z",
-    "blockNumber": 50917922
+    "blockNumber": 50917922,
+    "timelock": "0x73cBa10f55251da73423c7Ea76EC4743F5F583d3",
+    "timelockImpl": "0x957D40f665f6cC592496e37a69c6CC93e4e0B9f1",
+    "governor": "0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf",
+    "governorImpl": "0xBD5A05a73E9BD63c45899cC2D8B4b9B15f537E2F",
+    "implementationV2": "0xBc03c72Fa6Eb1512FFeEF159264391f3B62B73a5",
+    "lastUpgrade": "2026-01-22T12:02:32.897Z"
   }
 }
