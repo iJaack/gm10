@@ -53,7 +53,7 @@ const GOVERNANCE_ABI = [
     }
 ] as const;
 
-const CONTRACT_ADDRESS = '0xba448fF3cC52c43fbF189941ec75c9a59Dac02Be' as `0x${string}`;
+const CONTRACT_ADDRESS = '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C' as `0x${string}`; // Upgradeable Proxy
 const MIN_PROPOSAL_THRESHOLD = 10000; // 10,000 $CATCH required to propose
 
 export default function Governance() {

@@ -3,7 +3,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagm
 import { parseEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
-const FUND_ADDRESS = "0xba448fF3cC52c43fbF189941ec75c9a59Dac02Be"; // Avalanche Fuji Testnet
+const FUND_ADDRESS = "0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C"; // Upgradeable Proxy - Avalanche Fuji Testnet
 const INVEST_ABI = [
     {
         inputs: [],
