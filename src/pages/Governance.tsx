@@ -60,7 +60,7 @@ export default function Governance() {
     const { address, isConnected } = useAccount();
     const [activeTab, setActiveTab] = useState<'active' | 'create' | 'history'>('active');
     const [proposalDescription, setProposalDescription] = useState('');
-    const [votingPeriod, setVotingPeriod] = useState('30'); // days
+    const [votingPeriod, setVotingPeriod] = useState('3'); // days
 
     // Read user's $CATCH balance
     const { data: userBalance } = useReadContract({
@@ -224,7 +224,7 @@ export default function Governance() {
                             const totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
                             const forPercentage = totalVotes > 0 ? (proposal.forVotes / totalVotes) * 100 : 0;
                             const againstPercentage = totalVotes > 0 ? (proposal.againstVotes / totalVotes) * 100 : 0;
-                            const quorumProgress = totalVotes > 0 ? (totalVotes / 24000000) * 100 : 0; // 10% of 24M supply
+                            const quorumProgress = totalVotes > 0 ? (totalVotes / 2400000) * 100 : 0; // 10% of 24M supply
                             const timeRemaining = Math.ceil((proposal.deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
 
                             return (
@@ -370,7 +370,7 @@ export default function Governance() {
                                             max="60"
                                             className="w-full px-4 py-3 bg-[#0a0f1c] border border-blue-500/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                                         />
-                                        <div className="text-xs text-gray-500 mt-1">Recommended: 30 days</div>
+                                        <div className="text-xs text-gray-500 mt-1">Fixed: 3 days</div>
                                     </div>
 
                                     <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">
@@ -378,9 +378,9 @@ export default function Governance() {
                                             <strong>Proposal Requirements:</strong>
                                             <ul className="mt-2 space-y-1 ml-4 list-disc">
                                                 <li>Minimum 10,000 $CATCH to submit</li>
-                                                <li>30% quorum required to pass (7.2M votes)</li>
+                                                <li>10% quorum required to pass (2.4M votes)</li>
                                                 <li>Simple majority (&gt;50% for) to approve</li>
-                                                <li>Voting period: 14-60 days</li>
+                                                <li>Fixed voting period: 3 days</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -426,14 +426,14 @@ export default function Governance() {
                         <div className="text-3xl mb-3">⏱️</div>
                         <div className="font-bold text-white mb-2">Voting Period</div>
                         <div className="text-sm text-gray-400">
-                            14-day standard period gives community time for thorough discussion and informed decisions
+                            3-day standard period allows for quick decision making while ensuring community participation
                         </div>
                     </div>
                     <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6">
                         <div className="text-3xl mb-3">✅</div>
                         <div className="font-bold text-white mb-2">Execution</div>
                         <div className="text-sm text-gray-400">
-                            Passed proposals are executed by the multisig within 48 hours of vote completion
+                            Passed proposals are queued in the Timelock and executed automatically after 24 hours
                         </div>
                     </div>
                 </div>

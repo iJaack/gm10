@@ -30,7 +30,7 @@ export default function FAQ() {
         },
         {
             question: "How do I vote on proposals?",
-            answer: "Hold at least 10,000 $CATCH to submit proposals. Vote weight is proportional to your holdings. Voting is onchain and transparent. Approved proposals are executed by the multisig."
+            answer: "Hold at least 10,000 $CATCH to submit proposals. Vote weight is proportional to your holdings. Voting is onchain with a 3-day period and 10% quorum. Approved proposals are executed automatically by the Timelock."
         }
     ];
 

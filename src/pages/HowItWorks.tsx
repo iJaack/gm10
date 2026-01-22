@@ -14,7 +14,7 @@ export default function HowItWorks() {
         },
         {
             title: "3. Governance",
-            description: "Token holders vote on acquisitions, sales, and fund strategy. Minimum 10,000 $CATCH to submit proposals. 30-day voting periods with 30% quorum. Your voice shapes the portfolio direction.",
+            description: "Token holders vote on acquisitions, sales, and fund strategy. Minimum 10,000 $CATCH to submit proposals. 3-day voting periods with 10% quorum. Your voice shapes the portfolio direction.",
             icon: "🗳️"
         },
         {
