@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.23;
 
 /**
  * @title IRouter (Trader Joe V2 Router Interface)
@@ -33,11 +33,3 @@ interface IRouter {
     ) external payable returns (uint256 amountToken, uint256 amountAVAX, uint256 liquidity);
 }
 
-/**
- * @title IERC20 Minimal Interface
- */
-interface IERC20 {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}

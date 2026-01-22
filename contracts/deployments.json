@@ -1,0 +1,14 @@
+{
+  "fuji": {
+    "network": "fuji",
+    "chainId": "43113",
+    "proxy": "0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C",
+    "implementation": "0x938B90f0b53a69Ab8d08feef077F5a96D15A3c4c",
+    "treasury": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "managementFee": 100,
+    "performanceFee": 1000,
+    "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "deployedAt": "2026-01-22T07:52:30.578Z",
+    "blockNumber": 50917922
+  }
+}
