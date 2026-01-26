@@ -24,7 +24,7 @@ export default function Hero() {
                         <span className="text-sm font-semibold text-[#ff6b7a]">Built on Avalanche</span>
                     </div>
 
-                    <h1 className="text-5xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-0">
+                    <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-0">
                         Buy <span className="gradient-text bg-gradient-to-br from-[#56d3ff] via-[#90efff] to-[#4facfe] bg-clip-text text-transparent">$CATCH</span><br />
                         Graded Card Alpha
                     </h1>
@@ -54,26 +54,56 @@ export default function Hero() {
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-6 mt-6 p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md w-fit">
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-6 p-4 sm:p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md w-full sm:w-fit">
                         <div className="flex flex-col gap-1">
-                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">Coming Soon</span>
+                            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">Coming Soon</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">AUM</span>
                         </div>
-                        <div className="w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
+                        <div className="hidden sm:block w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">--</span>
+                            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">--</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">Cards</span>
                         </div>
-                        <div className="w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
+                        <div className="hidden sm:block w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">1% Fee</span>
+                            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">1% Fee</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">MGMT</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Cards Showcase */}
-                <div className={`relative w-full max-w-[550px] h-[580px] flex items-center justify-center perspective-[1000px] transition-all duration-1000 ease-out delay-200 transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                {/* Mobile Card Preview - Simple horizontal scroll */}
+                <div className={`lg:hidden w-full overflow-x-auto pb-4 transition-all duration-1000 ease-out delay-200 transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="flex gap-4 px-2 min-w-max">
+                        <div className="w-[140px] p-2 rounded-xl bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757]/50 shadow-lg">
+                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
+                                <img src="https://images.pokemontcg.io/base1/4_hires.png" alt="Charizard" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-white text-xs font-bold">PSA 10</div>
+                            </div>
+                        </div>
+                        <div className="w-[140px] p-2 rounded-xl bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-lg">
+                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
+                                <img src="https://images.pokemontcg.io/swsh7/215_hires.png" alt="Umbreon" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-white text-xs font-bold">BGS 10</div>
+                            </div>
+                        </div>
+                        <div className="w-[140px] p-2 rounded-xl bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border border-[#ffd93d]/50 shadow-lg">
+                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
+                                <img src="https://images.pokemontcg.io/basep/4_hires.png" alt="Pikachu" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-white text-xs font-bold">TAG 10</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop Cards Showcase - Hidden on mobile, shown on lg+ */}
+                <div className={`hidden lg:flex relative w-full max-w-[550px] h-[580px] items-center justify-center perspective-[1000px] transition-all duration-1000 ease-out delay-200 transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                     {/* Umbreon BGS */}
                     <div className="absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#0a0a0a] to-[#0a0a0a] border-2 border-[#333] shadow-[0_25px_80px_rgba(0,0,0,0.7)] transform -rotate-[12deg] -translate-x-[120px] translate-y-[20px] hover:-rotate-[5deg] hover:-translate-x-[100px] hover:-translate-y-[20px] hover:scale-110 hover:z-20 transition-all duration-500 cursor-pointer z-[3] group">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] via-[#4a4a4a] to-[#1a1a1a] blur-[30px] opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-xl" />
