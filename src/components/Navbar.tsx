@@ -95,13 +95,13 @@ export default function Navbar() {
 
             {/* Mobile Menu Overlay */}
             {mobileMenuOpen && (
-                <div className="md:hidden absolute top-full left-0 right-0 bg-[#0a0f1c]/98 backdrop-blur-xl border-b border-white/10 p-6 animate-in slide-in-from-top duration-300">
-                    <ul className="flex flex-col gap-4 list-none m-0 p-0">
+                <div className="md:hidden fixed inset-0 top-0 left-0 right-0 bottom-0 bg-[#0a0f1c] z-[100] flex flex-col p-6 pt-24 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <ul className="flex flex-col gap-2 list-none m-0 p-0 overflow-y-auto">
                         {navLinks.map((link) => (
                             <li key={link.path}>
                                 <Link
                                     to={link.path}
-                                    className={`block px-4 py-3 rounded-xl text-lg font-semibold transition-all ${location.pathname === link.path
+                                    className={`block px-6 py-4 rounded-2xl text-xl font-bold transition-all ${location.pathname === link.path
                                         ? 'text-white bg-blue-primary/20 border border-blue-primary/30'
                                         : 'text-white/70 hover:text-white hover:bg-white/5'
                                         }`}
@@ -111,6 +111,13 @@ export default function Navbar() {
                             </li>
                         ))}
                     </ul>
+                    <div className="mt-auto pt-10 pb-8 flex justify-center border-t border-white/10">
+                        <ConnectButton
+                            accountStatus={{ smallScreen: 'avatar', largeScreen: 'address' }}
+                            chainStatus="icon"
+                            showBalance={false}
+                        />
+                    </div>
                 </div>
             )}
         </nav>
