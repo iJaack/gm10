@@ -3,7 +3,7 @@ import { avalancheFuji } from 'wagmi/chains';
 
 export const config = getDefaultConfig({
     appName: 'Gem Mint Strategy',
-    projectId: 'YOUR_PROJECT_ID', // User needs to provide this
+    projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
     chains: [avalancheFuji],
     ssr: false, // Important for Vite/SPA
 });

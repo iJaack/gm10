@@ -6,7 +6,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 const FUND_ADDRESS = "0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C"; // Upgradeable Proxy - Avalanche Fuji Testnet
 const INVEST_ABI = [
     {
-        inputs: [],
+        inputs: [{ name: "_roundId", type: "uint256" }],
         name: "invest",
         outputs: [],
         stateMutability: "payable",
@@ -35,6 +35,7 @@ export default function Fundraising() {
             address: FUND_ADDRESS,
             abi: INVEST_ABI,
             functionName: 'invest',
+            args: [BigInt(1)], // Investing in Round 1
             value: parseEther(amount),
         });
     };

@@ -8,7 +8,7 @@ export default function Portfolio() {
             grade: "PSA 10",
             grader: "PSA",
             value: "$8,500",
-            image: "/images/cards/charizard_psa10.png",
+            image: "https://images.pokemontcg.io/base1/4_hires.png",
             description: "Iconic holographic Charizard from the Base Set. One of the most sought-after Pokemon cards.",
             rarity: "Holo Rare"
         },
@@ -20,7 +20,7 @@ export default function Portfolio() {
             grade: "BGS 10 Black Label",
             grader: "BGS",
             value: "$3,200",
-            image: "/images/cards/umbreon_vmax_bgs.png",
+            image: "https://images.pokemontcg.io/swsh7/215_hires.png",
             description: "Modern alternate art VMAX with pristine Black Label grade. All 10 subgrades.",
             rarity: "Secret Rare"
         },
@@ -32,7 +32,7 @@ export default function Portfolio() {
             grade: "PSA 9",
             grader: "PSA",
             value: "$1,800",
-            image: "/images/cards/lugia_psa9.png",
+            image: "https://images.pokemontcg.io/neo1/9_hires.png",
             description: "Legendary bird Pokemon from the Neo Genesis expansion. Classic vintage holo.",
             rarity: "Holo Rare"
         }

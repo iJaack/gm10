@@ -7,43 +7,36 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 const GOVERNANCE_ABI = [
     {
         inputs: [
-            { name: "_description", type: "string" },
-            { name: "_votingPeriod", type: "uint256" }
+            { name: "targets", type: "address[]" },
+            { name: "values", type: "uint256[]" },
+            { name: "calldatas", type: "bytes[]" },
+            { name: "description", type: "string" }
         ],
-        name: "createProposal",
-        outputs: [{ name: "", type: "uint256" }],
+        name: "propose",
+        outputs: [{ name: "proposalId", type: "uint256" }],
         stateMutability: "nonpayable",
         type: "function"
     },
     {
-        inputs: [{ name: "_proposalId", type: "uint256" }, { name: "_support", type: "bool" }],
-        name: "vote",
-        outputs: [],
+        inputs: [
+            { name: "proposalId", type: "uint256" },
+            { name: "support", type: "uint8" }
+        ],
+        name: "castVote",
+        outputs: [{ name: "weight", type: "uint256" }],
         stateMutability: "nonpayable",
         type: "function"
     },
     {
-        inputs: [{ name: "", type: "uint256" }],
-        name: "proposals",
-        outputs: [
-            { name: "proposer", type: "address" },
-            { name: "description", type: "string" },
-            { name: "votingDeadline", type: "uint256" },
-            { name: "forVotes", type: "uint256" },
-            { name: "againstVotes", type: "uint256" },
-            { name: "executed", type: "bool" },
-            { name: "canceled", type: "bool" }
-        ],
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "state",
+        outputs: [{ name: "", type: "uint8" }],
         stateMutability: "view",
         type: "function"
-    },
-    {
-        inputs: [],
-        name: "proposalCount",
-        outputs: [{ name: "", type: "uint256" }],
-        stateMutability: "view",
-        type: "function"
-    },
+    }
+] as const;
+
+const TOKEN_ABI = [
     {
         inputs: [{ name: "account", type: "address" }],
         name: "balanceOf",
@@ -53,28 +46,21 @@ const GOVERNANCE_ABI = [
     }
 ] as const;
 
-const CONTRACT_ADDRESS = '0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf' as `0x${string}`; // GemMintGovernor Proxy
+const GOVERNOR_ADDRESS = '0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf' as `0x${string}`;
+const TOKEN_ADDRESS = '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C' as `0x${string}`;
 const MIN_PROPOSAL_THRESHOLD = 10000; // 10,000 $CATCH required to propose
 
 export default function Governance() {
     const { address, isConnected } = useAccount();
     const [activeTab, setActiveTab] = useState<'active' | 'create' | 'history'>('active');
     const [proposalDescription, setProposalDescription] = useState('');
-    const [votingPeriod, setVotingPeriod] = useState('3'); // days
 
-    // Read user's $CATCH balance
+    // Read user's $CATCH balance from TOKEN contract
     const { data: userBalance } = useReadContract({
-        address: CONTRACT_ADDRESS,
-        abi: GOVERNANCE_ABI,
+        address: TOKEN_ADDRESS,
+        abi: TOKEN_ABI,
         functionName: 'balanceOf',
         args: address ? [address] : undefined,
-    });
-
-    // Read proposal count
-    const { data: proposalCount } = useReadContract({
-        address: CONTRACT_ADDRESS,
-        abi: GOVERNANCE_ABI,
-        functionName: 'proposalCount',
     });
 
     // Write contract functions
@@ -87,22 +73,26 @@ export default function Governance() {
             return;
         }
 
-        const votingPeriodSeconds = parseInt(votingPeriod) * 24 * 60 * 60; // Convert days to seconds
-
+        // Standard Governor Propose parameters
         writeContract({
-            address: CONTRACT_ADDRESS,
+            address: GOVERNOR_ADDRESS,
             abi: GOVERNANCE_ABI,
-            functionName: 'createProposal',
-            args: [proposalDescription, BigInt(votingPeriodSeconds)]
+            functionName: 'propose',
+            args: [
+                [TOKEN_ADDRESS], // target
+                [BigInt(0)], // value
+                ['0x' as `0x${string}`], // calldata
+                proposalDescription
+            ]
         });
     };
 
-    const handleVote = (proposalId: number, support: boolean) => {
+    const handleVote = (proposalId: number, support: number) => {
         writeContract({
-            address: CONTRACT_ADDRESS,
+            address: GOVERNOR_ADDRESS,
             abi: GOVERNANCE_ABI,
-            functionName: 'vote',
-            args: [BigInt(proposalId), support]
+            functionName: 'castVote',
+            args: [BigInt(proposalId), support] // support: 0=Against, 1=For, 2=Abstain
         });
     };
 
@@ -280,14 +270,14 @@ export default function Governance() {
                                     {isConnected ? (
                                         <div className="flex gap-4">
                                             <button
-                                                onClick={() => handleVote(proposal.id, true)}
+                                                onClick={() => handleVote(proposal.id, 1)}
                                                 disabled={isPending || isConfirming}
                                                 className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-xl font-bold text-white transition-all disabled:opacity-50"
                                             >
                                                 Vote For
                                             </button>
                                             <button
-                                                onClick={() => handleVote(proposal.id, false)}
+                                                onClick={() => handleVote(proposal.id, 0)}
                                                 disabled={isPending || isConfirming}
                                                 className="flex-1 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl font-bold text-white transition-all disabled:opacity-50"
                                             >
@@ -360,17 +350,11 @@ export default function Governance() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-300 mb-2">
-                                            Voting Period (Days)
+                                            Voting Period
                                         </label>
-                                        <input
-                                            type="number"
-                                            value={votingPeriod}
-                                            onChange={(e) => setVotingPeriod(e.target.value)}
-                                            min="14"
-                                            max="60"
-                                            className="w-full px-4 py-3 bg-[#0a0f1c] border border-blue-500/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
-                                        />
-                                        <div className="text-xs text-gray-500 mt-1">Fixed: 3 days</div>
+                                        <div className="w-full px-4 py-3 bg-[#0a0f1c]/50 border border-blue-500/10 rounded-xl text-gray-500">
+                                            Fixed: 3 days (Protocol Standard)
+                                        </div>
                                     </div>
 
                                     <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">

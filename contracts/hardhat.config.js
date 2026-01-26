@@ -40,8 +40,16 @@ module.exports = {
     },
     hardhat: {
       chainId: 31337,
+      hardfork: "cancun",
+      chains: {
+        43113: {
+          hardforkHistory: {
+            cancun: 1,
+          },
+        },
+      },
       forking: {
-        url: "https://api.avax.network/ext/bc/C/rpc",
+        url: "https://api.avax-test.network/ext/bc/C/rpc",
         enabled: false,
       },
     },
