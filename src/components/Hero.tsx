@@ -9,7 +9,7 @@ export default function Hero() {
     }, [])
 
     return (
-        <section className="relative min-h-screen flex items-center overflow-hidden py-32 px-4 bg-gradient-to-br from-[#0a0f1c] via-[#1a1f3c] to-[#0d1829] text-cream">
+        <section className="relative min-h-screen flex items-center overflow-hidden py-20 lg:py-32 px-4 bg-gradient-to-br from-[#0a0f1c] via-[#1a1f3c] to-[#0d1829] text-cream">
             {/* Background Orbs */}
             <div className="absolute top-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-blue-500/20 opacity-40 blur-[80px] animate-float delay-0" />
             <div className="absolute bottom-[-150px] left-[-100px] w-[500px] h-[500px] rounded-full bg-cyan-500/20 opacity-50 blur-[80px] animate-float delay-7000" />
@@ -18,40 +18,40 @@ export default function Hero() {
 
             <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-16 items-center relative z-10 w-full">
                 {/* Mobile Cards - Above content on mobile */}
-                <div className={`lg:hidden flex justify-center mb-4 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    <div className="relative w-[280px] h-[220px]">
+                <div className={`lg:hidden flex justify-center mb-2 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="relative w-[336px] h-[264px]">
                         {/* Umbreon - Left */}
-                        <div className="absolute w-[90px] p-1.5 rounded-lg bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-xl transform -rotate-[12deg] left-0 top-[20px] z-[1]">
+                        <div className="absolute w-[108px] p-2 rounded-lg bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-xl transform -rotate-[12deg] left-0 top-[24px] z-[1]">
                             <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
                                 <img src="https://images.pokemontcg.io/swsh7/215_hires.png" alt="Umbreon" className="w-full h-full object-cover" />
                             </div>
                             <div className="text-center">
-                                <div className="text-white text-[8px] font-bold">BGS 10</div>
+                                <div className="text-white text-[9px] font-bold">BGS 10</div>
                             </div>
                         </div>
                         {/* Charizard - Center */}
-                        <div className="absolute w-[100px] p-1.5 rounded-lg bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757] shadow-xl transform left-1/2 -translate-x-1/2 top-0 z-[2]">
+                        <div className="absolute w-[120px] p-2 rounded-lg bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757] shadow-xl transform left-1/2 -translate-x-1/2 top-0 z-[2]">
                             <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
                                 <img src="https://images.pokemontcg.io/base1/4_hires.png" alt="Charizard" className="w-full h-full object-cover" />
                             </div>
                             <div className="text-center">
-                                <div className="text-white text-[8px] font-bold">PSA 10</div>
+                                <div className="text-white text-[9px] font-bold">PSA 10</div>
                             </div>
                         </div>
                         {/* Pikachu - Right */}
-                        <div className="absolute w-[90px] p-1.5 rounded-lg bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border border-[#ffd93d] shadow-xl transform rotate-[12deg] right-0 top-[20px] z-[1]">
+                        <div className="absolute w-[108px] p-2 rounded-lg bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border border-[#ffd93d] shadow-xl transform rotate-[12deg] right-0 top-[24px] z-[1]">
                             <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
                                 <img src="https://images.pokemontcg.io/basep/4_hires.png" alt="Pikachu" className="w-full h-full object-cover" />
                             </div>
                             <div className="text-center">
-                                <div className="text-white text-[8px] font-bold">TAG 10</div>
+                                <div className="text-white text-[9px] font-bold">TAG 10</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className={`flex flex-col gap-6 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                <div className={`flex flex-col gap-4 lg:gap-6 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-red-primary/30 bg-red-primary/10 backdrop-blur-md w-fit">
                         <span className="text-base text-red-primary">⚡</span>
                         <span className="text-sm font-semibold text-[#ff6b7a]">Built on Avalanche</span>
@@ -67,7 +67,7 @@ export default function Hero() {
                         Transparent. Liquid. <span className="text-white/90 font-semibold">Governed by holders.</span>
                     </p>
 
-                    <div className="flex flex-wrap gap-4 items-center mt-2">
+                    <div className="flex flex-wrap gap-3 items-center mt-1">
                         <Link
                             to="/fundraising"
                             className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-blue-500 to-cyan-400 text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(56,189,248,0.4)] hover:shadow-[0_8px_30px_rgba(56,189,248,0.5)] transition-all duration-300 hover:-translate-y-1"
@@ -87,7 +87,7 @@ export default function Hero() {
                         </Link>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-6 p-4 sm:p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md w-full sm:w-fit">
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 lg:mt-6 p-4 sm:p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md w-full sm:w-fit">
                         <div className="flex flex-col gap-1">
                             <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">Coming Soon</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">AUM</span>
