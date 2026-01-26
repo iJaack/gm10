@@ -16,7 +16,40 @@ export default function Hero() {
 
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(230,57,70,0.15),transparent_50%)] pointer-events-none" />
 
-            <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-16 items-center relative z-10 w-full">
+            <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-16 items-center relative z-10 w-full">
+                {/* Mobile Cards - Above content on mobile */}
+                <div className={`lg:hidden flex justify-center mb-4 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                    <div className="relative w-[280px] h-[220px]">
+                        {/* Umbreon - Left */}
+                        <div className="absolute w-[90px] p-1.5 rounded-lg bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-xl transform -rotate-[12deg] left-0 top-[20px] z-[1]">
+                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
+                                <img src="https://images.pokemontcg.io/swsh7/215_hires.png" alt="Umbreon" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-white text-[8px] font-bold">BGS 10</div>
+                            </div>
+                        </div>
+                        {/* Charizard - Center */}
+                        <div className="absolute w-[100px] p-1.5 rounded-lg bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757] shadow-xl transform left-1/2 -translate-x-1/2 top-0 z-[2]">
+                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
+                                <img src="https://images.pokemontcg.io/base1/4_hires.png" alt="Charizard" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-white text-[8px] font-bold">PSA 10</div>
+                            </div>
+                        </div>
+                        {/* Pikachu - Right */}
+                        <div className="absolute w-[90px] p-1.5 rounded-lg bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border border-[#ffd93d] shadow-xl transform rotate-[12deg] right-0 top-[20px] z-[1]">
+                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
+                                <img src="https://images.pokemontcg.io/basep/4_hires.png" alt="Pikachu" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-white text-[8px] font-bold">TAG 10</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Content */}
                 <div className={`flex flex-col gap-6 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-red-primary/30 bg-red-primary/10 backdrop-blur-md w-fit">
@@ -68,36 +101,6 @@ export default function Hero() {
                         <div className="flex flex-col gap-1">
                             <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">1% Fee</span>
                             <span className="text-xs font-bold uppercase tracking-wider text-white/50">MGMT</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Card Preview - Simple horizontal scroll */}
-                <div className={`lg:hidden w-full overflow-x-auto pb-4 transition-all duration-1000 ease-out delay-200 transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    <div className="flex gap-4 px-2 min-w-max">
-                        <div className="w-[140px] p-2 rounded-xl bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757]/50 shadow-lg">
-                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
-                                <img src="https://images.pokemontcg.io/base1/4_hires.png" alt="Charizard" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="text-center">
-                                <div className="text-white text-xs font-bold">PSA 10</div>
-                            </div>
-                        </div>
-                        <div className="w-[140px] p-2 rounded-xl bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-lg">
-                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
-                                <img src="https://images.pokemontcg.io/swsh7/215_hires.png" alt="Umbreon" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="text-center">
-                                <div className="text-white text-xs font-bold">BGS 10</div>
-                            </div>
-                        </div>
-                        <div className="w-[140px] p-2 rounded-xl bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border border-[#ffd93d]/50 shadow-lg">
-                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
-                                <img src="https://images.pokemontcg.io/basep/4_hires.png" alt="Pikachu" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="text-center">
-                                <div className="text-white text-xs font-bold">TAG 10</div>
-                            </div>
                         </div>
                     </div>
                 </div>
