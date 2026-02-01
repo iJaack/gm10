@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
-// Contract ABI - governance functions only
+// Complete Governor Bravo ABI
 const GOVERNANCE_ABI = [
     {
         inputs: [
@@ -33,6 +33,112 @@ const GOVERNANCE_ABI = [
         outputs: [{ name: "", type: "uint8" }],
         stateMutability: "view",
         type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "queue",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "execute",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "cancel",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function"
+    },
+    {
+        inputs: [],
+        name: "votingDelay",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [],
+        name: "votingPeriod",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [],
+        name: "proposalThreshold",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [],
+        name: "quorumNumerator",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [],
+        name: "quorumDenominator",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "getActions",
+        outputs: [
+            { name: "targets", type: "address[]" },
+            { name: "values", type: "uint256[]" },
+            { name: "signatures", type: "string[]" },
+            { name: "calldatas", type: "bytes[]" }
+        ],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "proposalSnapshot",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "proposalDeadline",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "proposalEta",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [{ name: "proposalId", type: "uint256" }],
+        name: "proposalProposer",
+        outputs: [{ name: "", type: "address" }],
+        stateMutability: "view",
+        type: "function"
+    },
+    {
+        inputs: [
+            { name: "proposalId", type: "uint256" },
+            { name: "account", type: "address" }
+        ],
+        name: "hasVoted",
+        outputs: [{ name: "", type: "bool" }],
+        stateMutability: "view",
+        type: "function"
     }
 ] as const;
 
@@ -54,6 +160,8 @@ export default function Governance() {
     const { address, isConnected } = useAccount();
     const [activeTab, setActiveTab] = useState<'active' | 'create' | 'history'>('active');
     const [proposalDescription, setProposalDescription] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
     // Read user's $CATCH balance from TOKEN contract
     const { data: userBalance } = useReadContract({
@@ -63,41 +171,112 @@ export default function Governance() {
         args: address ? [address] : undefined,
     });
 
-    // Write contract functions
-    const { writeContract, data: hash, isPending } = useWriteContract();
+    // Read governance parameters
+    const { data: votingPeriod } = useReadContract({
+        address: GOVERNOR_ADDRESS,
+        abi: GOVERNANCE_ABI,
+        functionName: 'votingPeriod',
+    });
+
+    const { data: proposalThreshold } = useReadContract({
+        address: GOVERNOR_ADDRESS,
+        abi: GOVERNANCE_ABI,
+        functionName: 'proposalThreshold',
+    });
+
+    // Write contract functions with error handling
+    const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
+    // Clear messages when hash changes
+    useEffect(() => {
+        if (hash) {
+            setError(null);
+            setSuccess('Transaction submitted! Waiting for confirmation...');
+        }
+    }, [hash]);
+
+    // Show write errors
+    useEffect(() => {
+        if (writeError) {
+            const errorMessage = writeError.message || 'Transaction failed';
+            // Extract revert reason if available
+            const revertMatch = errorMessage.match(/reverted with reason string '(.+?)'/);
+            const revertReason = revertMatch ? revertMatch[1] : errorMessage;
+            setError(revertReason);
+            setSuccess(null);
+        }
+    }, [writeError]);
+
+    // Show success confirmation
+    useEffect(() => {
+        if (isSuccess) {
+            setSuccess('Transaction confirmed successfully!');
+            setError(null);
+            // Clear description after successful proposal
+            if (activeTab === 'create') {
+                setProposalDescription('');
+            }
+        }
+    }, [isSuccess, activeTab]);
+
     const handleCreateProposal = () => {
+        setError(null);
+        setSuccess(null);
+
         if (!proposalDescription.trim()) {
-            alert('Please enter a proposal description');
+            setError('Please enter a proposal description');
             return;
         }
 
-        // Standard Governor Propose parameters
-        writeContract({
-            address: GOVERNOR_ADDRESS,
-            abi: GOVERNANCE_ABI,
-            functionName: 'propose',
-            args: [
-                [TOKEN_ADDRESS], // target
-                [BigInt(0)], // value
-                ['0x' as `0x${string}`], // calldata
-                proposalDescription
-            ]
-        });
+        if (!address) {
+            setError('Wallet not connected');
+            return;
+        }
+
+        try {
+            // Standard Governor Propose parameters
+            writeContract({
+                address: GOVERNOR_ADDRESS,
+                abi: GOVERNANCE_ABI,
+                functionName: 'propose',
+                args: [
+                    [TOKEN_ADDRESS], // target
+                    [BigInt(0)], // value
+                    ['0x' as `0x${string}`], // calldata
+                    proposalDescription
+                ]
+            });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create proposal');
+        }
     };
 
     const handleVote = (proposalId: number, support: number) => {
-        writeContract({
-            address: GOVERNOR_ADDRESS,
-            abi: GOVERNANCE_ABI,
-            functionName: 'castVote',
-            args: [BigInt(proposalId), support] // support: 0=Against, 1=For, 2=Abstain
-        });
+        setError(null);
+        setSuccess(null);
+
+        if (!address) {
+            setError('Wallet not connected');
+            return;
+        }
+
+        try {
+            writeContract({
+                address: GOVERNOR_ADDRESS,
+                abi: GOVERNANCE_ABI,
+                functionName: 'castVote',
+                args: [BigInt(proposalId), support] // support: 0=Against, 1=For, 2=Abstain
+            });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to cast vote');
+        }
     };
 
     const userBalanceFormatted = userBalance ? Number(formatEther(userBalance as bigint)) : 0;
-    const canPropose = userBalanceFormatted >= MIN_PROPOSAL_THRESHOLD;
+    const actualThreshold = proposalThreshold ? Number(formatEther(proposalThreshold as bigint)) : MIN_PROPOSAL_THRESHOLD;
+    const actualVotingPeriod = votingPeriod ? Number(votingPeriod as bigint) / 86400 : 3; // Convert to days
+    const canPropose = userBalanceFormatted >= actualThreshold;
 
     // Mock proposals for UI demonstration (replace with actual contract reads)
     const mockProposals = [
@@ -173,6 +352,23 @@ export default function Governance() {
                                 )}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Error/Success Messages */}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                        <div className="text-red-400 font-semibold">⚠️ {error}</div>
+                    </div>
+                )}
+                {success && (
+                    <div className="mb-6 p-4 bg-green-900/20 border border-green-500/30 rounded-xl">
+                        <div className="text-green-400 font-semibold">✓ {success}</div>
+                        {hash && (
+                            <div className="text-xs text-gray-400 mt-1">
+                                Tx: {hash.slice(0, 10)}...{hash.slice(-8)}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -325,7 +521,7 @@ export default function Governance() {
                                 <div className="text-5xl mb-4">⚠️</div>
                                 <div className="text-xl font-bold text-white mb-4">Insufficient Balance</div>
                                 <div className="text-gray-400 mb-2">
-                                    You need at least {MIN_PROPOSAL_THRESHOLD.toLocaleString()} $CATCH to create proposals
+                                    You need at least {actualThreshold.toLocaleString()} $CATCH to create proposals
                                 </div>
                                 <div className="text-cyan-400 font-semibold">
                                     Your balance: {userBalanceFormatted.toLocaleString()} $CATCH
@@ -353,7 +549,7 @@ export default function Governance() {
                                             Voting Period
                                         </label>
                                         <div className="w-full px-4 py-3 bg-[#0a0f1c]/50 border border-blue-500/10 rounded-xl text-gray-500">
-                                            Fixed: 3 days (Protocol Standard)
+                                            Fixed: {actualVotingPeriod} days (Protocol Standard)
                                         </div>
                                     </div>
 
@@ -361,10 +557,10 @@ export default function Governance() {
                                         <div className="text-sm text-gray-300">
                                             <strong>Proposal Requirements:</strong>
                                             <ul className="mt-2 space-y-1 ml-4 list-disc">
-                                                <li>Minimum 10,000 $CATCH to submit</li>
+                                                <li>Minimum {actualThreshold.toLocaleString()} $CATCH to submit</li>
                                                 <li>10% quorum required to pass (2.4M votes)</li>
                                                 <li>Simple majority (&gt;50% for) to approve</li>
-                                                <li>Fixed voting period: 3 days</li>
+                                                <li>Fixed voting period: {actualVotingPeriod} days</li>
                                             </ul>
                                         </div>
                                     </div>
