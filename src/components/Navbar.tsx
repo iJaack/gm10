@@ -63,8 +63,12 @@ export default function Navbar() {
                             className="flex items-center gap-3 text-white hover:opacity-90 transition-opacity"
                             onClick={() => setMobileMenuOpen(false)}
                         >
-                            <div className="w-10 h-10 flex items-center justify-center bg-cyan-500/20 border border-cyan-500/30 rounded-xl">
-                                <span className="text-xl">💎</span>
+                            <div className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                                <img
+                                    src="/brand/logo.png"
+                                    alt="Gem Mint Strategy"
+                                    className="w-8 h-8 object-contain drop-shadow-[0_10px_25px_rgba(34,211,238,0.25)]"
+                                />
                             </div>
                             <span className="text-lg font-bold hidden sm:block">
                                 Gem Mint Strategy
