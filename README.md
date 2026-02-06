@@ -62,6 +62,22 @@ npx hardhat compile
 # See package.json for deployment scripts
 ```
 
+### Testing
+```bash
+# Frontend: typecheck + build
+npm run check
+
+# Full suite: frontend + contracts
+npm test
+
+# Contracts only
+cd contracts
+npm test
+
+# Governance + upgrade simulation on a local Hardhat network
+npx hardhat run scripts/simulateGovernanceScenario.js
+```
+
 ---
 
 ## 🗺️ Roadmap

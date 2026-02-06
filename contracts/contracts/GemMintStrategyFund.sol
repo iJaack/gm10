@@ -239,8 +239,9 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
         // Mint tokens to investor
         _mint(msg.sender, tokensToIssue);
 
-        // Update treasury balance
-        treasuryBalance += msg.value;
+        // Keep raised AVAX in-contract; manager can withdraw via withdrawFromTreasury().
+        // NAV is computed using the contract's actual AVAX balance.
+        _updateNAV();
 
         emit Investment(msg.sender, currentRoundId, msg.value, tokensToIssue);
     }
@@ -354,22 +355,31 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
 
     // ============ NAV Functions ============
 
+    function _totalAssets() internal view returns (uint256) {
+        // totalPortfolioValue is tracked in AVAX (18 decimals); contract balance is also AVAX.
+        return totalPortfolioValue + address(this).balance;
+    }
+
     /**
      * @notice Internal NAV update
      */
     function _updateNAV() internal {
         uint256 totalSupplyTokens = totalSupply();
+        uint256 totalAssets = _totalAssets();
+
+        // Keep the cached treasuryBalance aligned with the real on-chain balance.
+        treasuryBalance = address(this).balance;
 
         if (totalSupplyTokens > 0) {
             // NAV = Total Portfolio Value / Total Supply
             // Both are 18 decimals, so result is 18 decimals
             // We multiply by 1e18 to keep precision
-            navPerToken = (totalPortfolioValue * 1e18) / totalSupplyTokens;
+            navPerToken = (totalAssets * 1e18) / totalSupplyTokens;
         }
 
         lastNavUpdate = block.timestamp;
 
-        emit NAVUpdated(totalPortfolioValue, navPerToken, block.timestamp);
+        emit NAVUpdated(totalAssets, navPerToken, block.timestamp);
     }
 
     /**
@@ -423,9 +433,6 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
         // Burn tokens
         _burn(msg.sender, _tokenAmount);
 
-        // Update investor record
-        investors[msg.sender].tokensReceived -= _tokenAmount;
-
         // Transfer AVAX
         (bool success, ) = msg.sender.call{value: netAvax}("");
         require(success, "Transfer failed");
@@ -446,12 +453,12 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
         string calldata _reason
     ) external onlyRole(MANAGER_ROLE) {
         if (_to == address(0)) revert ZeroAddress();
-        if (_amount > treasuryBalance) revert InsufficientBalance();
-
-        treasuryBalance -= _amount;
+        if (_amount > address(this).balance) revert InsufficientBalance();
 
         (bool success, ) = _to.call{value: _amount}("");
         require(success, "Transfer failed");
+
+        _updateNAV();
 
         emit TreasuryWithdrawal(_to, _amount, _reason);
     }
@@ -575,6 +582,6 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
     // ============ Receive Function ============
 
     receive() external payable {
-        treasuryBalance += msg.value;
+        _updateNAV();
     }
 }

@@ -22,7 +22,8 @@ async function main() {
   console.log("\nManager address:", manager.address);
 
   // Get contract instance
-  const fund = await hre.ethers.getContractAt("AshStrategyFund", FUND_ADDRESS);
+  // V1 ABI is compatible with V2 for fundraising functions.
+  const fund = await hre.ethers.getContractAt("GemMintStrategyFundV1", FUND_ADDRESS);
   console.log("Fund contract:", FUND_ADDRESS);
 
   // Fundraising parameters

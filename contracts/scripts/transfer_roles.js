@@ -16,13 +16,14 @@ async function main() {
     console.log("Target Multisig:", MULTISIG_ADDRESS);
     console.log("Fund Address:", FUND_ADDRESS);
 
-    const fund = await hre.ethers.getContractAt("GemMintStrategyFund", FUND_ADDRESS);
+    // V1 ABI is compatible with V2 for roles and treasury management.
+    const fund = await hre.ethers.getContractAt("GemMintStrategyFundV1", FUND_ADDRESS);
 
-    // Roles (from contract source)
-    const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
-    const MANAGER_ROLE = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("MANAGER_ROLE"));
-    const ORACLE_ROLE = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("ORACLE_ROLE"));
-    const GOVERNANCE_ROLE = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("GOVERNANCE_ROLE"));
+    // Roles
+    const DEFAULT_ADMIN_ROLE = await fund.DEFAULT_ADMIN_ROLE();
+    const MANAGER_ROLE = await fund.MANAGER_ROLE();
+    const ORACLE_ROLE = await fund.ORACLE_ROLE();
+    const GOVERNANCE_ROLE = await fund.GOVERNANCE_ROLE();
 
     console.log("\n--- Granting Roles to Multisig ---");
 
@@ -49,7 +50,6 @@ async function main() {
     const currentTreasury = await fund.treasury();
     if (currentTreasury !== MULTISIG_ADDRESS) {
         console.log(`Setting treasury to Multisig...`);
-        // Note: setTreasury is protected by DEFAULT_ADMIN_ROLE
         const tx = await fund.setTreasury(MULTISIG_ADDRESS);
         await tx.wait();
         console.log("✅ Treasury address updated");

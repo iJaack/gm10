@@ -179,7 +179,15 @@ contract GemMintStrategyFundV1 is
         address _treasury,
         uint256 _managementFee,
         uint256 _performanceFee
-    ) public initializer {
+    ) public virtual initializer {
+        __GemMintStrategyFundV1_init(_treasury, _managementFee, _performanceFee);
+    }
+
+    function __GemMintStrategyFundV1_init(
+        address _treasury,
+        uint256 _managementFee,
+        uint256 _performanceFee
+    ) internal onlyInitializing {
         if (_treasury == address(0)) revert ZeroAddress();
         if (_managementFee > MAX_FEE || _performanceFee > MAX_FEE) revert InvalidParameters();
 
@@ -290,10 +298,9 @@ contract GemMintStrategyFundV1 is
         // Mint tokens
         _mint(msg.sender, tokensToMint);
 
-        // Transfer AVAX to treasury
-        treasuryBalance += msg.value;
-        (bool success, ) = treasury.call{value: msg.value}("");
-        require(success, "Transfer failed");
+        // Keep raised AVAX in-contract; manager can withdraw via withdrawFromTreasury().
+        // This enables on-chain redemption, NAV-backed operations, and deterministic accounting.
+        _updateNAV();
 
         emit Investment(msg.sender, _roundId, msg.value, tokensToMint);
     }
@@ -523,16 +530,27 @@ contract GemMintStrategyFundV1 is
 
     // ============ NAV Functions ============
 
+    function _totalAssets() internal view returns (uint256) {
+        // totalPortfolioValue is tracked in AVAX (18 decimals); contract balance is also AVAX.
+        return totalPortfolioValue + address(this).balance;
+    }
+
     /**
      * @notice Update NAV (internal)
      */
     function _updateNAV() internal {
         uint256 supply = totalSupply();
+        uint256 totalAssets = _totalAssets();
+
+        // Keep the cached treasuryBalance aligned with the real on-chain balance.
+        treasuryBalance = address(this).balance;
+
         if (supply > 0) {
-            navPerToken = (totalPortfolioValue * 1e18) / supply;
-            lastNavUpdate = block.timestamp;
-            emit NAVUpdated(totalPortfolioValue, navPerToken, block.timestamp);
+            navPerToken = (totalAssets * 1e18) / supply;
         }
+
+        lastNavUpdate = block.timestamp;
+        emit NAVUpdated(totalAssets, navPerToken, block.timestamp);
     }
 
     /**
@@ -557,16 +575,17 @@ contract GemMintStrategyFundV1 is
         uint256 feeAmount = (avaxAmount * redemptionFee) / FEE_DENOMINATOR;
         uint256 netAvaxAmount = avaxAmount - feeAmount;
 
+        if (address(this).balance < netAvaxAmount) revert InsufficientBalance();
+
         // Burn tokens
         _burn(msg.sender, _tokenAmount);
-
-        // Update NAV
-        totalPortfolioValue -= avaxAmount;
-        _updateNAV();
 
         // Transfer AVAX
         (bool success, ) = msg.sender.call{value: netAvaxAmount}("");
         require(success, "Transfer failed");
+
+        // Update NAV after supply + cash changed.
+        _updateNAV();
 
         emit Redemption(msg.sender, _tokenAmount, netAvaxAmount);
     }
@@ -602,10 +621,19 @@ contract GemMintStrategyFundV1 is
         onlyRole(MANAGER_ROLE)
     {
         if (_to == address(0)) revert ZeroAddress();
-        treasuryBalance -= _amount;
+        if (_amount > address(this).balance) revert InsufficientBalance();
         (bool success, ) = _to.call{value: _amount}("");
         require(success, "Transfer failed");
+        _updateNAV();
         emit TreasuryWithdrawal(_to, _amount, _reason);
+    }
+
+    /**
+     * @notice Update treasury address (metadata / destination for off-chain operations)
+     */
+    function setTreasury(address _newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_newTreasury == address(0)) revert ZeroAddress();
+        treasury = _newTreasury;
     }
 
     // ============ View Functions ============

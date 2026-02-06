@@ -3,8 +3,6 @@ pragma solidity ^0.8.23;
 
 import "./GemMintStrategyFundV1.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/NoncesUpgradeable.sol";
 
 /**
  * @title GemMintStrategyFundV2
@@ -27,11 +25,39 @@ contract GemMintStrategyFundV2 is
 
     // ============ Initializer ============
     
+    function __GemMintStrategyFundV2_init(
+        address _treasury,
+        uint256 _managementFee,
+        uint256 _performanceFee
+    ) internal onlyInitializing {
+        __GemMintStrategyFundV1_init(_treasury, _managementFee, _performanceFee);
+        __GemMintStrategyFundV2_init_unchained();
+    }
+
+    /// @custom:oz-upgrades-unsafe-allow incorrect-initializer-order
+    function __GemMintStrategyFundV2_init_unchained() internal onlyInitializing {
+        // ERC20Votes itself has no initializer logic, but Votes requires an EIP-712 domain to support signatures.
+        __ERC20Votes_init();
+        __EIP712_init("Gem Mint Strategy", "1");
+    }
+
+    /**
+     * @notice Initializer for fresh deployments at V2 (deploy proxy directly pointing to V2)
+     */
+    function initialize(
+        address _treasury,
+        uint256 _managementFee,
+        uint256 _performanceFee
+    ) public override initializer {
+        __GemMintStrategyFundV2_init(_treasury, _managementFee, _performanceFee);
+    }
+
     /**
      * @notice Re-initializer for V2 upgrade
+     * @custom:oz-upgrades-unsafe-allow incorrect-initializer-order
      */
     function initializeV2() public reinitializer(2) {
-        __ERC20Votes_init();
+        __GemMintStrategyFundV2_init_unchained();
     }
 
     // ============ Governance Functions ============

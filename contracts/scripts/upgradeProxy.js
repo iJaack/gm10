@@ -1,4 +1,5 @@
-const { ethers, upgrades } = require("hardhat");
+const hre = require("hardhat");
+const { ethers, upgrades } = hre;
 const fs = require("fs");
 
 async function main() {
@@ -12,7 +13,7 @@ async function main() {
     }
 
     const deployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
-    const network = (await ethers.provider.getNetwork()).name;
+    const network = hre.network.name;
 
     if (!deployments[network]) {
         throw new Error(`No deployment found for network: ${network}`);
@@ -36,9 +37,16 @@ async function main() {
     console.log("✅ Upgrade validation passed\n");
     console.log("Upgrading...");
 
-    const upgraded = await upgrades.upgradeProxy(proxyAddress, GemMintStrategyFundV2, {
-        kind: "uups"
-    });
+    const initFn = process.env.INIT_FN;
+    const initArgs = process.env.INIT_ARGS ? JSON.parse(process.env.INIT_ARGS) : [];
+
+    const upgradeOpts = { kind: "uups" };
+    if (initFn) {
+        upgradeOpts.call = { fn: initFn, args: initArgs };
+        console.log(`Calling initializer during upgrade: ${initFn}(${initArgs.map(() => "?").join(", ")})`);
+    }
+
+    const upgraded = await upgrades.upgradeProxy(proxyAddress, GemMintStrategyFundV2, upgradeOpts);
 
     await upgraded.waitForDeployment();
 

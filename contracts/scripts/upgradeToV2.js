@@ -1,12 +1,19 @@
-const { ethers, upgrades } = require("hardhat");
+const hre = require("hardhat");
+const { ethers, upgrades } = hre;
 const fs = require("fs");
 
 async function main() {
     const [deployer] = await ethers.getSigners();
     console.log("Upgrading to V2 with account:", deployer.address);
 
+    const networkName = hre.network.name;
     const deployments = JSON.parse(fs.readFileSync("deployments.json", "utf8"));
-    const proxyAddress = deployments.proxy;
+    const currentDeployment = deployments[networkName] || deployments;
+    const proxyAddress = currentDeployment.proxy;
+
+    if (!proxyAddress) {
+        throw new Error(`Proxy address not found for network: ${networkName}`);
+    }
 
     console.log("Proxy Address:", proxyAddress);
 
@@ -17,7 +24,7 @@ async function main() {
     // Use upgradeProxy with 'call' to trigger initializeV2
     const upgraded = await upgrades.upgradeProxy(proxyAddress, GemMintStrategyFundV2, {
         kind: "uups",
-        call: { fn: "initializeV2" }
+        call: { fn: "initializeV2", args: [] }
     });
 
     await upgraded.waitForDeployment();
@@ -28,8 +35,12 @@ async function main() {
     console.log("New Implementation:", newImplementation);
 
     // Update deployments.json
-    deployments.implementationV2 = newImplementation;
-    deployments.lastUpgrade = new Date().toISOString();
+    if (!deployments[networkName]) deployments[networkName] = {};
+    deployments[networkName] = {
+        ...deployments[networkName],
+        implementationV2: newImplementation,
+        lastUpgrade: new Date().toISOString(),
+    };
     fs.writeFileSync("deployments.json", JSON.stringify(deployments, null, 2));
 }
 

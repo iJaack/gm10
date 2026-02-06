@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { formatEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 // Complete Governor Bravo ABI

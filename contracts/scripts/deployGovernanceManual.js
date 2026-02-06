@@ -1,4 +1,5 @@
-const { ethers } = require("hardhat");
+const hre = require("hardhat");
+const { ethers } = hre;
 const fs = require("fs");
 
 async function main() {

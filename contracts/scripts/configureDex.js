@@ -1,4 +1,5 @@
-const { ethers } = require("hardhat");
+const hre = require("hardhat");
+const { ethers } = hre;
 const fs = require("fs");
 
 async function main() {
@@ -11,7 +12,7 @@ async function main() {
     }
 
     const deployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
-    const network = (await ethers.provider.getNetwork()).name;
+    const network = hre.network.name;
 
     if (!deployments[network]) {
         throw new Error(`No deployment found for network: ${network}`);
@@ -25,7 +26,7 @@ async function main() {
             dexRouter: "0xd7f655E3376cE2D7A2b08fF01Eb3B1023191A901", // Trader Joe V2.1 Router (Fuji)
             usdcToken: "0x5425890298aed601595a70AB815c96711a31Bc65"  // USDC (Fuji)
         },
-        avax: {
+        avalanche: {
             dexRouter: "0x18556DA13313f3532c54711497A8FedAC273220E", // Trader Joe V2.1 Router (Mainnet)
             usdcToken: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"  // USDC (Mainnet)
         }

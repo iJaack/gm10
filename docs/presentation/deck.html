@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ash Strategy ($CATCH) - Pitch Deck</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        @page {
+            size: 1920px 1080px;
+            margin: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0f1c;
+            color: white;
+        }
+        
+        .slide {
+            width: 1920px;
+            height: 1080px;
+            padding: 80px 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            page-break-after: always;
+            background: linear-gradient(135deg, #0a0f1c 0%, #1a1f3c 100%);
+        }
+        
+        .slide:last-child {
+            page-break-after: auto;
+        }
+        
+        /* Title Slide */
+        .title-slide {
+            text-align: center;
+            background: linear-gradient(135deg, #0a0f1c 0%, #1a2a4a 50%, #0a0f1c 100%);
+        }
+        
+        .logo {
+            font-size: 120px;
+            margin-bottom: 40px;
+        }
+        
+        .title-slide h1 {
+            font-size: 96px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: #60a5fa;
+        }
+        
+        .title-slide .tagline {
+            font-size: 42px;
+            color: #94a3b8;
+            margin-bottom: 60px;
+        }
+        
+        .title-slide .date {
+            font-size: 28px;
+            color: #64748b;
+        }
+        
+        /* Content Slides */
+        .slide h2 {
+            font-size: 64px;
+            font-weight: 700;
+            margin-bottom: 50px;
+            color: #60a5fa;
+        }
+        
+        .slide h3 {
+            font-size: 36px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #60a5fa;
+        }
+        
+        .slide p {
+            font-size: 32px;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 30px;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+        }
+        
+        .stat-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 24px;
+            padding: 50px 30px;
+            text-align: center;
+        }
+        
+        .stat-box .number {
+            font-size: 72px;
+            font-weight: 800;
+            color: #60a5fa;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box .label {
+            font-size: 24px;
+            color: #94a3b8;
+        }
+        
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+        }
+        
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            font-size: 28px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-list .icon {
+            font-size: 36px;
+        }
+        
+        /* Table */
+        .table-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 26px;
+        }
+        
+        th {
+            background: rgba(59, 130, 246, 0.2);
+            padding: 25px 30px;
+            text-align: left;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        
+        td {
+            padding: 25px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #cbd5e1;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Tokenomics Chart */
+        .tokenomics-chart {
+            display: flex;
+            align-items: center;
+            gap: 100px;
+            margin-top: 40px;
+        }
+        
+        .pie-placeholder {
+            width: 450px;
+            height: 450px;
+            background: conic-gradient(
+                #3b82f6 0deg 60deg,
+                #06b6d4 60deg 171deg,
+                #8b5cf6 171deg 273deg,
+                #ec4899 273deg 309deg,
+                #10b981 309deg 360deg
+            );
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .pie-placeholder::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background: #0a0f1c;
+            border-radius: 50%;
+        }
+        
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 28px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+        }
+        
+        /* Timeline */
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 60px;
+            position: relative;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: 100px;
+            right: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4, #8b5cf6);
+        }
+        
+        .timeline-item {
+            text-align: center;
+            position: relative;
+            flex: 1;
+        }
+        
+        .timeline-dot {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border-radius: 50%;
+            margin: 0 auto 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .timeline-item h4 {
+            font-size: 32px;
+            color: #60a5fa;
+            margin-bottom: 15px;
+        }
+        
+        .timeline-item p {
+            font-size: 24px;
+            color: #94a3b8;
+            margin: 0;
+        }
+        
+        /* Competitor Cards */
+        .competitor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+        }
+        
+        .competitor-card {
+            background: rgba(255,255,255,0.03);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 40px;
+        }
+        
+        .competitor-card h4 {
+            font-size: 32px;
+            color: #60a5fa;
+            margin-bottom: 20px;
+        }
+        
+        .competitor-card .status {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status.shutdown {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .status.active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        .competitor-card p {
+            font-size: 24px;
+            color: #94a3b8;
+            margin: 0;
+        }
+        
+        /* Contact Slide */
+        .contact-slide {
+            text-align: center;
+        }
+        
+        .contact-slide h2 {
+            font-size: 72px;
+            margin-bottom: 60px;
+        }
+        
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 100px;
+            margin-top: 60px;
+        }
+        
+        .contact-item {
+            font-size: 32px;
+            color: #94a3b8;
+        }
+        
+        .contact-item strong {
+            display: block;
+            color: #60a5fa;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        /* Slide numbers */
+        .slide-number {
+            position: absolute;
+            bottom: 40px;
+            right: 60px;
+            font-size: 24px;
+            color: #64748b;
+        }
+        
+        /* Big CTA */
+        .cta-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.2));
+            border: 2px solid rgba(59, 130, 246, 0.4);
+            border-radius: 24px;
+            padding: 50px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .cta-box h3 {
+            font-size: 48px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .cta-box p {
+            font-size: 32px;
+            color: #94a3b8;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title -->
+    <div class="slide title-slide">
+        <div class="logo">💎</div>
+        <h1>Ash Strategy</h1>
+        <p class="tagline">Tokenized Pokemon Card Investment Fund on Avalanche</p>
+        <p class="date">February 2026</p>
+        <div class="slide-number">1/10</div>
+    </div>
+    
+    <!-- Slide 2: The Opportunity -->
+    <div class="slide">
+        <h2>The Opportunity</h2>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="number">$15B</div>
+                <div class="label">Pokemon TCG Market</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">30%</div>
+                <div class="label">Graded Cards Growth</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">35%</div>
+                <div class="label">Charizard PSA 10 CAGR</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">0</div>
+                <div class="label">On-Chain Pokemon Funds</div>
+            </div>
+        </div>
+        <div class="cta-box" style="margin-top: 60px;">
+            <h3>First Mover Advantage</h3>
+            <p>No credible tokenized Pokemon card fund exists. We're building it.</p>
+        </div>
+        <div class="slide-number">2/10</div>
+    </div>
+    
+    <!-- Slide 3: The Product -->
+    <div class="slide">
+        <h2>$CATCH Token</h2>
+        <div class="two-column">
+            <div>
+                <h3>What Investors Get</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">💎</span> Fractional ownership from $2.50</li>
+                    <li><span class="icon">💧</span> 24/7 liquidity (burned LP)</li>
+                    <li><span class="icon">🔒</span> Professional vault storage</li>
+                    <li><span class="icon">📊</span> On-chain NAV tracking</li>
+                    <li><span class="icon">🗳️</span> Governance rights</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Fund Parameters</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">🔗</span> Network: Avalanche C-Chain</li>
+                    <li><span class="icon">🎯</span> Target: 65,000 AVAX</li>
+                    <li><span class="icon">📅</span> 3 fundraising rounds</li>
+                    <li><span class="icon">🚫</span> Anti-whale: 200 AVAX max/wallet</li>
+                    <li><span class="icon">⚡</span> Governance: Governor Bravo</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">3/10</div>
+    </div>
+    
+    <!-- Slide 4: Tokenomics -->
+    <div class="slide">
+        <h2>Tokenomics</h2>
+        <div class="tokenomics-chart">
+            <div class="pie-placeholder"></div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span><strong>16.7%</strong> Round 1 Investors</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #06b6d4;"></div>
+                    <span><strong>30.9%</strong> Round 2 Investors</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8b5cf6;"></div>
+                    <span><strong>42.7%</strong> Round 3 Investors</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ec4899;"></div>
+                    <span><strong>10.0%</strong> Team (6mo cliff, 2yr vest)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10b981;"></div>
+                    <span><strong>1.7%</strong> LP Tokens (Burned)</span>
+                </div>
+            </div>
+        </div>
+        <div class="cta-box" style="margin-top: 50px;">
+            <p>50% of supply reserved for future governance decisions | Initial Supply: ~24M | Max Supply: ~48M</p>
+        </div>
+        <div class="slide-number">4/10</div>
+    </div>
+    
+    <!-- Slide 5: Fundraising Rounds -->
+    <div class="slide">
+        <h2>Fundraising Schedule</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Timing</th>
+                        <th>Target</th>
+                        <th>Price Model</th>
+                        <th>Discount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Round 1</strong></td>
+                        <td>Feb 2026</td>
+                        <td>10,000 AVAX</td>
+                        <td>Fixed @ 0.0025</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Round 2</strong></td>
+                        <td>Apr-May 2026</td>
+                        <td>20,000 AVAX</td>
+                        <td>NAV-based</td>
+                        <td>10%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Round 3</strong></td>
+                        <td>Sep-Dec 2026</td>
+                        <td>35,000 AVAX</td>
+                        <td>NAV-based</td>
+                        <td>5%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="cta-box" style="margin-top: 50px;">
+            <h3>Dynamic NAV Pricing</h3>
+            <p>Later investors get discounts tied to portfolio value — fair to early supporters, attractive to new capital</p>
+        </div>
+        <div class="slide-number">5/10</div>
+    </div>
+    
+    <!-- Slide 6: Business Model -->
+    <div class="slide">
+        <h2>Business Model</h2>
+        <div class="two-column">
+            <div>
+                <h3>Revenue Streams</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">📈</span> <strong>1%</strong> Management Fee (AUM/year)</li>
+                    <li><span class="icon">🎯</span> <strong>10%</strong> Performance Fee (profits)</li>
+                    <li><span class="icon">🔄</span> <strong>0.5%</strong> Redemption Fee</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Use of Funds</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">💳</span> <strong>90%</strong> Card Acquisitions</li>
+                    <li><span class="icon">🔒</span> <strong>5%</strong> Storage & Insurance</li>
+                    <li><span class="icon">⚖️</span> <strong>3%</strong> Legal & Compliance</li>
+                    <li><span class="icon">📣</span> <strong>2%</strong> Marketing</li>
+                </ul>
+            </div>
+        </div>
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 50px;">
+            <div class="stat-box">
+                <div class="number">45+</div>
+                <div class="label">Target Cards</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">$1.6M</div>
+                <div class="label">Target AUM</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">20%+</div>
+                <div class="label">NAV Target Year 1</div>
+            </div>
+        </div>
+        <div class="slide-number">6/10</div>
+    </div>
+    
+    <!-- Slide 7: Competitive Advantage -->
+    <div class="slide">
+        <h2>Competitive Landscape</h2>
+        <div class="competitor-grid">
+            <div class="competitor-card">
+                <h4>Rally Rd</h4>
+                <span class="status shutdown">Shutdown 2023</span>
+                <p>Equity fractions in collectibles. Failed due to illiquidity and regulatory pressure.</p>
+            </div>
+            <div class="competitor-card">
+                <h4>Courtyard</h4>
+                <span class="status active">Operational</span>
+                <p>NFT-backed physical cards. Single-card focus only — no fund structure.</p>
+            </div>
+            <div class="competitor-card">
+                <h4>Alt</h4>
+                <span class="status active">Operational</span>
+                <p>General collectibles platform. Not crypto-native, high minimums.</p>
+            </div>
+        </div>
+        <div class="cta-box" style="margin-top: 50px;">
+            <h3>Our Moat</h3>
+            <p>First tokenized Pokemon fund | On-chain liquidity via burned LP | Retail-accessible from $2.50</p>
+        </div>
+        <div class="slide-number">7/10</div>
+    </div>
+    
+    <!-- Slide 8: Go-To-Market -->
+    <div class="slide">
+        <h2>Go-To-Market Strategy</h2>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot">1</div>
+                <h4>Pre-Launch</h4>
+                <p>Audit, Deploy<br>Community Building</p>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot">2</div>
+                <h4>Round 1</h4>
+                <p>Feb 2026<br>10K AVAX</p>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot">3</div>
+                <h4>Portfolio Build</h4>
+                <p>Live Acquisitions<br>Content Marketing</p>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot">4</div>
+                <h4>Rounds 2-3</h4>
+                <p>Governance Active<br>55K More AVAX</p>
+            </div>
+        </div>
+        <div class="two-column" style="margin-top: 60px;">
+            <div>
+                <h3>Target Audience</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">👾</span> Crypto-native Pokemon fans (25-40)</li>
+                    <li><span class="icon">💎</span> TCG collectors seeking liquidity</li>
+                    <li><span class="icon">📈</span> Crypto speculators</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Channels</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">🐦</span> Twitter/X (Pokemon + crypto overlap)</li>
+                    <li><span class="icon">💬</span> Discord Community Hub</li>
+                    <li><span class="icon">📺</span> YouTube Card Reveals</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">8/10</div>
+    </div>
+    
+    <!-- Slide 9: The Team -->
+    <div class="slide">
+        <h2>Leadership</h2>
+        <div class="two-column">
+            <div>
+                <h3>Jaack — Founder</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">🚀</span> Founder @ Routescan.io</li>
+                    <li><span class="icon">⛓️</span> Avalanche Ecosystem Lead</li>
+                    <li><span class="icon">🎴</span> Pokemon Collector since 1999</li>
+                    <li><span class="icon">💼</span> Blockchain + DeFi expertise</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Eva — AI Partner</h3>
+                <ul class="feature-list">
+                    <li><span class="icon">🤖</span> AI Agent Operations</li>
+                    <li><span class="icon">📊</span> Analytics & Content</li>
+                    <li><span class="icon">⚡</span> 24/7 Community Management</li>
+                    <li><span class="icon">🔧</span> Automation & Infrastructure</li>
+                </ul>
+            </div>
+        </div>
+        <div class="cta-box" style="margin-top: 50px;">
+            <h3>Governance Evolution</h3>
+            <p>Manager-led → Hybrid Budget Approval → Full DAO by Round 3</p>
+        </div>
+        <div class="slide-number">9/10</div>
+    </div>
+    
+    <!-- Slide 10: Call to Action -->
+    <div class="slide contact-slide">
+        <h2>Own a Piece of Your Childhood</h2>
+        <div class="cta-box" style="max-width: 1200px; margin: 60px auto;">
+            <h3 style="font-size: 56px;">Round 1 Launching February 2026</h3>
+            <p style="font-size: 36px;">10,000 AVAX • Fixed Price • No Whales • First Come, First Served</p>
+        </div>
+        <div class="contact-info">
+            <div class="contact-item">
+                <strong>Website</strong>
+                ash-strategy.vercel.app
+            </div>
+            <div class="contact-item">
+                <strong>Twitter/X</strong>
+                @AshStrategy
+            </div>
+            <div class="contact-item">
+                <strong>Discord</strong>
+                discord.gg/ashstrategy
+            </div>
+        </div>
+        <p style="margin-top: 80px; font-size: 36px; color: #64748b;">💎 Gotta catch 'em all — fractionally.</p>
+        <div class="slide-number">10/10</div>
+    </div>
+</body>
+</html>

@@ -1,4 +1,5 @@
-const { ethers, upgrades } = require("hardhat");
+const hre = require("hardhat");
+const { ethers, upgrades } = hre;
 const fs = require("fs");
 
 async function main() {
@@ -44,9 +45,11 @@ async function main() {
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
     // Save deployment info
+    const networkName = hre.network.name;
+    const network = await ethers.provider.getNetwork();
     const deployment = {
-        network: (await ethers.provider.getNetwork()).name,
-        chainId: (await ethers.provider.getNetwork()).chainId.toString(),
+        network: networkName,
+        chainId: network.chainId.toString(),
         proxy: proxyAddress,
         implementation: implementationAddress,
         treasury: TREASURY_ADDRESS,

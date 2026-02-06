@@ -85,6 +85,9 @@ describe("GemMintStrategyFund", function () {
             // Treasury balance is tracked in contract state variable, not automatically sent to address yet in this implementation logic (based on code reading)
             // Actually reading code: treasuryBalance += msg.value (state var only)
             expect(await fund.treasuryBalance()).to.equal(investAmount);
+
+            // NAV should reflect on-chain assets (cash) per token: 1 AVAX / 10 tokens = 0.1 AVAX
+            expect(await fund.navPerToken()).to.equal(TOKEN_PRICE);
         });
 
         it("Should fail if investment is below minimum", async function () {
@@ -133,27 +136,21 @@ describe("GemMintStrategyFund", function () {
             await fund.createFundraisingRound(TARGET, PRICE, 0, TARGET, block.timestamp, block.timestamp + 3600);
 
             await fund.connect(addr1).invest({ value: ethers.parseEther("10") });
-            // 10 AVAX invested, 10 Tokens. Treasury = 10. Portfolio = 0.
-            // Wait, NAV formula: totalPortfolioValue / totalSupply.
-            // Initial Portfolio is 0. So NAV drops to 0? verify.
+            // 10 AVAX invested, 10 tokens minted. NAV should match the round price (1 AVAX per token).
+            expect(await fund.navPerToken()).to.equal(ethers.parseEther("1"));
 
-            // Actually code: totalPortfolioValue starts at 0.
-            // navPerToken in _updateNAV: (totalPortfolioValue * 1e18) / totalSupplyTokens
-
-            // If we add a card, it adds to portfolio value.
-            // Ideally portfolio value should include treasury balance if we want "Net Asset Value" to be backing.
-            // NOTE: The current contract logic seems to define NAV purely based on CARD portfolio, ignoring cash in treasury?
-            // Let's verify this behavior in test.
-
+            // Simulate spending 5 AVAX to acquire a card (cash leaves the contract).
             const cardPrice = ethers.parseEther("5");
+            await fund.withdrawFromTreasury(treasury.address, cardPrice, "Acquire card");
+
+            // After spending, NAV should drop: 5 AVAX assets / 10 tokens = 0.5 AVAX per token
+            expect(await fund.navPerToken()).to.equal(ethers.parseEther("0.5"));
+
+            // Record the acquired card at the same value; NAV should return to 1.0 AVAX per token.
             await fund.addCard("C1", "N1", "S1", "G1", 100, cardPrice, "V1", "I1");
 
-            // Total Supply = 10 Tokens.
-            // Portfolio Value = 5 AVAX.
-            // NAV should be 5/10 = 0.5 AVAX.
-
             const nav = await fund.navPerToken();
-            expect(nav).to.equal(ethers.parseEther("0.5"));
+            expect(nav).to.equal(ethers.parseEther("1"));
         });
     });
 });
