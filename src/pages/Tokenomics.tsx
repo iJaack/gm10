@@ -1,3 +1,5 @@
+import Page from '../components/Page';
+
 export default function Tokenomics() {
     const rounds = [
         {
@@ -41,8 +43,7 @@ export default function Tokenomics() {
     ];
 
     return (
-        <div className="min-h-screen pt-32 px-4 pb-20 bg-[#0a0f1c] text-white">
-            <div className="max-w-7xl mx-auto">
+        <Page containerClassName="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -273,7 +274,6 @@ export default function Tokenomics() {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </Page>
     );
 }

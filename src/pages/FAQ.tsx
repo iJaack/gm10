@@ -1,3 +1,5 @@
+import Page from '../components/Page';
+
 export default function FAQ() {
     const faqs = [
         {
@@ -35,8 +37,7 @@ export default function FAQ() {
     ];
 
     return (
-        <div className="min-h-screen pt-32 px-4 pb-20 bg-[#0a0f1c] text-white">
-            <div className="max-w-4xl mx-auto">
+        <Page containerClassName="max-w-4xl mx-auto">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
                         Frequently Asked <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Questions</span>
@@ -74,7 +75,6 @@ export default function FAQ() {
                         Follow us on Twitter →
                     </a>
                 </div>
-            </div>
-        </div>
+        </Page>
     );
 }

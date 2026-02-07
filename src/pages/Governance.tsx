@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { formatEther } from 'viem';
+import { encodeFunctionData, formatEther, isAddress, parseEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import Page from '../components/Page';
 
 // Complete Governor Bravo ABI
 const GOVERNANCE_ABI = [
@@ -152,14 +153,30 @@ const TOKEN_ABI = [
     }
 ] as const;
 
+const FUND_ABI = [
+    {
+        inputs: [
+            { name: "_asset", type: "address" },
+            { name: "_amount", type: "uint256" }
+        ],
+        name: "approveBudget",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function"
+    }
+] as const;
+
 const GOVERNOR_ADDRESS = '0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf' as `0x${string}`;
 const TOKEN_ADDRESS = '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C' as `0x${string}`;
 const MIN_PROPOSAL_THRESHOLD = 10000; // 10,000 $CATCH required to propose
+const DEFAULT_BUDGET_ASSET = '0x0000000000000000000000000000000000000000';
 
 export default function Governance() {
     const { address, isConnected } = useAccount();
     const [activeTab, setActiveTab] = useState<'active' | 'create' | 'history'>('active');
     const [proposalDescription, setProposalDescription] = useState('');
+    const [budgetAsset, setBudgetAsset] = useState(DEFAULT_BUDGET_ASSET);
+    const [budgetAmount, setBudgetAmount] = useState('500');
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
@@ -234,16 +251,35 @@ export default function Governance() {
             return;
         }
 
+        if (!isAddress(budgetAsset)) {
+            setError('Invalid budget asset address');
+            return;
+        }
+
+        let budgetAmountWei: bigint;
         try {
+            budgetAmountWei = parseEther(budgetAmount || '0');
+        } catch {
+            setError('Invalid budget amount');
+            return;
+        }
+
+        try {
+            const calldata = encodeFunctionData({
+                abi: FUND_ABI,
+                functionName: 'approveBudget',
+                args: [budgetAsset, budgetAmountWei],
+            });
+
             // Standard Governor Propose parameters
             writeContract({
                 address: GOVERNOR_ADDRESS,
                 abi: GOVERNANCE_ABI,
                 functionName: 'propose',
                 args: [
-                    [TOKEN_ADDRESS], // target
+                    [TOKEN_ADDRESS], // target (Fund proxy)
                     [BigInt(0)], // value
-                    ['0x' as `0x${string}`], // calldata
+                    [calldata], // calldata
                     proposalDescription
                 ]
             });
@@ -275,10 +311,12 @@ export default function Governance() {
 
     const userBalanceFormatted = userBalance ? Number(formatEther(userBalance as bigint)) : 0;
     const actualThreshold = proposalThreshold ? Number(formatEther(proposalThreshold as bigint)) : MIN_PROPOSAL_THRESHOLD;
-    const actualVotingPeriod = votingPeriod ? Number(votingPeriod as bigint) / 86400 : 3; // Convert to days
+    const votingPeriodBlocks = votingPeriod ? Number(votingPeriod as bigint) : null;
+    const actualVotingPeriod = votingPeriodBlocks ? votingPeriodBlocks / 43200 : 3; // ~2s blocks (Avalanche)
     const canPropose = userBalanceFormatted >= actualThreshold;
 
     // Mock proposals for UI demonstration (replace with actual contract reads)
+    const proposalsAreMock = true;
     const mockProposals = [
         {
             id: 1,
@@ -309,8 +347,7 @@ export default function Governance() {
     ];
 
     return (
-        <div className="min-h-screen pt-32 px-4 pb-20 bg-[#0a0f1c] text-white">
-            <div className="max-w-6xl mx-auto">
+        <Page containerClassName="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -346,7 +383,7 @@ export default function Governance() {
                                     <div>
                                         <div className="text-2xl font-bold text-orange-400">✗ Cannot Propose</div>
                                         <div className="text-xs text-gray-500 mt-1">
-                                            Need {MIN_PROPOSAL_THRESHOLD.toLocaleString()} $CATCH
+                                            Need {actualThreshold.toLocaleString(undefined, { maximumFractionDigits: 0 })} $CATCH
                                         </div>
                                     </div>
                                 )}
@@ -406,6 +443,13 @@ export default function Governance() {
                 {/* Active Proposals */}
                 {activeTab === 'active' && (
                     <div className="space-y-6">
+                        {proposalsAreMock && (
+                            <div className="p-4 bg-orange-900/20 border border-orange-500/30 rounded-xl">
+                                <div className="text-orange-300 font-semibold">
+                                    Example proposals are mocked for UI preview. Onchain proposal feeds and voting will be wired next.
+                                </div>
+                            </div>
+                        )}
                         {mockProposals.filter(p => p.status === 'active').map((proposal) => {
                             const totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
                             const forPercentage = totalVotes > 0 ? (proposal.forVotes / totalVotes) * 100 : 0;
@@ -421,6 +465,11 @@ export default function Governance() {
                                                 <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-semibold rounded-full">
                                                     {proposal.category}
                                                 </span>
+                                                {proposalsAreMock && (
+                                                    <span className="px-3 py-1 bg-orange-500/20 text-orange-300 text-sm font-semibold rounded-full">
+                                                        Example
+                                                    </span>
+                                                )}
                                                 <span className="text-sm text-gray-400">
                                                     Proposed by {proposal.proposer}
                                                 </span>
@@ -463,7 +512,22 @@ export default function Governance() {
                                     </div>
 
                                     {/* Voting Buttons */}
-                                    {isConnected ? (
+                                    {proposalsAreMock ? (
+                                        <div className="flex gap-4">
+                                            <button
+                                                disabled
+                                                className="flex-1 py-3 bg-white/10 border border-white/10 rounded-xl font-bold text-white/50 cursor-not-allowed"
+                                            >
+                                                Voting Disabled
+                                            </button>
+                                            <button
+                                                disabled
+                                                className="flex-1 py-3 bg-white/10 border border-white/10 rounded-xl font-bold text-white/50 cursor-not-allowed"
+                                            >
+                                                Voting Disabled
+                                            </button>
+                                        </div>
+                                    ) : isConnected ? (
                                         <div className="flex gap-4">
                                             <button
                                                 onClick={() => handleVote(proposal.id, 1)}
@@ -520,8 +584,8 @@ export default function Governance() {
                             <div className="text-center py-12">
                                 <div className="text-5xl mb-4">⚠️</div>
                                 <div className="text-xl font-bold text-white mb-4">Insufficient Balance</div>
-                                <div className="text-gray-400 mb-2">
-                                    You need at least {actualThreshold.toLocaleString()} $CATCH to create proposals
+                            <div className="text-gray-400 mb-2">
+                                    You need at least {actualThreshold.toLocaleString(undefined, { maximumFractionDigits: 0 })} $CATCH to create proposals
                                 </div>
                                 <div className="text-cyan-400 font-semibold">
                                     Your balance: {userBalanceFormatted.toLocaleString()} $CATCH
@@ -532,6 +596,39 @@ export default function Governance() {
                                 <h3 className="text-2xl font-bold text-white mb-6">Create New Proposal</h3>
 
                                 <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-300 mb-2">
+                                                Budget Asset
+                                            </label>
+                                            <input
+                                                value={budgetAsset}
+                                                onChange={(e) => setBudgetAsset(e.target.value)}
+                                                placeholder={DEFAULT_BUDGET_ASSET}
+                                                className="w-full px-4 py-3 bg-[#0a0f1c] border border-blue-500/30 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                Use the zero address for a generic budget category.
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-300 mb-2">
+                                                Budget Amount (AVAX)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={budgetAmount}
+                                                onChange={(e) => setBudgetAmount(e.target.value)}
+                                                min={0}
+                                                step="0.01"
+                                                className="w-full px-4 py-3 bg-[#0a0f1c] border border-blue-500/30 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                This proposal calls `approveBudget(asset, amount)` on the fund.
+                                            </p>
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-300 mb-2">
                                             Proposal Description
@@ -617,7 +714,6 @@ export default function Governance() {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </Page>
     );
 }

@@ -21,7 +21,7 @@ body {
     background: linear-gradient(to bottom,
             transparent,
             rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-    font-family: 'Inter', sans-serif;
+    font-family: 'Avenir Next', Avenir, 'Century Gothic', 'Segoe UI', sans-serif;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

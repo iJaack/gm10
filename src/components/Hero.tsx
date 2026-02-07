@@ -1,6 +1,78 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+type ShowcaseCard = {
+    id: 'umbreon' | 'charizard' | 'lugia'
+    title: string
+    subtitle: string
+    imageSrc: string
+    imageAlt: string
+    grader: string
+    gradeMobile: string
+    gradeDesktop: string
+    labelTopClassName: string
+    labelBottomDesktopClassName: string
+    mobileWrapperClassName: string
+    desktopWrapperClassName: string
+    desktopGlowClassName: string
+}
+
+const showcaseCards: ShowcaseCard[] = [
+    {
+        id: 'umbreon',
+        title: 'Umbreon VMAX',
+        subtitle: 'Evolving Skies',
+        imageSrc: '/images/cards/umbreon_vmax_bgs.png',
+        imageAlt: 'Umbreon VMAX graded card',
+        grader: 'BGS',
+        gradeMobile: 'BGS 10',
+        gradeDesktop: 'BLACK LABEL 10',
+        labelTopClassName: 'text-[#cccccc]',
+        labelBottomDesktopClassName:
+            'text-white text-[0.65rem] font-bold tracking-widest drop-shadow-[0_0_6px_rgba(255,255,255,0.25)]',
+        mobileWrapperClassName:
+            'absolute w-[108px] p-2 rounded-lg bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-xl transform -rotate-[12deg] left-0 top-[24px] z-[1]',
+        desktopWrapperClassName:
+            'absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#0a0a0a] to-[#0a0a0a] border-2 border-[#333] shadow-[0_25px_80px_rgba(0,0,0,0.7)] transform -rotate-[12deg] -translate-x-[120px] translate-y-[20px] hover:-rotate-[5deg] hover:-translate-x-[100px] hover:-translate-y-[20px] hover:scale-110 hover:z-20 transition-all duration-500 cursor-pointer z-[3] group',
+        desktopGlowClassName:
+            'bg-gradient-to-br from-[#1a1a1a] via-[#4a4a4a] to-[#1a1a1a]',
+    },
+    {
+        id: 'charizard',
+        title: 'Charizard',
+        subtitle: '1st Ed. Base Set',
+        imageSrc: '/images/cards/charizard_psa10.png',
+        imageAlt: 'Charizard graded card',
+        grader: 'PSA',
+        gradeMobile: 'PSA 10',
+        gradeDesktop: 'GEM MT 10',
+        labelTopClassName: 'text-white',
+        labelBottomDesktopClassName: 'text-white/90 text-[0.65rem] font-bold tracking-widest',
+        mobileWrapperClassName:
+            'absolute w-[120px] p-2 rounded-lg bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757] shadow-xl transform left-1/2 -translate-x-1/2 top-0 z-[2]',
+        desktopWrapperClassName:
+            'absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border-2 border-[#ff4757] shadow-[0_25px_80px_rgba(0,0,0,0.5)] transform rotate-0 -translate-y-[20px] hover:-translate-y-[50px] hover:scale-[1.15] hover:z-20 transition-all duration-500 cursor-pointer z-[4] group',
+        desktopGlowClassName: 'bg-gradient-to-br from-[#ff4757] to-[#ff6b81]',
+    },
+    {
+        id: 'lugia',
+        title: 'Lugia',
+        subtitle: 'Neo Genesis',
+        imageSrc: '/images/cards/lugia_psa9.png',
+        imageAlt: 'Lugia graded card',
+        grader: 'PSA',
+        gradeMobile: 'PSA 9',
+        gradeDesktop: 'MINT 9',
+        labelTopClassName: 'text-white',
+        labelBottomDesktopClassName: 'text-white/90 text-[0.65rem] font-bold tracking-widest',
+        mobileWrapperClassName:
+            'absolute w-[108px] p-2 rounded-lg bg-gradient-to-b from-[#0b2c4a] via-[#0a2238] to-[#071624] border border-[#4facfe] shadow-xl transform rotate-[12deg] right-0 top-[24px] z-[1]',
+        desktopWrapperClassName:
+            'absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#0b2c4a] via-[#0a2238] to-[#071624] border-2 border-[#4facfe] shadow-[0_25px_80px_rgba(0,0,0,0.55)] transform rotate-[12deg] translate-x-[120px] translate-y-[20px] hover:rotate-[5deg] hover:translate-x-[100px] hover:-translate-y-[20px] hover:scale-110 hover:z-20 transition-all duration-500 cursor-pointer z-[2] group',
+        desktopGlowClassName: 'bg-gradient-to-br from-[#56d3ff] to-[#4facfe]',
+    },
+]
+
 export default function Hero() {
     const [mounted, setMounted] = useState(false)
 
@@ -9,44 +81,68 @@ export default function Hero() {
     }, [])
 
     return (
-        <section className="relative min-h-screen flex items-center overflow-hidden py-20 lg:py-32 px-4 bg-gradient-to-br from-[#0a0f1c] via-[#1a1f3c] to-[#0d1829] text-cream">
-            {/* Background Orbs */}
-            <div className="absolute top-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-blue-500/20 opacity-40 blur-[80px] animate-float delay-0" />
-            <div className="absolute bottom-[-150px] left-[-100px] w-[500px] h-[500px] rounded-full bg-cyan-500/20 opacity-50 blur-[80px] animate-float delay-7000" />
+        <section className="relative min-h-screen flex items-center overflow-hidden py-20 lg:py-32 px-4 text-cream bg-[#050814]">
+            {/* Cover Backdrop */}
+            <picture aria-hidden className="absolute inset-0">
+                <source
+                    type="image/webp"
+                    srcSet="/brand/cover.webp 1x, /brand/cover@2x.webp 2x"
+                />
+                <source
+                    type="image/jpeg"
+                    srcSet="/brand/cover.jpg 1x, /brand/cover@2x.jpg 2x"
+                />
+                <img
+                    src="/brand/cover.jpg"
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover opacity-40"
+                    loading="eager"
+                    decoding="async"
+                />
+            </picture>
+            <div
+                aria-hidden
+                className="absolute inset-0 bg-gradient-to-br from-[#050814]/95 via-[#0a0f1c]/80 to-[#061a2e]/90"
+            />
+            <div
+                aria-hidden
+                className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_70%_45%,rgba(34,211,238,0.22),transparent_60%)] pointer-events-none"
+            />
 
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(230,57,70,0.15),transparent_50%)] pointer-events-none" />
+            {/* Ambient Orbs */}
+            <div
+                aria-hidden
+                className="absolute top-[-200px] right-[-120px] w-[640px] h-[640px] rounded-full bg-cyan-400/20 opacity-35 blur-[90px] animate-float"
+            />
+            <div
+                aria-hidden
+                className="absolute bottom-[-160px] left-[-120px] w-[520px] h-[520px] rounded-full bg-blue-500/20 opacity-45 blur-[90px] animate-float delay-7000"
+            />
 
             <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-16 items-center relative z-10 w-full">
                 {/* Mobile Cards - Above content on mobile */}
                 <div className={`lg:hidden flex justify-center mb-2 transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                     <div className="relative w-[336px] h-[264px]">
-                        {/* Umbreon - Left */}
-                        <div className="absolute w-[108px] p-2 rounded-lg bg-gradient-to-b from-[#0a0a0a] to-[#1a1a1a] border border-[#333] shadow-xl transform -rotate-[12deg] left-0 top-[24px] z-[1]">
-                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
-                                <img src="https://images.pokemontcg.io/swsh7/215_hires.png" alt="Umbreon" className="w-full h-full object-cover" />
+                        {showcaseCards.map((card) => (
+                            <div key={card.id} className={card.mobileWrapperClassName}>
+                                <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
+                                    <img
+                                        src={card.imageSrc}
+                                        alt={card.imageAlt}
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-white text-[9px] font-bold tracking-widest">
+                                        {card.grader}
+                                    </div>
+                                    <div className="text-white/90 text-[9px] font-bold">
+                                        {card.gradeMobile}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="text-center">
-                                <div className="text-white text-[9px] font-bold">BGS 10</div>
-                            </div>
-                        </div>
-                        {/* Charizard - Center */}
-                        <div className="absolute w-[120px] p-2 rounded-lg bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border border-[#ff4757] shadow-xl transform left-1/2 -translate-x-1/2 top-0 z-[2]">
-                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
-                                <img src="https://images.pokemontcg.io/base1/4_hires.png" alt="Charizard" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="text-center">
-                                <div className="text-white text-[9px] font-bold">PSA 10</div>
-                            </div>
-                        </div>
-                        {/* Pikachu - Right */}
-                        <div className="absolute w-[108px] p-2 rounded-lg bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border border-[#ffd93d] shadow-xl transform rotate-[12deg] right-0 top-[24px] z-[1]">
-                            <div className="aspect-[2.5/3.5] bg-gray-100 rounded overflow-hidden mb-1">
-                                <img src="https://images.pokemontcg.io/basep/4_hires.png" alt="Pikachu" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="text-center">
-                                <div className="text-white text-[9px] font-bold">TAG 10</div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
 
@@ -107,53 +203,35 @@ export default function Hero() {
 
                 {/* Desktop Cards Showcase - Hidden on mobile, shown on lg+ */}
                 <div className={`hidden lg:flex relative w-full max-w-[550px] h-[580px] items-center justify-center perspective-[1000px] transition-all duration-1000 ease-out delay-200 transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                    {/* Umbreon BGS */}
-                    <div className="absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#0a0a0a] to-[#0a0a0a] border-2 border-[#333] shadow-[0_25px_80px_rgba(0,0,0,0.7)] transform -rotate-[12deg] -translate-x-[120px] translate-y-[20px] hover:-rotate-[5deg] hover:-translate-x-[100px] hover:-translate-y-[20px] hover:scale-110 hover:z-20 transition-all duration-500 cursor-pointer z-[3] group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] via-[#4a4a4a] to-[#1a1a1a] blur-[30px] opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-xl" />
-                        <div className="relative aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
-                            <img src="https://images.pokemontcg.io/swsh7/215_hires.png" alt="Umbreon" className="w-full h-full object-cover" />
+                    {showcaseCards.map((card) => (
+                        <div key={card.id} className={card.desktopWrapperClassName}>
+                            <div
+                                className={`absolute inset-0 ${card.desktopGlowClassName} blur-[30px] opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-xl`}
+                            />
+                            <div className="relative aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
+                                <img
+                                    src={card.imageSrc}
+                                    alt={card.imageAlt}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                />
+                            </div>
+                            <div className="text-center py-1">
+                                <div
+                                    className={`${card.labelTopClassName} text-sm font-extrabold tracking-widest drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]`}
+                                >
+                                    {card.grader}
+                                </div>
+                                <div className={card.labelBottomDesktopClassName}>
+                                    {card.gradeDesktop}
+                                </div>
+                            </div>
+                            <div className="absolute bottom-[-45px] left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 group-hover:bottom-[-50px] transition-all duration-300 whitespace-nowrap z-30 pointer-events-none">
+                                <div className="font-bold text-sm text-white">{card.title}</div>
+                                <div className="text-xs text-white/60">{card.subtitle}</div>
+                            </div>
                         </div>
-                        <div className="text-center py-1">
-                            <div className="text-[#cccccc] text-sm font-extrabold tracking-widest text-shadow-sm">BGS</div>
-                            <div className="text-white text-[0.65rem] font-bold tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">BLACK LABEL 10</div>
-                        </div>
-                        <div className="absolute bottom-[-45px] left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 group-hover:bottom-[-50px] transition-all duration-300 whitespace-nowrap z-30 pointer-events-none">
-                            <div className="font-bold text-sm text-white">Umbreon VMAX</div>
-                            <div className="text-xs text-white/60">Evolving Skies</div>
-                        </div>
-                    </div>
-
-                    {/* Charizard PSA */}
-                    <div className="absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#c41e3a] via-[#8b1528] to-[#5a0f1a] border-2 border-[#ff4757] shadow-[0_25px_80px_rgba(0,0,0,0.5)] transform rotate-0 -translate-y-[20px] hover:rotate-0 hover:-translate-y-[50px] hover:scale-115 hover:z-20 transition-all duration-500 cursor-pointer z-[4] group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#ff4757] to-[#ff6b81] blur-[30px] opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-xl" />
-                        <div className="relative aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
-                            <img src="https://images.pokemontcg.io/base1/4_hires.png" alt="Charizard" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="text-center py-1">
-                            <div className="text-white text-sm font-extrabold tracking-widest drop-shadow-sm">PSA</div>
-                            <div className="text-white/90 text-[0.65rem] font-bold tracking-widest">GEM MT 10</div>
-                        </div>
-                        <div className="absolute bottom-[-45px] left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 group-hover:bottom-[-50px] transition-all duration-300 whitespace-nowrap z-30 pointer-events-none">
-                            <div className="font-bold text-sm text-white">Charizard</div>
-                            <div className="text-xs text-white/60">1st Ed. Base Set</div>
-                        </div>
-                    </div>
-
-                    {/* Pikachu TAG */}
-                    <div className="absolute w-[200px] p-3 rounded-xl bg-gradient-to-b from-[#d4af37] via-[#b8860b] to-[#8b6914] border-2 border-[#ffd93d] shadow-[0_25px_80px_rgba(0,0,0,0.5)] transform rotate-[12deg] translate-x-[120px] translate-y-[20px] hover:rotate-[5deg] hover:translate-x-[100px] hover:-translate-y-[20px] hover:scale-110 hover:z-20 transition-all duration-500 cursor-pointer z-[2] group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#ffd93d] to-[#ffb347] blur-[30px] opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-xl" />
-                        <div className="relative aspect-[2.5/3.5] bg-gray-100 rounded-md overflow-hidden mb-2">
-                            <img src="https://images.pokemontcg.io/basep/4_hires.png" alt="Pikachu" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="text-center py-1">
-                            <div className="text-white text-sm font-extrabold tracking-widest drop-shadow-sm">TAG</div>
-                            <div className="text-white/90 text-[0.65rem] font-bold tracking-widest">PRISTINE 10</div>
-                        </div>
-                        <div className="absolute bottom-[-45px] left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 group-hover:bottom-[-50px] transition-all duration-300 whitespace-nowrap z-30 pointer-events-none">
-                            <div className="font-bold text-sm text-white">Pikachu</div>
-                            <div className="text-xs text-white/60">Illustrator Promo</div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
         </section>
