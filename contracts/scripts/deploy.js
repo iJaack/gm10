@@ -14,7 +14,7 @@ async function main() {
 
   // Deployment parameters
   const TREASURY_ADDRESS = deployer.address; // Use deployer as treasury initially
-  const MANAGEMENT_FEE = 200; // 2% annual management fee
+  const MANAGEMENT_FEE = 100; // 1% annual management fee (matches Fuji deployment)
   const PERFORMANCE_FEE = 1000; // 10% performance fee
 
   console.log("\n--- Deployment Parameters ---");

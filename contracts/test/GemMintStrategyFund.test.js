@@ -153,4 +153,36 @@ describe("GemMintStrategyFund", function () {
             expect(nav).to.equal(ethers.parseEther("1"));
         });
     });
+
+    describe("Failed Round Refunds", function () {
+        it("Should allow round-specific refunds when target is not met", async function () {
+            const target = ethers.parseEther("100");
+            const price = ethers.parseEther("1");
+            const block = await ethers.provider.getBlock("latest");
+            const start = block.timestamp;
+            const end = start + 120;
+
+            await fund.createFundraisingRound(target, price, 0, target, start, end);
+
+            const investAmount = ethers.parseEther("2");
+            await fund.connect(addr1).invest({ value: investAmount });
+            expect(await fund.balanceOf(addr1.address)).to.equal(investAmount);
+
+            await ethers.provider.send("evm_setNextBlockTimestamp", [end + 1]);
+            await ethers.provider.send("evm_mine");
+
+            await fund.enableRoundRefunds(1);
+            expect(await fund.roundRefundsEnabled(1)).to.equal(true);
+
+            const before = await ethers.provider.getBalance(addr1.address);
+            const tx = await fund.connect(addr1).claimRoundRefund(1);
+            const receipt = await tx.wait();
+            const gasPrice = receipt.gasPrice ?? tx.gasPrice ?? 0n;
+            const gasCost = receipt.gasUsed * gasPrice;
+            const after = await ethers.provider.getBalance(addr1.address);
+
+            expect(after + gasCost - before).to.equal(investAmount);
+            expect(await fund.balanceOf(addr1.address)).to.equal(0);
+        });
+    });
 });

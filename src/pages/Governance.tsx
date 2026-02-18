@@ -1,3 +1,26 @@
+/**
+ * TODO: Wire governance page to on-chain contract reads
+ *
+ * The mock proposals below need to be replaced with real on-chain data.
+ * Required contract calls (GemMintGovernor / OpenZeppelin Governor):
+ *
+ *   - governor.proposalCount()                           → total proposals
+ *   - governor.state(proposalId)                          → ProposalState enum (Pending/Active/Canceled/Defeated/Succeeded/Queued/Expired/Executed)
+ *   - governor.proposalVotes(proposalId)                  → (againstVotes, forVotes, abstainVotes)
+ *   - governor.proposalSnapshot(proposalId)               → snapshot block
+ *   - governor.proposalDeadline(proposalId)               → deadline block
+ *   - governor.proposalProposer(proposalId)               → proposer address
+ *   - governor.hasVoted(proposalId, account)              → bool
+ *   - governor.quorum(blockNumber)                        → quorum at block
+ *   - governor.getActions(proposalId)                     → targets[], values[], calldatas[]
+ *   - governor.propose(targets, values, calldatas, desc)  → create proposal
+ *   - governor.castVote(proposalId, support)              → vote (0=Against, 1=For, 2=Abstain)
+ *   - governor.queue(proposalId)                          → queue for execution
+ *   - governor.execute(proposalId)                        → execute
+ *
+ * Approach: iterate proposalIds (1..N), call state() + proposalVotes() for each,
+ * filter by Active state for the "Active" tab, render real vote counts.
+ */
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { encodeFunctionData, formatEther, isAddress, parseEther } from 'viem';

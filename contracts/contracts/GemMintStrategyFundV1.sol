@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IRouter.sol";
+import "./interfaces/IEVAStaking.sol";
 
 /**
  * @title GemMintStrategyFundV1
@@ -130,6 +131,9 @@ contract GemMintStrategyFundV1 is
     uint256 public redemptionFee;            // Fee in basis points
     uint256 public minRedemptionAmount;
 
+    // EVA Staking gate (set via setEVAStakingContract)
+    address public evaStakingContract;
+
     // ============ Events ============
 
     event CardAdded(uint256 indexed cardIndex, string cardId, string name, uint256 acquisitionPrice);
@@ -179,7 +183,7 @@ contract GemMintStrategyFundV1 is
     error TokenTransferFailed();
 
     // ============ Storage Gap for Future Upgrades ============
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -288,6 +292,14 @@ contract GemMintStrategyFundV1 is
      * @notice Invest AVAX in current fundraising round
      */
     function invest(uint256 _roundId) external payable nonReentrant whenNotPaused {
+        // EVA staking gate: if staking contract is configured, require the caller has staked
+        if (evaStakingContract != address(0)) {
+            require(
+                IEVAStaking(evaStakingContract).canInvest(msg.sender),
+                "Must stake 10M EVA to invest"
+            );
+        }
+
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
         if (!round.isActive) revert RoundNotActive();
@@ -744,6 +756,14 @@ contract GemMintStrategyFundV1 is
     function setTreasury(address _newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newTreasury == address(0)) revert ZeroAddress();
         treasury = _newTreasury;
+    }
+
+    /**
+     * @notice Set the EVAStaking contract address for invest-gate enforcement.
+     *         Set to address(0) to disable the staking requirement.
+     */
+    function setEVAStakingContract(address _evaStaking) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        evaStakingContract = _evaStaking;
     }
 
     // ============ View Functions ============

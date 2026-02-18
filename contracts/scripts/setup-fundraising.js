@@ -26,11 +26,11 @@ async function main() {
   const fund = await hre.ethers.getContractAt("GemMintStrategyFundV1", FUND_ADDRESS);
   console.log("Fund contract:", FUND_ADDRESS);
 
-  // Fundraising parameters
-  const TARGET_AMOUNT = hre.ethers.parseEther("100"); // 100 AVAX target
-  const TOKEN_PRICE = hre.ethers.parseEther("0.01"); // 0.01 AVAX per CATCH (~$0.35 at $35 AVAX)
+  // Fundraising parameters (must match frontend/docs values)
+  const TARGET_AMOUNT = hre.ethers.parseEther("10000"); // 10,000 AVAX target
+  const TOKEN_PRICE = hre.ethers.parseEther("0.0025"); // 0.0025 AVAX per CATCH (400 CATCH per 1 AVAX)
   const MIN_INVESTMENT = hre.ethers.parseEther("0.1"); // 0.1 AVAX minimum
-  const MAX_INVESTMENT = hre.ethers.parseEther("10"); // 10 AVAX max per address
+  const MAX_INVESTMENT = hre.ethers.parseEther("200"); // 200 AVAX max per address
 
   // Round timing - 14 days from now
   const now = Math.floor(Date.now() / 1000);

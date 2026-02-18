@@ -29,8 +29,10 @@ module.exports = {
     fuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       chainId: 43113,
-      // accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [],
+      // Use PRIVATE_KEY for software wallet deployment, or LEDGER for hardware wallet
+      ...(process.env.PRIVATE_KEY
+        ? { accounts: [process.env.PRIVATE_KEY] }
+        : { ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [] }),
       gasPrice: 25000000000,
     },
     // Local development

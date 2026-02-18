@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Page from '../components/Page';
 
 export default function Portfolio() {
@@ -143,18 +144,18 @@ export default function Portfolio() {
                         As we complete our fundraising rounds, we'll be acquiring 40+ additional museum-quality cards. Check back regularly to see our portfolio grow!
                     </p>
                     <div className="flex gap-4 justify-center">
-                        <a
-                            href="/fundraising"
+                        <Link
+                            to="/fundraising"
                             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl font-bold text-white hover:opacity-90 transition-all"
                         >
                             Invest Now
-                        </a>
-                        <a
-                            href="/tokenomics"
+                        </Link>
+                        <Link
+                            to="/tokenomics"
                             className="px-6 py-3 bg-white/10 border border-white/20 rounded-xl font-bold text-white hover:bg-white/20 transition-all"
                         >
                             Learn More
-                        </a>
+                        </Link>
                     </div>
                 </div>
 

@@ -1,3 +1,4 @@
+// DEPRECATED: Use GemMintStrategyFundV1 (UUPS proxy) instead. This file is kept for reference only.
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -93,8 +94,16 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
     // Investor tracking
     mapping(address => Investor) public investors;
     mapping(uint256 => mapping(address => uint256)) public roundInvestments; // roundId => investor => amount
+    mapping(uint256 => mapping(address => uint256)) public roundTokensMinted; // roundId => investor => tokens minted
     address[] public investorList;
     uint256 public totalInvestors;
+
+    // Failed round refund tracking
+    mapping(uint256 => bool) public roundRefundsEnabled;
+    mapping(uint256 => uint256) public roundRefundEnabledAmount; // roundId => total refundable AVAX
+    mapping(uint256 => uint256) public roundRefundClaimedTotal; // roundId => total claimed AVAX
+    mapping(uint256 => mapping(address => bool)) public roundRefundClaimed;
+    uint256 public totalRefundLiabilities; // Aggregate AVAX reserved for unclaimed round refunds
 
     // Treasury
     address public treasury;
@@ -115,6 +124,8 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
 
     event RoundCreated(uint256 indexed roundId, uint256 targetAmount, uint256 tokenPrice, uint256 startTime, uint256 endTime);
     event RoundFinalized(uint256 indexed roundId, uint256 totalRaised, uint256 tokensIssued);
+    event RoundRefundsEnabled(uint256 indexed roundId, uint256 refundableAmount);
+    event RoundRefundClaimed(address indexed investor, uint256 indexed roundId, uint256 avaxAmount, uint256 tokensBurned);
 
     event Investment(address indexed investor, uint256 indexed roundId, uint256 avaxAmount, uint256 tokensReceived);
     event Redemption(address indexed investor, uint256 tokensRedeemed, uint256 avaxReceived);
@@ -135,6 +146,12 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
     error Unauthorized();
     error ZeroAddress();
     error CardNotFound();
+    error RoundTargetMet();
+    error RefundsNotEnabled();
+    error RefundAlreadyClaimed();
+    error NoRoundInvestment();
+    error InsufficientTokensForRefund();
+    error RefundReserveLocked();
 
     // ============ Constructor ============
 
@@ -224,6 +241,7 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
         // Update round state
         round.raisedAmount += msg.value;
         roundInvestments[currentRoundId][msg.sender] += msg.value;
+        roundTokensMinted[currentRoundId][msg.sender] += tokensToIssue;
 
         // Update investor record
         Investor storage investor = investors[msg.sender];
@@ -260,6 +278,58 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
         totalRoundsCompleted++;
 
         emit RoundFinalized(_roundId, round.raisedAmount, (round.raisedAmount * 1e18) / round.tokenPrice);
+    }
+
+    /**
+     * @notice Enable per-investor refunds for a round that ended below target
+     * @dev Investors can claim principal for that round by burning tokens minted in that round
+     */
+    function enableRoundRefunds(uint256 _roundId) external onlyRole(MANAGER_ROLE) {
+        FundraisingRound storage round = fundraisingRounds[_roundId];
+
+        if (round.roundId == 0) revert InvalidParameters();
+        if (block.timestamp <= round.endTime) revert RoundNotEnded();
+        if (round.raisedAmount >= round.targetAmount) revert RoundTargetMet();
+        if (roundRefundsEnabled[_roundId]) revert InvalidParameters();
+
+        round.isActive = false;
+        round.isFinalized = true;
+
+        roundRefundsEnabled[_roundId] = true;
+        roundRefundEnabledAmount[_roundId] = round.raisedAmount;
+        totalRefundLiabilities += round.raisedAmount;
+
+        emit RoundRefundsEnabled(_roundId, round.raisedAmount);
+    }
+
+    /**
+     * @notice Claim a failed-round principal refund
+     * @dev Burns tokens minted in that round to prevent double-dipping
+     */
+    function claimRoundRefund(uint256 _roundId) external nonReentrant {
+        if (!roundRefundsEnabled[_roundId]) revert RefundsNotEnabled();
+        if (roundRefundClaimed[_roundId][msg.sender]) revert RefundAlreadyClaimed();
+
+        uint256 invested = roundInvestments[_roundId][msg.sender];
+        if (invested == 0) revert NoRoundInvestment();
+
+        uint256 tokensToBurn = roundTokensMinted[_roundId][msg.sender];
+        if (tokensToBurn == 0) revert NoRoundInvestment();
+        if (balanceOf(msg.sender) < tokensToBurn) revert InsufficientTokensForRefund();
+        if (address(this).balance < invested) revert InsufficientBalance();
+
+        roundRefundClaimed[_roundId][msg.sender] = true;
+        roundRefundClaimedTotal[_roundId] += invested;
+        totalRefundLiabilities -= invested;
+
+        _burn(msg.sender, tokensToBurn);
+
+        (bool success, ) = msg.sender.call{value: invested}("");
+        require(success, "Transfer failed");
+
+        _updateNAV();
+
+        emit RoundRefundClaimed(msg.sender, _roundId, invested, tokensToBurn);
     }
 
     // ============ Portfolio Management ============
@@ -429,6 +499,7 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
         uint256 netAvax = avaxToReturn - fee;
 
         if (address(this).balance < netAvax) revert InsufficientBalance();
+        if (address(this).balance - netAvax < totalRefundLiabilities) revert RefundReserveLocked();
 
         // Burn tokens
         _burn(msg.sender, _tokenAmount);
@@ -454,6 +525,7 @@ contract GemMintStrategyFund is ERC20, ERC20Burnable, ERC20Pausable, AccessContr
     ) external onlyRole(MANAGER_ROLE) {
         if (_to == address(0)) revert ZeroAddress();
         if (_amount > address(this).balance) revert InsufficientBalance();
+        if (address(this).balance - _amount < totalRefundLiabilities) revert RefundReserveLocked();
 
         (bool success, ) = _to.call{value: _amount}("");
         require(success, "Transfer failed");

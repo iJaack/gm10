@@ -80,6 +80,87 @@ describe("GemMintStrategyFund (Upgradeable Proxy)", function () {
     expect(await fund.balanceOf(investor.address)).to.equal(tokens - redeemTokens);
   });
 
+  it("enables round-specific refunds for failed rounds and burns round-minted tokens", async function () {
+    const fund = await deployV1Proxy();
+    const now = (await ethers.provider.getBlock("latest")).timestamp;
+
+    const target = ethers.parseEther("100");
+    const price = ethers.parseEther("1");
+    const endTime = now + 120;
+
+    await fund.createFundraisingRound(target, price, 0, target, now, endTime);
+
+    const investAmount = ethers.parseEther("5");
+    await fund.connect(investor).invest(1, { value: investAmount });
+    expect(await fund.balanceOf(investor.address)).to.equal(investAmount);
+
+    await ethers.provider.send("evm_setNextBlockTimestamp", [endTime + 1]);
+    await ethers.provider.send("evm_mine");
+
+    await fund.enableRoundRefunds(1);
+    expect(await fund.roundRefundsEnabled(1)).to.equal(true);
+    expect(await fund.totalRefundLiabilities()).to.equal(investAmount);
+
+    const beforeBalance = await ethers.provider.getBalance(investor.address);
+    const tx = await fund.connect(investor).claimRoundRefund(1);
+    const receipt = await tx.wait();
+    const gasPrice = receipt.gasPrice ?? tx.gasPrice ?? 0n;
+    const gasCost = receipt.gasUsed * gasPrice;
+    const afterBalance = await ethers.provider.getBalance(investor.address);
+
+    expect(afterBalance + gasCost - beforeBalance).to.equal(investAmount);
+    expect(await fund.balanceOf(investor.address)).to.equal(0);
+    expect(await fund.totalRefundLiabilities()).to.equal(0);
+    await expect(fund.connect(investor).claimRoundRefund(1)).to.be.revertedWithCustomError(
+      fund,
+      "RefundAlreadyClaimed"
+    );
+  });
+
+  it("prevents refund claims if investor no longer holds tokens minted by that round", async function () {
+    const fund = await deployV1Proxy();
+    const now = (await ethers.provider.getBlock("latest")).timestamp;
+
+    const target = ethers.parseEther("50");
+    const price = ethers.parseEther("1");
+    const endTime = now + 120;
+
+    await fund.createFundraisingRound(target, price, 0, target, now, endTime);
+
+    const investAmount = ethers.parseEther("3");
+    await fund.connect(investor).invest(1, { value: investAmount });
+    await fund.connect(investor).transfer(proposer.address, investAmount);
+
+    await ethers.provider.send("evm_setNextBlockTimestamp", [endTime + 1]);
+    await ethers.provider.send("evm_mine");
+    await fund.enableRoundRefunds(1);
+
+    await expect(fund.connect(investor).claimRoundRefund(1)).to.be.revertedWithCustomError(
+      fund,
+      "InsufficientTokensForRefund"
+    );
+  });
+
+  it("locks treasury withdrawals while failed-round refund liabilities are outstanding", async function () {
+    const fund = await deployV1Proxy();
+    const now = (await ethers.provider.getBlock("latest")).timestamp;
+
+    const target = ethers.parseEther("100");
+    const price = ethers.parseEther("1");
+    const endTime = now + 120;
+
+    await fund.createFundraisingRound(target, price, 0, target, now, endTime);
+    await fund.connect(investor).invest(1, { value: ethers.parseEther("2") });
+
+    await ethers.provider.send("evm_setNextBlockTimestamp", [endTime + 1]);
+    await ethers.provider.send("evm_mine");
+    await fund.enableRoundRefunds(1);
+
+    await expect(
+      fund.withdrawFromTreasury(treasury.address, ethers.parseEther("1"), "test")
+    ).to.be.revertedWithCustomError(fund, "RefundReserveLocked");
+  });
+
   it("can upgrade V1->V2 (initializeV2) and enable voting power via delegation", async function () {
     const fundV1 = await deployV1Proxy();
     const proxyAddress = await fundV1.getAddress();
@@ -221,4 +302,3 @@ describe("GemMintStrategyFund (Upgradeable Proxy)", function () {
     expect(await fund.approvedBudgets(asset)).to.equal(budgetAmount);
   });
 });
-

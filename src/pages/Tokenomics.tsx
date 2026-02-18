@@ -1,6 +1,10 @@
 import Page from '../components/Page';
 
 export default function Tokenomics() {
+    // Note: "exampleNAV" here is the projected per-token price, NOT the contract's
+    // navPerToken (which initializes to 1 AVAX). The round 1 token price of 0.0025 AVAX
+    // means 1 AVAX buys 400 CATCH. The contract NAV (1 AVAX/CATCH) reflects total
+    // assets / supply and will diverge from round pricing once cards are acquired.
     const rounds = [
         {
             round: 1,

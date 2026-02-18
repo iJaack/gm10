@@ -42,12 +42,13 @@ We use a decentralized governance model designed for agility and security.
 ## 🛠️ Getting Started
 
 ### Prerequisites
-*   Node.js v18+
+*   Node.js 20.x (LTS)
 *   Metamask or generic Web3 wallet
 
 ### Installation
 ```bash
 # Install dependencies
+nvm use
 npm install
 
 # Run Frontend
@@ -57,6 +58,7 @@ npm run dev
 ### Smart Contract Deployment
 ```bash
 cd contracts
+nvm use
 npm install
 npx hardhat compile
 # See package.json for deployment scripts
