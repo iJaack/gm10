@@ -12,6 +12,8 @@ contract GemMintStrategyFundV2 is
     GemMintStrategyFundV1,
     ERC20VotesUpgradeable 
 {
+    error InsufficientBudgetAuthorized();
+
     // ============ New State Variables ============
     // Appended to the end to preserve storage layout
     
@@ -78,27 +80,36 @@ contract GemMintStrategyFundV2 is
     // ============ Manager Functions ============
 
     /**
-     * @notice Manager purchases an asset using an approved budget
-     * @dev Simple implementation: Just deducts budget and emits event. 
-     *      In a real scenario, this would interact with a DEX or Marketplace.
-     * @param _asset The asset to purchase
-     * @param _cost The cost of the asset
+     * @notice Manager withdraws governance-approved funds to execute an off-chain asset purchase
+     * @dev Deducts from the approved budget for `_asset`, checks the contract's free balance
+     *      (accounting for outstanding refund liabilities), then transfers `_cost` AVAX to
+     *      msg.sender. The manager is responsible for executing the actual marketplace purchase
+     *      and calling addCard() to record the acquired asset on-chain.
+     *
+     *      Future versions can replace the AVAX transfer with a marketplace adapter call:
+     *        IERC20(usdcToken).approve(marketplace, _cost);
+     *        Marketplace.buy(_asset, _cost, ...);
+     *
+     * @param _asset The address identifier of the asset category (used as budget key)
+     * @param _cost The AVAX amount to withdraw for the purchase
      */
     function purchaseAuthorizedAsset(address _asset, uint256 _cost)
         external
         onlyRole(MANAGER_ROLE)
+        nonReentrant
     {
         uint256 currentBudget = approvedBudgets[_asset];
-        require(currentBudget >= _cost, "Insufficient budget authorized");
-        
-        // Deduct from budget
+        if (currentBudget < _cost) revert InsufficientBudgetAuthorized();
+
+        // Ensure free balance covers cost (total balance minus refund reserve)
+        if (address(this).balance < _cost + totalRefundLiabilities) revert InsufficientFreeBalance();
+
+        // Deduct from approved budget
         approvedBudgets[_asset] = currentBudget - _cost;
-        
-        // In a real implementation:
-        // IERC20(usdcToken).approve(marketplace, _cost);
-        // Marketplace.buy(_asset, _cost, ...);
-        
-        // For now, we simulate the action
+
+        // Transfer AVAX to manager for off-chain purchase execution
+        _transferNative(msg.sender, _cost);
+
         emit AssetPurchased(_asset, _cost);
     }
 

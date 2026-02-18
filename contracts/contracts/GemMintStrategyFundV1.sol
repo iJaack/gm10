@@ -112,8 +112,14 @@ contract GemMintStrategyFundV1 is
     // Investor tracking
     mapping(address => Investor) public investors;
     mapping(uint256 => mapping(address => uint256)) public roundInvestments; // roundId => investor => amount
+    mapping(uint256 => mapping(address => uint256)) private roundTokensMinted; // roundId => investor => tokens minted
     address[] public investorList;
     uint256 public totalInvestors;
+
+    // Failed round refund tracking
+    mapping(uint256 => bool) public roundRefundsEnabled;
+    mapping(uint256 => mapping(address => bool)) private roundRefundClaimed;
+    uint256 public totalRefundLiabilities; // Aggregate AVAX reserved for unclaimed round refunds
 
     // Treasury
     address public treasury;
@@ -134,6 +140,8 @@ contract GemMintStrategyFundV1 is
 
     event RoundCreated(uint256 indexed roundId, uint256 targetAmount, uint256 tokenPrice, uint256 startTime, uint256 endTime);
     event RoundFinalized(uint256 indexed roundId, uint256 totalRaised, uint256 tokensIssued);
+    event RoundRefundsEnabled(uint256 indexed roundId, uint256 refundableAmount);
+    event RoundRefundClaimed(address indexed investor, uint256 indexed roundId, uint256 avaxAmount, uint256 tokensBurned);
 
     event Investment(address indexed investor, uint256 indexed roundId, uint256 avaxAmount, uint256 tokensReceived);
     event Redemption(address indexed investor, uint256 tokensRedeemed, uint256 avaxReceived);
@@ -144,6 +152,8 @@ contract GemMintStrategyFundV1 is
     event BuybackExecuted(uint256 usdcAmount, uint256 avaxReceived, uint256 lpAmount, uint256 buybackAmount);
     event BuybackConfigUpdated(uint256 buybackPercentage, uint256 lpAllocation);
     event DexConfigUpdated(address dexRouter, address usdcToken);
+    event FeesUpdated(uint256 managementFee, uint256 performanceFee);
+    event RedemptionParametersUpdated(uint256 redemptionFee, uint256 minRedemptionAmount);
 
     // ============ Errors ============
 
@@ -158,9 +168,18 @@ contract GemMintStrategyFundV1 is
     error Unauthorized();
     error ZeroAddress();
     error CardNotFound();
+    error RoundTargetMet();
+    error RefundsNotEnabled();
+    error RefundAlreadyClaimed();
+    error NoRoundInvestment();
+    error InsufficientTokensForRefund();
+    error RefundReserveLocked();
+    error InsufficientFreeBalance();
+    error TransferFailed();
+    error TokenTransferFailed();
 
     // ============ Storage Gap for Future Upgrades ============
-    uint256[50] private __gap;
+    uint256[46] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -268,7 +287,7 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Invest AVAX in current fundraising round
      */
-    function invest(uint256 _roundId) external payable nonReentrant {
+    function invest(uint256 _roundId) external payable nonReentrant whenNotPaused {
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
         if (!round.isActive) revert RoundNotActive();
@@ -283,6 +302,7 @@ contract GemMintStrategyFundV1 is
         // Update round state
         round.raisedAmount += msg.value;
         roundInvestments[_roundId][msg.sender] += msg.value;
+        roundTokensMinted[_roundId][msg.sender] += tokensToMint;
 
         // Update investor state
         Investor storage investor = investors[msg.sender];
@@ -307,6 +327,8 @@ contract GemMintStrategyFundV1 is
 
     /**
      * @notice Finalize fundraising round
+     * @dev Can be called before endTime if the targetAmount has been fully raised.
+     *      Otherwise must wait until endTime has passed.
      */
     function finalizeRound(uint256 _roundId) external onlyRole(MANAGER_ROLE) {
         FundraisingRound storage round = fundraisingRounds[_roundId];
@@ -319,6 +341,55 @@ contract GemMintStrategyFundV1 is
         totalRoundsCompleted++;
 
         emit RoundFinalized(_roundId, round.raisedAmount, (round.raisedAmount * 1e18) / round.tokenPrice);
+    }
+
+    /**
+     * @notice Enable per-investor refunds for a round that ended below target
+     * @dev Investors can claim principal for that round by burning tokens minted in that round
+     */
+    function enableRoundRefunds(uint256 _roundId) external onlyRole(MANAGER_ROLE) {
+        FundraisingRound storage round = fundraisingRounds[_roundId];
+
+        if (round.roundId == 0) revert InvalidParameters();
+        if (block.timestamp <= round.endTime) revert RoundNotEnded();
+        if (round.raisedAmount >= round.targetAmount) revert RoundTargetMet();
+        if (roundRefundsEnabled[_roundId]) revert InvalidParameters();
+
+        round.isActive = false;
+        round.isFinalized = true;
+
+        roundRefundsEnabled[_roundId] = true;
+        totalRefundLiabilities += round.raisedAmount;
+
+        emit RoundRefundsEnabled(_roundId, round.raisedAmount);
+    }
+
+    /**
+     * @notice Claim a failed-round principal refund
+     * @dev Burns tokens minted in that round to prevent double-dipping
+     */
+    function claimRoundRefund(uint256 _roundId) external nonReentrant {
+        if (!roundRefundsEnabled[_roundId]) revert RefundsNotEnabled();
+        if (roundRefundClaimed[_roundId][msg.sender]) revert RefundAlreadyClaimed();
+
+        uint256 invested = roundInvestments[_roundId][msg.sender];
+        if (invested == 0) revert NoRoundInvestment();
+
+        uint256 tokensToBurn = roundTokensMinted[_roundId][msg.sender];
+        if (tokensToBurn == 0) revert NoRoundInvestment();
+        if (balanceOf(msg.sender) < tokensToBurn) revert InsufficientTokensForRefund();
+        if (address(this).balance < invested) revert InsufficientBalance();
+
+        roundRefundClaimed[_roundId][msg.sender] = true;
+        totalRefundLiabilities -= invested;
+
+        _burn(msg.sender, tokensToBurn);
+
+        _transferNative(msg.sender, invested);
+
+        _updateNAV();
+
+        emit RoundRefundClaimed(msg.sender, _roundId, invested, tokensToBurn);
     }
 
     // ============ Portfolio Management ============
@@ -361,6 +432,10 @@ contract GemMintStrategyFundV1 is
 
     /**
      * @notice Update card value (Oracle role)
+     * @dev A value of 0 is permitted to represent a complete write-off (e.g. grading error,
+     *      destroyed card). This does NOT mark the card as inactive — use sellCardWithBuyback
+     *      or a dedicated deactivation path for that. Setting to 0 without selling will
+     *      reduce totalPortfolioValue without any corresponding AVAX inflow.
      */
     function updateCardValue(uint256 _cardIndex, uint256 _newValue) external onlyRole(ORACLE_ROLE) {
         Card storage card = cards[_cardIndex];
@@ -405,10 +480,7 @@ contract GemMintStrategyFundV1 is
         uint256 buybackAmount = (_salePrice * buybackPercentage) / FEE_DENOMINATOR;
 
         // Transfer USDC from treasury/multisig to contract
-        require(
-            IERC20(usdcToken).transferFrom(msg.sender, address(this), buybackAmount),
-            "USDC transfer failed"
-        );
+        if (!IERC20(usdcToken).transferFrom(msg.sender, address(this), buybackAmount)) revert TokenTransferFailed();
 
         // Execute buyback: USDC → AVAX → 50% LP + 50% CATCH buyback
         _executeBuyback(buybackAmount);
@@ -553,6 +625,11 @@ contract GemMintStrategyFundV1 is
         emit NAVUpdated(totalAssets, navPerToken, block.timestamp);
     }
 
+    function _transferNative(address _to, uint256 _amount) internal {
+        (bool success, ) = _to.call{value: _amount}("");
+        if (!success) revert TransferFailed();
+    }
+
     /**
      * @notice Force NAV update (Oracle role)
      */
@@ -575,14 +652,16 @@ contract GemMintStrategyFundV1 is
         uint256 feeAmount = (avaxAmount * redemptionFee) / FEE_DENOMINATOR;
         uint256 netAvaxAmount = avaxAmount - feeAmount;
 
-        if (address(this).balance < netAvaxAmount) revert InsufficientBalance();
+        // Single check: the contract's free balance (total minus refund reserve) must cover
+        // the redemption payout. This prevents both "truly not enough AVAX" and
+        // "would drain the refund reserve" in one clear revert.
+        if (address(this).balance < netAvaxAmount + totalRefundLiabilities) revert InsufficientFreeBalance();
 
         // Burn tokens
         _burn(msg.sender, _tokenAmount);
 
         // Transfer AVAX
-        (bool success, ) = msg.sender.call{value: netAvaxAmount}("");
-        require(success, "Transfer failed");
+        _transferNative(msg.sender, netAvaxAmount);
 
         // Update NAV after supply + cash changed.
         _updateNAV();
@@ -595,6 +674,37 @@ contract GemMintStrategyFundV1 is
      */
     function setRedemptionsEnabled(bool _enabled) external onlyRole(GOVERNANCE_ROLE) {
         redemptionsEnabled = _enabled;
+    }
+
+    // ============ Fee & Redemption Configuration ============
+
+    /**
+     * @notice Update management and performance fees
+     * @param _managementFee Management fee in basis points (max 500 = 5%)
+     * @param _performanceFee Performance fee in basis points (max 3000 = 30%)
+     */
+    function setFees(uint256 _managementFee, uint256 _performanceFee) external onlyRole(GOVERNANCE_ROLE) {
+        if (_managementFee > 500) revert InvalidParameters();   // max 5%
+        if (_performanceFee > 3000) revert InvalidParameters();  // max 30%
+
+        managementFee = _managementFee;
+        performanceFee = _performanceFee;
+
+        emit FeesUpdated(_managementFee, _performanceFee);
+    }
+
+    /**
+     * @notice Update redemption parameters
+     * @param _redemptionFee Redemption fee in basis points (default 50 = 0.5%)
+     * @param _minRedemptionAmount Minimum token amount for redemption
+     */
+    function setRedemptionParameters(uint256 _redemptionFee, uint256 _minRedemptionAmount) external onlyRole(GOVERNANCE_ROLE) {
+        if (_redemptionFee > MAX_FEE) revert InvalidParameters(); // max 10%
+
+        redemptionFee = _redemptionFee;
+        minRedemptionAmount = _minRedemptionAmount;
+
+        emit RedemptionParametersUpdated(_redemptionFee, _minRedemptionAmount);
     }
 
     // ============ Admin Functions ============
@@ -622,8 +732,8 @@ contract GemMintStrategyFundV1 is
     {
         if (_to == address(0)) revert ZeroAddress();
         if (_amount > address(this).balance) revert InsufficientBalance();
-        (bool success, ) = _to.call{value: _amount}("");
-        require(success, "Transfer failed");
+        if (address(this).balance - _amount < totalRefundLiabilities) revert RefundReserveLocked();
+        _transferNative(_to, _amount);
         _updateNAV();
         emit TreasuryWithdrawal(_to, _amount, _reason);
     }

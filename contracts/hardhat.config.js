@@ -10,7 +10,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1, // Minimize contract size (V2 is near the 24KB deployment limit)
       },
       viaIR: true,
       evmVersion: "cancun",
