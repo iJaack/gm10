@@ -181,6 +181,7 @@ contract GemMintStrategyFundV1 is
     error InsufficientFreeBalance();
     error TransferFailed();
     error TokenTransferFailed();
+    error EVAStakeRequired();
 
     // ============ Storage Gap for Future Upgrades ============
     uint256[45] private __gap;
@@ -294,10 +295,7 @@ contract GemMintStrategyFundV1 is
     function invest(uint256 _roundId) external payable nonReentrant whenNotPaused {
         // EVA staking gate: if staking contract is configured, require the caller has staked
         if (evaStakingContract != address(0)) {
-            require(
-                IEVAStaking(evaStakingContract).canInvest(msg.sender),
-                "Must stake 10M EVA to invest"
-            );
+            if (!IEVAStaking(evaStakingContract).canInvest(msg.sender)) revert EVAStakeRequired();
         }
 
         FundraisingRound storage round = fundraisingRounds[_roundId];
@@ -308,8 +306,9 @@ contract GemMintStrategyFundV1 is
         if (roundInvestments[_roundId][msg.sender] + msg.value > round.maxInvestment) revert InvestmentAboveMaximum();
         if (round.raisedAmount + msg.value > round.targetAmount) revert TargetReached();
 
-        // Calculate tokens to mint
-        uint256 tokensToMint = (msg.value * 1e18) / round.tokenPrice;
+        // Calculate tokens to mint (safe: msg.value * 1e18 fits uint256)
+        uint256 tokensToMint;
+        unchecked { tokensToMint = (msg.value * 1e18) / round.tokenPrice; }
 
         // Update round state
         round.raisedAmount += msg.value;
@@ -352,7 +351,9 @@ contract GemMintStrategyFundV1 is
         round.isFinalized = true;
         totalRoundsCompleted++;
 
-        emit RoundFinalized(_roundId, round.raisedAmount, (round.raisedAmount * 1e18) / round.tokenPrice);
+        uint256 tokensIssued;
+        unchecked { tokensIssued = (round.raisedAmount * 1e18) / round.tokenPrice; }
+        emit RoundFinalized(_roundId, round.raisedAmount, tokensIssued);
     }
 
     /**
@@ -489,7 +490,8 @@ contract GemMintStrategyFundV1 is
         card.currentValue = 0;
 
         // Calculate buyback amount (10% of sale proceeds)
-        uint256 buybackAmount = (_salePrice * buybackPercentage) / FEE_DENOMINATOR;
+        uint256 buybackAmount;
+        unchecked { buybackAmount = (_salePrice * buybackPercentage) / FEE_DENOMINATOR; }
 
         // Transfer USDC from treasury/multisig to contract
         if (!IERC20(usdcToken).transferFrom(msg.sender, address(this), buybackAmount)) revert TokenTransferFailed();
@@ -512,8 +514,12 @@ contract GemMintStrategyFundV1 is
         uint256 avaxReceived = _swapUSDCForAVAX(usdcAmount);
 
         // 2. Split AVAX: 50% for LP, 50% for CATCH buyback
-        uint256 lpAmount = (avaxReceived * lpAllocation) / FEE_DENOMINATOR;
-        uint256 buybackAmount = avaxReceived - lpAmount;
+        uint256 lpAmount;
+        uint256 buybackAmount;
+        unchecked {
+            lpAmount = (avaxReceived * lpAllocation) / FEE_DENOMINATOR;
+            buybackAmount = avaxReceived - lpAmount;
+        }
 
         // 3. Add to LP (AVAX + mint proportional CATCH)
         _addToLiquidityPool(lpAmount);
@@ -545,7 +551,8 @@ contract GemMintStrategyFundV1 is
 
     function _addToLiquidityPool(uint256 avaxAmount) internal {
         // Mint proportional CATCH tokens
-        uint256 catchAmount = (avaxAmount * 1e18) / navPerToken;
+        uint256 catchAmount;
+        unchecked { catchAmount = (avaxAmount * 1e18) / navPerToken; }
         _mint(address(this), catchAmount);
 
         // Approve router
@@ -630,7 +637,7 @@ contract GemMintStrategyFundV1 is
         treasuryBalance = address(this).balance;
 
         if (supply > 0) {
-            navPerToken = (totalAssets * 1e18) / supply;
+            unchecked { navPerToken = (totalAssets * 1e18) / supply; }
         }
 
         lastNavUpdate = block.timestamp;
@@ -659,10 +666,15 @@ contract GemMintStrategyFundV1 is
         if (_tokenAmount < minRedemptionAmount) revert InsufficientBalance();
         if (balanceOf(msg.sender) < _tokenAmount) revert InsufficientBalance();
 
-        // Calculate AVAX to return (minus redemption fee)
-        uint256 avaxAmount = (_tokenAmount * navPerToken) / 1e18;
-        uint256 feeAmount = (avaxAmount * redemptionFee) / FEE_DENOMINATOR;
-        uint256 netAvaxAmount = avaxAmount - feeAmount;
+        // Calculate AVAX to return (minus redemption fee) — safe: bounded by total supply * NAV
+        uint256 avaxAmount;
+        uint256 feeAmount;
+        uint256 netAvaxAmount;
+        unchecked {
+            avaxAmount = (_tokenAmount * navPerToken) / 1e18;
+            feeAmount = (avaxAmount * redemptionFee) / FEE_DENOMINATOR;
+            netAvaxAmount = avaxAmount - feeAmount;
+        }
 
         // Single check: the contract's free balance (total minus refund reserve) must cover
         // the redemption payout. This prevents both "truly not enough AVAX" and

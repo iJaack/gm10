@@ -43,6 +43,7 @@ module.exports = {
     hardhat: {
       chainId: 31337,
       hardfork: "cancun",
+      allowUnlimitedContractSize: true, // V2 is ~127 bytes over EIP-170; allow in tests
       chains: {
         43113: {
           hardforkHistory: {
