@@ -5,7 +5,7 @@ export default function HowItWorks() {
     const steps = [
         {
             title: "1. Acquire $CATCH",
-            description: "Buy the $CATCH token during fundraising rounds or on Trader Joe DEX. Each token represents fractional ownership in a portfolio of high-graded Pokemon cards.",
+            description: "Buy the $CATCH token during fundraising rounds or on ArenaTrade DEX. Each token represents fractional ownership in a portfolio of high-graded Pokemon cards.",
             icon: "💎"
         },
         {
@@ -20,7 +20,7 @@ export default function HowItWorks() {
         },
         {
             title: "4. Liquidity & Exit",
-            description: "Trade $CATCH 24/7 on Trader Joe or redeem for AVAX at NAV (when enabled). LP tokens are permanently burned. When cards sell, 10% of proceeds buy AVAX to grow the LP and support price via buybacks.",
+            description: "Trade $CATCH 24/7 on ArenaTrade or redeem for AVAX at NAV (when enabled). LP tokens are permanently burned. When cards sell, 10% of proceeds buy AVAX to grow the LP and support price via buybacks.",
             icon: "💧"
         }
     ];

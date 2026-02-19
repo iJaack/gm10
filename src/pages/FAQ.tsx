@@ -16,7 +16,7 @@ export default function FAQ() {
         },
         {
             question: "Can I redeem my $CATCH for AVAX?",
-            answer: "Yes, when redemptions are enabled by governance. You can also always sell on Trader Joe DEX for instant liquidity at market price."
+            answer: "Yes, when redemptions are enabled by governance. You can also always sell on ArenaTrade for instant liquidity at market price."
         },
         {
             question: "What if cards are stolen or damaged?",
