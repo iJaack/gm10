@@ -22,7 +22,7 @@ export default function Footer() {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0 ml-14 sm:ml-0">
                         <a
-                            href="https://github.com/iJaack/gm10/blob/main/SKILL.md"
+                            href="/SKILL.md"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/20 transition-colors duration-200"
@@ -30,7 +30,7 @@ export default function Footer() {
                             SKILL.md →
                         </a>
                         <a
-                            href="https://github.com/iJaack/gm10/blob/main/docs/agent-integration.md"
+                            href="/docs/agent-integration.md"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/60 text-sm font-semibold hover:bg-white/10 hover:text-white/80 transition-colors duration-200"
@@ -76,7 +76,7 @@ export default function Footer() {
                     <ul className="space-y-2 text-sm text-white/40">
                         <li>
                             <a
-                                href="https://github.com/iJaack/gm10/blob/main/SKILL.md"
+                                href="/SKILL.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="hover:text-cyan-400 transition-colors duration-150"
@@ -86,7 +86,7 @@ export default function Footer() {
                         </li>
                         <li>
                             <a
-                                href="https://github.com/iJaack/gm10/blob/main/docs/agent-integration.md"
+                                href="/docs/agent-integration.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="hover:text-cyan-400 transition-colors duration-150"
@@ -124,7 +124,7 @@ export default function Footer() {
                 <span>&copy; {new Date().getFullYear()} Gem Mint Strategy. Built on Avalanche.</span>
                 <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    AI Agent Ready · <a href="https://github.com/iJaack/gm10/blob/main/SKILL.md" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">SKILL.md</a>
+                    AI Agent Ready · <a href="/SKILL.md" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">SKILL.md</a>
                 </span>
             </div>
         </footer>

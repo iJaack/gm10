@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "prebuild": "cp SKILL.md public/SKILL.md && mkdir -p public/docs && cp docs/agent-integration.md public/docs/agent-integration.md",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
