@@ -83,12 +83,12 @@ export default function TokenGate({ children }: TokenGateProps) {
                         </div>
 
                         <a
-                            href="https://traderjoexyz.com/avalanche/trade?outputCurrency=0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672"
+                            href="https://arenatrade.ai/token/0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-block px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl font-bold text-white hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25"
                         >
-                            Buy $EVA on TraderJoe →
+                            Buy $EVA on ArenaTrade →
                         </a>
 
                         <p className="text-xs text-gray-500 mt-4">
