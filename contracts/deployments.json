@@ -15,6 +15,14 @@
     "governor": "0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf",
     "governorImpl": "0xBD5A05a73E9BD63c45899cC2D8B4b9B15f537E2F",
     "implementationV2": "0xBc03c72Fa6Eb1512FFeEF159264391f3B62B73a5",
-    "lastUpgrade": "2026-01-22T12:02:32.897Z"
+    "lastUpgrade": "2026-01-22T12:02:32.897Z",
+    "evaStaking": {
+      "proxy": "0x99f45a2907bB4f692367dAf7ae82379F6693e2F1",
+      "implementation": "0xC7696142559b1E7678bBBb040b4C880d585D0cFF",
+      "evaToken": "0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672",
+      "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+      "deployedAt": "2026-02-19T00:24:20.537Z",
+      "blockNumber": 51925198
+    }
   }
 }
