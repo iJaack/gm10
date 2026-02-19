@@ -28,8 +28,8 @@ function App() {
                         <Route path="/governance" element={<TokenGate><Governance /></TokenGate>} />
                         <Route path="/portfolio" element={<TokenGate><Portfolio /></TokenGate>} />
 
-                        {/* Fundraising requires staking 10M $EVA */}
-                        <Route path="/fundraising" element={<TokenGate requireInvest><Fundraising /></TokenGate>} />
+                        {/* Fundraising requires holding 10M $EVA on mainnet */}
+                        <Route path="/fundraising" element={<TokenGate><Fundraising /></TokenGate>} />
 
                         <Route path="*" element={<NotFound />} />
                     </Routes>

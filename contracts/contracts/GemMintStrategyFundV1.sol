@@ -131,8 +131,10 @@ contract GemMintStrategyFundV1 is
     uint256 public redemptionFee;            // Fee in basis points
     uint256 public minRedemptionAmount;
 
-    // EVA Staking gate (set via setEVAStakingContract)
-    address public evaStakingContract;
+    // TODO: re-add EVA staking gate when EVAStaking contract is deployed to mainnet
+    // EVA Staking gate (disabled — hold-only access model active)
+    // address public evaStakingContract;
+    address public evaStakingContract; // kept for storage layout compatibility (UUPS)
 
     // ============ Events ============
 
@@ -293,10 +295,11 @@ contract GemMintStrategyFundV1 is
      * @notice Invest AVAX in current fundraising round
      */
     function invest(uint256 _roundId) external payable nonReentrant whenNotPaused {
-        // EVA staking gate: if staking contract is configured, require the caller has staked
-        if (evaStakingContract != address(0)) {
-            if (!IEVAStaking(evaStakingContract).canInvest(msg.sender)) revert EVAStakeRequired();
-        }
+        // TODO: re-add EVA staking gate when EVAStaking contract is deployed to mainnet
+        // Gate removed: access now controlled by frontend hold-only check (10M $EVA on mainnet)
+        // if (evaStakingContract != address(0)) {
+        //     if (!IEVAStaking(evaStakingContract).canInvest(msg.sender)) revert EVAStakeRequired();
+        // }
 
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
@@ -770,13 +773,14 @@ contract GemMintStrategyFundV1 is
         treasury = _newTreasury;
     }
 
-    /**
-     * @notice Set the EVAStaking contract address for invest-gate enforcement.
-     *         Set to address(0) to disable the staking requirement.
-     */
-    function setEVAStakingContract(address _evaStaking) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        evaStakingContract = _evaStaking;
-    }
+    // TODO: re-add when EVAStaking contract is deployed to mainnet
+    // /**
+    //  * @notice Set the EVAStaking contract address for invest-gate enforcement.
+    //  *         Set to address(0) to disable the staking requirement.
+    //  */
+    // function setEVAStakingContract(address _evaStaking) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     evaStakingContract = _evaStaking;
+    // }
 
     // ============ View Functions ============
 

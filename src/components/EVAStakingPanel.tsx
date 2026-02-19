@@ -1,7 +1,14 @@
+// UNUSED: staking gate removed, keeping for future use
+// This entire component is currently not rendered anywhere.
+// Re-enable when EVAStaking contract is deployed to mainnet.
+
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { EVA_TOKEN_ADDRESS, EVA_STAKING_ADDRESS } from '../hooks/useEVAAccess';
+import { EVA_TOKEN_ADDRESS } from '../hooks/useEVAAccess';
+
+// Staking address kept here for when we re-enable this component
+const EVA_STAKING_ADDRESS = (import.meta.env.VITE_EVA_STAKING_ADDRESS || '') as `0x${string}`;
 
 const ERC20_ABI = [
     {

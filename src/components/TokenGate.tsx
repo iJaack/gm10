@@ -2,22 +2,18 @@ import type { ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { formatUnits } from 'viem';
 import { useEVAAccess } from '../hooks/useEVAAccess';
-import EVAStakingPanel from './EVAStakingPanel';
 import Page from './Page';
 
 type TokenGateProps = {
     children: ReactNode;
-    requireInvest?: boolean;
 };
 
-export default function TokenGate({ children, requireInvest = false }: TokenGateProps) {
+export default function TokenGate({ children }: TokenGateProps) {
     const {
         isConnected,
         hasViewAccess,
-        hasInvestAccess,
         evaBalance,
         isLoading,
-        stakingEnabled,
     } = useEVAAccess();
 
     // --- Not connected ---
@@ -76,11 +72,11 @@ export default function TokenGate({ children, requireInvest = false }: TokenGate
                             $EVA Required
                         </h2>
                         <p className="text-gray-400 mb-6">
-                            You need to hold <span className="text-white font-semibold">10,000,000 $EVA</span> to access this page.
+                            You need to hold <span className="text-white font-semibold">10,000,000 $EVA</span> on Avalanche to access this page.
                         </p>
 
                         <div className="bg-[#0a0f1c]/50 rounded-xl p-4 mb-6 border border-gray-700">
-                            <div className="text-sm text-gray-400 mb-1">Your Balance</div>
+                            <div className="text-sm text-gray-400 mb-1">Your Balance (Avalanche Mainnet)</div>
                             <div className="text-2xl font-bold text-orange-400">
                                 {formattedBalance} <span className="text-gray-500">$EVA</span>
                             </div>
@@ -107,26 +103,6 @@ export default function TokenGate({ children, requireInvest = false }: TokenGate
                             </a>{' '}
                             and other Avalanche DEXs
                         </p>
-                    </div>
-                </div>
-            </Page>
-        );
-    }
-
-    // --- Invest gate: need staking ---
-    if (requireInvest && stakingEnabled && !hasInvestAccess) {
-        return (
-            <Page>
-                <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-                    <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-cyan-500/20 rounded-3xl p-12 max-w-lg">
-                        <div className="text-5xl mb-6">🔒</div>
-                        <h2 className="text-2xl font-bold text-white mb-2">
-                            Staking Required
-                        </h2>
-                        <p className="text-gray-400 mb-2">
-                            You need to stake <span className="text-white font-semibold">10M $EVA</span> to unlock investing.
-                        </p>
-                        <EVAStakingPanel />
                     </div>
                 </div>
             </Page>
