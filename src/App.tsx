@@ -18,17 +18,15 @@ function App() {
                 <Navbar />
                 <div className="flex-grow">
                     <Routes>
-                        {/* Homepage is public */}
+                        {/* Public pages — no gate */}
                         <Route path="/" element={<Home />} />
+                        <Route path="/how-it-works" element={<HowItWorks />} />
+                        <Route path="/faq" element={<FAQ />} />
+                        <Route path="/tokenomics" element={<Tokenomics />} />
+                        <Route path="/governance" element={<Governance />} />
+                        <Route path="/portfolio" element={<Portfolio />} />
 
-                        {/* All other pages require 10M $EVA */}
-                        <Route path="/how-it-works" element={<TokenGate><HowItWorks /></TokenGate>} />
-                        <Route path="/faq" element={<TokenGate><FAQ /></TokenGate>} />
-                        <Route path="/tokenomics" element={<TokenGate><Tokenomics /></TokenGate>} />
-                        <Route path="/governance" element={<TokenGate><Governance /></TokenGate>} />
-                        <Route path="/portfolio" element={<TokenGate><Portfolio /></TokenGate>} />
-
-                        {/* Fundraising requires holding 10M $EVA on mainnet */}
+                        {/* Buy page — requires 10M $EVA on Avalanche mainnet */}
                         <Route path="/fundraising" element={<TokenGate><Fundraising /></TokenGate>} />
 
                         <Route path="*" element={<NotFound />} />
