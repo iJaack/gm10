@@ -9,7 +9,6 @@ import Tokenomics from './pages/Tokenomics';
 import Governance from './pages/Governance';
 import Portfolio from './pages/Portfolio';
 import NotFound from './pages/NotFound';
-import TokenGate from './components/TokenGate';
 
 function App() {
     return (
@@ -18,17 +17,13 @@ function App() {
                 <Navbar />
                 <div className="flex-grow">
                     <Routes>
-                        {/* Public pages — no gate */}
                         <Route path="/" element={<Home />} />
                         <Route path="/how-it-works" element={<HowItWorks />} />
                         <Route path="/faq" element={<FAQ />} />
                         <Route path="/tokenomics" element={<Tokenomics />} />
                         <Route path="/governance" element={<Governance />} />
                         <Route path="/portfolio" element={<Portfolio />} />
-
-                        {/* Buy page — requires 10M $EVA on Avalanche mainnet */}
-                        <Route path="/fundraising" element={<TokenGate><Fundraising /></TokenGate>} />
-
+                        <Route path="/fundraising" element={<Fundraising />} />
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>
