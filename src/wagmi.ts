@@ -1,5 +1,5 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { coreWallet, metaMaskWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
+import { coreWallet, metaMaskWallet, rabbyWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { avalancheFuji } from 'wagmi/chains';
 
 // ⚠️ TESTNET ONLY — Fuji is hardcoded. No mainnet until contract is audited and ready.
@@ -11,7 +11,7 @@ export const config = getDefaultConfig({
     wallets: [
         {
             groupName: 'Popular',
-            wallets: [coreWallet, metaMaskWallet, walletConnectWallet],
+            wallets: [coreWallet, metaMaskWallet, rabbyWallet, walletConnectWallet],
         },
     ],
     ssr: false,
