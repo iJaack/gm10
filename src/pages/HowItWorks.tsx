@@ -5,12 +5,12 @@ export default function HowItWorks() {
     const steps = [
         {
             title: "1. Acquire $CATCH",
-            description: "Buy the $CATCH token during fundraising rounds or on ArenaTrade DEX. Each token represents fractional ownership in a portfolio of high-graded Pokemon cards.",
+            description: "Buy the $CATCH token during fundraising rounds. Each token grants membership in the collector community and participation in a portfolio of high-graded Pokemon cards.",
             icon: "💎"
         },
         {
             title: "2. Portfolio Growth",
-            description: "The treasury acquires premium graded cards as NFTs from platforms like Courtyard, Phygital, or Collector Crypt. Physical cards may also be purchased and tokenized. As card values appreciate, your $CATCH NAV increases.",
+            description: "The treasury acquires premium graded cards as NFTs from platforms like Courtyard, Phygital, or Collector Crypt. Physical cards may also be purchased and tokenized.",
             icon: "📈"
         },
         {
@@ -19,8 +19,8 @@ export default function HowItWorks() {
             icon: "🗳️"
         },
         {
-            title: "4. Liquidity & Exit",
-            description: "Trade $CATCH 24/7 on ArenaTrade or redeem for AVAX at NAV (when enabled). LP tokens are permanently burned. When cards sell, 10% of proceeds buy AVAX to grow the LP and support price via buybacks.",
+            title: "4. Redeem or Transfer",
+            description: "Redeem $CATCH directly from the protocol (when enabled by governance) or transfer tokens to another holder. LP tokens are permanently burned. Liquidity decisions are governed by token holders.",
             icon: "💧"
         }
     ];
@@ -32,7 +32,7 @@ export default function HowItWorks() {
                     How <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Gem Mint Strategy</span> Works
                 </h1>
                 <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                    A transparent, onchain approach to gaining exposure to the graded card market.
+                    A transparent, onchain approach to participating in the graded card collector market.
                 </p>
             </div>
 
@@ -52,7 +52,7 @@ export default function HowItWorks() {
                 <div className="relative z-10">
                     <h2 className="text-3xl font-bold mb-6">Ready to get started?</h2>
                     <p className="text-xl text-gray-300 mb-8 max-w-xl mx-auto">
-                        Join the community and start building your exposure to the graded card market today.
+                        Join the community and start building your graded card collection onchain today.
                     </p>
                     <Link
                         to="/fundraising"

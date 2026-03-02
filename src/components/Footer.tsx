@@ -47,7 +47,7 @@ export default function Footer() {
                 <div>
                     <div className="text-white font-bold text-lg mb-2">Gem Mint Strategy</div>
                     <p className="text-white/40 text-sm leading-relaxed">
-                        Tokenized exposure to the high-end graded Pokémon card market. Transparent, liquid, governed onchain.
+                        A collector community onchain. Curating high-grade Pokémon cards, transparent and governed by members.
                     </p>
                 </div>
 
@@ -126,6 +126,12 @@ export default function Footer() {
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                     AI Agent Ready · <a href="/SKILL.md" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">SKILL.md</a>
                 </span>
+            </div>
+            {/* Legal disclaimer */}
+            <div className="border-t border-white/5 px-6 py-4 max-w-7xl mx-auto text-center">
+                <p className="text-[10px] text-white/20 leading-relaxed">
+                    $CATCH is not a financial instrument, investment product, or security. This is not an offer of securities or an investment solicitation. Participation is limited to the collector community.
+                </p>
             </div>
         </footer>
     );

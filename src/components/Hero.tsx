@@ -170,8 +170,8 @@ export default function Hero() {
                     </h1>
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
-                        Accessible exposure to the graded card market.<br className="hidden md:block" />
-                        Transparent. Liquid. <span className="text-white/90 font-semibold">Governed by holders.</span>
+                        Participate in graded card collecting onchain.<br className="hidden md:block" />
+                        Transparent. On-chain. <span className="text-white/90 font-semibold">Governed by holders.</span>
                     </p>
 
                     <div className="flex flex-wrap gap-3 items-center mt-1">

@@ -164,7 +164,7 @@ export default function Fundraising() {
                     Round {activeRoundId} <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Fundraising</span>
                 </h1>
                 <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
-                    Invest in the current fundraising round. Your $CATCH tokens represent fractional ownership of museum-quality graded Pokemon cards.
+                    Join the current fundraising round. Your $CATCH tokens grant membership in a community collecting museum-quality graded Pokemon cards.
                 </p>
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                     <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/30 rounded-full">
@@ -175,6 +175,9 @@ export default function Fundraising() {
                         : 'bg-orange-500/10 border border-orange-500/30'
                     }`}>
                         {isRoundActive ? '✅ Active' : '⏸️ Not Active'}
+                    </span>
+                    <span className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-yellow-400">
+                        👥 Max 150 participants
                     </span>
                 </div>
             </div>
@@ -249,7 +252,7 @@ export default function Fundraising() {
                             <div className="flex gap-4">
                                 <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 border border-blue-500/40 rounded-full flex items-center justify-center text-blue-400 font-bold">1</div>
                                 <div>
-                                    <div className="font-semibold text-white mb-1">Invest AVAX</div>
+                                    <div className="font-semibold text-white mb-1">Contribute AVAX</div>
                                     <div className="text-sm text-gray-400">Send AVAX to receive $CATCH tokens at the round's token price</div>
                                 </div>
                             </div>
@@ -263,8 +266,8 @@ export default function Fundraising() {
                             <div className="flex gap-4">
                                 <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 border border-blue-500/40 rounded-full flex items-center justify-center text-blue-400 font-bold">3</div>
                                 <div>
-                                    <div className="font-semibold text-white mb-1">Gain Exposure</div>
-                                    <div className="text-sm text-gray-400">Your $CATCH value adjusts with card market performance + governance rights</div>
+                                    <div className="font-semibold text-white mb-1">Join Governance</div>
+                                    <div className="text-sm text-gray-400">Participate in governance and shape which cards the community acquires</div>
                                 </div>
                             </div>
                         </div>
@@ -274,7 +277,7 @@ export default function Fundraising() {
                 {/* Right Column: Investment Form */}
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(56,189,248,0.15)]">
-                        <h3 className="text-2xl font-bold text-white mb-6">Invest Now</h3>
+                        <h3 className="text-2xl font-bold text-white mb-6">Join Round</h3>
 
                         <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-400 mb-2">Amount (AVAX)</label>
@@ -319,7 +322,7 @@ export default function Fundraising() {
                                     : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/25'
                                     }`}
                             >
-                                {isPending ? '⏳ Waiting for wallet...' : isConfirming ? '⏳ Confirming on-chain...' : `Invest in Round ${activeRoundId}`}
+                                {isPending ? '⏳ Waiting for wallet...' : isConfirming ? '⏳ Confirming on-chain...' : `Join Round ${activeRoundId}`}
                             </button>
                         ) : (
                             <ConnectButton.Custom>
@@ -354,12 +357,12 @@ export default function Fundraising() {
 
             {/* Bottom Info Section */}
             <div className="bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
-                <h3 className="text-3xl font-bold mb-4">🔥 Early Investor Benefits</h3>
+                <h3 className="text-3xl font-bold mb-4">🔥 Founding Member Benefits</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mt-8">
                     <div>
                         <div className="text-4xl mb-3">🎯</div>
-                        <div className="font-bold text-white mb-2">Ground Floor Entry</div>
-                        <div className="text-sm text-gray-400">Invest at 1:1 NAV before card acquisitions</div>
+                        <div className="font-bold text-white mb-2">Founding Member</div>
+                        <div className="text-sm text-gray-400">Join from the start as a founding community member</div>
                     </div>
                     <div>
                         <div className="text-4xl mb-3">🗳️</div>
@@ -369,9 +372,16 @@ export default function Fundraising() {
                     <div>
                         <div className="text-4xl mb-3">💎</div>
                         <div className="font-bold text-white mb-2">Permanent Liquidity</div>
-                        <div className="text-sm text-gray-400">LP tokens burned—trade $CATCH on DEX 24/7</div>
+                        <div className="text-sm text-gray-400">LP tokens burned for protocol stability</div>
                     </div>
                 </div>
+            </div>
+
+            {/* Legal Disclaimer */}
+            <div className="mt-8 p-6 bg-gray-900/50 border border-gray-700/50 rounded-2xl">
+                <p className="text-xs text-gray-500 leading-relaxed text-center">
+                    $CATCH is not a financial instrument, investment product, or security. Participation is limited to the collector community. This is not an offer of securities or an investment solicitation. Participation does not guarantee any financial return. Please consult your local regulations before participating.
+                </p>
             </div>
         </Page>
     );

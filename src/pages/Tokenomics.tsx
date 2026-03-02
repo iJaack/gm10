@@ -11,7 +11,7 @@ export default function Tokenomics() {
             month: "Feb 2026",
             duration: "1 month",
             target: "10,000",
-            discount: "0% (Fixed)",
+            discount: "Fixed Price",
             exampleNAV: "0.0025",
             examplePrice: "0.0025",
             catchIssued: "4,000,000"
@@ -21,7 +21,7 @@ export default function Tokenomics() {
             month: "Apr-May 2026",
             duration: "2 months",
             target: "20,000",
-            discount: "10%",
+            discount: "Standard",
             exampleNAV: "0.0030",
             examplePrice: "0.0027",
             catchIssued: "~7,407,407"
@@ -31,7 +31,7 @@ export default function Tokenomics() {
             month: "Sep-Dec 2026",
             duration: "4 months",
             target: "35,000",
-            discount: "5%",
+            discount: "Standard",
             exampleNAV: "0.0036",
             examplePrice: "0.00342",
             catchIssued: "~10,233,918"
@@ -53,85 +53,7 @@ export default function Tokenomics() {
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
                         $CATCH <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Tokenomics</span>
                     </h1>
-                    <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-                        Dynamic NAV-based pricing over 3 spaced rounds. 10% team allocation with 6-month cliff. 50% supply reserved for future governance.
-                    </p>
-                </div>
-
-                {/* Key Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-                    <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6 text-center">
-                        <div className="text-sm text-gray-400 mb-2">Current Supply</div>
-                        <div className="text-3xl font-bold text-white">~24M</div>
-                        <div className="text-xs text-gray-500 mt-1">+50% reserve</div>
-                    </div>
-                    <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6 text-center">
-                        <div className="text-sm text-gray-400 mb-2">Fundraising Total</div>
-                        <div className="text-3xl font-bold text-white">65,000</div>
-                        <div className="text-xs text-gray-500 mt-1">AVAX (3 rounds)</div>
-                    </div>
-                    <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6 text-center">
-                        <div className="text-sm text-gray-400 mb-2">Team Allocation</div>
-                        <div className="text-3xl font-bold text-white">10%</div>
-                        <div className="text-xs text-gray-500 mt-1">6mo cliff, 2yr vest</div>
-                    </div>
-                    <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6 text-center">
-                        <div className="text-sm text-gray-400 mb-2">LP Tokens</div>
-                        <div className="text-3xl font-bold text-white">🔥 Burned</div>
-                        <div className="text-xs text-gray-500 mt-1">Permanent liquidity</div>
-                    </div>
-                </div>
-
-                {/* Fundraising Rounds */}
-                <div className="bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-3xl p-8 mb-16">
-                    <h2 className="text-3xl font-bold mb-8 text-center">3-Round Fundraising Schedule</h2>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="border-b border-blue-500/30">
-                                <tr>
-                                    <th className="pb-4 text-gray-400 font-semibold">Round</th>
-                                    <th className="pb-4 text-gray-400 font-semibold">Timing</th>
-                                    <th className="pb-4 text-gray-400 font-semibold">Target</th>
-                                    <th className="pb-4 text-gray-400 font-semibold">Discount</th>
-                                    <th className="pb-4 text-gray-400 font-semibold">Example Price</th>
-                                    <th className="pb-4 text-gray-400 font-semibold">$CATCH Issued</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rounds.map((r) => (
-                                    <tr key={r.round} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                        <td className="py-4">
-                                            <span className="flex items-center gap-2">
-                                                <span className="w-8 h-8 bg-blue-500/20 border border-blue-500/40 rounded-full flex items-center justify-center font-bold text-blue-400">
-                                                    {r.round}
-                                                </span>
-                                            </span>
-                                        </td>
-                                        <td className="py-4">
-                                            <div className="text-white font-semibold">{r.month}</div>
-                                            <div className="text-xs text-gray-400">{r.duration}</div>
-                                        </td>
-                                        <td className="py-4 font-mono text-white">{r.target} AVAX</td>
-                                        <td className="py-4">
-                                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${r.round === 1 ? 'bg-green-500/20 text-green-400' : 'bg-cyan-500/20 text-cyan-400'
-                                                }`}>
-                                                {r.discount}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 font-mono text-cyan-400">{r.examplePrice}</td>
-                                        <td className="py-4 font-mono text-white">{r.catchIssued}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="mt-8 p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">
-                        <p className="text-sm text-gray-300">
-                            💡 <strong>Dynamic Pricing:</strong> Rounds 2 and 3 offer discounts on the current NAV at round start. Round 2 = 10% discount, Round 3 = 5% discount. This rewards later investors while maintaining fair pricing tied to portfolio value.
-                        </p>
-                    </div>
+                    <p className="text-sm text-gray-300">💡 <strong>Round Pricing:</strong> Each round has a fixed token price set at round start. Later rounds may reflect updated portfolio valuations.</p>
                 </div>
 
                 {/* Token Distribution */}
@@ -170,8 +92,8 @@ export default function Tokenomics() {
                                     💎
                                 </div>
                                 <div>
-                                    <div className="font-bold text-white mb-1">Portfolio Exposure</div>
-                                    <div className="text-sm text-gray-400">Each token represents fractional ownership of 45+ museum-quality cards</div>
+                                    <div className="font-bold text-white mb-1">Membership Rights</div>
+                                    <div className="text-sm text-gray-400">Access and participate in a curated collector community onchain</div>
                                 </div>
                             </div>
                             <div className="flex gap-4">
@@ -181,24 +103,6 @@ export default function Tokenomics() {
                                 <div>
                                     <div className="font-bold text-white mb-1">Governance Rights</div>
                                     <div className="text-sm text-gray-400">1 token = 1 vote. 10,000 $CATCH needed to submit proposals</div>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-xl flex items-center justify-center text-2xl">
-                                    💧
-                                </div>
-                                <div>
-                                    <div className="font-bold text-white mb-1">24/7 Liquidity</div>
-                                    <div className="text-sm text-gray-400">Trade on Trader Joe DEX anytime. LP tokens burned for permanent liquidity</div>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-xl flex items-center justify-center text-2xl">
-                                    📈
-                                </div>
-                                <div>
-                                    <div className="font-bold text-white mb-1">NAV Discounts</div>
-                                    <div className="text-sm text-gray-400">Rounds 2-3 offer 10% and 5% discounts on current NAV</div>
                                 </div>
                             </div>
                         </div>
@@ -215,9 +119,9 @@ export default function Tokenomics() {
                             <div className="text-xs text-gray-400">Annually on AUM for operations, storage, insurance</div>
                         </div>
                         <div className="text-center p-6 bg-blue-900/20 rounded-xl border border-blue-500/30">
-                            <div className="text-4xl font-bold text-white mb-2">10%</div>
-                            <div className="text-sm font-semibold text-gray-300 mb-2">Performance Fee</div>
-                            <div className="text-xs text-gray-400">On profits above high-water mark. Aligns incentives</div>
+                            <div className="text-4xl font-bold text-white mb-2">—</div>
+                            <div className="text-sm font-semibold text-gray-300 mb-2">Operations Contribution</div>
+                            <div className="text-xs text-gray-400">Defined by governance. No carry structure.</div>
                         </div>
                         <div className="text-center p-6 bg-blue-900/20 rounded-xl border border-blue-500/30">
                             <div className="text-4xl font-bold text-white mb-2">0.5%</div>
