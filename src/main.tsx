@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
-                <RainbowKitProvider theme={darkTheme()}>
+                <RainbowKitProvider theme={darkTheme({ accentColor: '#3b82f6', accentColorForeground: 'white', borderRadius: 'medium' })}>
                     <FujiGuard>
                         <App />
                     </FujiGuard>

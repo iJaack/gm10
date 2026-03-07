@@ -33,7 +33,7 @@ export default function TokenGate({ children }: TokenGateProps) {
                             {({ openConnectModal }) => (
                                 <button
                                     onClick={openConnectModal}
-                                    className="px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl font-bold text-white hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25"
+                                    className="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25"
                                 >
                                     Connect Wallet
                                 </button>
@@ -86,7 +86,7 @@ export default function TokenGate({ children }: TokenGateProps) {
                             href="https://arenatrade.ai/token/0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-block px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl font-bold text-white hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25"
+                            className="inline-block px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25"
                         >
                             Buy $EVA on ArenaTrade →
                         </a>
@@ -97,7 +97,7 @@ export default function TokenGate({ children }: TokenGateProps) {
                                 href="https://www.paraswap.io/#/?network=avalanche&buy=0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-cyan-400 hover:underline"
+                                className="text-blue-400 hover:underline"
                             >
                                 ParaSwap
                             </a>{' '}

@@ -106,13 +106,13 @@ export default function Hero() {
             />
             <div
                 aria-hidden
-                className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_70%_45%,rgba(34,211,238,0.22),transparent_60%)] pointer-events-none"
+                className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_70%_45%,rgba(59,130,246,0.15),transparent_60%)] pointer-events-none"
             />
 
             {/* Ambient Orbs */}
             <div
                 aria-hidden
-                className="absolute top-[-200px] right-[-120px] w-[640px] h-[640px] rounded-full bg-cyan-400/20 opacity-35 blur-[90px] animate-float"
+                className="absolute top-[-200px] right-[-120px] w-[640px] h-[640px] rounded-full bg-blue-400/15 opacity-35 blur-[90px] animate-float"
             />
             <div
                 aria-hidden
@@ -157,16 +157,16 @@ export default function Hero() {
                             href="/SKILL.md"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 backdrop-blur-md w-fit hover:bg-cyan-500/20 transition-colors duration-200"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/20 bg-blue-500/10 backdrop-blur-md w-fit hover:bg-blue-500/15 transition-colors duration-200"
                         >
                             <span className="text-base">🤖</span>
-                            <span className="text-sm font-semibold text-cyan-400">AI Agent Ready</span>
+                            <span className="text-sm font-semibold text-blue-400">AI Agent Ready</span>
                         </a>
                     </div>
 
                     <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-0">
-                        Buy <span className="gradient-text bg-gradient-to-br from-[#56d3ff] via-[#90efff] to-[#4facfe] bg-clip-text text-transparent">$CATCH</span><br />
-                        Graded Card Alpha
+                        Own Museum-Quality<br />
+                        <span className="bg-gradient-to-br from-blue-400 via-blue-300 to-blue-500 bg-clip-text text-transparent">Cards Onchain</span>
                     </h1>
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
@@ -177,7 +177,7 @@ export default function Hero() {
                     <div className="flex flex-wrap gap-3 items-center mt-1">
                         <Link
                             to="/fundraising"
-                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-blue-500 to-cyan-400 text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(56,189,248,0.4)] hover:shadow-[0_8px_30px_rgba(56,189,248,0.5)] transition-all duration-300 hover:-translate-y-1"
+                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(59,130,246,0.35)] hover:shadow-[0_8px_25px_rgba(59,130,246,0.45)] transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out" />
                             <span>Buy $CATCH</span>

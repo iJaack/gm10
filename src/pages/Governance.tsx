@@ -374,7 +374,7 @@ export default function Governance() {
                 {/* Header */}
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                        <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Governance</span>
+                        <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Governance</span>
                     </h1>
                     <p className="text-xl text-gray-400 max-w-3xl mx-auto">
                         Shape the future of Gem Mint Strategy. Propose and vote on card acquisitions, fee changes, and strategic decisions.
@@ -383,7 +383,7 @@ export default function Governance() {
 
                 {/* Voting Power Card */}
                 {isConnected && (
-                    <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border border-blue-500/30 rounded-3xl p-8 mb-12">
+                    <div className="bg-gradient-to-r from-blue-900/30 to-blue-900/30 border border-blue-500/30 rounded-3xl p-8 mb-12">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <div className="text-sm text-gray-400 mb-2">Your Balance</div>
@@ -393,7 +393,7 @@ export default function Governance() {
                             </div>
                             <div>
                                 <div className="text-sm text-gray-400 mb-2">Voting Power</div>
-                                <div className="text-3xl font-bold text-cyan-400">
+                                <div className="text-3xl font-bold text-blue-400">
                                     {userBalanceFormatted.toLocaleString()} votes
                                 </div>
                                 <div className="text-xs text-gray-500 mt-1">1 $CATCH = 1 vote</div>
@@ -572,7 +572,7 @@ export default function Governance() {
                                             {({ openConnectModal }) => (
                                                 <button
                                                     onClick={openConnectModal}
-                                                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl font-bold text-white hover:opacity-90 transition-all"
+                                                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 transition-all"
                                                 >
                                                     Connect Wallet to Vote
                                                 </button>
@@ -610,7 +610,7 @@ export default function Governance() {
                             <div className="text-gray-400 mb-2">
                                     You need at least {actualThreshold.toLocaleString(undefined, { maximumFractionDigits: 0 })} $CATCH to create proposals
                                 </div>
-                                <div className="text-cyan-400 font-semibold">
+                                <div className="text-blue-400 font-semibold">
                                     Your balance: {userBalanceFormatted.toLocaleString()} $CATCH
                                 </div>
                             </div>
@@ -688,7 +688,7 @@ export default function Governance() {
                                     <button
                                         onClick={handleCreateProposal}
                                         disabled={isPending || isConfirming || !proposalDescription.trim()}
-                                        className="w-full py-4 bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-600 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isPending || isConfirming ? 'Creating Proposal...' : 'Submit Proposal'}
                                     </button>

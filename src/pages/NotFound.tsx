@@ -12,7 +12,7 @@ export default function NotFound() {
                 </p>
                 <Link
                     to="/"
-                    className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl font-bold text-white hover:opacity-90 transition-all"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 transition-all"
                 >
                     ← Back to Home
                 </Link>

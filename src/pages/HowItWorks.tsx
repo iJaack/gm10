@@ -29,7 +29,7 @@ export default function HowItWorks() {
         <Page containerClassName="max-w-4xl mx-auto">
             <div className="text-center mb-16">
                 <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                    How <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Gem Mint Strategy</span> Works
+                    How <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Gem Mint Strategy</span> Works
                 </h1>
                 <p className="text-xl text-gray-400 max-w-2xl mx-auto">
                     A transparent, onchain approach to participating in the graded card collector market.
@@ -56,7 +56,7 @@ export default function HowItWorks() {
                     </p>
                     <Link
                         to="/fundraising"
-                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl font-bold text-lg hover:shadow-[0_0_30px_rgba(56,189,248,0.4)] transition-all duration-300"
+                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl font-bold text-lg shadow-[0_4px_15px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_25px_rgba(59,130,246,0.4)] transition-all duration-300"
                     >
                         Buy $CATCH
                     </Link>

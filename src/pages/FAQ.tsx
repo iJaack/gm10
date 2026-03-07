@@ -16,7 +16,7 @@ export default function FAQ() {
         },
         {
             question: "Can I redeem my $CATCH for AVAX?",
-            answer: "Yes, when redemptions are enabled by governance. You can also always sell on ArenaTrade for instant liquidity at market price."
+            answer: "Yes, when redemptions are enabled by governance. You can also always sell on the liquidity pool for instant liquidity at market price."
         },
         {
             question: "What if cards are stolen or damaged?",
@@ -28,7 +28,7 @@ export default function FAQ() {
         },
         {
             question: "What are the fees?",
-            answer: "1% annual management fee on AUM and 10% performance fee on profits above high-water mark. Fees are used for operations, card acquisitions, and team compensation."
+            answer: "1% annual management fee on AUM. Operations contributions are defined by governance. 0.5% redemption fee on direct NAV redemptions when enabled."
         },
         {
             question: "How do I vote on proposals?",
@@ -40,7 +40,7 @@ export default function FAQ() {
         <Page containerClassName="max-w-4xl mx-auto">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                        Frequently Asked <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Questions</span>
+                        Frequently Asked <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Questions</span>
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto">
                         Everything you need to know about Gem Mint Strategy and the $CATCH token.
@@ -64,15 +64,15 @@ export default function FAQ() {
                 <div className="mt-16 text-center bg-blue-900/20 border border-blue-500/30 rounded-3xl p-12">
                     <h2 className="text-3xl font-bold mb-4">Still have questions?</h2>
                     <p className="text-xl text-gray-300 mb-6">
-                        Reach out to us on Twitter or join our community.
+                        Reach out to us on X or join our community.
                     </p>
                     <a
-                        href="https://twitter.com/GemMintStrategy"
+                        href="https://x.com/GemMintStrategy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl font-bold text-lg hover:shadow-[0_0_30px_rgba(56,189,248,0.4)] transition-all duration-300"
+                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl font-bold text-lg shadow-[0_4px_15px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_25px_rgba(59,130,246,0.4)] transition-all duration-300"
                     >
-                        Follow us on Twitter →
+                        Follow us on X →
                     </a>
                 </div>
         </Page>

@@ -21,7 +21,7 @@ body {
     background: linear-gradient(to bottom,
             transparent,
             rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-    font-family: 'Avenir Next', Avenir, 'Century Gothic', 'Segoe UI', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Avenir Next', Avenir, 'Century Gothic', 'Segoe UI', sans-serif;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -29,7 +29,7 @@ body {
 
 /* Custom Utilities */
 .gradient-text {
-    background: linear-gradient(135deg, #56d3ff 0%, #90efff 50%, #4facfe 100%);
+    background: linear-gradient(135deg, #60a5fa 0%, #93c5fd 50%, #3b82f6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

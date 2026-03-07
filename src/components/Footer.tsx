@@ -3,29 +3,27 @@ import { Link } from 'react-router-dom';
 export default function Footer() {
     return (
         <footer className="border-t border-white/5 bg-[#0a0f1c] relative z-10">
-            {/* AI Agent Ready Banner */}
-            <div className="border-b border-cyan-500/10 bg-cyan-500/5">
-                <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-xl">🤖</span>
+            {/* AI Agent Ready Banner — compact */}
+            <div className="border-b border-white/[0.04] bg-white/[0.01]">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/15 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                            </svg>
                         </div>
                         <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-bold text-cyan-400 uppercase tracking-wider">AI Agent Ready</span>
-                                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 uppercase tracking-wider">SKILL.md</span>
-                            </div>
-                            <p className="text-sm text-white/50 max-w-lg">
-                                This platform is fully readable and operable by AI agents. Contracts, ABIs, token gate logic, and governance workflows are all documented.
-                            </p>
+                            <span className="text-xs font-bold text-blue-400/80 uppercase tracking-wider">AI Agent Ready</span>
+                            <span className="text-white/25 mx-2">·</span>
+                            <span className="text-xs text-white/35">Contracts, ABIs, and governance workflows documented for agent integration.</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 ml-14 sm:ml-0">
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-11 sm:ml-0">
                         <a
                             href="/SKILL.md"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/20 transition-colors duration-200"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 text-blue-400/80 text-xs font-semibold hover:bg-blue-500/10 transition-colors duration-200"
                         >
                             SKILL.md →
                         </a>
@@ -33,9 +31,9 @@ export default function Footer() {
                             href="/docs/agent-integration.md"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/60 text-sm font-semibold hover:bg-white/10 hover:text-white/80 transition-colors duration-200"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-white/40 text-xs font-semibold hover:bg-white/[0.05] hover:text-white/60 transition-colors duration-200"
                         >
-                            Full Docs →
+                            Docs →
                         </a>
                     </div>
                 </div>
@@ -46,15 +44,15 @@ export default function Footer() {
                 {/* Brand */}
                 <div>
                     <div className="text-white font-bold text-lg mb-2">Gem Mint Strategy</div>
-                    <p className="text-white/40 text-sm leading-relaxed">
+                    <p className="text-white/30 text-sm leading-relaxed">
                         A collector community onchain. Curating high-grade Pokémon cards, transparent and governed by members.
                     </p>
                 </div>
 
                 {/* Navigation */}
                 <div>
-                    <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Explore</div>
-                    <ul className="space-y-2 text-sm text-white/40">
+                    <div className="text-white/50 text-xs font-bold uppercase tracking-wider mb-3">Explore</div>
+                    <ul className="space-y-2 text-sm text-white/30">
                         {[
                             { to: '/how-it-works', label: 'How It Works' },
                             { to: '/tokenomics', label: 'Tokenomics' },
@@ -64,24 +62,24 @@ export default function Footer() {
                             { to: '/faq', label: 'FAQ' },
                         ].map(({ to, label }) => (
                             <li key={to}>
-                                <Link to={to} className="hover:text-white/70 transition-colors duration-150">{label}</Link>
+                                <Link to={to} className="hover:text-white/60 transition-colors duration-150">{label}</Link>
                             </li>
                         ))}
                     </ul>
                 </div>
 
-                {/* Agent Integration */}
+                {/* Resources */}
                 <div>
-                    <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Agent Integration</div>
-                    <ul className="space-y-2 text-sm text-white/40">
+                    <div className="text-white/50 text-xs font-bold uppercase tracking-wider mb-3">Resources</div>
+                    <ul className="space-y-2 text-sm text-white/30">
                         <li>
                             <a
                                 href="/SKILL.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:text-cyan-400 transition-colors duration-150"
+                                className="hover:text-blue-400 transition-colors duration-150"
                             >
-                                SKILL.md — Quick Reference
+                                SKILL.md
                             </a>
                         </li>
                         <li>
@@ -89,9 +87,9 @@ export default function Footer() {
                                 href="/docs/agent-integration.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:text-cyan-400 transition-colors duration-150"
+                                className="hover:text-blue-400 transition-colors duration-150"
                             >
-                                Full ABI & Workflow Docs
+                                Agent Integration Docs
                             </a>
                         </li>
                         <li>
@@ -99,18 +97,18 @@ export default function Footer() {
                                 href="https://github.com/iJaack/gm10"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:text-white/70 transition-colors duration-150"
+                                className="hover:text-white/60 transition-colors duration-150"
                             >
-                                GitHub Repo
+                                GitHub
                             </a>
                         </li>
                         <li className="pt-1">
-                            <span className="text-white/30 text-xs">Fund contract (Fuji):</span>
+                            <span className="text-white/20 text-xs">Fund contract (Fuji):</span>
                             <a
                                 href="https://testnet.snowtrace.io/address/0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="block text-xs font-mono text-white/30 hover:text-cyan-400 transition-colors duration-150 truncate mt-0.5"
+                                className="block text-xs font-mono text-white/20 hover:text-blue-400 transition-colors duration-150 truncate mt-0.5"
                             >
                                 0xd3E5…83d3
                             </a>
@@ -119,19 +117,10 @@ export default function Footer() {
                 </div>
             </div>
 
-            {/* Bottom bar */}
-            <div className="border-t border-white/5 px-6 py-4 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/25">
+            {/* Bottom bar — merged copyright + disclaimer */}
+            <div className="border-t border-white/[0.04] px-6 py-4 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-white/20">
                 <span>&copy; {new Date().getFullYear()} Gem Mint Strategy. Built on Avalanche.</span>
-                <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    AI Agent Ready · <a href="/SKILL.md" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">SKILL.md</a>
-                </span>
-            </div>
-            {/* Legal disclaimer */}
-            <div className="border-t border-white/5 px-6 py-4 max-w-7xl mx-auto text-center">
-                <p className="text-[10px] text-white/20 leading-relaxed">
-                    $CATCH is not a financial instrument, investment product, or security. This is not an offer of securities or an investment solicitation. Participation is limited to the collector community.
-                </p>
+                <span>$CATCH is not a financial instrument, investment product, or security. Not an offer of securities. Participation limited to the collector community.</span>
             </div>
         </footer>
     );

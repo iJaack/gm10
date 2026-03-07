@@ -44,7 +44,7 @@ export default function Portfolio() {
     const statsData = [
         { label: "Total Cards", value: "3", color: "text-blue-400" },
         { label: "Total Value", value: "$13,500", color: "text-green-400" },
-        { label: "Avg. Grade", value: "9.7", color: "text-cyan-400" },
+        { label: "Avg. Grade", value: "9.7", color: "text-blue-400" },
         { label: "Top Card", value: "PSA 10 Charizard", color: "text-purple-400" }
     ];
 
@@ -53,7 +53,7 @@ export default function Portfolio() {
                 {/* Header */}
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                        <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Portfolio</span>
+                        <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Portfolio</span>
                     </h1>
                     <p className="text-xl text-gray-400 max-w-3xl mx-auto">
                         Our curated collection of museum-quality graded Pokemon cards. Each card is professionally authenticated, graded, and stored in secure vaults.
@@ -128,7 +128,7 @@ export default function Portfolio() {
                                     </div>
                                     <div className="text-right">
                                         <div className="text-xs text-gray-500">Rarity</div>
-                                        <div className="text-sm font-semibold text-cyan-400">{card.rarity}</div>
+                                        <div className="text-sm font-semibold text-blue-400">{card.rarity}</div>
                                     </div>
                                 </div>
                             </div>
@@ -137,7 +137,7 @@ export default function Portfolio() {
                 </div>
 
                 {/* Coming Soon Section */}
-                <div className="bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
+                <div className="bg-gradient-to-r from-blue-900/20 to-blue-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
                     <div className="text-5xl mb-4">🚀</div>
                     <h3 className="text-3xl font-bold mb-4">More Cards Coming Soon</h3>
                     <p className="text-gray-400 max-w-2xl mx-auto mb-6">
@@ -146,7 +146,7 @@ export default function Portfolio() {
                     <div className="flex gap-4 justify-center">
                         <Link
                             to="/fundraising"
-                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl font-bold text-white hover:opacity-90 transition-all"
+                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 transition-all"
                         >
                             Invest Now
                         </Link>

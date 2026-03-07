@@ -161,7 +161,7 @@ export default function Fundraising() {
             {/* Header */}
             <div className="text-center mb-16">
                 <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                    Round {activeRoundId} <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Fundraising</span>
+                    Round {activeRoundId} <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Fundraising</span>
                 </h1>
                 <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
                     Join the current fundraising round. Your $CATCH tokens grant membership in a community collecting museum-quality graded Pokemon cards.
@@ -206,7 +206,7 @@ export default function Fundraising() {
                         {/* Progress Bar */}
                         <div className="relative w-full h-4 bg-gray-800 rounded-full overflow-hidden mb-4">
                             <div
-                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
                                 style={{ width: `${Math.min(progressPercentage, 100)}%` }}
                             />
                         </div>
@@ -306,7 +306,7 @@ export default function Fundraising() {
                         <div className="bg-[#0a0f1c]/70 rounded-xl p-4 mb-6 border border-gray-700">
                             <div className="text-sm text-gray-400 mb-1">You Receive</div>
                             <div className="text-2xl font-bold text-white">
-                                {catchReceived} <span className="text-cyan-400">$CATCH</span>
+                                {catchReceived} <span className="text-blue-400">$CATCH</span>
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                                 @ {tokenPrice} AVAX per token
@@ -319,7 +319,7 @@ export default function Fundraising() {
                                 disabled={isPending || isConfirming || !amount || parseFloat(amount) < minInvestment || parseFloat(amount) > maxInvestment}
                                 className={`w-full py-4 rounded-xl font-bold text-white transition-all ${isPending || isConfirming || !amount || parseFloat(amount) < minInvestment || parseFloat(amount) > maxInvestment
                                     ? 'bg-gray-600 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/25'
+                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/20'
                                     }`}
                             >
                                 {isPending ? '⏳ Waiting for wallet...' : isConfirming ? '⏳ Confirming on-chain...' : `Join Round ${activeRoundId}`}
@@ -329,7 +329,7 @@ export default function Fundraising() {
                                 {({ openConnectModal }) => (
                                     <button
                                         onClick={openConnectModal}
-                                        className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25"
+                                        className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-600 hover:opacity-90 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/20"
                                     >
                                         Connect Wallet to Invest
                                     </button>
@@ -356,21 +356,27 @@ export default function Fundraising() {
             </div>
 
             {/* Bottom Info Section */}
-            <div className="bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
+            <div className="bg-gradient-to-r from-blue-900/20 to-blue-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
                 <h3 className="text-3xl font-bold mb-4">🔥 Founding Member Benefits</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mt-8">
                     <div>
-                        <div className="text-4xl mb-3">🎯</div>
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center mb-3 mx-auto">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-blue-400"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                        </div>
                         <div className="font-bold text-white mb-2">Founding Member</div>
                         <div className="text-sm text-gray-400">Join from the start as a founding community member</div>
                     </div>
                     <div>
-                        <div className="text-4xl mb-3">🗳️</div>
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center mb-3 mx-auto">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-blue-400"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                        </div>
                         <div className="font-bold text-white mb-2">Governance Power</div>
                         <div className="text-sm text-gray-400">Vote on which cards to acquire & sell</div>
                     </div>
                     <div>
-                        <div className="text-4xl mb-3">💎</div>
+                        <div className="w-12 h-12 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center mb-3 mx-auto">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-purple-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
                         <div className="font-bold text-white mb-2">Permanent Liquidity</div>
                         <div className="text-sm text-gray-400">LP tokens burned for protocol stability</div>
                     </div>

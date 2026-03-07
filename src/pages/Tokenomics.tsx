@@ -8,7 +8,7 @@ export default function Tokenomics() {
     const rounds = [
         {
             round: 1,
-            month: "Feb 2026",
+            month: "Q1 2026",
             duration: "1 month",
             target: "10,000",
             discount: "Fixed Price",
@@ -18,7 +18,7 @@ export default function Tokenomics() {
         },
         {
             round: 2,
-            month: "Apr-May 2026",
+            month: "Q2 2026",
             duration: "2 months",
             target: "20,000",
             discount: "Standard",
@@ -28,7 +28,7 @@ export default function Tokenomics() {
         },
         {
             round: 3,
-            month: "Sep-Dec 2026",
+            month: "Q3-Q4 2026",
             duration: "4 months",
             target: "35,000",
             discount: "Standard",
@@ -40,7 +40,7 @@ export default function Tokenomics() {
 
     const distribution = [
         { category: "Round 1 Investors", amount: "4,000,000", percent: 16.7, color: "from-blue-500 to-blue-600" },
-        { category: "Round 2 Investors (est)", amount: "~7,407,407", percent: 30.9, color: "from-cyan-500 to-cyan-600" },
+        { category: "Round 2 Investors (est)", amount: "~7,407,407", percent: 30.9, color: "from-blue-400 to-blue-600" },
         { category: "Round 3 Investors (est)", amount: "~10,233,918", percent: 42.7, color: "from-sky-500 to-sky-600" },
         { category: "Liquidity Pool (Burned)", amount: "400,000", percent: 1.7, color: "from-purple-500 to-purple-600" },
         { category: "Team (6mo cliff, 2yr vest)", amount: "~2,400,000", percent: 10.0, color: "from-pink-500 to-pink-600" }
@@ -51,7 +51,7 @@ export default function Tokenomics() {
                 {/* Header */}
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                        $CATCH <span className="gradient-text bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Tokenomics</span>
+                        $CATCH <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Tokenomics</span>
                     </h1>
                     <p className="text-sm text-gray-300">💡 <strong>Round Pricing:</strong> Each round has a fixed token price set at round start. Later rounds may reflect updated portfolio valuations.</p>
                 </div>
@@ -88,8 +88,8 @@ export default function Tokenomics() {
                         <h3 className="text-2xl font-bold mb-6">Token Utility</h3>
                         <div className="space-y-6">
                             <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-xl flex items-center justify-center text-2xl">
-                                    💎
+                                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-xl flex items-center justify-center">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-blue-400"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                                 </div>
                                 <div>
                                     <div className="font-bold text-white mb-1">Membership Rights</div>
@@ -97,8 +97,8 @@ export default function Tokenomics() {
                                 </div>
                             </div>
                             <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-xl flex items-center justify-center text-2xl">
-                                    🗳️
+                                <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-xl flex items-center justify-center">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-6 h-6 text-blue-400"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
                                 </div>
                                 <div>
                                     <div className="font-bold text-white mb-1">Governance Rights</div>
@@ -132,53 +132,65 @@ export default function Tokenomics() {
                 </div>
 
                 {/* Timeline */}
-                <div className="bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-3xl p-12 mb-16">
+                <div className="bg-gradient-to-r from-blue-900/20 to-blue-900/20 border border-blue-500/30 rounded-3xl p-12 mb-16">
                     <h3 className="text-3xl font-bold mb-8 text-center">2026 Roadmap</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center">
-                            <div className="text-5xl mb-4">📅</div>
-                            <div className="font-bold text-white text-xl mb-2">Feb 2026</div>
-                            <div className="text-sm text-gray-400 mb-3">Round 1 • 1 Month</div>
-                            <div className="text-xs text-gray-500">10K AVAX @ 0.0025 fixed price</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-5xl mb-4">📅</div>
-                            <div className="font-bold text-white text-xl mb-2">Apr-May 2026</div>
-                            <div className="text-sm text-gray-400 mb-3">Round 2 • 2 Months</div>
-                            <div className="text-xs text-gray-500">20K AVAX @ 10% NAV discount</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-5xl mb-4">📅</div>
-                            <div className="font-bold text-white text-xl mb-2">Sep-Dec 2026</div>
-                            <div className="text-sm text-gray-400 mb-3">Round 3 • 4 Months</div>
-                            <div className="text-xs text-gray-500">35K AVAX @ 5% NAV discount</div>
-                        </div>
+                        {[
+                            { quarter: "Q1 2026", label: "Round 1 • 1 Month", detail: "10K AVAX @ 0.0025 fixed price", num: "1" },
+                            { quarter: "Q2 2026", label: "Round 2 • 2 Months", detail: "20K AVAX @ 10% NAV discount", num: "2" },
+                            { quarter: "Q3-Q4 2026", label: "Round 3 • 4 Months", detail: "35K AVAX @ 5% NAV discount", num: "3" },
+                        ].map((r) => (
+                            <div key={r.num} className="text-center">
+                                <div className="w-14 h-14 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
+                                    <span className="text-2xl font-black text-blue-400">R{r.num}</span>
+                                </div>
+                                <div className="font-bold text-white text-xl mb-2">{r.quarter}</div>
+                                <div className="text-sm text-gray-400 mb-3">{r.label}</div>
+                                <div className="text-xs text-gray-500">{r.detail}</div>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
                 {/* Investment Limits */}
-                <div className="bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
+                <div className="bg-gradient-to-r from-blue-900/20 to-blue-900/20 border border-blue-500/30 rounded-3xl p-12 text-center">
                     <h3 className="text-3xl font-bold mb-6">Fair Launch Mechanism</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                        <div>
-                            <div className="text-5xl mb-3">🚫</div>
-                            <div className="font-bold text-white mb-2">Anti-Whale Protection</div>
-                            <div className="text-sm text-gray-400">200 AVAX max per wallet per round prevents concentration</div>
+                        <div className="flex gap-4 items-start">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-400"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                            </div>
+                            <div>
+                                <div className="font-bold text-white mb-1">Anti-Whale Protection</div>
+                                <div className="text-sm text-gray-400">200 AVAX max per wallet per round prevents concentration</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="text-5xl mb-3">🌍</div>
-                            <div className="font-bold text-white mb-2">Retail Accessible</div>
-                            <div className="text-sm text-gray-400">0.1 AVAX minimum enables broad participation</div>
+                        <div className="flex gap-4 items-start">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-blue-400"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+                            </div>
+                            <div>
+                                <div className="font-bold text-white mb-1">Retail Accessible</div>
+                                <div className="text-sm text-gray-400">0.1 AVAX minimum enables broad participation</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="text-5xl mb-3">🔒</div>
-                            <div className="font-bold text-white mb-2">Team Cliff</div>
-                            <div className="text-sm text-gray-400">6-month cliff ensures team commitment through Round 2</div>
+                        <div className="flex gap-4 items-start">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-purple-400"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            </div>
+                            <div>
+                                <div className="font-bold text-white mb-1">Team Cliff</div>
+                                <div className="text-sm text-gray-400">6-month cliff ensures team commitment through Round 2</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="text-5xl mb-3">👥</div>
-                            <div className="font-bold text-white mb-2">Governance Control</div>
-                            <div className="text-sm text-gray-400">50% of supply reserved for future community decisions</div>
+                        <div className="flex gap-4 items-start">
+                            <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center flex-shrink-0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-sky-400"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+                            </div>
+                            <div>
+                                <div className="font-bold text-white mb-1">Governance Control</div>
+                                <div className="text-sm text-gray-400">50% of supply reserved for future community decisions</div>
+                            </div>
                         </div>
                     </div>
                 </div>
