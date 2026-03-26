@@ -59,8 +59,8 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      avalanche: process.env.SNOWTRACE_API_KEY || "",
-      avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY || "",
+      avalanche: process.env.SNOWTRACE_API_KEY || "snowtrace-placeholder",
+      avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY || "snowtrace-placeholder",
     },
   },
   gasReporter: {

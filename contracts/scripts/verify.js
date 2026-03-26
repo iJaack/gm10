@@ -33,10 +33,6 @@ async function verifyContract({ address, contract, constructorArguments = [] }) 
 }
 
 async function main() {
-  if (!process.env.SNOWTRACE_API_KEY) {
-    throw new Error("SNOWTRACE_API_KEY is required to verify contracts on Snowtrace");
-  }
-
   const deployment = deployments[network.name];
   if (!deployment) {
     throw new Error(`No deployment found for network ${network.name}`);
