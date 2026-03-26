@@ -9,6 +9,9 @@ import FAQ from './pages/FAQ';
 import Tokenomics from './pages/Tokenomics';
 import Governance from './pages/Governance';
 import Portfolio from './pages/Portfolio';
+import NavMethodology from './pages/NavMethodology';
+import SalesProceeds from './pages/SalesProceeds';
+import InvestorPnl from './pages/InvestorPnl';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -26,6 +29,9 @@ function App() {
                         <Route path="/governance" element={<Governance />} />
                         <Route path="/portfolio" element={<Portfolio />} />
                         <Route path="/fundraising" element={<Fundraising />} />
+                        <Route path="/nav-methodology" element={<NavMethodology />} />
+                        <Route path="/sales-proceeds" element={<SalesProceeds />} />
+                        <Route path="/investor-pnl" element={<InvestorPnl />} />
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>

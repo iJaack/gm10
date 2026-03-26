@@ -5,11 +5,12 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/how-it-works', label: 'How it Works' },
+    { path: '/fundraising', label: 'Buy' },
+    { path: '/portfolio', label: 'Portfolio' },
     { path: '/tokenomics', label: 'Tokenomics' },
     { path: '/governance', label: 'Governance' },
-    { path: '/portfolio', label: 'Portfolio' },
+    { path: '/nav-methodology', label: 'NAV' },
     { path: '/faq', label: 'FAQ' },
-    { path: '/fundraising', label: 'Buy' },
 ];
 
 export default function Navbar() {

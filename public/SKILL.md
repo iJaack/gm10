@@ -1,200 +1,122 @@
-# SKILL.md — Gem Mint Strategy ($CATCH)
+# GM10
 
-AI agent integration guide for the Gem Mint Strategy platform.
-Read this file to understand how to interact with the platform programmatically.
+GM10 is an Avalanche-based Pokemon-card protocol built around high-grade slabs, transparent onchain accounting, and a public website that explains the mechanics instead of flattening them into generic fund copy.
 
----
+## Product posture
 
-## What Is This
+- The public `Buy` page stays on Fuji testnet for now.
+- Public mainnet fundraising terms are **not** ready to be shown as if they are live.
+- The core story is still exposure to **high-grade Pokemon cards**.
+- Tokenized rails and venues like Courtyard are execution infrastructure, not the primary brand story.
 
-**Gem Mint Strategy** is a tokenized fund on Avalanche that provides fractional exposure to high-grade Pokémon cards (PSA/BGS 9–10).
+## Contract architecture
 
-- **$CATCH** — the fund token. Represents ownership in the card portfolio. NAV-based pricing.
-- **$EVA** — the access token. Hold 10M $EVA (Avalanche mainnet) to access gated pages.
-- **Chain:** Avalanche Fuji Testnet (testnet phase) → Avalanche C-Chain (mainnet launch)
-- **Frontend:** [gm10.xyz](https://gm10.xyz) (or current deployment)
+The live upgrade path is:
 
----
+- `GemMintStrategyFundV1.sol`
+- `GemMintStrategyFundV2.sol`
+- `GemMintStrategyFundV3.sol`
 
-## Contracts
+V3 is being refactored into a slimmer proxy implementation plus companion modules:
 
-### Fuji Testnet (current)
+- `GemMintStrategyFundV3`
+  - token logic
+  - fundraising rounds
+  - treasury buckets
+  - stable NAV summary values
+  - roles and failsafe
+  - pointers to companion modules
+- `Gm10PortfolioRegistry`
+  - purchase authorizations
+  - sale authorizations
+  - collectible positions
+  - valuation observations
+  - history events for the frontend
+- `Gm10InvestorAccounting`
+  - direct-wallet cost basis
+  - attributable holdings
+  - transfer adjustments
+  - wallet PnL views
+- `CatchOFTAdapter`
+  - LayerZero OFT adapter for the existing token
+  - separate from the fund proxy
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| `GemMintStrategyFund` (Proxy) | `0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C` | Core fund — invest, NAV, rounds |
-| `GemMintGovernor` | `0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf` | OZ Governor — propose, vote, execute |
-| `GemMintTimelock` | `0x73cBa10f55251da73423c7Ea76EC4743F5F583d3` | 24h timelock for approved proposals |
+## Important engineering caveat
 
-### Mainnet
+`GemMintStrategyFundV3.sol` is still above the EIP-170 mainnet code-size limit after the first split. The current refactor has already pushed workflow state and wallet accounting into companion contracts, but more slimming is still required before the final proxy implementation is deployable on mainnet.
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| `$EVA Token` | `0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672` | Token gate access (Avalanche C-Chain) |
+## Naming and data conventions
 
-### Chain IDs
-- **Avalanche Fuji Testnet:** `43113` — fund operations, $CATCH
-- **Avalanche C-Chain:** `43114` — $EVA balance check
+- Legacy pre-rename references should not remain anywhere in active codepaths or public docs.
+- `Card.vaultLocation` has been clarified to `Card.marketplaceProvenance`.
+- The V3 position field is `marketplaceProvenanceRef`.
+- `marketplaceId` identifies the venue.
+- `marketplaceProvenance` / `marketplaceProvenanceRef` identifies the specific vault, listing, or settlement reference.
 
----
+## Pricing and NAV
 
-## RPC Endpoints
+- Stable accounting is normalized into USDT-style 6-decimal values.
+- AVAX contributions are normalized through a local Chainlink price-feed interface:
+  - `IChainlinkPriceFeed.sol`
+  - methods used: `decimals()` and `latestRoundData()`
+- NAV policy:
+  - exact trade first
+  - strong comparable sales second
+  - conservative listing-band fallback last
+  - capped inferred moves for non-exact marks
 
-```
-Avalanche Mainnet: https://api.avax.network/ext/bc/C/rpc
-Avalanche Fuji:    https://api.avax-test.network/ext/bc/C/rpc
-```
+## Governance phases
 
----
+- Round 1: manager-led, community-guided
+- Rounds 2-3: hybrid governance
+- Later phase: fuller onchain governance with timelock discipline
 
-## Core Fund ABI (key functions)
+## $CATCH tokenomics
 
-```json
-[
-  {
-    "name": "invest",
-    "inputs": [{ "name": "_roundId", "type": "uint256" }],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "name": "currentRoundId",
-    "outputs": [{ "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "name": "getRound",
-    "inputs": [{ "name": "_roundId", "type": "uint256" }],
-    "outputs": [{
-      "type": "tuple",
-      "components": [
-        { "name": "roundId", "type": "uint256" },
-        { "name": "targetAmount", "type": "uint256" },
-        { "name": "raisedAmount", "type": "uint256" },
-        { "name": "tokenPrice", "type": "uint256" },
-        { "name": "minInvestment", "type": "uint256" },
-        { "name": "maxInvestment", "type": "uint256" },
-        { "name": "startTime", "type": "uint256" },
-        { "name": "endTime", "type": "uint256" },
-        { "name": "isActive", "type": "bool" },
-        { "name": "isFinalized", "type": "bool" }
-      ]
-    }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "name": "navPerToken",
-    "outputs": [{ "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  }
-]
-```
+Final allocation:
 
----
+- `40%` Fundraising Rounds Reserve
+- `12%` Community & Ecosystem
+- `13%` Governance Treasury
+- `15%` Core Team
+- `10%` Liquidity & Market Structure
+- `5%` Advisors & Specialist Contributors
+- `5%` Strategic Partnerships
 
-## Governance ABI (key functions)
+Release / vesting:
 
-```json
-[
-  { "name": "propose",       "inputs": ["address[]","uint256[]","bytes[]","string"], "stateMutability": "nonpayable" },
-  { "name": "castVote",      "inputs": [{"name":"proposalId","type":"uint256"},{"name":"support","type":"uint8"}], "stateMutability": "nonpayable" },
-  { "name": "state",         "inputs": [{"name":"proposalId","type":"uint256"}], "outputs": [{"type":"uint8"}], "stateMutability": "view" },
-  { "name": "proposalVotes", "inputs": [{"name":"proposalId","type":"uint256"}], "outputs": [{"name":"againstVotes","type":"uint256"},{"name":"forVotes","type":"uint256"},{"name":"abstainVotes","type":"uint256"}], "stateMutability": "view" },
-  { "name": "queue",         "inputs": [{"name":"proposalId","type":"uint256"}], "stateMutability": "nonpayable" },
-  { "name": "execute",       "inputs": [{"name":"proposalId","type":"uint256"}], "stateMutability": "payable" },
-  { "name": "hasVoted",      "inputs": [{"name":"proposalId","type":"uint256"},{"name":"account","type":"address"}], "outputs": [{"type":"bool"}], "stateMutability": "view" },
-  { "name": "quorum",        "inputs": [{"name":"blockNumber","type":"uint256"}], "outputs": [{"type":"uint256"}], "stateMutability": "view" }
-]
-```
+- Core Team: `6-month cliff`, then `42 months` linear vesting
+- Advisors: `6-month cliff`, then `24 months` linear vesting
+- Fundraising reserve: released only as rounds are opened
+- Governance treasury: timelocked or governance-controlled
+- Liquidity bucket: released only when liquidity is actually seeded or expanded
+- Community bucket: progressive release
+- Strategic partnerships: approved partnership allocations only
 
-**ProposalState enum:** `0=Pending, 1=Active, 2=Canceled, 3=Defeated, 4=Succeeded, 5=Queued, 6=Expired, 7=Executed`
+Sale proceeds split after principal recovery:
 
-**Governance params:**
-- Voting period: 3 days
-- Quorum: 10% of supply
-- Timelock delay: 24 hours
-- Min $CATCH to propose: 10,000 CATCH
+- `40%` treasury reinvestment
+- `25%` buyback and burn
+- `20%` CATCH / AVAX LP
+- `15%` redemption reserve
 
----
+## Website copy rules
 
-## Token Gate Logic
+- Do not flatten the product into bland fund language.
+- Avoid `investor` / `investors` on public-facing pages.
+- Prefer `holders`, `collectors`, `members`, `participants`, or `you`.
+- Keep graded Pokemon cards front and center.
+- Keep recent public comps visible for the featured slabs:
+  - Charizard 1st Edition Base Set PSA 10
+  - Umbreon VMAX BGS 10 Black Label
+  - Lugia Neo Genesis PSA 9
 
-The `Portfolio`, `Governance`, and other protected pages require:
-- Wallet connected (any chain)
-- Hold ≥ **10,000,000 $EVA** on **Avalanche mainnet (43114)**
+## Scripts
 
-Check via ERC-20 `balanceOf`:
-```
-Contract: 0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672
-Chain: 43114 (Avalanche C-Chain)
-Min balance: 10_000_000 * 1e18 (wei)
-```
+Use explicit scripts only:
 
----
+- `contracts/scripts/deployProxy.js`
+- `contracts/scripts/upgradeProxy.js`
+- `contracts/scripts/deployOftAdapter.js`
 
-## Key Actions an Agent Can Take
-
-### 1. Check current fundraising round
-```
-Call: currentRoundId() → uint256
-Call: getRound(roundId) → tuple
-Contract: 0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C (Fuji)
-```
-
-### 2. Invest in the fund
-```
-Call: invest(roundId) payable with AVAX amount
-Min: 0.1 AVAX | Max: 200 AVAX (Round 1)
-Contract: 0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C (Fuji)
-```
-
-### 3. Read NAV
-```
-Call: navPerToken() → uint256 (in wei, divide by 1e18 for AVAX)
-```
-
-### 4. Vote on a governance proposal
-```
-Call: castVote(proposalId, support)
-support: 0=Against, 1=For, 2=Abstain
-Requires: hold $CATCH, proposal in Active state
-```
-
-### 5. Check $EVA balance (for token gate)
-```
-Call: balanceOf(address) on 0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672 (mainnet 43114)
-```
-
-### 6. Buy $EVA (to gain access)
-```
-URL: https://arenatrade.ai/token/0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672
-Alt: https://www.paraswap.io/#/?network=avalanche&buy=0x6Ae3b236d5546369db49AFE3AecF7e32c5F27672
-```
-
----
-
-## Tokenomics Summary
-
-| Round | Target (AVAX) | Price (AVAX/$CATCH) | Duration |
-|-------|--------------|---------------------|---------|
-| 1 | 10,000 | 0.0025 | 1 month (Feb 2026) |
-| 2 | 20,000 | NAV × 0.90 | 2 months (Apr–May 2026) |
-| 3 | 35,000 | NAV × 0.95 | 4 months (Sep–Dec 2026) |
-
-**Max supply:** ~24M $CATCH (investor rounds) + 50% governance reserve
-**Team:** 10% with 6-month cliff, 2-year vest
-**LP tokens:** burned to dead address (permanent liquidity)
-**Buyback:** 10% of every card sale → buy $CATCH → grow LP
-
----
-
-## Source Code
-- Frontend: `/src/` (React + Vite + wagmi + RainbowKit)
-- Contracts: `/contracts/contracts/`
-- Docs: `/docs/`
-
-## Full Agent Integration Docs
-See [`docs/agent-integration.md`](./docs/agent-integration.md) for deeper technical reference.
+The old `contracts/scripts/deploy.js` wrapper should not come back.

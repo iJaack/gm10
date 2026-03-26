@@ -1,34 +1,35 @@
-# Gem Mint Strategy ($CATCH) 💎
+# Gem Mint Strategy ($CATCH)
 
-**Tokenized exposure to the high-end graded Pokemon card market on Avalanche.**
+Pokemon-card-first protocol infrastructure with Avalanche-based accounting, public mechanics, and a live Fuji testnet buy flow.
 
-Gem Mint Strategy combines the nostalgia of collecting with the power of DeFi. Each $CATCH token represents fractional ownership in a portfolio of museum-quality graded cards (PSA/BGS 9-10), managed on-chain and liquid 24/7.
+## Snapshot
 
-## 🚀 Key Features
-
-*   **Fractional Ownership**: Own a piece of history (Base Set Charizard, Illustrator Pikachu) starting from $2.50.
-*   **Onchain Transparency**: All cards are held as NFTs in a visible treasury. NAV is verifiable on-chain.
-*   **Permanent Liquidity**: Liquidity Pool (LP) tokens are **burned**, ensuring a permanent trading floor that can't be rug-pulled.
-*   **Automated Buybacks**: 10% of every card sale automatically buys back $CATCH and grows the LP.
-*   **Dynamic Pricing**: Fundraising rounds occur at NAV (Net Asset Value) with discounts for later participants.
+- Public buy flow: `Fuji testnet`
+- Canonical accounting unit: `USDT`
+- Canonical governance chain: `Avalanche`
+- Core focus: `high-grade Pokemon cards`
 
 ---
 
-## 🗳️ Governance V2: Budget Approval Model
+## Current direction
 
-We use a decentralized governance model designed for agility and security.
+The repo is being refactored toward:
 
-*   **Budget Approval**: Token holders vote to approve a spending budget (e.g., "500 AVAX for Vintage Cards").
-*   **Manager Execution**: The Manager role can instantly execute purchases *only* within that approved budget.
-*   **Voting Specs**:
-    *   **Token**: $CATCH (`ERC20Votes`)
-    *   **Voting Period**: **3 Days**
-    *   **Quorum**: **10%** of supply
-    *   **Execution**: Automated via Timelock (24h delay)
+- a slimmer deployable V3 proxy implementation
+- companion registry/accounting contracts
+- per-asset purchase approvals
+- per-position sale approvals
+- mandatory realized-profit split:
+  - `40%` treasury reinvestment
+  - `25%` buyback and burn
+  - `20%` LP
+  - `15%` redemption reserve
+- wallet-level reporting
+- Pokemon-first website copy and tokenomics
 
 ---
 
-## 📜 Deployed Contracts (Fuji Testnet)
+## Fuji references
 
 | Contract | Address |
 | :--- | :--- |
@@ -36,6 +37,8 @@ We use a decentralized governance model designed for agility and security.
 | **Governance** | [`0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf`](https://testnet.snowtrace.io/address/0x9Bb3cd919f3738d7fAFffCFaA1F78c526B804adf) |
 | **Timelock** | [`0x73cBa10f55251da73423c7Ea76EC4743F5F583d3`](https://testnet.snowtrace.io/address/0x73cBa10f55251da73423c7Ea76EC4743F5F583d3) |
 | **DEX Router** | Trader Joe V2.1 |
+
+The Fuji deployment is still behind the documented V3 architecture. See the website pages and [`SKILL.md`](./SKILL.md) for the current target model.
 
 ---
 
@@ -84,11 +87,11 @@ npx hardhat run scripts/simulateGovernanceScenario.js
 
 ## 🗺️ Roadmap
 
-*   **Phase 1 (Now)**: Testnet Launch (Fuji), Smart Contract Verification, Community Building.
-*   **Phase 2**: Round 1 Fundraising (10k AVAX), First Acquisitions.
-*   **Phase 3**: Governance Activation, Rounds 2 & 3.
-*   **Phase 4**: Maturity, DAO Transition, NAV Redemptions.
+*   **Phase 1 (Now)**: Fuji testnet buy flow, contract refactor, website/docs alignment.
+*   **Phase 2**: Mainnet launch prep, first card lanes, and rollout hardening.
+*   **Phase 3**: Hybrid governance for rounds 2 & 3.
+*   **Phase 4**: Maturity, broader governance, and fuller redemption tooling.
 
 ---
 
-*Gem Mint Strategy is an experiment in decentralized asset management. Invest responsibly.*
+*Gem Mint Strategy is an experiment in bringing serious Pokemon-card exposure onto cleaner onchain rails. Participate responsibly.*

@@ -1,80 +1,45 @@
 import Page from '../components/Page';
+import { FAQ_TOPICS } from '../data/protocol';
 
 export default function FAQ() {
-    const faqs = [
-        {
-            question: "What happens if the card market crashes?",
-            answer: "NAV would decrease proportionally. However, we focus on iconic, historically resilient cards that maintain value long-term. The fund's diversification across multiple cards and grading companies helps mitigate individual card risk."
-        },
-        {
-            question: "Can the team rug pull the liquidity?",
-            answer: "No. LP tokens are burned to the dead address (0x...dEaD). It's mathematically impossible to remove liquidity. This is verifiable onchain and proves our long-term commitment."
-        },
-        {
-            question: "How often is NAV updated?",
-            answer: "Oracle updates NAV whenever significant market movements occur, with a minimum of monthly updates. All NAV changes are transparent and verifiable onchain."
-        },
-        {
-            question: "Can I redeem my $CATCH for AVAX?",
-            answer: "Yes, when redemptions are enabled by governance. You can also always sell on the liquidity pool for instant liquidity at market price."
-        },
-        {
-            question: "What if cards are stolen or damaged?",
-            answer: "Cards are insured and stored in professional vaults with comprehensive coverage. We work with industry-leading vault providers who specialize in high-value collectibles."
-        },
-        {
-            question: "Is this a security token?",
-            answer: "Legal analysis ongoing. We believe $CATCH is a utility token providing exposure to collectible assets, but you should consult your own legal counsel regarding regulatory classification."
-        },
-        {
-            question: "What are the fees?",
-            answer: "1% annual management fee on AUM. Operations contributions are defined by governance. 0.5% redemption fee on direct NAV redemptions when enabled."
-        },
-        {
-            question: "How do I vote on proposals?",
-            answer: "Hold at least 10,000 $CATCH to submit proposals. Vote weight is proportional to your holdings. Voting is onchain with a 3-day period and 10% quorum. Approved proposals are executed automatically by the Timelock."
-        }
-    ];
-
     return (
-        <Page containerClassName="max-w-4xl mx-auto">
-                <div className="text-center mb-16">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                        Frequently Asked <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Questions</span>
-                    </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        Everything you need to know about Gem Mint Strategy and the $CATCH token.
-                    </p>
-                </div>
+        <Page containerClassName="mx-auto max-w-4xl">
+            <div className="text-center">
+                <div className="text-xs uppercase tracking-[0.35em] text-sky-300/80">FAQ</div>
+                <h1 className="mt-4 text-4xl font-bold text-white md:text-6xl">Frequently asked questions</h1>
+                <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-white/55">
+                    The point here is to answer the real questions without sanding all the personality off the product.
+                </p>
+            </div>
 
-                <div className="space-y-4">
-                    {faqs.map((faq, index) => (
-                        <details key={index} className="group bg-[#1a1f3c]/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6 hover:border-blue-500/40 transition-all duration-300">
-                            <summary className="flex items-center justify-between cursor-pointer list-none">
-                                <h3 className="text-xl font-bold text-white pr-4">{faq.question}</h3>
-                                <span className="text-2xl text-blue-400 group-open:rotate-180 transition-transform duration-300">↓</span>
-                            </summary>
-                            <p className="mt-4 text-gray-400 leading-relaxed text-lg border-t border-white/10 pt-4">
-                                {faq.answer}
-                            </p>
-                        </details>
+            <div className="mt-16 space-y-4">
+                {FAQ_TOPICS.map((faq) => (
+                    <details key={faq.question} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+                        <summary className="cursor-pointer list-none text-xl font-semibold text-white">
+                            {faq.question}
+                        </summary>
+                        <p className="mt-4 border-t border-white/10 pt-4 text-sm leading-7 text-white/60">
+                            {faq.answer}
+                        </p>
+                    </details>
+                ))}
+            </div>
+
+            <section className="mt-12 rounded-[2rem] border border-white/10 bg-[#0b1322] p-8">
+                <div className="text-xs uppercase tracking-[0.35em] text-white/35">More detail</div>
+                <h2 className="mt-3 text-3xl font-bold text-white">Where to go next</h2>
+                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {[
+                        ['NAV Methodology', '/nav-methodology'],
+                        ['Sales & Proceeds', '/sales-proceeds'],
+                        ['Wallet PnL', '/investor-pnl'],
+                    ].map(([label, href]) => (
+                        <a key={label} href={href} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-white/75 hover:text-white">
+                            {label} →
+                        </a>
                     ))}
                 </div>
-
-                <div className="mt-16 text-center bg-blue-900/20 border border-blue-500/30 rounded-3xl p-12">
-                    <h2 className="text-3xl font-bold mb-4">Still have questions?</h2>
-                    <p className="text-xl text-gray-300 mb-6">
-                        Reach out to us on X or join our community.
-                    </p>
-                    <a
-                        href="https://x.com/GemMintStrategy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl font-bold text-lg shadow-[0_4px_15px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_25px_rgba(59,130,246,0.4)] transition-all duration-300"
-                    >
-                        Follow us on X →
-                    </a>
-                </div>
+            </section>
         </Page>
     );
 }

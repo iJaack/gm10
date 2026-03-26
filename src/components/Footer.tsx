@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 export default function Footer() {
     return (
         <footer className="border-t border-white/5 bg-[#0a0f1c] relative z-10">
-            {/* AI Agent Ready Banner — compact */}
             <div className="border-b border-white/[0.04] bg-white/[0.01]">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -15,7 +14,7 @@ export default function Footer() {
                         <div>
                             <span className="text-xs font-bold text-blue-400/80 uppercase tracking-wider">AI Agent Ready</span>
                             <span className="text-white/25 mx-2">·</span>
-                            <span className="text-xs text-white/35">Contracts, ABIs, and governance workflows documented for agent integration.</span>
+                            <span className="text-xs text-white/35">SKILL.md carries the full operating picture for agents, workflows, and protocol context.</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-11 sm:ml-0">
@@ -27,14 +26,6 @@ export default function Footer() {
                         >
                             SKILL.md →
                         </a>
-                        <a
-                            href="/docs/agent-integration.md"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-white/40 text-xs font-semibold hover:bg-white/[0.05] hover:text-white/60 transition-colors duration-200"
-                        >
-                            Docs →
-                        </a>
                     </div>
                 </div>
             </div>
@@ -45,7 +36,7 @@ export default function Footer() {
                 <div>
                     <div className="text-white font-bold text-lg mb-2">Gem Mint Strategy</div>
                     <p className="text-white/30 text-sm leading-relaxed">
-                        A collector community onchain. Curating high-grade Pokémon cards, transparent and governed by members.
+                        Pokemon grails first. Onchain receipts, wallet reporting, and future governance under the hood.
                     </p>
                 </div>
 
@@ -56,9 +47,12 @@ export default function Footer() {
                         {[
                             { to: '/how-it-works', label: 'How It Works' },
                             { to: '/tokenomics', label: 'Tokenomics' },
-                            { to: '/fundraising', label: 'Fundraising' },
+                            { to: '/fundraising', label: 'Buy' },
                             { to: '/portfolio', label: 'Portfolio' },
                             { to: '/governance', label: 'Governance' },
+                            { to: '/nav-methodology', label: 'NAV Methodology' },
+                            { to: '/sales-proceeds', label: 'Sales & Proceeds' },
+                            { to: '/investor-pnl', label: 'Wallet PnL' },
                             { to: '/faq', label: 'FAQ' },
                         ].map(({ to, label }) => (
                             <li key={to}>
@@ -84,16 +78,6 @@ export default function Footer() {
                         </li>
                         <li>
                             <a
-                                href="/docs/agent-integration.md"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-blue-400 transition-colors duration-150"
-                            >
-                                Agent Integration Docs
-                            </a>
-                        </li>
-                        <li>
-                            <a
                                 href="https://github.com/iJaack/gm10"
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -110,17 +94,16 @@ export default function Footer() {
                                 rel="noopener noreferrer"
                                 className="block text-xs font-mono text-white/20 hover:text-blue-400 transition-colors duration-150 truncate mt-0.5"
                             >
-                                0xd3E5…83d3
+                                0xd3E5…F86C
                             </a>
                         </li>
                     </ul>
                 </div>
             </div>
 
-            {/* Bottom bar — merged copyright + disclaimer */}
             <div className="border-t border-white/[0.04] px-6 py-4 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-white/20">
                 <span>&copy; {new Date().getFullYear()} Gem Mint Strategy. Built on Avalanche.</span>
-                <span>$CATCH is not a financial instrument, investment product, or security. Not an offer of securities. Participation limited to the collector community.</span>
+                <span>$CATCH is documented here as the token behind the GM10 card run. Not legal or investment advice.</span>
             </div>
         </footer>
     );

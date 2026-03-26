@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { RECENT_CARD_COMPS } from '../data/protocol'
 
 type ShowcaseCard = {
     id: 'umbreon' | 'charizard' | 'lugia'
@@ -165,13 +166,12 @@ export default function Hero() {
                     </div>
 
                     <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-0">
-                        Own Museum-Quality<br />
-                        <span className="bg-gradient-to-br from-blue-400 via-blue-300 to-blue-500 bg-clip-text text-transparent">Cards Onchain</span>
+                        Get Closer To The<br />
+                        <span className="bg-gradient-to-br from-blue-400 via-blue-300 to-blue-500 bg-clip-text text-transparent">Pokemon Grails</span>
                     </h1>
 
                     <p className="text-xl leading-relaxed text-white/70 max-w-xl">
-                        Participate in graded card collecting onchain.<br className="hidden md:block" />
-                        Transparent. On-chain. <span className="text-white/90 font-semibold">Governed by holders.</span>
+                        PSA 10 Charizards, black-label Moonbreons, vintage Lugias, and the kind of slabbed cardboard most people only watch from a distance. GM10 keeps the card chase front and center while the receipts stay onchain.
                     </p>
 
                     <div className="flex flex-wrap gap-3 items-center mt-1">
@@ -180,34 +180,31 @@ export default function Hero() {
                             className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold text-lg rounded-xl overflow-hidden shadow-[0_4px_15px_rgba(59,130,246,0.35)] hover:shadow-[0_8px_25px_rgba(59,130,246,0.45)] transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out" />
-                            <span>Buy $CATCH</span>
+                            <span>Go To Buy</span>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
                         </Link>
 
                         <Link
-                            to="/portfolio"
+                            to="/how-it-works"
                             className="inline-flex items-center gap-2 px-6 py-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md text-white/80 font-semibold hover:bg-white/10 hover:text-white hover:border-white/30 transition-all duration-300"
                         >
-                            View Portfolio →
+                            See How It Moves →
                         </Link>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 lg:mt-6 p-4 sm:p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md w-full sm:w-fit">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">Coming Soon</span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-white/50">AUM</span>
-                        </div>
-                        <div className="hidden sm:block w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
-                        <div className="flex flex-col gap-1">
-                            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">--</span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-white/50">Cards</span>
-                        </div>
-                        <div className="hidden sm:block w-px h-10 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
-                        <div className="flex flex-col gap-1">
-                            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">1% Fee</span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-white/50">MGMT</span>
+                    <div className="mt-4 lg:mt-6 w-full max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 backdrop-blur-md">
+                        <div className="text-xs font-bold uppercase tracking-wider text-white/45">Recent public comps</div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            {RECENT_CARD_COMPS.map((card) => (
+                                <div key={card.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                                    <div className="text-sm font-semibold text-white">{card.name}</div>
+                                    <div className="text-xs uppercase tracking-[0.2em] text-white/35">{card.grade}</div>
+                                    <div className="mt-2 text-2xl font-black text-sky-200">{card.priceLabel}</div>
+                                    <div className="mt-1 text-xs text-white/45">{card.recencyLabel}</div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
