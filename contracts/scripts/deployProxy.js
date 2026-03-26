@@ -1,89 +1,125 @@
 const hre = require("hardhat");
 const { ethers, upgrades } = hre;
 const fs = require("fs");
+const EIP170_LIMIT = 24576;
+
+function requiredEnv(name) {
+    const value = process.env[name];
+    if (!value) {
+        throw new Error(`Missing required env var: ${name}`);
+    }
+    return value;
+}
+
+async function assertDeployableSize(contractName) {
+    const artifact = await hre.artifacts.readArtifact(contractName);
+    const deployedBytecode = artifact.deployedBytecode || "0x";
+    const size = Math.max(0, (deployedBytecode.length - 2) / 2);
+    if (size > EIP170_LIMIT) {
+        throw new Error(`${contractName} deployed bytecode is ${size} bytes, above EIP-170 limit ${EIP170_LIMIT}`);
+    }
+    console.log(`${contractName} deployed bytecode: ${size} bytes`);
+}
 
 async function main() {
     const [deployer] = await ethers.getSigners();
     console.log("Deploying contracts with account:", deployer.address);
-    console.log("Account balance:", (await ethers.provider.getBalance(deployer.address)).toString());
 
-    // Configuration
-    const TREASURY_ADDRESS = deployer.address; // Replace with actual multisig address for mainnet
-    const MANAGEMENT_FEE = 100;  // 1% (100 basis points)
-    const PERFORMANCE_FEE = 1000; // 10% (1000 basis points)
+    const OPS_MULTISIG = requiredEnv("OPS_MULTISIG");
+    const GOVERNANCE_AUTHORITY = requiredEnv("GOVERNANCE_AUTHORITY");
+    const FAILSAFE_ADDRESS = requiredEnv("FAILSAFE_ADDRESS");
+    const CANONICAL_USDT = requiredEnv("CANONICAL_USDT");
+    const AVAX_USD_FEED = requiredEnv("AVAX_USD_FEED");
 
-    console.log("\nDeploying GemMintStrategyFundV1 with proxy...");
+    const MANAGEMENT_FEE = BigInt(process.env.MANAGEMENT_FEE_BPS || "100");
+    const PERFORMANCE_FEE = BigInt(process.env.PERFORMANCE_FEE_BPS || "1000");
 
-    // Deploy implementation + proxy
-    const GemMintStrategyFund = await ethers.getContractFactory("GemMintStrategyFundV1");
-
+    const FundV2 = await ethers.getContractFactory("GemMintStrategyFundV2");
     const proxy = await upgrades.deployProxy(
-        GemMintStrategyFund,
-        [
-            TREASURY_ADDRESS,
-            MANAGEMENT_FEE,
-            PERFORMANCE_FEE
-        ],
-        {
-            kind: "uups",
-            initializer: "initialize"
-        }
+        FundV2,
+        [OPS_MULTISIG, MANAGEMENT_FEE, PERFORMANCE_FEE],
+        { kind: "uups", initializer: "initialize" }
     );
-
     await proxy.waitForDeployment();
 
     const proxyAddress = await proxy.getAddress();
+
+    console.log("Proxy deployed at:", proxyAddress);
+    console.log("Deploying companion modules...");
+
+    const PortfolioRegistry = await ethers.getContractFactory("Gm10PortfolioRegistry");
+    const portfolioRegistry = await PortfolioRegistry.deploy(proxyAddress);
+    await portfolioRegistry.waitForDeployment();
+
+    const InvestorAccounting = await ethers.getContractFactory("Gm10InvestorAccounting");
+    const investorAccounting = await InvestorAccounting.deploy(proxyAddress);
+    await investorAccounting.waitForDeployment();
+
+    console.log("Upgrading proxy to V3 and wiring modules...");
+    const FundV3 = await ethers.getContractFactory("GemMintStrategyFundV3");
+    await assertDeployableSize("GemMintStrategyFundV3");
+    await upgrades.validateUpgrade(proxyAddress, FundV3, { kind: "uups" });
+
+    const legacyProxy = await ethers.getContractAt(
+        [{ inputs: [], name: "totalRefundLiabilities", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" }],
+        proxyAddress
+    );
+    const refundLiabilities = await legacyProxy.totalRefundLiabilities();
+    if (refundLiabilities > 0n) {
+        throw new Error(`Slim V3 upgrade blocked: totalRefundLiabilities=${refundLiabilities}`);
+    }
+
+    const upgraded = await upgrades.upgradeProxy(proxyAddress, FundV3, {
+        kind: "uups",
+        call: {
+            fn: "initializeV3",
+            args: [
+                CANONICAL_USDT,
+                AVAX_USD_FEED,
+                OPS_MULTISIG,
+                GOVERNANCE_AUTHORITY,
+                FAILSAFE_ADDRESS,
+                await portfolioRegistry.getAddress(),
+                await investorAccounting.getAddress(),
+            ],
+        },
+    });
+    await upgraded.waitForDeployment();
+
     const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
 
-    console.log("\n✅ Deployment successful!");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("Proxy Address:", proxyAddress);
-    console.log("Implementation Address:", implementationAddress);
-    console.log("Treasury:", TREASURY_ADDRESS);
-    console.log("Management Fee:", MANAGEMENT_FEE, "basis points (", MANAGEMENT_FEE / 100, "%)");
-    console.log("Performance Fee:", PERFORMANCE_FEE, "basis points (", PERFORMANCE_FEE / 100, "%)");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
-    // Save deployment info
-    const networkName = hre.network.name;
-    const network = await ethers.provider.getNetwork();
     const deployment = {
-        network: networkName,
-        chainId: network.chainId.toString(),
+        network: hre.network.name,
+        chainId: (await ethers.provider.getNetwork()).chainId.toString(),
         proxy: proxyAddress,
         implementation: implementationAddress,
-        treasury: TREASURY_ADDRESS,
-        managementFee: MANAGEMENT_FEE,
-        performanceFee: PERFORMANCE_FEE,
+        portfolioRegistry: await portfolioRegistry.getAddress(),
+        investorAccounting: await investorAccounting.getAddress(),
+        treasury: OPS_MULTISIG,
+        canonicalUsdt: CANONICAL_USDT,
+        avaxUsdFeed: AVAX_USD_FEED,
+        governanceAuthority: GOVERNANCE_AUTHORITY,
+        failsafe: FAILSAFE_ADDRESS,
+        managementFee: MANAGEMENT_FEE.toString(),
+        performanceFee: PERFORMANCE_FEE.toString(),
         deployer: deployer.address,
         deployedAt: new Date().toISOString(),
         blockNumber: await ethers.provider.getBlockNumber()
     };
 
     const deploymentsPath = "./deployments.json";
-    let deployments = {};
-
-    if (fs.existsSync(deploymentsPath)) {
-        deployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
-    }
+    const deployments = fs.existsSync(deploymentsPath)
+        ? JSON.parse(fs.readFileSync(deploymentsPath, "utf8"))
+        : {};
 
     deployments[deployment.network] = deployment;
+    fs.writeFileSync(deploymentsPath, JSON.stringify(deployments, null, 2));
 
-    fs.writeFileSync(
-        deploymentsPath,
-        JSON.stringify(deployments, null, 2)
-    );
-
-    console.log("📝 Deployment info saved to deployments.json\n");
-
-    // Configuration instructions
-    console.log("Next steps:");
-    console.log("1. Configure DEX integration:");
-    console.log("   - Call updateDexConfig() with Trader Joe router and USDC addresses");
-    console.log("2. Transfer roles to multisig (for mainnet)");
-    console.log("3. Update frontend with proxy address:", proxyAddress);
-    console.log("4. Verify contracts on Snowtrace");
-    console.log("\n");
+    console.log("\nDeployment complete");
+    console.log("Proxy:", proxyAddress);
+    console.log("Implementation:", implementationAddress);
+    console.log("Portfolio registry:", deployment.portfolioRegistry);
+    console.log("Investor accounting:", deployment.investorAccounting);
 }
 
 main()
