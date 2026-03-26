@@ -118,7 +118,7 @@ export default function InvestorPnl() {
                 <h2 className="mt-3 text-3xl font-bold text-white">Live view</h2>
                 {!address ? (
                     <p className="mt-4 text-sm leading-7 text-white/55">
-                        Connect a wallet to populate this panel once the module-backed wallet view is live on the upgraded proxy.
+                        Connect a wallet to query the live module-backed wallet view directly from the upgraded Fuji proxy.
                     </p>
                 ) : data ? (
                     <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -136,7 +136,7 @@ export default function InvestorPnl() {
                     </div>
                 ) : (
                     <p className="mt-4 text-sm leading-7 text-white/55">
-                        The current Fuji deployment has not been upgraded to the module-backed wallet view yet, so this panel will light up after deployment instead of guessing offchain.
+                        The wallet view is live on the upgraded Fuji stack now. If this panel is still empty, your connected wallet likely just does not have any directly observed CATCH basis on the current testnet deployment.
                     </p>
                 )}
             </section>

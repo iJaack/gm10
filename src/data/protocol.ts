@@ -7,6 +7,24 @@ export const BUY_PAGE_DEFAULTS = {
     contributionAsset: 'AVAX',
 } as const;
 
+export const FUJI_CONTRACTS = {
+    proxy: {
+        label: 'Fund proxy',
+        address: '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C',
+    },
+    portfolioRegistry: {
+        label: 'Portfolio registry',
+        address: '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
+    },
+    investorAccounting: {
+        label: 'Wallet accounting',
+        address: '0x526a0DeBfEF61966060342C2b12ae0325cffA210',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x526a0DeBfEF61966060342C2b12ae0325cffA210',
+    },
+} as const;
+
 export const RECENT_CARD_COMPS = [
     {
         id: 'charizard',

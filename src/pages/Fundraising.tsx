@@ -3,7 +3,7 @@ import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteCont
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { formatEther, parseEther } from 'viem';
 import Page from '../components/Page';
-import { BUY_PAGE_DEFAULTS } from '../data/protocol';
+import { BUY_PAGE_DEFAULTS, FUJI_CONTRACTS } from '../data/protocol';
 
 const FUND_ADDRESS = '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C';
 
@@ -215,6 +215,28 @@ export default function Fundraising() {
                             </div>
                             <p className="text-sm leading-7 text-white/60">{item}</p>
                         </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#0b1322] p-8">
+                <div className="text-xs uppercase tracking-[0.3em] text-white/35">Live Fuji contracts</div>
+                <h2 className="mt-2 text-3xl font-bold text-white">The upgraded testnet stack is live</h2>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-white/55">
+                    If you want to inspect the live GM10 testnet setup directly, the fund proxy now fans out into dedicated portfolio and wallet-accounting modules instead of trying to carry the entire stack in one oversized contract.
+                </p>
+                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {Object.values(FUJI_CONTRACTS).map((contract) => (
+                        <a
+                            key={contract.address}
+                            href={contract.snowtraceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-sky-400/30 hover:bg-sky-500/[0.06] transition-colors duration-150"
+                        >
+                            <div className="text-xs uppercase tracking-[0.2em] text-white/35">{contract.label}</div>
+                            <div className="mt-2 text-xs font-mono text-white/65 break-all">{contract.address}</div>
+                        </a>
                     ))}
                 </div>
             </section>

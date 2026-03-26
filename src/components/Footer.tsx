@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { FUJI_CONTRACTS } from '../data/protocol';
 
 export default function Footer() {
     return (
@@ -86,17 +87,19 @@ export default function Footer() {
                                 GitHub
                             </a>
                         </li>
-                        <li className="pt-1">
-                            <span className="text-white/20 text-xs">Fund contract (Fuji):</span>
-                            <a
-                                href="https://testnet.snowtrace.io/address/0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block text-xs font-mono text-white/20 hover:text-blue-400 transition-colors duration-150 truncate mt-0.5"
-                            >
-                                0xd3E5…F86C
-                            </a>
-                        </li>
+                        {Object.values(FUJI_CONTRACTS).map((contract) => (
+                            <li key={contract.address} className="pt-1">
+                                <span className="text-white/20 text-xs">{contract.label} (Fuji):</span>
+                                <a
+                                    href={contract.snowtraceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block text-xs font-mono text-white/20 hover:text-blue-400 transition-colors duration-150 truncate mt-0.5"
+                                >
+                                    {contract.address}
+                                </a>
+                            </li>
+                        ))}
                     </ul>
                 </div>
             </div>
