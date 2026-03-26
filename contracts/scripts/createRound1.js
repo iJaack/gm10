@@ -19,10 +19,10 @@ async function main() {
   const proxyAddress = deployments.fuji.proxy;
   console.log("Contract:", proxyAddress);
 
-  const fund = await ethers.getContractAt("GemMintStrategyFundV2", proxyAddress);
+  const fund = await ethers.getContractAt("GemMintStrategyFundV3", proxyAddress);
 
   // Round 1 parameters
-  const targetAmount   = ethers.parseEther("10000");  // 10,000 AVAX
+  const targetAmount   = ethers.parseEther("500");    // 500 AVAX
   const tokenPrice     = ethers.parseEther("0.0025"); // 0.0025 AVAX per $CATCH
   const minInvestment  = ethers.parseEther("0.1");    // 0.1 AVAX min
   const maxInvestment  = ethers.parseEther("200");    // 200 AVAX max per wallet
@@ -32,7 +32,7 @@ async function main() {
   const endTime   = now + 60 * 60 * 24 * 30;    // ends in 30 days
 
   console.log("\nRound 1 params:");
-  console.log("  Target:  10,000 AVAX");
+  console.log("  Target:  500 AVAX");
   console.log("  Price:   0.0025 AVAX per $CATCH");
   console.log("  Min:     0.1 AVAX");
   console.log("  Max:     200 AVAX per wallet");

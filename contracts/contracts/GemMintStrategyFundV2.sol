@@ -71,6 +71,7 @@ contract GemMintStrategyFundV2 is
      */
     function approveBudget(address _asset, uint256 _amount) 
         external 
+        virtual
         onlyRole(GOVERNANCE_ROLE) 
     {
         approvedBudgets[_asset] = _amount;
@@ -95,6 +96,7 @@ contract GemMintStrategyFundV2 is
      */
     function purchaseAuthorizedAsset(address _asset, uint256 _cost)
         external
+        virtual
         onlyRole(MANAGER_ROLE)
         nonReentrant
     {
@@ -118,6 +120,7 @@ contract GemMintStrategyFundV2 is
     // Required overrides for ERC20Votes
     function _update(address from, address to, uint256 value) 
         internal 
+        virtual
         override(GemMintStrategyFundV1, ERC20VotesUpgradeable) 
     {
         super._update(from, to, value);

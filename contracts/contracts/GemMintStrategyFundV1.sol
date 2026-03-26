@@ -10,12 +10,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IRouter.sol";
-import "./interfaces/IEVAStaking.sol";
 
 /**
  * @title GemMintStrategyFundV1
  * @author Gem Mint Strategy Team
- * @notice $CATCH Token - Upgradeable Tokenized Pokemon Card Fund on Avalanche C-Chain
+ * @notice $CATCH Token - Upgradeable collectible fund on Avalanche C-Chain
  * @dev UUPS Upgradeable ERC20 token with onchain buyback mechanism
  *
  * Features:
@@ -56,7 +55,7 @@ contract GemMintStrategyFundV1 is
         uint256 currentValue;    // Current market value in AVAX (18 decimals)
         uint256 acquisitionDate; // Timestamp of acquisition
         bool isActive;           // Whether card is still in portfolio
-        string vaultLocation;    // Physical vault location or NFT platform
+        string marketplaceProvenance; // Physical vault, marketplace, or settlement provenance
         string ipfsMetadata;     // IPFS hash for card images/documents
     }
 
@@ -131,10 +130,8 @@ contract GemMintStrategyFundV1 is
     uint256 public redemptionFee;            // Fee in basis points
     uint256 public minRedemptionAmount;
 
-    // TODO: re-add EVA staking gate when EVAStaking contract is deployed to mainnet
-    // EVA Staking gate (disabled — hold-only access model active)
-    // address public evaStakingContract;
-    address public evaStakingContract; // kept for storage layout compatibility (UUPS)
+    // Legacy EVA slot kept only for storage layout compatibility (UUPS)
+    address public evaStakingContract;
 
     // ============ Events ============
 
@@ -183,7 +180,6 @@ contract GemMintStrategyFundV1 is
     error InsufficientFreeBalance();
     error TransferFailed();
     error TokenTransferFailed();
-    error EVAStakeRequired();
 
     // ============ Storage Gap for Future Upgrades ============
     uint256[45] private __gap;
@@ -268,7 +264,7 @@ contract GemMintStrategyFundV1 is
         uint256 _maxInvestment,
         uint256 _startTime,
         uint256 _endTime
-    ) external onlyRole(MANAGER_ROLE) {
+    ) external virtual onlyRole(MANAGER_ROLE) {
         if (_startTime >= _endTime) revert InvalidParameters();
         if (_tokenPrice == 0 || _targetAmount == 0) revert InvalidParameters();
         if (_minInvestment > _maxInvestment) revert InvalidParameters();
@@ -294,49 +290,47 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Invest AVAX in current fundraising round
      */
-    function invest(uint256 _roundId) external payable nonReentrant whenNotPaused {
-        // TODO: re-add EVA staking gate when EVAStaking contract is deployed to mainnet
-        // Gate removed: access now controlled by frontend hold-only check (10M $EVA on mainnet)
-        // if (evaStakingContract != address(0)) {
-        //     if (!IEVAStaking(evaStakingContract).canInvest(msg.sender)) revert EVAStakeRequired();
-        // }
+    function invest(uint256 _roundId) external payable virtual nonReentrant whenNotPaused {
+        _invest(_roundId, msg.sender, msg.value);
+    }
 
+    function _invest(uint256 _roundId, address _investor, uint256 _amount) internal virtual {
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
         if (!round.isActive) revert RoundNotActive();
         if (block.timestamp < round.startTime || block.timestamp > round.endTime) revert RoundNotActive();
-        if (msg.value < round.minInvestment) revert InvestmentBelowMinimum();
-        if (roundInvestments[_roundId][msg.sender] + msg.value > round.maxInvestment) revert InvestmentAboveMaximum();
-        if (round.raisedAmount + msg.value > round.targetAmount) revert TargetReached();
+        if (_amount < round.minInvestment) revert InvestmentBelowMinimum();
+        if (roundInvestments[_roundId][_investor] + _amount > round.maxInvestment) revert InvestmentAboveMaximum();
+        if (round.raisedAmount + _amount > round.targetAmount) revert TargetReached();
 
-        // Calculate tokens to mint (safe: msg.value * 1e18 fits uint256)
+        // Calculate tokens to mint (safe: _amount * 1e18 fits uint256)
         uint256 tokensToMint;
-        unchecked { tokensToMint = (msg.value * 1e18) / round.tokenPrice; }
+        unchecked { tokensToMint = (_amount * 1e18) / round.tokenPrice; }
 
         // Update round state
-        round.raisedAmount += msg.value;
-        roundInvestments[_roundId][msg.sender] += msg.value;
-        roundTokensMinted[_roundId][msg.sender] += tokensToMint;
+        round.raisedAmount += _amount;
+        roundInvestments[_roundId][_investor] += _amount;
+        roundTokensMinted[_roundId][_investor] += tokensToMint;
 
         // Update investor state
-        Investor storage investor = investors[msg.sender];
+        Investor storage investor = investors[_investor];
         if (investor.firstInvestmentTime == 0) {
             investor.firstInvestmentTime = block.timestamp;
-            investorList.push(msg.sender);
+            investorList.push(_investor);
             totalInvestors++;
         }
-        investor.totalInvested += msg.value;
+        investor.totalInvested += _amount;
         investor.tokensReceived += tokensToMint;
         investor.participatedRounds.push(_roundId);
 
         // Mint tokens
-        _mint(msg.sender, tokensToMint);
+        _mint(_investor, tokensToMint);
 
         // Keep raised AVAX in-contract; manager can withdraw via withdrawFromTreasury().
         // This enables on-chain redemption, NAV-backed operations, and deterministic accounting.
         _updateNAV();
 
-        emit Investment(msg.sender, _roundId, msg.value, tokensToMint);
+        emit Investment(_investor, _roundId, _amount, tokensToMint);
     }
 
     /**
@@ -344,7 +338,7 @@ contract GemMintStrategyFundV1 is
      * @dev Can be called before endTime if the targetAmount has been fully raised.
      *      Otherwise must wait until endTime has passed.
      */
-    function finalizeRound(uint256 _roundId) external onlyRole(MANAGER_ROLE) {
+    function finalizeRound(uint256 _roundId) external virtual onlyRole(MANAGER_ROLE) {
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
         if (round.isFinalized) revert InvalidParameters();
@@ -363,7 +357,7 @@ contract GemMintStrategyFundV1 is
      * @notice Enable per-investor refunds for a round that ended below target
      * @dev Investors can claim principal for that round by burning tokens minted in that round
      */
-    function enableRoundRefunds(uint256 _roundId) external onlyRole(MANAGER_ROLE) {
+    function enableRoundRefunds(uint256 _roundId) external virtual onlyRole(MANAGER_ROLE) {
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
         if (round.roundId == 0) revert InvalidParameters();
@@ -384,7 +378,7 @@ contract GemMintStrategyFundV1 is
      * @notice Claim a failed-round principal refund
      * @dev Burns tokens minted in that round to prevent double-dipping
      */
-    function claimRoundRefund(uint256 _roundId) external nonReentrant {
+    function claimRoundRefund(uint256 _roundId) external virtual nonReentrant {
         if (!roundRefundsEnabled[_roundId]) revert RefundsNotEnabled();
         if (roundRefundClaimed[_roundId][msg.sender]) revert RefundAlreadyClaimed();
 
@@ -420,30 +414,29 @@ contract GemMintStrategyFundV1 is
         string calldata _grader,
         uint8 _grade,
         uint256 _acquisitionPrice,
-        string calldata _vaultLocation,
+        string calldata _marketplaceProvenance,
         string calldata _ipfsMetadata
-    ) external onlyRole(MANAGER_ROLE) {
+    ) external virtual onlyRole(MANAGER_ROLE) {
         cardCount++;
         activeCardCount++;
 
-        cards[cardCount] = Card({
-            cardId: _cardId,
-            name: _name,
-            set: _set,
-            grader: _grader,
-            grade: _grade,
-            acquisitionPrice: _acquisitionPrice,
-            currentValue: _acquisitionPrice, // Initial value is acquisition price
-            acquisitionDate: block.timestamp,
-            isActive: true,
-            vaultLocation: _vaultLocation,
-            ipfsMetadata: _ipfsMetadata
-        });
+        Card storage card = cards[cardCount];
+        card.cardId = _cardId;
+        card.name = _name;
+        card.set = _set;
+        card.grader = _grader;
+        card.grade = _grade;
+        card.acquisitionPrice = _acquisitionPrice;
+        card.currentValue = _acquisitionPrice;
+        card.acquisitionDate = block.timestamp;
+        card.isActive = true;
+        card.marketplaceProvenance = _marketplaceProvenance;
+        card.ipfsMetadata = _ipfsMetadata;
 
         totalPortfolioValue += _acquisitionPrice;
         _updateNAV();
 
-        emit CardAdded(cardCount, _cardId, _name, _acquisitionPrice);
+        emit CardAdded(cardCount, card.cardId, card.name, card.acquisitionPrice);
     }
 
     /**
@@ -453,7 +446,7 @@ contract GemMintStrategyFundV1 is
      *      or a dedicated deactivation path for that. Setting to 0 without selling will
      *      reduce totalPortfolioValue without any corresponding AVAX inflow.
      */
-    function updateCardValue(uint256 _cardIndex, uint256 _newValue) external onlyRole(ORACLE_ROLE) {
+    function updateCardValue(uint256 _cardIndex, uint256 _newValue) external virtual onlyRole(ORACLE_ROLE) {
         Card storage card = cards[_cardIndex];
         if (!card.isActive) revert CardNotFound();
 
@@ -480,7 +473,7 @@ contract GemMintStrategyFundV1 is
     function sellCardWithBuyback(
         uint256 _cardIndex,
         uint256 _salePrice
-    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+    ) external virtual onlyRole(MANAGER_ROLE) nonReentrant {
         Card storage card = cards[_cardIndex];
         if (!card.isActive) revert CardNotFound();
 
@@ -624,7 +617,7 @@ contract GemMintStrategyFundV1 is
 
     // ============ NAV Functions ============
 
-    function _totalAssets() internal view returns (uint256) {
+    function _totalAssets() internal view virtual returns (uint256) {
         // totalPortfolioValue is tracked in AVAX (18 decimals); contract balance is also AVAX.
         return totalPortfolioValue + address(this).balance;
     }
@@ -632,7 +625,7 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Update NAV (internal)
      */
-    function _updateNAV() internal {
+    function _updateNAV() internal virtual {
         uint256 supply = totalSupply();
         uint256 totalAssets = _totalAssets();
 
@@ -655,7 +648,7 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Force NAV update (Oracle role)
      */
-    function forceUpdateNAV() external onlyRole(ORACLE_ROLE) {
+    function forceUpdateNAV() external virtual onlyRole(ORACLE_ROLE) {
         _updateNAV();
     }
 
@@ -664,10 +657,14 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Redeem CATCH tokens for AVAX at NAV
      */
-    function redeem(uint256 _tokenAmount) external nonReentrant {
+    function redeem(uint256 _tokenAmount) external virtual nonReentrant {
+        _redeem(msg.sender, _tokenAmount);
+    }
+
+    function _redeem(address _account, uint256 _tokenAmount) internal virtual {
         if (!redemptionsEnabled) revert RedemptionsDisabled();
         if (_tokenAmount < minRedemptionAmount) revert InsufficientBalance();
-        if (balanceOf(msg.sender) < _tokenAmount) revert InsufficientBalance();
+        if (balanceOf(_account) < _tokenAmount) revert InsufficientBalance();
 
         // Calculate AVAX to return (minus redemption fee) — safe: bounded by total supply * NAV
         uint256 avaxAmount;
@@ -679,27 +676,19 @@ contract GemMintStrategyFundV1 is
             netAvaxAmount = avaxAmount - feeAmount;
         }
 
-        // Single check: the contract's free balance (total minus refund reserve) must cover
-        // the redemption payout. This prevents both "truly not enough AVAX" and
-        // "would drain the refund reserve" in one clear revert.
         if (address(this).balance < netAvaxAmount + totalRefundLiabilities) revert InsufficientFreeBalance();
 
-        // Burn tokens
-        _burn(msg.sender, _tokenAmount);
-
-        // Transfer AVAX
-        _transferNative(msg.sender, netAvaxAmount);
-
-        // Update NAV after supply + cash changed.
+        _burn(_account, _tokenAmount);
+        _transferNative(_account, netAvaxAmount);
         _updateNAV();
 
-        emit Redemption(msg.sender, _tokenAmount, netAvaxAmount);
+        emit Redemption(_account, _tokenAmount, netAvaxAmount);
     }
 
     /**
      * @notice Enable/disable redemptions
      */
-    function setRedemptionsEnabled(bool _enabled) external onlyRole(GOVERNANCE_ROLE) {
+    function setRedemptionsEnabled(bool _enabled) external virtual onlyRole(GOVERNANCE_ROLE) {
         redemptionsEnabled = _enabled;
     }
 
@@ -710,7 +699,7 @@ contract GemMintStrategyFundV1 is
      * @param _managementFee Management fee in basis points (max 500 = 5%)
      * @param _performanceFee Performance fee in basis points (max 3000 = 30%)
      */
-    function setFees(uint256 _managementFee, uint256 _performanceFee) external onlyRole(GOVERNANCE_ROLE) {
+    function setFees(uint256 _managementFee, uint256 _performanceFee) external virtual onlyRole(GOVERNANCE_ROLE) {
         if (_managementFee > 500) revert InvalidParameters();   // max 5%
         if (_performanceFee > 3000) revert InvalidParameters();  // max 30%
 
@@ -725,7 +714,7 @@ contract GemMintStrategyFundV1 is
      * @param _redemptionFee Redemption fee in basis points (default 50 = 0.5%)
      * @param _minRedemptionAmount Minimum token amount for redemption
      */
-    function setRedemptionParameters(uint256 _redemptionFee, uint256 _minRedemptionAmount) external onlyRole(GOVERNANCE_ROLE) {
+    function setRedemptionParameters(uint256 _redemptionFee, uint256 _minRedemptionAmount) external virtual onlyRole(GOVERNANCE_ROLE) {
         if (_redemptionFee > MAX_FEE) revert InvalidParameters(); // max 10%
 
         redemptionFee = _redemptionFee;
@@ -739,14 +728,14 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Pause contract (emergency)
      */
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /**
      * @notice Unpause contract
      */
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -755,8 +744,13 @@ contract GemMintStrategyFundV1 is
      */
     function withdrawFromTreasury(address _to, uint256 _amount, string calldata _reason)
         external
+        virtual
         onlyRole(MANAGER_ROLE)
     {
+        _withdrawFromTreasury(_to, _amount, _reason);
+    }
+
+    function _withdrawFromTreasury(address _to, uint256 _amount, string calldata _reason) internal virtual {
         if (_to == address(0)) revert ZeroAddress();
         if (_amount > address(this).balance) revert InsufficientBalance();
         if (address(this).balance - _amount < totalRefundLiabilities) revert RefundReserveLocked();
@@ -768,19 +762,10 @@ contract GemMintStrategyFundV1 is
     /**
      * @notice Update treasury address (metadata / destination for off-chain operations)
      */
-    function setTreasury(address _newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTreasury(address _newTreasury) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newTreasury == address(0)) revert ZeroAddress();
         treasury = _newTreasury;
     }
-
-    // TODO: re-add when EVAStaking contract is deployed to mainnet
-    // /**
-    //  * @notice Set the EVAStaking contract address for invest-gate enforcement.
-    //  *         Set to address(0) to disable the staking requirement.
-    //  */
-    // function setEVAStakingContract(address _evaStaking) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    //     evaStakingContract = _evaStaking;
-    // }
 
     // ============ View Functions ============
 

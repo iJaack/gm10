@@ -6,7 +6,7 @@ const hre = require("hardhat");
  */
 async function main() {
   console.log("=".repeat(60));
-  console.log("Ash Strategy Fund - Fundraising Round Setup");
+  console.log("Gem Mint Strategy - Fundraising Round Setup");
   console.log("Network:", hre.network.name);
   console.log("=".repeat(60));
 
@@ -22,13 +22,12 @@ async function main() {
   console.log("\nManager address:", manager.address);
 
   // Get contract instance
-  // V1 ABI is compatible with V2 for fundraising functions.
-  const fund = await hre.ethers.getContractAt("GemMintStrategyFundV1", FUND_ADDRESS);
+  const fund = await hre.ethers.getContractAt("GemMintStrategyFundV3", FUND_ADDRESS);
   console.log("Fund contract:", FUND_ADDRESS);
 
   // Fundraising parameters (must match frontend/docs values)
-  const TARGET_AMOUNT = hre.ethers.parseEther("10000"); // 10,000 AVAX target
-  const TOKEN_PRICE = hre.ethers.parseEther("0.0025"); // 0.0025 AVAX per CATCH (400 CATCH per 1 AVAX)
+  const TARGET_AMOUNT = hre.ethers.parseEther("500"); // 500 AVAX target
+  const TOKEN_PRICE = hre.ethers.parseEther("0.0025"); // 0.0025 AVAX per CATCH
   const MIN_INVESTMENT = hre.ethers.parseEther("0.1"); // 0.1 AVAX minimum
   const MAX_INVESTMENT = hre.ethers.parseEther("200"); // 200 AVAX max per address
 
