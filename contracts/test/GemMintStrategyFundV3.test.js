@@ -197,6 +197,69 @@ describe("GemMintStrategyFundV3", function () {
     expect(receiverAccounting.totalCostBasisUsdt6).to.equal(0n);
   });
 
+  it("records live ERC721 collection addresses in purchased positions", async function () {
+    const { fund, ops, governance, investor, portfolioRegistry } = await loadFixture(deployV3Fixture);
+
+    await seedRound(fund, ops, investor, "5");
+
+    const MockCollection = await ethers.getContractFactory("MockGm10Collection");
+    const alphaCollection = await MockCollection.deploy("GM10 Alpha", "GM10A", "ipfs://alpha/");
+    await alphaCollection.waitForDeployment();
+    const betaCollection = await MockCollection.deploy("GM10 Beta", "GM10B", "ipfs://beta/");
+    await betaCollection.waitForDeployment();
+
+    await alphaCollection.mint(ops.address);
+    await betaCollection.mint(ops.address);
+
+    const marketId = ethers.id("GM10_TEST_MARKET");
+    await portfolioRegistry.connect(governance).setChainSafe(43113, ops.address, ethers.ZeroHash, ethers.id("FUJI_SAFE"), true);
+    await portfolioRegistry.connect(governance).setMarketplaceApproval(marketId, true);
+
+    const purchaseKeys = [ethers.id("erc721-purchase-1"), ethers.id("erc721-purchase-2")];
+    const collections = [await alphaCollection.getAddress(), await betaCollection.getAddress()];
+
+    for (let i = 0; i < purchaseKeys.length; i++) {
+      const purchaseKey = purchaseKeys[i];
+      await portfolioRegistry.connect(governance).authorizePurchase(
+        purchaseKey,
+        43113,
+        marketId,
+        ethers.id(`erc721-asset-${i + 1}`),
+        20_000_000n,
+        ethers.id(`erc721-mandate-${i + 1}`)
+      );
+      await fund.connect(ops).releasePurchaseFunds(purchaseKey, 20_000_000n);
+      await portfolioRegistry.connect(ops).recordPurchaseExecution(
+        purchaseKey,
+        ethers.id(`erc721-buy-${i + 1}`),
+        ethers.id(`erc721-settlement-${i + 1}`),
+        ethers.id(`erc721-proof-${i + 1}`)
+      );
+      await fund.connect(ops).recordCollectiblePosition(purchaseKey, {
+        custodyMode: 0,
+        tokenStandard: ethers.id("ERC721"),
+        evmCollection: collections[i],
+        nonEvmCollection: ethers.ZeroHash,
+        tokenId: 1n,
+        nonEvmTokenId: ethers.ZeroHash,
+        externalAssetId: ethers.id(`erc721-collectible-${i + 1}`),
+        categoryId: ethers.id("pokemon-slab"),
+        marketplaceProvenanceRef: ethers.id(`erc721-marketplace-${i + 1}`),
+        acquisitionPriceUsdt6: 18_000_000n,
+        metadataHash: ethers.id(`erc721-meta-${i + 1}`),
+        proofHash: ethers.id(`erc721-position-proof-${i + 1}`),
+      });
+    }
+
+    const position1 = await portfolioRegistry.getCollectiblePosition(1n);
+    const position2 = await portfolioRegistry.getCollectiblePosition(2n);
+
+    expect(position1.evmCollection).to.equal(await alphaCollection.getAddress());
+    expect(position2.evmCollection).to.equal(await betaCollection.getAddress());
+    expect(position1.tokenId).to.equal(1n);
+    expect(position2.tokenId).to.equal(1n);
+  });
+
   it("keeps the V3 ABI slim and below the EIP-170 limit", async function () {
     const artifact = await hre.artifacts.readArtifact("GemMintStrategyFundV3");
     const deployedSize = (artifact.deployedBytecode.length - 2) / 2;

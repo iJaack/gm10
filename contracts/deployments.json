@@ -36,5 +36,24 @@
       "deployedAt": "2026-02-19T00:24:20.537Z",
       "blockNumber": 51925198
     }
+  },
+  "fujiPurchaseTest": {
+    "key": "fujiPurchaseTest",
+    "network": "fuji",
+    "chainId": "43113",
+    "proxy": "0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9",
+    "implementation": "0xa5d0DcB4f994a5cAEBC9274d6Cd489864Dcf2283",
+    "portfolioRegistry": "0x79678b78f7c2b8099bBd18d6754891774632F8F4",
+    "investorAccounting": "0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91",
+    "treasury": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "canonicalUsdt": "0xf4338dE1500355C6935314a85f6bEEd36009f08C",
+    "avaxUsdFeed": "0x824f2Ec801CEFB90347211D504d5b4AaccFA0A3c",
+    "governanceAuthority": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "failsafe": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "managementFee": "100",
+    "performanceFee": "1000",
+    "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "deployedAt": "2026-03-30T10:06:34.162Z",
+    "blockNumber": 53397782
   }
 }

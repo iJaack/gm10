@@ -1,5 +1,5 @@
 import Page from '../components/Page';
-import { PORTFOLIO_PREVIEW, SAMPLE_HISTORY } from '../data/protocol';
+import { FUJI_PURCHASE_TEST_CONTRACTS, FUJI_TEST_PORTFOLIO_ARTIFACTS, PORTFOLIO_PREVIEW, SAMPLE_HISTORY } from '../data/protocol';
 
 export default function Portfolio() {
     return (
@@ -65,6 +65,57 @@ export default function Portfolio() {
                             </div>
                         ))}
                     </div>
+                </div>
+            </section>
+
+            <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[0.03] p-8">
+                <div className="text-xs uppercase tracking-[0.35em] text-white/35">Fuji test artifacts</div>
+                <h2 className="mt-3 text-3xl font-bold text-white">Two live ERC-721 buys are already on testnet</h2>
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-white/60">
+                    These are not mock screenshots. They are real Fuji purchase-flow artifacts recorded through the fresh modular V3 test deployment so the portfolio surface can point at actual onchain holdings.
+                </p>
+                <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
+                    {FUJI_TEST_PORTFOLIO_ARTIFACTS.map((item) => (
+                        <div key={item.collectionAddress} className="rounded-3xl border border-sky-400/15 bg-[#0b1322] p-6">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                                    {item.label}
+                                </span>
+                                <span className="text-xs uppercase tracking-[0.3em] text-white/35">{item.marketplace}</span>
+                            </div>
+                            <h2 className="mt-4 text-2xl font-semibold text-white">{item.name}</h2>
+                            <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-white/55 md:grid-cols-2">
+                                <div>Chain: <span className="text-white/80">{item.chain}</span></div>
+                                <div>Token ID: <span className="text-white/80">{item.tokenId}</span></div>
+                                <div>Acquisition mark: <span className="text-white/80">{item.acquisition}</span></div>
+                                <div>
+                                    Collection:
+                                    <a
+                                        className="ml-2 text-sky-300 underline decoration-sky-500/40 underline-offset-4"
+                                        href={item.snowtraceUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        {item.collectionAddress}
+                                    </a>
+                                </div>
+                            </div>
+                            <p className="mt-4 text-sm leading-7 text-white/60">{item.note}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3 text-sm text-white/55">
+                    {Object.values(FUJI_PURCHASE_TEST_CONTRACTS).map((contract) => (
+                        <a
+                            key={contract.address}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-white/70 transition hover:border-sky-400/30 hover:text-sky-200"
+                            href={contract.snowtraceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {contract.label}
+                        </a>
+                    ))}
                 </div>
             </section>
 

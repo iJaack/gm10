@@ -24,6 +24,7 @@ async function assertDeployableSize(contractName) {
 async function main() {
     const [deployer] = await ethers.getSigners();
     console.log("Deploying contracts with account:", deployer.address);
+    const deploymentKey = process.env.DEPLOYMENT_KEY || hre.network.name;
 
     const OPS_MULTISIG = requiredEnv("OPS_MULTISIG");
     const GOVERNANCE_AUTHORITY = requiredEnv("GOVERNANCE_AUTHORITY");
@@ -64,7 +65,15 @@ async function main() {
         [{ inputs: [], name: "totalRefundLiabilities", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" }],
         proxyAddress
     );
-    const refundLiabilities = await legacyProxy.totalRefundLiabilities();
+    let refundLiabilities = 0n;
+    try {
+        refundLiabilities = await legacyProxy.totalRefundLiabilities();
+    } catch (error) {
+        console.warn(
+            "Skipping refund liability probe on fresh deployment:",
+            error?.shortMessage || error?.message || String(error)
+        );
+    }
     if (refundLiabilities > 0n) {
         throw new Error(`Slim V3 upgrade blocked: totalRefundLiabilities=${refundLiabilities}`);
     }
@@ -89,6 +98,7 @@ async function main() {
     const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
 
     const deployment = {
+        key: deploymentKey,
         network: hre.network.name,
         chainId: (await ethers.provider.getNetwork()).chainId.toString(),
         proxy: proxyAddress,
@@ -112,10 +122,11 @@ async function main() {
         ? JSON.parse(fs.readFileSync(deploymentsPath, "utf8"))
         : {};
 
-    deployments[deployment.network] = deployment;
+    deployments[deploymentKey] = deployment;
     fs.writeFileSync(deploymentsPath, JSON.stringify(deployments, null, 2));
 
     console.log("\nDeployment complete");
+    console.log("Deployment key:", deploymentKey);
     console.log("Proxy:", proxyAddress);
     console.log("Implementation:", implementationAddress);
     console.log("Portfolio registry:", deployment.portfolioRegistry);

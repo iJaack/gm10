@@ -17,6 +17,11 @@
     "deploy:oft:mainnet": "hardhat run scripts/deployOftAdapter.js --network avalanche",
     "upgrade:proxy:fuji": "hardhat run scripts/upgradeProxy.js --network fuji",
     "upgrade:proxy:mainnet": "hardhat run scripts/upgradeProxy.js --network avalanche",
+    "create:test-round:fuji": "hardhat run scripts/createTestRoundFuji.js --network fuji",
+    "grant:purchase-roles:fuji": "hardhat run scripts/grantPurchaseTestRolesFuji.js --network fuji",
+    "purchase:test:fuji": "hardhat run scripts/testPurchaseFlowFuji.js --network fuji",
+    "purchase:resume:fuji": "hardhat run scripts/resumePurchaseFlowFuji.js --network fuji",
+    "revoke:purchase-roles:fuji": "hardhat run scripts/revokePurchaseTestRolesFuji.js --network fuji",
     "verify:fuji": "hardhat run scripts/verify.js --network fuji",
     "verify:mainnet": "hardhat run scripts/verify.js --network avalanche",
     "clean": "hardhat clean"

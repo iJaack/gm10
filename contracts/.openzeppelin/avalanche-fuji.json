@@ -9,6 +9,16 @@
     {
       "address": "0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C",
       "kind": "uups"
+    },
+    {
+      "address": "0x26406A5E6822Fd7BEaed5E0a9FA7Fdd68aF88053",
+      "txHash": "0x09100fdba3ef676a43890f709862208a71aa00e1865b1a6d6b78b5261bd02bf3",
+      "kind": "uups"
+    },
+    {
+      "address": "0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9",
+      "txHash": "0xede1fcf1d80e964bbb368855223bcaeb05cec416330f65ff70b676c7d8127eed",
+      "kind": "uups"
     }
   ],
   "impls": {

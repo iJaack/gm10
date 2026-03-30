@@ -25,6 +25,49 @@ export const FUJI_CONTRACTS = {
     },
 } as const;
 
+export const FUJI_PURCHASE_TEST_CONTRACTS = {
+    proxy: {
+        label: 'Purchase-flow test proxy',
+        address: '0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
+    },
+    portfolioRegistry: {
+        label: 'Purchase-flow test registry',
+        address: '0x79678b78f7c2b8099bBd18d6754891774632F8F4',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x79678b78f7c2b8099bBd18d6754891774632F8F4',
+    },
+    investorAccounting: {
+        label: 'Purchase-flow test wallet accounting',
+        address: '0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91',
+    },
+} as const;
+
+export const FUJI_TEST_PORTFOLIO_ARTIFACTS = [
+    {
+        label: 'Test artifact',
+        name: 'GM10 Resume Slabs Alpha',
+        collectionAddress: '0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
+        tokenId: '1',
+        marketplace: 'GM10_TEST_MARKET_ALPHA',
+        chain: 'Avalanche Fuji',
+        acquisition: '$18.00 test mark',
+        note: 'Recorded through the live Fuji purchase-flow test as position #1 on the fresh modular V3 deployment.',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
+    },
+    {
+        label: 'Test artifact',
+        name: 'GM10 Resume Slabs Beta',
+        collectionAddress: '0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
+        tokenId: '1',
+        marketplace: 'GM10_TEST_MARKET_BETA',
+        chain: 'Avalanche Fuji',
+        acquisition: '$22.00 test mark',
+        note: 'Recorded through the same Fuji purchase-flow test as position #2 so the portfolio surface has real ERC-721 artifacts to point at.',
+        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
+    },
+] as const;
+
 export const RECENT_CARD_COMPS = [
     {
         id: 'charizard',

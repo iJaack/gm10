@@ -33,10 +33,13 @@ async function verifyContract({ address, contract, constructorArguments = [] }) 
 }
 
 async function main() {
-  const deployment = deployments[network.name];
+  const deploymentKey = process.env.DEPLOYMENT_KEY || network.name;
+  const deployment = deployments[deploymentKey];
   if (!deployment) {
-    throw new Error(`No deployment found for network ${network.name}`);
+    throw new Error(`No deployment found for key ${deploymentKey}`);
   }
+
+  console.log(`Verifying deployment key: ${deploymentKey}`);
 
   const provider = ethers.provider;
 
