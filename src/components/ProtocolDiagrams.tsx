@@ -71,24 +71,24 @@ export function ProfitWaterfallDiagram() {
 
 export function NavDecisionDiagram() {
     return (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_auto_1.1fr_auto_1.1fr]">
-            <div className="rounded-3xl border border-sky-500/20 bg-sky-500/10 p-5">
+        <div className="grid grid-cols-1 gap-3">
+            <div className="w-full rounded-3xl border border-sky-500/20 bg-sky-500/10 p-5">
                 <div className="text-xs uppercase tracking-[0.3em] text-sky-200/80">Rule 1</div>
                 <div className="mt-2 text-xl font-semibold text-white">Exact trade</div>
                 <p className="mt-3 text-sm text-white/60">
                     Use the exact executed buy or sale of the same asset when it exists.
                 </p>
             </div>
-            <div className="hidden lg:flex items-center justify-center text-white/20">→</div>
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="flex items-center justify-center text-white/20">↓</div>
+            <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-5">
                 <div className="text-xs uppercase tracking-[0.3em] text-white/40">Rule 2</div>
                 <div className="mt-2 text-xl font-semibold text-white">Comparable sales</div>
                 <p className="mt-3 text-sm text-white/60">
                     Use strong comps from matching collection, condition, chain, and venue context.
                 </p>
             </div>
-            <div className="hidden lg:flex items-center justify-center text-white/20">→</div>
-            <div className="rounded-3xl border border-amber-500/20 bg-amber-500/10 p-5">
+            <div className="flex items-center justify-center text-white/20">↓</div>
+            <div className="w-full rounded-3xl border border-amber-500/20 bg-amber-500/10 p-5">
                 <div className="text-xs uppercase tracking-[0.3em] text-amber-200/80">Rule 3</div>
                 <div className="mt-2 text-xl font-semibold text-white">Listing-band fallback</div>
                 <p className="mt-3 text-sm text-white/60">
@@ -151,6 +151,29 @@ export function RoundOneChart() {
                 <div className="mt-2 text-4xl font-black text-white">{BUY_PAGE_DEFAULTS.priceAvax}</div>
                 <div className="mt-1 text-sm text-white/50">AVAX per CATCH</div>
             </div>
+        </div>
+    );
+}
+
+export function TestnetProofTimeline() {
+    const steps = [
+        'Fresh modular V3 proxy deployed on Fuji',
+        'Live Fuji round created for the public Buy flow',
+        'Test AVAX contributed into the round',
+        'Two purchase authorizations recorded onchain',
+        'Two ERC-721 holdings written into the portfolio registry',
+    ] as const;
+
+    return (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            {steps.map((step, index) => (
+                <div key={step} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-300/80">
+                        Proof {index + 1}
+                    </div>
+                    <p className="mt-4 text-sm leading-7 text-white/60">{step}</p>
+                </div>
+            ))}
         </div>
     );
 }

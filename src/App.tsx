@@ -1,17 +1,11 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Fundraising from './pages/Fundraising';
 import Footer from './components/Footer';
-import HowItWorks from './pages/HowItWorks';
 import FAQ from './pages/FAQ';
-import Tokenomics from './pages/Tokenomics';
-import Governance from './pages/Governance';
 import Portfolio from './pages/Portfolio';
-import NavMethodology from './pages/NavMethodology';
-import SalesProceeds from './pages/SalesProceeds';
-import InvestorPnl from './pages/InvestorPnl';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -23,15 +17,16 @@ function App() {
                 <div className="flex-grow">
                     <Routes>
                         <Route path="/" element={<Home />} />
-                        <Route path="/how-it-works" element={<HowItWorks />} />
-                        <Route path="/faq" element={<FAQ />} />
-                        <Route path="/tokenomics" element={<Tokenomics />} />
-                        <Route path="/governance" element={<Governance />} />
-                        <Route path="/portfolio" element={<Portfolio />} />
                         <Route path="/fundraising" element={<Fundraising />} />
-                        <Route path="/nav-methodology" element={<NavMethodology />} />
-                        <Route path="/sales-proceeds" element={<SalesProceeds />} />
-                        <Route path="/investor-pnl" element={<InvestorPnl />} />
+                        <Route path="/portfolio" element={<Portfolio />} />
+                        <Route path="/faq" element={<FAQ />} />
+                        <Route path="/testnet-status" element={<Navigate to="/fundraising#proof" replace />} />
+                        <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
+                        <Route path="/tokenomics" element={<Navigate to="/#token" replace />} />
+                        <Route path="/governance" element={<Navigate to="/#governance" replace />} />
+                        <Route path="/nav-methodology" element={<Navigate to="/#pricing" replace />} />
+                        <Route path="/sales-proceeds" element={<Navigate to="/#exits" replace />} />
+                        <Route path="/investor-pnl" element={<Navigate to="/#wallet" replace />} />
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </div>

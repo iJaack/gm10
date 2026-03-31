@@ -1,139 +1,174 @@
 import Page from '../components/Page';
-import { FUJI_PURCHASE_TEST_CONTRACTS, FUJI_TEST_PORTFOLIO_ARTIFACTS, PORTFOLIO_PREVIEW, SAMPLE_HISTORY } from '../data/protocol';
+import { PixelExternalLink, PixelLabel, PixelPanel, PixelSectionFrame } from '../components/PixelUI';
+import { PORTFOLIO_PREVIEW, SAMPLE_HISTORY } from '../data/protocol';
+import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
+
+function formatAddress(address: string) {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function SectionHeading({
+    eyebrow,
+    title,
+    body,
+}: {
+    eyebrow: string;
+    title: string;
+    body?: string;
+}) {
+    return (
+        <div className="max-w-3xl">
+            <div className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">{eyebrow}</div>
+            <h2 className="mt-3 text-3xl font-bold text-[var(--text-main)] md:text-4xl">{title}</h2>
+            {body ? <p className="mt-4 text-sm leading-7 text-[var(--text-soft)] md:text-base">{body}</p> : null}
+        </div>
+    );
+}
 
 export default function Portfolio() {
+    const proofState = useFujiPortfolioPositions();
+
     return (
-        <Page containerClassName="mx-auto max-w-6xl">
-            <div className="text-center">
-                <div className="text-xs uppercase tracking-[0.35em] text-sky-300/80">Portfolio</div>
-                <h1 className="mt-4 text-4xl font-bold text-white md:text-6xl">Card lanes, history, and realized proceeds</h1>
-                <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-white/55">
-                    The point is not to hide behind generic portfolio language. This page is where the card lanes, the public comps, and the exit trail should become legible.
-                </p>
-            </div>
-
-            <section className="mt-16 grid grid-cols-1 gap-5 md:grid-cols-3">
-                {PORTFOLIO_PREVIEW.map((item) => (
-                    <div key={item.name} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-                        <div className="flex items-center justify-between">
-                            <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">
-                                {item.chain}
-                            </span>
-                            <span className="text-xs uppercase tracking-[0.3em] text-white/30">{item.venue}</span>
-                                </div>
-                                <h2 className="mt-4 text-xl font-semibold text-white">{item.name}</h2>
-                                <div className="mt-2 text-sm font-semibold text-sky-200">Recent public comp: {item.recentComp}</div>
-                                <p className="mt-4 text-sm leading-7 text-white/60">{item.note}</p>
-                            </div>
-                        ))}
-            </section>
-
-            <section className="mt-12 grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <div className="rounded-[2rem] border border-white/10 bg-[#0b1322] p-8">
-                    <div className="text-xs uppercase tracking-[0.35em] text-white/35">Buy history</div>
-                    <h2 className="mt-3 text-3xl font-bold text-white">Acquisitions</h2>
-                    <div className="mt-6 space-y-4">
-                        {SAMPLE_HISTORY.buys.map((item) => (
-                            <div key={`${item.date}-${item.item}`} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <div className="text-lg font-semibold text-white">{item.item}</div>
-                                    <div className="text-sm text-sky-200">{item.amount}</div>
-                                </div>
-                                <div className="mt-2 text-sm text-white/45">{item.chain} • {item.venue} • {item.date}</div>
-                            </div>
-                        ))}
+        <Page containerClassName="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
+            <section className="grid items-start gap-8 xl:grid-cols-[1.02fr_0.98fr] xl:gap-10">
+                <div className="max-w-[42rem]">
+                    <div className="pixel-font text-[0.5rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Portfolio</div>
+                    <h1 className="mt-5 text-4xl font-bold leading-[0.94] text-[var(--text-main)] sm:text-5xl md:text-6xl xl:text-[4.25rem]">
+                        The card universe first. The live stack underneath.
+                    </h1>
+                    <p className="mt-6 max-w-2xl text-base leading-8 text-[var(--text-soft)]">
+                        GM10 is built around scarce, high-grade cards with real demand, thin top-grade supply, and cleaner comp history.
+                    </p>
+                    <div className="mt-8 flex flex-wrap gap-3">
+                        <PixelLabel>Target roster</PixelLabel>
+                        <PixelLabel tone="warning">{proofState.proofSummary.holdingsChipLabel}</PixelLabel>
                     </div>
                 </div>
 
-                <div className="rounded-[2rem] border border-white/10 bg-[#0b1322] p-8">
-                    <div className="text-xs uppercase tracking-[0.35em] text-white/35">Sale history</div>
-                    <h2 className="mt-3 text-3xl font-bold text-white">Realized exits</h2>
+                <PixelSectionFrame className="pixel-grid">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Live on Fuji</div>
+                            <h2 className="mt-3 text-2xl font-bold text-[var(--text-main)]">The stack is already onchain.</h2>
+                        </div>
+                        <PixelLabel tone="live">Current round live</PixelLabel>
+                    </div>
+
+                    <div className="mt-6 grid gap-3 lg:grid-cols-3">
+                        <PixelPanel tone="warning">
+                            <div className="pixel-font text-[0.42rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Positions</div>
+                            <div className="mt-2 text-2xl font-bold text-[var(--text-main)]">{proofState.collectiblePositionCount}</div>
+                        </PixelPanel>
+                        <PixelPanel>
+                            <div className="pixel-font text-[0.42rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Marked value</div>
+                            <div className="mt-2 text-2xl font-bold text-[var(--accent-live)]">{proofState.proofSummary.portfolioValueLabel}</div>
+                        </PixelPanel>
+                        <PixelPanel>
+                            <div className="pixel-font text-[0.42rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Cash buffer</div>
+                            <div className="mt-2 text-2xl font-bold text-[var(--text-main)]">{proofState.proofSummary.liquidTreasuryLabel}</div>
+                        </PixelPanel>
+                    </div>
+
+                    <div className="mt-6 grid gap-3 md:grid-cols-3">
+                        {proofState.links.map((link) => (
+                            <PixelExternalLink
+                                key={link.address}
+                                href={link.snowtraceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full justify-between"
+                            >
+                                <span className="block">
+                                    <span className="pixel-font block text-[0.42rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">{link.label}</span>
+                                    <span className="mt-2 block text-sm text-[var(--text-soft)]">{formatAddress(link.address)}</span>
+                                </span>
+                                <span>Snowtrace</span>
+                            </PixelExternalLink>
+                        ))}
+                    </div>
+                </PixelSectionFrame>
+            </section>
+
+            <section className="mt-12">
+                <SectionHeading
+                    eyebrow="Target roster"
+                    title="Three lanes the fund is built around."
+                    body="One grail vintage lane. One blue-chip vintage lane. One premium modern chase lane."
+                />
+
+                <div className="mt-8 grid gap-4 xl:grid-cols-3">
+                    {PORTFOLIO_PREVIEW.map((item, index) => (
+                        <PixelPanel key={item.name} className={`pixel-grid ${index === 0 ? 'pixel-window-warning' : ''}`}>
+                            <div className="flex items-center justify-between gap-3">
+                                <PixelLabel tone={index === 0 ? 'warning' : 'base'}>{item.status}</PixelLabel>
+                                <div className="pixel-font text-[0.44rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">{item.chain}</div>
+                            </div>
+                            <h2 className="mt-5 text-2xl font-bold text-[var(--text-main)]">{item.name}</h2>
+                            <div className="mt-2 text-sm text-[var(--text-soft)]">Where it could trade: {item.venue}</div>
+                            <div className="mt-4 text-sm font-bold text-[var(--accent-live)]">Recent public comp: {item.recentComp}</div>
+                            <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">{item.note}</p>
+                        </PixelPanel>
+                    ))}
+                </div>
+            </section>
+
+            <section className="mt-12 grid gap-4 xl:grid-cols-2">
+                <PixelSectionFrame>
+                    <SectionHeading
+                        eyebrow="Example buys"
+                        title="How buys could look."
+                        body="Simple examples, not live buys from the round."
+                    />
+                    <div className="mt-6 space-y-4">
+                        {SAMPLE_HISTORY.buys.map((item) => (
+                            <PixelPanel key={`${item.date}-${item.item}`}>
+                                <div className="flex items-center justify-between gap-3">
+                                    <PixelLabel>Example</PixelLabel>
+                                    <div className="text-sm font-bold text-[var(--accent-live)]">{item.amount}</div>
+                                </div>
+                                <h3 className="mt-4 text-xl font-bold text-[var(--text-main)]">{item.item}</h3>
+                                <p className="mt-2 text-sm leading-7 text-[var(--text-soft)]">
+                                    {item.chain} • {item.venue} • {item.date}
+                                </p>
+                            </PixelPanel>
+                        ))}
+                    </div>
+                </PixelSectionFrame>
+
+                <PixelSectionFrame>
+                    <SectionHeading
+                        eyebrow="Example sales"
+                        title="How sales could look."
+                        body="Simple examples, not a record of completed exits."
+                    />
                     <div className="mt-6 space-y-4">
                         {SAMPLE_HISTORY.sales.map((item) => (
-                            <div key={`${item.date}-${item.item}`} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <div className="text-lg font-semibold text-white">{item.item}</div>
-                                    <div className={`text-sm font-semibold ${item.pnl.startsWith('+') ? 'text-emerald-300' : 'text-rose-300'}`}>
+                            <PixelPanel key={`${item.date}-${item.item}`}>
+                                <div className="flex items-center justify-between gap-3">
+                                    <PixelLabel>Example</PixelLabel>
+                                    <div className={`text-sm font-bold ${item.pnl.startsWith('+') ? 'text-[var(--accent-profit)]' : 'text-[var(--accent-loss)]'}`}>
                                         {item.pnl}
                                     </div>
                                 </div>
-                                <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-white/50 md:grid-cols-3">
-                                    <div>Gross: <span className="text-white/75">{item.gross}</span></div>
-                                    <div>Net: <span className="text-white/75">{item.net}</span></div>
-                                    <div>Date: <span className="text-white/75">{item.date}</span></div>
+                                <h3 className="mt-4 text-xl font-bold text-[var(--text-main)]">{item.item}</h3>
+                                <div className="mt-4 grid gap-3 text-sm text-[var(--text-soft)] sm:grid-cols-3">
+                                    <div>
+                                        Gross
+                                        <div className="mt-1 font-medium text-[var(--text-main)]">{item.gross}</div>
+                                    </div>
+                                    <div>
+                                        Net
+                                        <div className="mt-1 font-medium text-[var(--text-main)]">{item.net}</div>
+                                    </div>
+                                    <div>
+                                        Date
+                                        <div className="mt-1 font-medium text-[var(--text-main)]">{item.date}</div>
+                                    </div>
                                 </div>
-                            </div>
+                            </PixelPanel>
                         ))}
                     </div>
-                </div>
-            </section>
-
-            <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[0.03] p-8">
-                <div className="text-xs uppercase tracking-[0.35em] text-white/35">Fuji test artifacts</div>
-                <h2 className="mt-3 text-3xl font-bold text-white">Two live ERC-721 buys are already on testnet</h2>
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-white/60">
-                    These are not mock screenshots. They are real Fuji purchase-flow artifacts recorded through the fresh modular V3 test deployment so the portfolio surface can point at actual onchain holdings.
-                </p>
-                <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
-                    {FUJI_TEST_PORTFOLIO_ARTIFACTS.map((item) => (
-                        <div key={item.collectionAddress} className="rounded-3xl border border-sky-400/15 bg-[#0b1322] p-6">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">
-                                    {item.label}
-                                </span>
-                                <span className="text-xs uppercase tracking-[0.3em] text-white/35">{item.marketplace}</span>
-                            </div>
-                            <h2 className="mt-4 text-2xl font-semibold text-white">{item.name}</h2>
-                            <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-white/55 md:grid-cols-2">
-                                <div>Chain: <span className="text-white/80">{item.chain}</span></div>
-                                <div>Token ID: <span className="text-white/80">{item.tokenId}</span></div>
-                                <div>Acquisition mark: <span className="text-white/80">{item.acquisition}</span></div>
-                                <div>
-                                    Collection:
-                                    <a
-                                        className="ml-2 text-sky-300 underline decoration-sky-500/40 underline-offset-4"
-                                        href={item.snowtraceUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        {item.collectionAddress}
-                                    </a>
-                                </div>
-                            </div>
-                            <p className="mt-4 text-sm leading-7 text-white/60">{item.note}</p>
-                        </div>
-                    ))}
-                </div>
-                <div className="mt-6 flex flex-wrap gap-3 text-sm text-white/55">
-                    {Object.values(FUJI_PURCHASE_TEST_CONTRACTS).map((contract) => (
-                        <a
-                            key={contract.address}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-white/70 transition hover:border-sky-400/30 hover:text-sky-200"
-                            href={contract.snowtraceUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            {contract.label}
-                        </a>
-                    ))}
-                </div>
-            </section>
-
-            <section className="mt-12 rounded-[2rem] border border-white/10 bg-white/[0.03] p-8">
-                <div className="text-xs uppercase tracking-[0.35em] text-white/35">Data model</div>
-                <h2 className="mt-3 text-3xl font-bold text-white">What the live V3 portfolio page will expose</h2>
-                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {[
-                        'Chain and marketplace metadata',
-                        'Acquisition and disposal timestamps',
-                        'Cost basis, current mark, and realized proceeds',
-                        'Proof references and custody mode',
-                    ].map((item) => (
-                        <div key={item} className="rounded-2xl border border-white/10 bg-[#0b1322] p-4 text-sm font-semibold text-white/75">
-                            {item}
-                        </div>
-                    ))}
-                </div>
+                </PixelSectionFrame>
             </section>
         </Page>
     );

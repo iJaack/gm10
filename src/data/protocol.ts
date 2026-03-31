@@ -1,3 +1,37 @@
+export type FujiContractLink = {
+    label: string;
+    address: `0x${string}`;
+    snowtraceUrl: string;
+};
+
+export type FujiPositionArtifact = {
+    positionId: number;
+    chain: string;
+};
+
+export type EvidenceStat = {
+    label: string;
+    value: string;
+    takeaway: string;
+    sourceLabel: string;
+    sourceUrl: string;
+};
+
+export type ThesisPillar = {
+    title: string;
+    body: string;
+};
+
+export type ExposureStep = {
+    title: string;
+    body: string;
+};
+
+export const SITE_LINKS = {
+    x: 'https://x.com/gm10xyz',
+    github: 'https://github.com/iJaack/gm10',
+} as const;
+
 export const BUY_PAGE_DEFAULTS = {
     targetAvax: 10_000,
     priceAvax: 0.0025,
@@ -7,64 +41,54 @@ export const BUY_PAGE_DEFAULTS = {
     contributionAsset: 'AVAX',
 } as const;
 
-export const FUJI_CONTRACTS = {
+export const FUJI_PRIMARY_DEPLOYMENT = {
     proxy: {
         label: 'Fund proxy',
-        address: '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C',
+        address: '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C' as const,
         snowtraceUrl: 'https://testnet.snowtrace.io/address/0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C',
     },
     portfolioRegistry: {
         label: 'Portfolio registry',
-        address: '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
+        address: '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9' as const,
         snowtraceUrl: 'https://testnet.snowtrace.io/address/0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
     },
     investorAccounting: {
         label: 'Wallet accounting',
-        address: '0x526a0DeBfEF61966060342C2b12ae0325cffA210',
+        address: '0x526a0DeBfEF61966060342C2b12ae0325cffA210' as const,
         snowtraceUrl: 'https://testnet.snowtrace.io/address/0x526a0DeBfEF61966060342C2b12ae0325cffA210',
     },
 } as const;
 
-export const FUJI_PURCHASE_TEST_CONTRACTS = {
+export const FUJI_PURCHASE_TEST_DEPLOYMENT = {
     proxy: {
-        label: 'Purchase-flow test proxy',
-        address: '0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
+        label: 'Fund proxy',
+        address: '0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9' as const,
         snowtraceUrl: 'https://testnet.snowtrace.io/address/0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
     },
     portfolioRegistry: {
-        label: 'Purchase-flow test registry',
-        address: '0x79678b78f7c2b8099bBd18d6754891774632F8F4',
+        label: 'Portfolio registry',
+        address: '0x79678b78f7c2b8099bBd18d6754891774632F8F4' as const,
         snowtraceUrl: 'https://testnet.snowtrace.io/address/0x79678b78f7c2b8099bBd18d6754891774632F8F4',
     },
     investorAccounting: {
-        label: 'Purchase-flow test wallet accounting',
-        address: '0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91',
+        label: 'Wallet accounting',
+        address: '0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91' as const,
         snowtraceUrl: 'https://testnet.snowtrace.io/address/0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91',
     },
 } as const;
 
-export const FUJI_TEST_PORTFOLIO_ARTIFACTS = [
+export const FUJI_CONTRACTS = FUJI_PRIMARY_DEPLOYMENT;
+export const FUJI_PURCHASE_TEST_CONTRACTS = FUJI_PURCHASE_TEST_DEPLOYMENT;
+export const FUJI_TEST_POSITION_IDS = [1, 2] as const;
+
+export const FUJI_TEST_PORTFOLIO_ARTIFACTS: readonly FujiPositionArtifact[] = [
     {
-        label: 'Test artifact',
-        name: 'GM10 Resume Slabs Alpha',
-        collectionAddress: '0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
-        tokenId: '1',
-        marketplace: 'GM10_TEST_MARKET_ALPHA',
+        positionId: 1,
         chain: 'Avalanche Fuji',
-        acquisition: '$18.00 test mark',
-        note: 'Recorded through the live Fuji purchase-flow test as position #1 on the fresh modular V3 deployment.',
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
     },
     {
-        label: 'Test artifact',
-        name: 'GM10 Resume Slabs Beta',
-        collectionAddress: '0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
-        tokenId: '1',
-        marketplace: 'GM10_TEST_MARKET_BETA',
+        positionId: 2,
         chain: 'Avalanche Fuji',
-        acquisition: '$22.00 test mark',
-        note: 'Recorded through the same Fuji purchase-flow test as position #2 so the portfolio surface has real ERC-721 artifacts to point at.',
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
     },
 ] as const;
 
@@ -74,6 +98,8 @@ export const RECENT_CARD_COMPS = [
         name: 'Charizard',
         subtitle: '1st Edition Base Set',
         grade: 'PSA 10',
+        imageSrc: '/images/cards/charizard_psa10.png',
+        imageAlt: '1st Edition Base Set Charizard PSA 10 slab',
         priceLabel: '$550,000',
         recencyLabel: 'Dec 2025 public auction comp',
         venue: 'Heritage',
@@ -83,6 +109,8 @@ export const RECENT_CARD_COMPS = [
         name: 'Umbreon VMAX',
         subtitle: 'Evolving Skies',
         grade: 'BGS 10 Black Label',
+        imageSrc: '/images/cards/umbreon_vmax_bgs.png',
+        imageAlt: 'Umbreon VMAX BGS 10 Black Label slab',
         priceLabel: '$7,621',
         recencyLabel: 'Mar 2026 visible comp',
         venue: 'PriceCharting',
@@ -92,9 +120,72 @@ export const RECENT_CARD_COMPS = [
         name: 'Lugia',
         subtitle: 'Neo Genesis',
         grade: 'PSA 9',
+        imageSrc: '/images/cards/lugia_psa9.png',
+        imageAlt: 'Neo Genesis Lugia PSA 9 slab',
         priceLabel: '~$2,100',
         recencyLabel: 'Oct-Nov 2025 visible comps',
         venue: 'PriceCharting',
+    },
+] as const;
+
+export const THESIS_PILLARS: readonly ThesisPillar[] = [
+    {
+        title: 'Elite cards are hard to reach alone',
+        body: 'The cards with the strongest scarcity and collector signal usually cost too much for most people to buy casually, let alone build a basket around.',
+    },
+    {
+        title: 'The top end behaves differently',
+        body: 'Iconic high-grade cards tend to command outsized premiums because the best copies are scarce, recognizable, and easy for collectors to compare.',
+    },
+    {
+        title: 'GM10 turns that into shared exposure',
+        body: 'Instead of picking, grading, storing, and exiting cards alone, people can follow the same run through one community fund and one token layer.',
+    },
+] as const;
+
+export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
+    {
+        label: 'Record high-end demand',
+        value: '$550,000',
+        takeaway: 'A PSA 10 1st Edition Base Set Charizard set a fresh public record sale at Heritage on December 16, 2025.',
+        sourceLabel: 'Heritage, December 16, 2025',
+        sourceUrl: 'https://comics.ha.com/heritage-auctions-press-releases-and-news/-550-000-psa-10-charizard-breaks-record-leads-all-time-high-5.27-million-total-at-heritage-trading-card-games-auction.s?releaseId=5371',
+    },
+    {
+        label: 'Top-grade premium below trophy tier',
+        value: '$8.7k-$13.9k',
+        takeaway: 'Recent PSA 10 Base Set Charizard sales still sit in a very different band from raw or lower-grade copies.',
+        sourceLabel: 'PriceCharting, Charizard #4',
+        sourceUrl: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4',
+    },
+    {
+        label: 'Scarcity at the top grade',
+        value: '77 PSA 10s',
+        takeaway: 'PriceCharting shows Neo Genesis Lugia #9 with 8,125 graded copies total, but only 77 in PSA 10.',
+        sourceLabel: 'PriceCharting, Neo Genesis population',
+        sourceUrl: 'https://www.pricecharting.com/pop/set/pokemon-neo-genesis',
+    },
+    {
+        label: 'Modern grails still command a premium',
+        value: '$1.7k-$3.4k',
+        takeaway: 'Recent BGS 9.5 Umbreon VMAX #215 sales show that modern chase cards can still hold a meaningful high-grade premium.',
+        sourceLabel: 'PriceCharting, Umbreon VMAX #215',
+        sourceUrl: 'https://www.pricecharting.com/game/pokemon-evolving-skies/umbreon-vmax-215',
+    },
+] as const;
+
+export const EXPOSURE_STEPS: readonly ExposureStep[] = [
+    {
+        title: 'Join the round',
+        body: 'People join the GM10 round with test AVAX on Fuji today, and later rounds open the same exposure path on mainnet.',
+    },
+    {
+        title: 'GM10 chases elite slabs',
+        body: 'The fund targets scarce, high-grade Pokemon cards instead of asking each person to pick and manage cards by themselves.',
+    },
+    {
+        title: '$CATCH follows the run',
+        body: '$CATCH sits next to entries, holdings, exits, and the upside path as the strategy compounds and matures.',
     },
 ] as const;
 
@@ -203,25 +294,25 @@ export const PORTFOLIO_PREVIEW = [
         name: 'Charizard grail lane',
         chain: 'Ethereum',
         venue: 'Courtyard',
-        status: 'Targeted',
+        status: 'Target lane',
         recentComp: '$550,000',
-        note: 'Blue-chip Charizard exposure stays front and center, with the tokenized rail acting as the execution path.',
+        note: 'A big Charizard target. The card matters more than the rail used to get it.',
     },
     {
         name: 'Moonbreon momentum',
         chain: 'Ethereum',
-        venue: 'Price-visible secondary rails',
-        status: 'Tracked',
+        venue: 'Secondary market',
+        status: 'Tracked lane',
         recentComp: '$7,621',
-        note: 'Modern black-label demand is volatile, so the comp set matters just as much as the venue.',
+        note: 'A fast-moving modern target. The latest comp matters as much as where it trades.',
     },
     {
         name: 'Neo Genesis Lugia',
         chain: 'Ethereum',
-        venue: 'Collector rails',
-        status: 'Tracked',
+        venue: 'Collector rail',
+        status: 'Tracked lane',
         recentComp: '~$2,100',
-        note: 'Vintage-era liquidity is thinner, which is why provenance and conservative marking stay part of the story.',
+        note: 'A vintage Lugia target. Thin liquidity means provenance and pricing need extra care.',
     },
 ] as const;
 
@@ -238,23 +329,31 @@ export const SAMPLE_HISTORY = {
 
 export const FAQ_TOPICS = [
     {
-        question: 'Is GM10 about generic collectibles now?',
-        answer: 'No. The pitch is still high-grade Pokemon cards. Tokenized rails like Courtyard and similar venues are execution infrastructure, not the core identity.',
+        question: 'What is GM10?',
+        answer: 'GM10 is a community fund built to give people proxy access to the upside of scarce, high-grade Pokemon cards without making them buy and manage the cards directly.',
     },
     {
-        question: 'Why does the public Buy page still say Fuji?',
-        answer: 'Because that is the live public flow today. The site should not pretend the first mainnet round is already open before it is actually ready to be announced.',
+        question: 'What does $CATCH actually do?',
+        answer: '$CATCH is the tokenized way to follow and participate in the GM10 card run. It sits next to entries, holdings, exits, and the upside path as the system matures.',
     },
     {
-        question: 'How is NAV updated?',
-        answer: 'Executed buys and sales write through immediately. Unsold positions are marked conservatively using exact trades first, strong comps second, and capped listing-band fallback last.',
+        question: 'Why not just buy cards directly?',
+        answer: 'Because buying elite slabs directly means handling card selection, grading risk, storage, provenance, liquidity, and very high ticket sizes on your own. GM10 turns that into shared exposure.',
     },
     {
-        question: 'What happens after a profitable sale?',
-        answer: 'Principal goes back first. Realized profit is then forced into a 40% treasury, 25% buyback-and-burn, 20% LP, and 15% redemption-reserve split.',
+        question: 'Why focus on expensive high-grade cards?',
+        answer: 'Because the strongest cards usually have the clearest scarcity, the most visible collector demand, and the least room for supply to expand. GM10 is built around that top-end part of the market.',
     },
     {
-        question: 'What does governance look like early on?',
-        answer: 'Round 1 is manager-led with community input. Rounds 2 and 3 are meant to move into hybrid governance where mandates and budgets go onchain before the system graduates into fuller DAO control.',
+        question: 'Why is the live Buy page still on Fuji?',
+        answer: 'Because Fuji is where the public mechanics are live today. It lets people inspect the flow before the public mainnet launch is presented as open.',
+    },
+    {
+        question: 'Does GM10 guarantee gains?',
+        answer: 'No. GM10 is about exposure to a strategy and an asset class, not guaranteed returns. Market evidence supports the thesis, but prices can still move against the fund.',
+    },
+    {
+        question: 'How do the live Fuji holdings fit in?',
+        answer: 'They show that GM10 can already authorize a buy, release funds, and record NFT positions onchain through the modular Fuji stack.',
     },
 ] as const;
