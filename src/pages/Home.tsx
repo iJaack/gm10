@@ -1,13 +1,10 @@
 import Hero from '../components/Hero';
 import {
-    FundLifecycleDiagram,
-    InvestorPnlDiagram,
-    NavDecisionDiagram,
-    ProfitWaterfallDiagram,
-    SaleLifecycleDiagram,
-    TokenAllocationDiagram,
-} from '../components/ProtocolDiagrams';
-import { PixelExternalLink, PixelLabel, PixelMenuLink, PixelPanel, PixelSectionFrame } from '../components/PixelUI';
+    PixelExternalLink,
+    PixelLedgerRow,
+    PixelMenuLink,
+    PixelStatRail,
+} from '../components/PixelUI';
 import {
     EXPOSURE_STEPS,
     SITE_LINKS,
@@ -27,10 +24,33 @@ function SectionLead({
 }) {
     return (
         <div className="max-w-3xl">
-            <div className="pixel-font text-[0.5rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{eyebrow}</div>
-            <h2 className="mt-4 text-3xl font-bold text-[var(--text-main)] md:text-5xl">{title}</h2>
-            <p className="mt-4 text-sm leading-7 text-[var(--text-soft)] md:text-base">{body}</p>
+            <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">{eyebrow}</div>
+            <h2 className="mt-5 font-['Oxanium'] text-4xl font-semibold leading-[0.95] text-[var(--text-main)] md:text-5xl">
+                {title}
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--text-soft)]">{body}</p>
         </div>
+    );
+}
+
+function SystemNote({
+    id,
+    title,
+    body,
+}: {
+    id: string;
+    title: string;
+    body: string;
+}) {
+    return (
+        <article id={id} className="scroll-mt-28">
+            <PixelLedgerRow>
+                <div className="grid gap-3 md:grid-cols-[170px_1fr] md:gap-8">
+                    <div className="pixel-font text-[0.66rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">{title}</div>
+                    <p className="max-w-3xl text-sm leading-7 text-[var(--text-soft)]">{body}</p>
+                </div>
+            </PixelLedgerRow>
+        </article>
     );
 }
 
@@ -42,223 +62,191 @@ export default function Home() {
         <main>
             <Hero />
 
-            <section id="why-gm10" className="px-4 py-20">
+            <section id="why-gm10" className="px-4 py-16 md:py-20">
                 <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <SectionLead
-                        eyebrow="Why GM10"
-                        title="The top end of the market is hard to reach alone."
-                        body="The upside sits in iconic cards, scarce grades, and expensive slabs. GM10 turns that into shared exposure so people do not have to build and manage that card book on their own."
-                    />
+                    <div className="grid gap-12 xl:grid-cols-[0.72fr_1.28fr] xl:gap-16">
+                        <SectionLead
+                            eyebrow="Why GM10"
+                            title="The best cards are expensive, thin, and hard to build around alone."
+                            body="GM10 gives people one cleaner way into the top end of the Pokemon market: shared exposure to iconic high-grade cards instead of solo card-picking, storage, and exit work."
+                        />
 
-                    <div className="mt-10 grid gap-4 xl:grid-cols-[1.05fr_0.95fr_1fr]">
-                        {THESIS_PILLARS.map((pillar, index) => (
-                            <PixelPanel key={pillar.title} className={`pixel-grid ${index === 1 ? 'pixel-window-live' : ''}`}>
-                                <div className="flex items-center justify-between gap-3">
-                                    <PixelLabel tone={index === 1 ? 'live' : 'base'}>0{index + 1}</PixelLabel>
-                                    <div className="pixel-font text-[0.48rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Field note</div>
-                                </div>
-                                <h3 className="mt-5 text-2xl font-bold text-[var(--text-main)]">{pillar.title}</h3>
-                                <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">{pillar.body}</p>
-                            </PixelPanel>
-                        ))}
+                        <div className="grid gap-8 md:grid-cols-3">
+                            {THESIS_PILLARS.map((pillar, index) => (
+                                <article key={pillar.title} className="border-t border-white/10 pt-5">
+                                    <div className="pixel-font text-[0.66rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">
+                                        {index === 0 ? 'Access' : index === 1 ? 'Premium' : 'Exposure'}
+                                    </div>
+                                    <h3 className="mt-4 font-['Oxanium'] text-2xl font-semibold text-[var(--text-main)]">
+                                        {pillar.title}
+                                    </h3>
+                                    <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">{pillar.body}</p>
+                                </article>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section id="evidence" className="border-y border-[rgba(193,218,191,0.08)] px-4 py-20">
+            <section id="evidence" className="border-y border-white/8 px-4 py-16 md:py-20">
                 <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
                     <SectionLead
                         eyebrow="Evidence"
-                        title="The thesis already has visible scarcity and visible premiums."
-                        body="GM10 is not betting on nostalgia alone. The card, the grade, and the collector demand already show up in public sales and population data. Market evidence, not guaranteed results."
+                        title="The thesis already shows up in public sales and population data."
+                        body="GM10 is not built on vague nostalgia. The demand, scarcity, and top-grade premium already exist in the open. Market evidence, not guaranteed results."
                     />
 
-                    <div className="mt-10 grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
+                    <div className="mt-12 grid gap-x-10 gap-y-12 lg:grid-cols-2">
                         {THESIS_EVIDENCE.map((stat) => (
-                            <PixelPanel key={stat.label} className="pixel-grid min-h-[18rem]">
-                                <div className="pixel-font text-[0.46rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">{stat.label}</div>
-                                <div className="mt-5 text-4xl font-bold text-[var(--accent-live)]">{stat.value}</div>
-                                <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">{stat.takeaway}</p>
-                                <a
-                                    href={stat.sourceUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent-live)] transition-colors hover:text-[var(--text-main)]"
-                                >
-                                    <span className="pixel-font text-[0.44rem]">►</span>
+                            <a
+                                key={stat.label}
+                                href={stat.sourceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group border-t border-white/10 pt-6 transition-colors duration-200 hover:border-[rgba(105,200,255,0.32)]"
+                            >
+                                <div className="pixel-font text-[0.66rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">
+                                    {stat.label}
+                                </div>
+                                <div className="mt-4 font-['Oxanium'] text-5xl font-semibold leading-none text-[var(--text-main)]">
+                                    {stat.value}
+                                </div>
+                                <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--text-soft)]">{stat.takeaway}</p>
+                                <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent-live)]">
                                     <span>{stat.sourceLabel}</span>
-                                </a>
-                            </PixelPanel>
+                                    <span aria-hidden>↗</span>
+                                </div>
+                            </a>
                         ))}
                     </div>
-
                 </div>
             </section>
 
-            <section id="how-it-works" className="px-4 py-20">
+            <section id="how-it-works" className="px-4 py-16 md:py-20">
                 <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <SectionLead
-                        eyebrow="How GM10 works"
-                        title="Join the round. GM10 buys the slabs. $CATCH stays tied to the run."
-                        body="The product is simple on purpose. People enter the round, GM10 targets elite cards, and the token stays next to the full strategy instead of one person having to build a card portfolio alone."
-                    />
+                    <div className="grid gap-12 xl:grid-cols-[0.68fr_1.32fr] xl:gap-16">
+                        <SectionLead
+                            eyebrow="How it works"
+                            title="A live round, a focused card mandate, and one token tied to the run."
+                            body="The flow is simple by design. Join the round, let GM10 chase elite slabs, and let $CATCH stay next to the full strategy instead of one card."
+                        />
 
-                    <div className="mt-10 grid gap-4 xl:grid-cols-[0.72fr_1.28fr]">
-                        <div className="grid gap-4">
+                        <div className="grid gap-5">
                             {EXPOSURE_STEPS.map((step, index) => (
-                                <PixelPanel key={step.title}>
-                                    <div className="flex items-center gap-3">
-                                        <PixelLabel tone={index === 0 ? 'live' : index === 1 ? 'warning' : 'profit'}>Step {index + 1}</PixelLabel>
-                                        <div className="text-xl font-bold text-[var(--text-main)]">{step.title}</div>
+                                <PixelLedgerRow key={step.title}>
+                                    <div className="grid gap-4 lg:grid-cols-[130px_1fr] lg:gap-8">
+                                        <div className="pixel-font text-[0.68rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">
+                                            Step {index + 1}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-['Oxanium'] text-2xl font-semibold text-[var(--text-main)]">{step.title}</h3>
+                                            <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--text-soft)]">{step.body}</p>
+                                        </div>
                                     </div>
-                                    <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">{step.body}</p>
-                                </PixelPanel>
+                                </PixelLedgerRow>
                             ))}
                         </div>
-                        <PixelSectionFrame className="pixel-grid">
-                            <FundLifecycleDiagram />
-                        </PixelSectionFrame>
                     </div>
                 </div>
             </section>
 
-            <section className="border-y border-[rgba(193,218,191,0.08)] px-4 py-20">
+            <section className="border-y border-white/8 px-4 py-16 md:py-20">
                 <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
                     <SectionLead
-                        eyebrow="System handbook"
-                        title="The token, marks, exits, wallet view, and governance all stay in one public system."
-                        body="The mechanics are compact, but they still need discipline. GM10 keeps the token model, pricing logic, sale path, wallet view, and governance roadmap visible in the open."
+                        eyebrow="System notes"
+                        title="The deeper mechanics stay public, but they do not need to dominate the landing page."
+                        body="The token model, pricing discipline, exit path, wallet view, and governance phasing stay public. They just sit in short notes instead of a second homepage."
                     />
 
-                    <div className="mt-10 grid gap-4 2xl:grid-cols-[1.05fr_1fr]">
-                        <PixelSectionFrame id="token">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <div className="pixel-font text-[0.48rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Token</div>
-                                    <h3 className="mt-3 text-2xl font-bold text-[var(--text-main)]">$CATCH follows the full strategy.</h3>
-                                </div>
-                                <PixelLabel tone="live">Live token layer</PixelLabel>
-                            </div>
-                            <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                                You do not need to buy the slabs yourself to get exposure to the strategy.
-                            </p>
-                            <div className="mt-6">
-                                <TokenAllocationDiagram />
-                            </div>
-                        </PixelSectionFrame>
-
-                        <PixelSectionFrame id="pricing">
-                            <div className="pixel-font text-[0.48rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Pricing</div>
-                            <h3 className="mt-3 text-2xl font-bold text-[var(--text-main)]">Marks stay strict when the market gets thin.</h3>
-                            <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                                Real trades reset value first. Strong comps come next. Soft estimates stay capped.
-                            </p>
-                            <div className="mt-6">
-                                <NavDecisionDiagram />
-                            </div>
-                        </PixelSectionFrame>
-
-                        <PixelSectionFrame id="exits">
-                            <div className="pixel-font text-[0.48rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Exits</div>
-                            <h3 className="mt-3 text-2xl font-bold text-[var(--text-main)]">Sale money comes home before anything else.</h3>
-                            <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                                Principal gets restored first. Realized profit then routes into treasury, buyback, LP, and reserve buckets.
-                            </p>
-                            <div className="mt-6 space-y-6">
-                                <SaleLifecycleDiagram />
-                                <ProfitWaterfallDiagram />
-                            </div>
-                        </PixelSectionFrame>
-
-                        <div className="grid gap-4">
-                            <PixelSectionFrame id="wallet">
-                                <div className="pixel-font text-[0.48rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Wallet</div>
-                                <h3 className="mt-3 text-2xl font-bold text-[var(--text-main)]">The wallet only shows what GM10 can prove.</h3>
-                                <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                                    Direct buys create basis. Attributable holdings sit against the latest mark.
-                                </p>
-                                <div className="mt-6">
-                                    <InvestorPnlDiagram />
-                                </div>
-                            </PixelSectionFrame>
-
-                            <PixelSectionFrame id="governance">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                        <div className="pixel-font text-[0.48rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Governance</div>
-                                        <h3 className="mt-3 text-2xl font-bold text-[var(--text-main)]">The community gets more control as the stack hardens.</h3>
-                                    </div>
-                                    <PixelLabel tone="warning">Phased</PixelLabel>
-                                </div>
-                                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                                    {[
-                                        ['Round 1', 'Manager-led, with community input.'],
-                                        ['Rounds 2-3', 'Hybrid lane for targets and new rounds.'],
-                                        ['Later', 'Heavier onchain control.'],
-                                    ].map(([title, body]) => (
-                                        <div key={title} className="border border-[rgba(193,218,191,0.1)] bg-[rgba(232,240,227,0.03)] p-4">
-                                            <div className="pixel-font text-[0.45rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">{title}</div>
-                                            <p className="mt-3 text-sm leading-7 text-[var(--text-soft)]">{body}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </PixelSectionFrame>
-                        </div>
+                    <div className="mt-8 border-y border-white/8">
+                        <SystemNote
+                            id="token"
+                            title="Token"
+                            body="$CATCH follows the full GM10 strategy, not one card. It sits next to entries, holdings, exits, and the upside path as the system matures."
+                        />
+                        <SystemNote
+                            id="pricing"
+                            title="Pricing"
+                            body="Real executed trades reset marks first. Strong comparable sales come next. Soft estimates stay conservative when liquidity gets thin."
+                        />
+                        <SystemNote
+                            id="exits"
+                            title="Exits"
+                            body="Sale money lands back onchain before anything else. Principal gets restored first, and realized profit then routes into treasury, buyback, LP, and reserve buckets."
+                        />
+                        <SystemNote
+                            id="wallet"
+                            title="Wallet"
+                            body="The wallet view only shows what GM10 can prove: contributed basis, attributable holdings, and the latest marked value of the strategy."
+                        />
+                        <SystemNote
+                            id="governance"
+                            title="Governance"
+                            body="Early rounds stay execution-led. Later rounds move more target and round decisions into the open as the system hardens."
+                        />
                     </div>
                 </div>
             </section>
 
-            <section className="px-4 py-20">
+            <section className="px-4 py-16 md:py-20">
                 <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <PixelSectionFrame className="pixel-grid">
-                        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                            <div className="max-w-3xl">
-                                <div className="pixel-font text-[0.5rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Fuji</div>
-                                <h2 className="mt-4 text-3xl font-bold text-[var(--text-main)] md:text-5xl">The mechanics are already live in public.</h2>
-                                <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                                    The fund thesis leads. Fuji already shows a live round and recorded onchain positions.
-                                </p>
+                    <div className="grid gap-10 xl:grid-cols-[0.72fr_1.28fr] xl:items-end">
+                        <SectionLead
+                            eyebrow="Fuji live"
+                            title="The mechanics are already live in public."
+                            body="The stack is already visible on Fuji today, while the public-facing mainnet launch stays separate."
+                        />
+                        <PixelStatRail
+                            items={[
+                                {
+                                    label: 'Live round',
+                                    value: `Round ${roundState.roundId}`,
+                                    tone: roundState.round?.isActive ? 'live' : 'warning',
+                                },
+                                {
+                                    label: 'Raised',
+                                    value: roundState.raisedLabel,
+                                },
+                                {
+                                    label: 'Marked value',
+                                    value: proofState.proofSummary.portfolioValueLabel,
+                                    tone: 'warning',
+                                },
+                            ]}
+                        />
+                    </div>
+
+                    <div className="mt-10 grid gap-8 xl:grid-cols-[1.02fr_0.98fr] xl:items-center">
+                        <div className="border-t border-white/8 pt-6">
+                            <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">
+                                Live links
                             </div>
-                            <div className="flex flex-wrap gap-3">
-                                <PixelLabel tone={roundState.round?.isActive ? 'live' : 'warning'}>{roundState.status}</PixelLabel>
-                                <PixelLabel tone="warning">{proofState.proofSummary.holdingsChipLabel}</PixelLabel>
-                                <PixelLabel>{proofState.proofSummary.portfolioValueLabel} marked value</PixelLabel>
+                            <div className="mt-6 border-y border-white/8">
+                                {proofState.links.map((link) => (
+                                    <PixelLedgerRow key={link.address}>
+                                        <div className="grid gap-3 md:grid-cols-[170px_1fr_auto] md:items-center">
+                                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{link.label}</div>
+                                            <div className="truncate text-sm text-[var(--text-soft)]">{link.address}</div>
+                                            <a
+                                                href={link.snowtraceUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-sm font-medium text-[var(--accent-live)]"
+                                            >
+                                                Snowtrace
+                                            </a>
+                                        </div>
+                                    </PixelLedgerRow>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="mt-8 grid gap-4 md:grid-cols-4">
-                            <PixelPanel>
-                                <div className="pixel-font text-[0.45rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Live round</div>
-                                <div className="mt-3 text-3xl font-bold text-[var(--text-main)]">Round {roundState.roundId}</div>
-                            </PixelPanel>
-                            <PixelPanel>
-                                <div className="pixel-font text-[0.45rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Raised</div>
-                                <div className="mt-3 text-3xl font-bold text-[var(--text-main)]">{roundState.raisedLabel}</div>
-                            </PixelPanel>
-                            <PixelPanel>
-                                <div className="pixel-font text-[0.45rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Target</div>
-                                <div className="mt-3 text-3xl font-bold text-[var(--text-main)]">{roundState.targetLabel}</div>
-                            </PixelPanel>
-                            <PixelPanel tone="live">
-                                <div className="pixel-font text-[0.45rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Stack link</div>
-                                <a
-                                    href={proofState.links[0]?.snowtraceUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="mt-3 inline-flex items-center gap-2 text-lg font-bold text-[var(--accent-live)] transition-colors hover:text-[var(--text-main)]"
-                                >
-                                    <span className="pixel-font text-[0.45rem]">►</span>
-                                    <span>Open on Snowtrace</span>
-                                </a>
-                            </PixelPanel>
+                        <div className="flex flex-wrap gap-3">
+                            <PixelMenuLink to="/fundraising">Buy $CATCH</PixelMenuLink>
+                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
+                                Follow on X
+                            </PixelExternalLink>
                         </div>
-                    </PixelSectionFrame>
-
-                    <div className="mt-8 flex flex-wrap gap-3">
-                        <PixelMenuLink to="/fundraising">Buy $CATCH</PixelMenuLink>
-                        <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                            Follow on X
-                        </PixelExternalLink>
                     </div>
                 </div>
             </section>

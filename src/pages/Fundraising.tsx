@@ -3,7 +3,17 @@ import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagm
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { formatEther, parseEther } from 'viem';
 import Page from '../components/Page';
-import { PixelExternalLink, PixelLabel, PixelMeter, PixelMessageBox, PixelPanel, PixelSectionFrame } from '../components/PixelUI';
+import {
+    PixelDivider,
+    PixelExternalLink,
+    PixelLabel,
+    PixelLedgerRow,
+    PixelMessageBox,
+    PixelMeter,
+    PixelMenuLink,
+    PixelPanel,
+    PixelStatRail,
+} from '../components/PixelUI';
 import { GM10_FUND_ABI } from '../data/contracts';
 import { BUY_PAGE_DEFAULTS, FUJI_PRIMARY_DEPLOYMENT, SITE_LINKS } from '../data/protocol';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
@@ -12,15 +22,6 @@ const AVAX_USD_ESTIMATE = 25;
 
 function formatAddress(address: string) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-function StatBox({ label, value }: { label: string; value: string }) {
-    return (
-        <PixelPanel>
-            <div className="pixel-font text-[0.46rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">{label}</div>
-            <div className="mt-3 text-2xl font-bold text-[var(--text-main)]">{value}</div>
-        </PixelPanel>
-    );
 }
 
 export default function Fundraising() {
@@ -75,87 +76,115 @@ export default function Fundraising() {
 
     return (
         <Page containerClassName="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-            <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-                <PixelSectionFrame className="pixel-grid xl:min-h-[42rem]">
+            <section className="grid gap-12 xl:grid-cols-[0.68fr_0.32fr] xl:items-start">
+                <div>
                     <div className="flex flex-wrap gap-3">
                         <PixelLabel tone={isRoundActive ? 'live' : 'warning'}>{roundState.status}</PixelLabel>
                         <PixelLabel tone="warning">Test AVAX only</PixelLabel>
                         <PixelLabel tone="live">Verified on Snowtrace</PixelLabel>
                     </div>
-                    <div className="mt-6 max-w-3xl">
-                        <div className="pixel-font text-[0.5rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Buy</div>
-                        <h1 className="mt-4 text-4xl font-bold leading-[0.98] text-[var(--text-main)] md:text-6xl">
+
+                    <div className="mt-8 max-w-4xl">
+                        <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">Buy</div>
+                        <h1 className="mt-5 font-['Oxanium'] text-5xl font-semibold leading-[0.92] text-[var(--text-main)] md:text-6xl xl:max-w-[11ch]">
                             Join the live testnet round for Pokemon-card exposure.
                         </h1>
-                        <p className="mt-5 text-base leading-8 text-[var(--text-soft)]">
-                            This is the public Fuji command screen. The round is live here first, while the public mainnet launch stays separate.
+                        <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--text-soft)]">
+                            Buy into the live Fuji round now. The public mainnet launch stays separate, but the mechanics are already open here for anyone who wants to inspect them.
                         </p>
                     </div>
 
-                    <div className="mt-8 grid gap-4 xl:grid-cols-3">
-                        <StatBox label="Raised" value={`${roundRaised.toLocaleString()} AVAX`} />
-                        <StatBox label="Target" value={`${roundTarget.toLocaleString()} AVAX`} />
-                        <StatBox label="Token price" value={`${tokenPrice} AVAX`} />
+                    <div className="mt-10">
+                        <PixelStatRail
+                            items={[
+                                {
+                                    label: 'Raised',
+                                    value: `${roundRaised.toLocaleString()} AVAX`,
+                                    tone: isRoundActive ? 'live' : 'warning',
+                                },
+                                {
+                                    label: 'Target',
+                                    value: `${roundTarget.toLocaleString()} AVAX`,
+                                },
+                                {
+                                    label: 'Token price',
+                                    value: `${tokenPrice} AVAX`,
+                                },
+                            ]}
+                        />
                     </div>
 
-                    <div className="mt-6">
+                    <div className="mt-8 max-w-5xl">
                         <div className="mb-3 flex items-center justify-between gap-3">
-                            <div className="pixel-font text-[0.46rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Round meter</div>
+                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Round progress</div>
                             <div className="text-sm text-[var(--text-soft)]">{progress.toFixed(1)}%</div>
                         </div>
                         <PixelMeter value={progress} tone={isRoundActive ? 'live' : 'warning'} />
                     </div>
 
-                    <div className="mt-6 max-w-3xl">
-                        <PixelMessageBox
-                            title="Exposure"
-                            body="You are not buying one slab. You are buying into the run."
-                        />
+                    <div className="mt-10 max-w-4xl border-y border-white/8">
+                        {[
+                            ['Exposure', 'You are not buying one slab. You are buying into the run.'],
+                            ['Price discipline', 'Marks reset from real trades first, then from the strongest available comps.'],
+                            ['Exit path', 'Sale money returns onchain before anything is counted across the stack.'],
+                        ].map(([title, body]) => (
+                            <PixelLedgerRow key={title}>
+                                <div className="grid gap-3 lg:grid-cols-[160px_1fr] lg:gap-8">
+                                    <div className="pixel-font text-[0.68rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{title}</div>
+                                    <p className="text-sm leading-7 text-[var(--text-soft)]">{body}</p>
+                                </div>
+                            </PixelLedgerRow>
+                        ))}
                     </div>
-                </PixelSectionFrame>
+                </div>
 
-                <PixelSectionFrame className="xl:min-h-[34rem]">
+                <PixelPanel className="xl:sticky xl:top-28">
                     <div className="flex items-center justify-between gap-3">
                         <div>
-                            <div className="pixel-font text-[0.5rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Command</div>
-                            <h2 className="mt-3 text-3xl font-bold text-[var(--text-main)]">Buy $CATCH in the current round.</h2>
+                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Current round</div>
+                            <h2 className="mt-3 font-['Oxanium'] text-3xl font-semibold text-[var(--text-main)]">Buy $CATCH</h2>
                         </div>
                         <PixelLabel tone="warning">Fuji</PixelLabel>
                     </div>
 
                     <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                        Use test AVAX only. The live stack is public here so the mechanics can be inspected in the open.
+                        Use test AVAX only. This surface gives proxy access to the run while keeping the live mechanics public.
                     </p>
 
-                    <div className="mt-6 space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <StatBox label="Min buy" value={`${minInvestment} AVAX`} />
-                            <StatBox label="Max buy" value={`${maxInvestment} AVAX`} />
-                        </div>
+                    <div className="mt-6">
+                        <PixelStatRail
+                            className="md:grid-cols-2"
+                            items={[
+                                { label: 'Min buy', value: `${minInvestment} AVAX` },
+                                { label: 'Max buy', value: `${maxInvestment} AVAX` },
+                            ]}
+                        />
+                    </div>
 
-                        <div>
-                            <label className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">
-                                Amount
-                            </label>
-                            <div className="mt-2 pixel-window flex items-center gap-3 p-4">
-                                <input
-                                    value={amount}
-                                    onChange={(event) => setAmount(event.target.value)}
-                                    placeholder="1.0"
-                                    className="w-full bg-transparent text-xl text-[var(--text-main)] outline-none placeholder:text-[var(--text-dim)]"
-                                />
-                                <span className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-soft)]">AVAX</span>
-                            </div>
-                            <div className="mt-3 text-sm text-[var(--text-soft)]">
-                                Estimated output: <span className="font-bold text-[var(--accent-live)]">{estimatedTokens} CATCH</span>
-                            </div>
-                            <div className="mt-1 text-xs text-[var(--text-dim)]">
-                                Approx. value: ${(Number(amount || 0) * AVAX_USD_ESTIMATE).toFixed(2)} USD
-                            </div>
+                    <div className="mt-6">
+                        <label className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">
+                            Amount
+                        </label>
+                        <div className="mt-3 rounded-[22px] border border-white/10 bg-[rgba(11,17,30,0.84)] px-4 py-4">
+                            <input
+                                value={amount}
+                                onChange={(event) => setAmount(event.target.value)}
+                                placeholder="1.0"
+                                className="w-full bg-transparent text-2xl font-semibold text-[var(--text-main)] outline-none placeholder:text-[var(--text-dim)]"
+                            />
+                            <span className="pixel-font text-[0.68rem] uppercase tracking-[0.18em] text-[var(--text-soft)]">AVAX</span>
                         </div>
+                        <div className="mt-4 text-sm text-[var(--text-soft)]">
+                            Estimated output: <span className="font-semibold text-[var(--accent-live)]">{estimatedTokens} CATCH</span>
+                        </div>
+                        <div className="mt-1 text-xs text-[var(--text-dim)]">
+                            Approx. value: ${(Number(amount || 0) * AVAX_USD_ESTIMATE).toFixed(2)} USD
+                        </div>
+                    </div>
 
+                    <div className="mt-6">
                         {!isConnected ? (
-                            <div className="[&_.iekbcc0]:!font-['Space_Grotesk'] [&_.iekbcc0]:!rounded-none [&_.iekbcc0]:!border-2 [&_.iekbcc0]:!border-[var(--pixel-border)] [&_.iekbcc0]:!bg-[var(--bg-panel)] [&_.iekbcc0]:!shadow-[0_0_0_2px_var(--pixel-shadow)] [&_.ju367v7]:!font-['Space_Grotesk']">
+                            <div className="[&_.iekbcc0]:!rounded-[999px] [&_.iekbcc0]:!border [&_.iekbcc0]:!border-white/10 [&_.iekbcc0]:!bg-[rgba(14,21,40,0.76)] [&_.iekbcc0]:!px-4 [&_.iekbcc0]:!shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_34px_rgba(0,0,0,0.26)] [&_.iekbcc0]:!font-['Space_Grotesk'] [&_.ju367v7]:!font-['Space_Grotesk']">
                                 <ConnectButton />
                             </div>
                         ) : (
@@ -165,123 +194,96 @@ export default function Fundraising() {
                                 disabled={!amount || isPending || isConfirming}
                                 className="pixel-menu-link pixel-menu-link-active w-full justify-center disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <span className="pixel-menu-cursor opacity-100">►</span>
+                                <span className="pixel-menu-cursor opacity-100">↗</span>
                                 <span>{isPending || isConfirming ? 'Submitting...' : 'Buy $CATCH'}</span>
                             </button>
                         )}
-
-                        {displayError ? (
-                            <PixelPanel tone="loss">
-                                <div className="text-sm text-[var(--accent-loss)]">{displayError}</div>
-                            </PixelPanel>
-                        ) : null}
-                        {isConfirmed ? (
-                            <PixelPanel tone="profit">
-                                <div className="text-sm text-[var(--accent-profit)]">Buy confirmed onchain.</div>
-                            </PixelPanel>
-                        ) : null}
-
-                        <div className="pt-2">
-                            <PixelExternalLink
-                                href={SITE_LINKS.x}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="w-full justify-between"
-                            >
-                                Follow on X
-                            </PixelExternalLink>
-                        </div>
                     </div>
-                </PixelSectionFrame>
+
+                    {displayError ? (
+                        <div className="mt-4">
+                            <PixelMessageBox title="Error" body={displayError} />
+                        </div>
+                    ) : null}
+                    {isConfirmed ? (
+                        <div className="mt-4">
+                            <PixelMessageBox title="Confirmed" body="Buy confirmed onchain." />
+                        </div>
+                    ) : null}
+
+                    <div className="mt-6">
+                        <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer" className="w-full">
+                            Follow on X
+                        </PixelExternalLink>
+                    </div>
+                </PixelPanel>
             </section>
 
-            <section className="mt-8 grid gap-4 xl:grid-cols-2">
-                <PixelSectionFrame>
-                    <div className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Exposure</div>
-                    <h2 className="mt-3 text-3xl font-bold text-[var(--text-main)]">The fund buys the cards. You follow the run.</h2>
-                    <div className="mt-6 space-y-3 text-sm leading-7 text-[var(--text-soft)]">
-                        <p>GM10 targets scarce, high-grade Pokemon cards that most people would not want to source and manage alone.</p>
-                        <p>$CATCH is the tokenized way to follow and participate in that run without owning the slabs directly.</p>
-                    </div>
-                </PixelSectionFrame>
-
-                <PixelSectionFrame>
-                    <div className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Why Fuji first</div>
-                    <h2 className="mt-3 text-3xl font-bold text-[var(--text-main)]">The public mechanics are live here first.</h2>
-                    <div className="mt-6 space-y-3 text-sm leading-7 text-[var(--text-soft)]">
-                        <p>Fuji lets the flow stay public before the public mainnet round is opened.</p>
-                        <p>The stack already shows recorded onchain positions.</p>
-                        <p>This is public testnet infrastructure, not a promise about future returns.</p>
-                    </div>
-                </PixelSectionFrame>
-            </section>
-
-            <section id="proof" className="mt-8 scroll-mt-28">
-                <PixelSectionFrame className="pixel-grid">
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl">
-                            <div className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Fuji</div>
-                            <h2 className="mt-3 text-3xl font-bold text-[var(--text-main)]">The upgraded Fuji stack is already public.</h2>
-                            <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">
-                                The module links and the recorded positions are open records.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-3">
+            <section id="proof" className="mt-16 scroll-mt-28">
+                <PixelDivider label="Fuji stack" />
+                <div className="mt-8 grid gap-10 xl:grid-cols-[0.62fr_1.38fr] xl:gap-12">
+                    <div className="max-w-2xl">
+                        <h2 className="font-['Oxanium'] text-4xl font-semibold text-[var(--text-main)]">
+                            The upgraded Fuji stack is already public.
+                        </h2>
+                        <p className="mt-4 text-base leading-8 text-[var(--text-soft)]">
+                            The module links, round state, and recorded positions are already visible onchain.
+                        </p>
+                        <div className="mt-6 flex flex-wrap gap-3">
                             <PixelLabel tone="live">Verified on Snowtrace</PixelLabel>
                             <PixelLabel tone="warning">{proofState.proofSummary.holdingsChipLabel}</PixelLabel>
-                            <PixelLabel>{proofState.proofSummary.portfolioValueLabel} marked value</PixelLabel>
                         </div>
                     </div>
 
-                    <div className="mt-8 grid gap-4 md:grid-cols-3">
-                        {roundState.links.map((contract) => (
-                            <PixelExternalLink
-                                key={contract.address}
-                                href={contract.snowtraceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full justify-between"
-                            >
-                                <span className="block">
-                                    <span className="pixel-font block text-[0.42rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">
-                                        {contract.label}
-                                    </span>
-                                    <span className="mt-2 block text-xs text-[var(--text-soft)]">{formatAddress(contract.address)}</span>
-                                </span>
-                            </PixelExternalLink>
-                        ))}
-                    </div>
+                    <div className="grid gap-6">
+                        <PixelStatRail
+                            items={[
+                                { label: 'Positions', value: proofState.collectiblePositionCount, tone: 'warning' },
+                                { label: 'Marked value', value: proofState.proofSummary.portfolioValueLabel, tone: 'live' },
+                                { label: 'Cash buffer', value: proofState.proofSummary.liquidTreasuryLabel },
+                            ]}
+                        />
 
-                    <div className="mt-8">
-                        <div className="pixel-font text-[0.5rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Recorded onchain positions</div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
-                            <PixelPanel>
-                                <div className="pixel-font text-[0.44rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">Count</div>
-                                <div className="mt-2 text-3xl font-bold text-[var(--accent-live)]">{proofState.collectiblePositionCount}</div>
-                                <div className="mt-2 text-sm text-[var(--text-soft)]">Recorded through the modular Fuji stack.</div>
-                            </PixelPanel>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {proofState.links.map((link) => (
-                                    <PixelExternalLink
-                                        key={link.address}
-                                        href={link.snowtraceUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="w-full justify-between"
-                                    >
-                                        <span className="block">
-                                            <span className="pixel-font block text-[0.42rem] uppercase tracking-[0.16em] text-[var(--text-dim)]">
-                                                {link.label}
-                                            </span>
-                                            <span className="mt-2 block text-xs text-[var(--text-soft)]">{formatAddress(link.address)}</span>
-                                        </span>
-                                        <span>Open</span>
-                                    </PixelExternalLink>
+                        <div className="border-y border-white/8">
+                                {[...roundState.links, ...proofState.links].map((contract, index) => (
+                                    <PixelLedgerRow key={`${contract.address}-${index}`}>
+                                        <div className="grid gap-3 md:grid-cols-[170px_1fr_auto] md:items-center">
+                                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{contract.label}</div>
+                                            <div className="text-sm text-[var(--text-soft)]">{formatAddress(contract.address)}</div>
+                                            <a
+                                                href={contract.snowtraceUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-sm font-medium text-[var(--accent-live)]"
+                                            >
+                                                Snowtrace
+                                            </a>
+                                        </div>
+                                    </PixelLedgerRow>
                                 ))}
-                            </div>
                         </div>
                     </div>
-                </PixelSectionFrame>
+                </div>
+            </section>
+
+            <section className="mt-16">
+                <div className="grid gap-8 border-t border-white/8 pt-8 xl:grid-cols-[0.72fr_0.28fr] xl:items-center">
+                    <div>
+                        <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">What you are buying</div>
+                        <h2 className="mt-4 font-['Oxanium'] text-4xl font-semibold text-[var(--text-main)]">
+                            Exposure to the card run, not a single slab.
+                        </h2>
+                        <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--text-soft)]">
+                            GM10 buys the cards. You follow the round, the holdings, and the exit path through one live token layer.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 xl:justify-end">
+                        <PixelMenuLink to="/portfolio">Open portfolio</PixelMenuLink>
+                        <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
+                            Follow on X
+                        </PixelExternalLink>
+                    </div>
+                </div>
             </section>
         </Page>
     );

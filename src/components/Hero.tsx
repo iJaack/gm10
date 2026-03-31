@@ -1,30 +1,8 @@
 import { useEffect, useState } from 'react';
-import { PixelExternalLink, PixelLabel, PixelMenuLink, PixelMessageBox, PixelPanel } from './PixelUI';
-import { SITE_LINKS } from '../data/protocol';
+import { PixelDivider, PixelExternalLink, PixelLabel, PixelMediaFrame, PixelMenuLink } from './PixelUI';
+import { RECENT_CARD_COMPS, SITE_LINKS } from '../data/protocol';
 
-const showcaseCards = [
-    {
-        name: 'Charizard',
-        subtitle: '1st Ed. Base Set / PSA 10',
-        imageSrc: '/images/cards/charizard_psa10.png',
-        imageAlt: '1st Edition Base Set Charizard PSA 10 slab',
-        accent: 'shadow-[0_0_40px_rgba(243,130,84,0.15)]',
-    },
-    {
-        name: 'Umbreon VMAX',
-        subtitle: 'Moonbreon / BGS 10',
-        imageSrc: '/images/cards/umbreon_vmax_bgs.png',
-        imageAlt: 'Umbreon VMAX BGS 10 Black Label slab',
-        accent: 'shadow-[0_0_40px_rgba(126,154,255,0.12)]',
-    },
-    {
-        name: 'Lugia',
-        subtitle: 'Neo Genesis / PSA 9',
-        imageSrc: '/images/cards/lugia_psa9.png',
-        imageAlt: 'Neo Genesis Lugia PSA 9 slab',
-        accent: 'shadow-[0_0_40px_rgba(177,216,255,0.12)]',
-    },
-] as const;
+const [charizard, umbreon, lugia] = RECENT_CARD_COMPS;
 
 export default function Hero() {
     const [mounted, setMounted] = useState(false);
@@ -34,101 +12,113 @@ export default function Hero() {
     }, []);
 
     return (
-        <section className="relative overflow-hidden border-b border-[rgba(193,218,191,0.08)] px-4 pb-14 pt-28 sm:pt-32 lg:min-h-[calc(100svh-76px)] lg:pb-20">
-            <div className="absolute inset-0 pixel-grid opacity-40" aria-hidden />
+        <section className="relative overflow-hidden border-b border-white/8 pb-8 pt-16 sm:pt-20 lg:min-h-[calc(100svh-76px)] lg:pb-10">
+            <div className="absolute inset-0 pixel-grid opacity-30" aria-hidden />
             <div
+                className="absolute inset-0"
                 aria-hidden
-                className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(159,230,255,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(228,193,119,0.08),transparent_24%)]"
+                style={{
+                    background:
+                        'radial-gradient(circle at 72% 18%, rgba(105,200,255,0.16), transparent 22%), radial-gradient(circle at 24% 72%, rgba(217,177,99,0.12), transparent 22%), linear-gradient(140deg, rgba(105,200,255,0.05), transparent 32%, rgba(217,177,99,0.04) 80%, transparent 100%)',
+                }}
             />
 
-            <div className="relative mx-auto grid max-w-[min(1760px,calc(100vw-48px))] items-center gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:gap-10">
-                <div className={`${mounted ? 'scan-reveal' : 'opacity-0'} space-y-6 lg:max-w-[40rem]`}>
-                    <div className="flex flex-wrap gap-3">
-                        <PixelLabel tone="live">Fuji live</PixelLabel>
-                        <PixelLabel tone="warning">Card fund</PixelLabel>
-                    </div>
-
-                    <div>
-                        <div className="pixel-font text-[0.5rem] uppercase tracking-[0.24em] text-[var(--text-dim)]">
-                            Gem Mint Strategy
+            <div className="relative mx-auto max-w-[min(1820px,calc(100vw-40px))] px-4">
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] lg:items-start lg:gap-6 xl:gap-10">
+                    <div className={`${mounted ? 'scan-reveal' : 'opacity-0'} max-w-[38rem] lg:pt-0`}>
+                        <div className="flex flex-wrap gap-3">
+                            <PixelLabel tone="live">GM10</PixelLabel>
+                            <PixelLabel tone="warning">Live on Fuji</PixelLabel>
                         </div>
-                        <h1 className="mt-4 max-w-[11ch] text-4xl font-bold leading-[0.94] text-[var(--text-main)] sm:text-5xl lg:text-[5.65rem]">
-                            Proxy access to elite Pokemon-card upside.
-                        </h1>
-                        <p className="mt-5 max-w-[33rem] text-lg leading-8 text-[var(--text-soft)]">
-                            Get exposure to scarce, high-grade grails without buying, picking, grading, storing, or selling the slabs yourself.
+
+                        <div className="mt-7">
+                            <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">
+                                Gem Mint Strategy
+                            </div>
+                            <h1 className="mt-4 max-w-[12ch] font-['Oxanium'] text-[3.35rem] font-semibold leading-[0.9] text-[var(--text-main)] sm:text-[4rem] lg:text-[4.85rem]">
+                                Proxy access to elite Pokemon-card upside.
+                            </h1>
+                        </div>
+
+                        <p className="mt-5 max-w-[33rem] text-lg leading-8 text-[var(--text-soft)] sm:text-[1.08rem]">
+                            Get exposure to scarce, high-grade grails without picking, buying, storing, or exiting the slabs yourself.
                         </p>
-                    </div>
 
-                    <PixelMessageBox
-                        title="$CATCH"
-                        body="$CATCH is the tokenized way to follow and participate in the GM10 card run."
-                        className="max-w-[32rem]"
-                    />
-
-                    <div className="flex flex-wrap gap-3">
-                        <PixelMenuLink to="/fundraising" active>
-                            Buy $CATCH
-                        </PixelMenuLink>
-                        <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                            Follow on X
-                        </PixelExternalLink>
-                    </div>
-                </div>
-
-                <div className={`${mounted ? 'scan-reveal scan-delay-1' : 'opacity-0'} relative lg:-mr-2`}>
-                    <PixelPanel className="pixel-grid overflow-hidden p-4 sm:p-6 lg:min-h-[700px] lg:p-8">
-                        <div className="flex items-center justify-between gap-3 border-b border-[rgba(193,218,191,0.1)] pb-4">
-                            <div>
-                                <div className="pixel-font text-[0.5rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                                    Inspection screen
-                                </div>
-                                <div className="mt-2 text-2xl font-bold text-[var(--text-main)]">
-                                    High-end slab watchlist
-                                </div>
-                            </div>
-                            <PixelLabel tone="live">3 tracked</PixelLabel>
+                        <div className="mt-4 max-w-[34rem] text-sm leading-7 text-[var(--text-soft)]">
+                            <span className="font-semibold text-[var(--text-main)]">$CATCH</span> follows entries, holdings, exits, and the upside path of the full card run.
                         </div>
 
-                        <div className="mt-6 grid gap-4 sm:grid-cols-[1.28fr_0.72fr] lg:h-[calc(100%-5.25rem)]">
-                            <div className="pixel-window-live pixel-window flex flex-col p-3">
-                                <div className="overflow-hidden border-2 border-[var(--pixel-border)] bg-[#d8e2d4]">
-                                    <img
-                                        src={showcaseCards[0].imageSrc}
-                                        alt={showcaseCards[0].imageAlt}
-                                        className={`aspect-[4/5] w-full object-cover lg:h-[34rem] lg:aspect-auto ${showcaseCards[0].accent}`}
-                                        loading="eager"
-                                    />
-                                </div>
-                                <div className="mt-3 flex items-start justify-between gap-4 lg:mt-auto">
-                                    <div>
-                                        <div className="text-xl font-bold text-[var(--text-main)]">{showcaseCards[0].name}</div>
-                                        <div className="mt-1 text-sm text-[var(--text-soft)]">{showcaseCards[0].subtitle}</div>
-                                    </div>
-                                    <PixelLabel tone="warning">Lead grail</PixelLabel>
-                                </div>
-                            </div>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <PixelMenuLink to="/fundraising" active>
+                                Buy $CATCH
+                            </PixelMenuLink>
+                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
+                                Follow on X
+                            </PixelExternalLink>
+                        </div>
 
-                            <div className="space-y-4 lg:flex lg:flex-col lg:justify-between">
-                                {showcaseCards.slice(1).map((card) => (
-                                    <div key={card.name} className="pixel-window flex items-center gap-4 p-3 lg:min-h-[16rem]">
-                                        <div className="h-24 w-20 shrink-0 overflow-hidden border-2 border-[var(--pixel-border)] bg-[#d8e2d4] lg:h-40 lg:w-32">
-                                            <img
-                                                src={card.imageSrc}
-                                                alt={card.imageAlt}
-                                                className={`h-full w-full object-cover ${card.accent}`}
-                                                loading="lazy"
-                                            />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="text-lg font-bold text-[var(--text-main)]">{card.name}</div>
-                                            <div className="mt-1 text-sm leading-6 text-[var(--text-soft)]">{card.subtitle}</div>
-                                        </div>
-                                    </div>
-                                ))}
+                    </div>
+
+                    <div className={`${mounted ? 'scan-reveal scan-delay-1' : 'opacity-0'} relative min-h-[360px] sm:min-h-[430px] lg:min-h-[500px]`}>
+                        <PixelDivider label="Premium TCG spread" className="mb-5" />
+
+                        <div className="relative h-full">
+                            <div className="absolute inset-[6%_2%_8%_4%] rounded-[44px] border border-white/8 bg-[radial-gradient(circle_at_28%_30%,rgba(105,200,255,0.18),transparent_20%),radial-gradient(circle_at_85%_18%,rgba(217,177,99,0.12),transparent_18%),linear-gradient(145deg,rgba(255,255,255,0.04),transparent_28%),rgba(8,13,24,0.42)] shadow-[0_26px_90px_rgba(0,0,0,0.34)]" />
+                            <div className="absolute inset-[12%_6%_14%_12%] rounded-[46px] bg-[linear-gradient(120deg,rgba(255,255,255,0.04),transparent_28%),rgba(7,12,23,0.24)]" />
+
+                            <PixelMediaFrame
+                                eyebrow="Anchor card"
+                                title={`${charizard.name} ${charizard.grade}`}
+                                caption={`${charizard.priceLabel} • ${charizard.recencyLabel}`}
+                                className="absolute left-[18%] top-[10%] z-30 w-[43%] max-w-[410px] -rotate-[8deg]"
+                            >
+                                <img
+                                    src={charizard.imageSrc}
+                                    alt={charizard.imageAlt}
+                                    className="aspect-[4/5] w-full rounded-[22px] object-cover"
+                                    loading="eager"
+                                />
+                            </PixelMediaFrame>
+
+                            <PixelMediaFrame
+                                eyebrow="Modern chase"
+                                title={umbreon.name}
+                                caption={`${umbreon.grade} • ${umbreon.priceLabel}`}
+                                className="absolute left-[2%] bottom-[8%] z-20 w-[27%] max-w-[245px] -rotate-[2deg]"
+                            >
+                                <img
+                                    src={umbreon.imageSrc}
+                                    alt={umbreon.imageAlt}
+                                    className="aspect-[4/5] w-full rounded-[22px] object-cover"
+                                    loading="lazy"
+                                />
+                            </PixelMediaFrame>
+
+                            <PixelMediaFrame
+                                eyebrow="Vintage signal"
+                                title={lugia.name}
+                                caption={`${lugia.grade} • ${lugia.priceLabel}`}
+                                className="absolute right-[4%] top-[18%] z-20 w-[24%] max-w-[215px] rotate-[9deg]"
+                            >
+                                <img
+                                    src={lugia.imageSrc}
+                                    alt={lugia.imageAlt}
+                                    className="aspect-[4/5] w-full rounded-[22px] object-cover"
+                                    loading="lazy"
+                                />
+                            </PixelMediaFrame>
+
+                            <div className="absolute bottom-[10%] right-[8%] z-40 w-[36%] min-w-[220px] max-w-[290px] rounded-[28px] border border-[rgba(217,177,99,0.24)] bg-[linear-gradient(140deg,rgba(255,255,255,0.04),transparent_32%),rgba(9,14,25,0.88)] p-5 shadow-[0_20px_54px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+                                <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--accent-warning)]">
+                                    Grade premium
+                                </div>
+                                <div className="mt-3 text-3xl font-bold text-[var(--text-main)]">$550k</div>
+                                <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
+                                    Trophy-tier cards clear in a different price band than ordinary inventory.
+                                </p>
                             </div>
                         </div>
-                    </PixelPanel>
+                    </div>
                 </div>
             </div>
         </section>
