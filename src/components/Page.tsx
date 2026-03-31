@@ -8,8 +8,8 @@ type PageProps = {
 
 export default function Page({ children, className, containerClassName }: PageProps) {
     return (
-        <div className={`min-h-screen pt-28 px-4 pb-20 bg-transparent text-[var(--text-main)] ${className ?? ''}`}>
-            <div className={containerClassName ?? 'max-w-6xl mx-auto'}>{children}</div>
+        <div className={`px-4 pb-16 pt-24 text-[var(--text-main)] md:pt-28 ${className ?? ''}`}>
+            <div className={containerClassName ?? 'mx-auto max-w-[min(1360px,calc(100vw-48px))]'}>{children}</div>
         </div>
     );
 }
