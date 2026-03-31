@@ -91,7 +91,7 @@ vi.mock('./hooks/useFujiProof', () => ({
         investorAccountingAddress: '0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91',
         links: [
             {
-                label: 'Proof proxy',
+                label: 'Fund proxy',
                 address: '0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
                 snowtraceUrl: 'https://testnet.snowtrace.io/address/0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
             },
@@ -143,7 +143,7 @@ describe('route simplification', () => {
 
         expect(desktopNav).not.toBeNull();
         const labels = Array.from(desktopNav!.querySelectorAll('a')).map((link) =>
-            link.textContent?.replace(/^►/, '').trim(),
+            link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
         expect(labels).toEqual(['Home', 'Buy', 'Portfolio', 'FAQ']);
@@ -173,7 +173,7 @@ describe('page compression regressions', () => {
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/proxy access to elite pokemon-card upside/i);
         expect(screen.getByText(/get exposure to scarce, high-grade grails/i)).toBeInTheDocument();
-        expect(screen.getByText(/\$catch is the tokenized way to follow and participate in the gm10 card run/i)).toBeInTheDocument();
+        expect(screen.getByText(/follows entries, holdings, exits, and the upside path of the full card run/i)).toBeInTheDocument();
         expect(document.getElementById('why-gm10')).not.toBeNull();
         expect(document.getElementById('evidence')).not.toBeNull();
         expect(document.getElementById('how-it-works')).not.toBeNull();
@@ -194,8 +194,9 @@ describe('page compression regressions', () => {
         expect(screen.getByRole('heading', { name: /join the live testnet round for pokemon-card exposure/i })).toBeInTheDocument();
         expect(screen.getByText(/you are not buying one slab\. you are buying into the run\./i)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /the upgraded fuji stack is already public/i })).toBeInTheDocument();
-        expect(screen.getByText(/^recorded onchain positions$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^2$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/^2$/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/the module links, round state, and recorded positions are already visible onchain/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
@@ -205,9 +206,10 @@ describe('page compression regressions', () => {
         renderAt('/portfolio');
 
         expect(screen.getByRole('heading', { name: /the card universe first\. the live stack underneath\./i })).toBeInTheDocument();
-        expect(screen.getByText(/charizard grail lane/i)).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /the stack is already onchain\./i })).toBeInTheDocument();
+        expect(screen.getByText(/^charizard$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^live on fuji$/i)).toBeInTheDocument();
         expect(screen.getByText(/^2 positions$/i)).toBeInTheDocument();
+        expect(screen.getByText(/marked value/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
     });
