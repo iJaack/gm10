@@ -1,253 +1,376 @@
 import Hero from '../components/Hero';
+import CAGRChart from '../components/CAGRChart';
+import { ScrollReveal } from '../components/ScrollReveal';
 import {
     PixelExternalLink,
-    PixelLedgerRow,
     PixelMenuLink,
-    PixelStatRail,
 } from '../components/PixelUI';
 import {
     EXPOSURE_STEPS,
+    GOVERNANCE_PHASES,
     SITE_LINKS,
     THESIS_EVIDENCE,
     THESIS_PILLARS,
 } from '../data/protocol';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
+import { useTheme } from '../hooks/useTheme';
 
-function SectionLead({
-    eyebrow,
-    title,
-    body,
-}: {
-    eyebrow: string;
-    title: string;
-    body: string;
-}) {
-    return (
-        <div className="max-w-3xl">
-            <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">{eyebrow}</div>
-            <h2 className="mt-5 font-['Oxanium'] text-4xl font-semibold leading-[0.95] text-[var(--text-main)] md:text-5xl">
-                {title}
-            </h2>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--text-soft)]">{body}</p>
-        </div>
-    );
-}
+const SYSTEM_NOTES = [
+    { id: 'token', emoji: '🪙', title: 'Token', body: '$CATCH tracks the full GM10 strategy — not a single card. Every entry, holding, and exit flows through it.' },
+    { id: 'pricing', emoji: '💰', title: 'Pricing', body: 'Executed trades set the mark first. Strong comps come next. Thin markets stay conservative.' },
+    { id: 'exits', emoji: '🚪', title: 'Exits', body: 'Sale proceeds land onchain before anything else. Principal restored first, then profit splits into treasury, buyback, LP, and reserve.' },
+    { id: 'wallet', emoji: '👛', title: 'Wallet', body: 'Only shows what GM10 can prove: contributed basis, current holdings, and the latest marked value.' },
+    { id: 'governance', emoji: '🗳️', title: 'Governance', body: 'Rounds 1–3: centralized card selection. Rounds 4–5: offchain community selection. From Round 6: buy/sell decisions enforced onchain.' },
+    { id: 'agents', emoji: '🤖', title: 'Agents', body: 'GM10 is agent-ready. Every contract, position, and round is inspectable by humans and their agents. Built on Avalanche.' },
+];
 
-function SystemNote({
-    id,
-    title,
-    body,
-}: {
-    id: string;
-    title: string;
-    body: string;
-}) {
-    return (
-        <article id={id} className="scroll-mt-28">
-            <PixelLedgerRow>
-                <div className="grid gap-3 md:grid-cols-[170px_1fr] md:gap-8">
-                    <div className="pixel-font text-[0.66rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">{title}</div>
-                    <p className="max-w-3xl text-sm leading-7 text-[var(--text-soft)]">{body}</p>
-                </div>
-            </PixelLedgerRow>
-        </article>
-    );
+function formatAddress(address: string) {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export default function Home() {
     const roundState = useFujiRoundState();
     const proofState = useFujiPortfolioPositions();
+    const { theme } = useTheme();
 
     return (
         <main>
             <Hero />
 
-            <section id="why-gm10" className="px-4 py-16 md:py-20">
-                <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <div className="grid gap-12 xl:grid-cols-[0.72fr_1.28fr] xl:gap-16">
-                        <SectionLead
-                            eyebrow="Why GM10"
-                            title="The best cards are expensive, thin, and hard to build around alone."
-                            body="GM10 gives people one cleaner way into the top end of the Pokemon market: shared exposure to iconic high-grade cards instead of solo card-picking, storage, and exit work."
+            {/* ── WHY GM10 ── */}
+            {(() => {
+                // Text tokens derived from overlay — always maximally contrasted against the background
+                const whyPrimary   = theme === 'dark' ? '#ffffff'               : '#1a1510';
+                const whySecondary = theme === 'dark' ? 'rgba(255,255,255,0.72)' : 'rgba(26,21,16,0.72)';
+                const whyMuted     = theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(26,21,16,0.45)';
+                const whyCardBg    = theme === 'dark' ? 'rgba(0,0,0,0.45)'       : 'rgba(255,255,255,0.60)';
+                const whyCardBorder= theme === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(26,21,16,0.12)';
+                return (
+                    <section id="why-gm10" className="relative overflow-hidden border-b border-[var(--border)] px-4 py-16 md:py-24">
+                        {/* Card pile background */}
+                        <img
+                            src="/brand/why-bg.png"
+                            aria-hidden alt=""
+                            className="absolute inset-0 h-full w-full object-cover object-center"
+                            style={{ filter: theme === 'light' ? 'saturate(0.55) brightness(1.15)' : 'saturate(0.7) brightness(0.6)' }}
                         />
+                        {/* Overlay — dark tint in dark mode, warm white in light mode */}
+                        <div
+                            className="absolute inset-0"
+                            style={{ background: theme === 'dark' ? 'rgba(11,10,20,0.80)' : 'rgba(250,247,240,0.82)' }}
+                        />
+                        <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                            <ScrollReveal>
+                                <div>
+                                    <div className="label-font" style={{ color: whyMuted }}>Why GM10</div>
+                                    <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] md:text-[2.5rem]" style={{ color: whyPrimary }}>
+                                        Trophy-tier cards shouldn't require trophy-tier capital.
+                                    </h2>
+                                    <p className="mt-4 max-w-[42rem] text-[1rem] leading-[1.7]" style={{ color: whySecondary }}>
+                                        The top of the Pokémon market is expensive, illiquid, and hard to build around alone. GM10 changes that with one shared fund and one token.
+                                    </p>
+                                </div>
+                            </ScrollReveal>
 
-                        <div className="grid gap-8 md:grid-cols-3">
-                            {THESIS_PILLARS.map((pillar, index) => (
-                                <article key={pillar.title} className="border-t border-white/10 pt-5">
-                                    <div className="pixel-font text-[0.66rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">
-                                        {index === 0 ? 'Access' : index === 1 ? 'Premium' : 'Exposure'}
-                                    </div>
-                                    <h3 className="mt-4 font-['Oxanium'] text-2xl font-semibold text-[var(--text-main)]">
-                                        {pillar.title}
-                                    </h3>
-                                    <p className="mt-4 text-sm leading-7 text-[var(--text-soft)]">{pillar.body}</p>
-                                </article>
-                            ))}
+                            <div className="mt-12 grid gap-6 md:grid-cols-3">
+                                {THESIS_PILLARS.map((pillar, index) => (
+                                    <ScrollReveal key={pillar.title} delay={(index + 1) as 1 | 2 | 3}>
+                                        <div
+                                            className="relative rounded-2xl p-6 transition-all duration-200"
+                                            style={{
+                                                background: whyCardBg,
+                                                border: `1px solid ${whyCardBorder}`,
+                                                backdropFilter: 'blur(14px)',
+                                                WebkitBackdropFilter: 'blur(14px)',
+                                            }}
+                                        >
+                                            <div className="text-[0.7rem] font-semibold uppercase tracking-[0.12em]" style={{ color: whyMuted }}>
+                                                {index === 0 ? 'Access' : index === 1 ? 'Premium' : 'Exposure'}
+                                            </div>
+                                            <h3 className="mt-3 text-lg font-bold tracking-[-0.02em]" style={{ color: whyPrimary }}>
+                                                {pillar.title}
+                                            </h3>
+                                            <p className="mt-2 text-[0.9rem] leading-[1.65]" style={{ color: whySecondary }}>{pillar.body}</p>
+                                        </div>
+                                    </ScrollReveal>
+                                ))}
+                            </div>
                         </div>
+                    </section>
+                );
+            })()}
+
+            {/* ── EVIDENCE ── */}
+            <section id="evidence" className="border-y border-[var(--border)] px-4 py-16 md:py-24">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                    <div className="grid gap-10 md:grid-cols-[1fr_280px] md:items-start lg:grid-cols-[1fr_460px] xl:grid-cols-[1fr_580px]">
+
+                        {/* ── Left: text + stats ── */}
+                        <div>
+                            <ScrollReveal>
+                                <div className="label-font">Evidence</div>
+                                <p className="mt-2 max-w-[48rem] text-[0.92rem] leading-[1.65] text-[var(--text-secondary)]">
+                                    The demand, scarcity, and grade premium are already visible in public data. Market evidence, not guaranteed results.
+                                </p>
+
+                                <a
+                                    href={THESIS_EVIDENCE[0].sourceUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="group mt-8 block"
+                                >
+                                    <div className="holo-shimmer text-[3.5rem] font-extrabold leading-none tracking-[-0.04em] sm:text-[5rem] lg:text-[6rem]">
+                                        {THESIS_EVIDENCE[0].value}
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+                                        <span className="label-font">{THESIS_EVIDENCE[0].label}</span>
+                                        <span className="text-[0.92rem] text-[var(--text-secondary)]">{THESIS_EVIDENCE[0].takeaway}</span>
+                                    </div>
+                                </a>
+                            </ScrollReveal>
+
+                            <div className="mt-12 grid gap-8 border-t border-[var(--border)] pt-10 lg:grid-cols-3">
+                                {THESIS_EVIDENCE.slice(1).map((stat, index) => (
+                                    <ScrollReveal key={stat.label} delay={(index + 1) as 1 | 2 | 3}>
+                                        <a
+                                            href={stat.sourceUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="group block"
+                                        >
+                                            <div className="label-font">{stat.label}</div>
+                                            <div className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                                                {stat.value}
+                                            </div>
+                                            <p className="mt-2 text-[0.9rem] leading-[1.65] text-[var(--text-secondary)]">{stat.takeaway}</p>
+                                            <span className="mt-3 inline-flex items-center gap-1.5 text-[0.88rem] font-medium text-[var(--accent-blue)] transition-colors group-hover:text-[var(--accent)]">
+                                                {stat.sourceLabel} <span aria-hidden>↗</span>
+                                            </span>
+                                        </a>
+                                    </ScrollReveal>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ── Right: evidence photo — no card frame, sits inline ── */}
+                        <ScrollReveal delay={1}>
+                            <img
+                                src="/brand/evidence-bg.png"
+                                alt="Pokémon Illustrator card — evidence of trophy-grade demand"
+                                className="w-full rounded-xl"
+                                style={{
+                                    filter: theme === 'light'
+                                        ? 'drop-shadow(0 8px 24px rgba(0,0,0,0.12))'
+                                        : 'drop-shadow(0 8px 24px rgba(0,0,0,0.40))',
+                                }}
+                            />
+                        </ScrollReveal>
+
                     </div>
                 </div>
             </section>
 
-            <section id="evidence" className="border-y border-white/8 px-4 py-16 md:py-20">
-                <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <SectionLead
-                        eyebrow="Evidence"
-                        title="The thesis already shows up in public sales and population data."
-                        body="GM10 is not built on vague nostalgia. The demand, scarcity, and top-grade premium already exist in the open. Market evidence, not guaranteed results."
-                    />
+            {/* ── CAGR CHART — full-bleed ── */}
+            <section className="border-b border-[var(--border)]">
+                <ScrollReveal>
+                    <CAGRChart />
+                </ScrollReveal>
+            </section>
 
-                    <div className="mt-12 grid gap-x-10 gap-y-12 lg:grid-cols-2">
-                        {THESIS_EVIDENCE.map((stat) => (
-                            <a
-                                key={stat.label}
-                                href={stat.sourceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group border-t border-white/10 pt-6 transition-colors duration-200 hover:border-[rgba(105,200,255,0.32)]"
-                            >
-                                <div className="pixel-font text-[0.66rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">
-                                    {stat.label}
+            {/* ── HOW IT WORKS ── */}
+            <section
+                id="how-it-works"
+                className="relative overflow-hidden px-4 py-16 md:py-24"
+                style={{
+                    background: theme === 'dark'
+                        ? 'radial-gradient(ellipse 80% 60% at 20% 50%, rgba(79,168,224,0.07) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 30%, rgba(240,192,48,0.06) 0%, transparent 70%), var(--bg-primary)'
+                        : 'radial-gradient(ellipse 80% 60% at 20% 50%, rgba(79,168,224,0.08) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 30%, rgba(240,192,48,0.07) 0%, transparent 70%), var(--bg-primary)',
+                }}
+            >
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                    <ScrollReveal>
+                        <div>
+                            <div className="label-font">How it works</div>
+                            <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.5rem]">
+                                Three steps. One token. The rest is on us.
+                            </h2>
+                        </div>
+                    </ScrollReveal>
+
+                    <div className="mt-12 grid gap-8 md:grid-cols-3">
+                        {EXPOSURE_STEPS.map((step, index) => (
+                            <ScrollReveal key={step.title} delay={(index + 1) as 1 | 2 | 3}>
+                                <div>
+                                    <span className="label-font text-[var(--accent)]">
+                                        0{index + 1}
+                                    </span>
+                                    <h3 className="mt-3 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">{step.title}</h3>
+                                    <p className="mt-2 text-[0.9rem] leading-[1.65] text-[var(--text-secondary)]">{step.body}</p>
                                 </div>
-                                <div className="mt-4 font-['Oxanium'] text-5xl font-semibold leading-none text-[var(--text-main)]">
-                                    {stat.value}
-                                </div>
-                                <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--text-soft)]">{stat.takeaway}</p>
-                                <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent-live)]">
-                                    <span>{stat.sourceLabel}</span>
-                                    <span aria-hidden>↗</span>
-                                </div>
-                            </a>
+                            </ScrollReveal>
                         ))}
                     </div>
                 </div>
             </section>
 
-            <section id="how-it-works" className="px-4 py-16 md:py-20">
-                <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <div className="grid gap-12 xl:grid-cols-[0.68fr_1.32fr] xl:gap-16">
-                        <SectionLead
-                            eyebrow="How it works"
-                            title="A live round, a focused card mandate, and one token tied to the run."
-                            body="The flow is simple by design. Join the round, let GM10 chase elite slabs, and let $CATCH stay next to the full strategy instead of one card."
-                        />
+            {/* ── SYSTEM NOTES ── */}
+            <section className="border-y border-[var(--border)] px-4 py-16 md:py-24">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                    <ScrollReveal>
+                        <div>
+                            <div className="label-font">System notes</div>
+                            <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.5rem]">
+                                Everything stays public.
+                            </h2>
+                            <p className="mt-4 text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
+                                Token model, pricing, exits, wallet view, and governance. Short notes, not a second homepage.
+                            </p>
+                        </div>
+                    </ScrollReveal>
 
-                        <div className="grid gap-5">
-                            {EXPOSURE_STEPS.map((step, index) => (
-                                <PixelLedgerRow key={step.title}>
-                                    <div className="grid gap-4 lg:grid-cols-[130px_1fr] lg:gap-8">
-                                        <div className="pixel-font text-[0.68rem] uppercase tracking-[0.2em] text-[var(--text-dim)]">
-                                            Step {index + 1}
-                                        </div>
+                    <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {SYSTEM_NOTES.map((note, index) => (
+                            <ScrollReveal key={note.id} delay={Math.min(index + 1, 5) as 1 | 2 | 3 | 4 | 5}>
+                                <article
+                                    id={note.id}
+                                    className="holo-border group relative h-full scroll-mt-24 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 transition-all duration-300 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <span className="shrink-0 text-2xl" aria-hidden>{note.emoji}</span>
                                         <div>
-                                            <h3 className="font-['Oxanium'] text-2xl font-semibold text-[var(--text-main)]">{step.title}</h3>
-                                            <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--text-soft)]">{step.body}</p>
+                                            <h3 className="text-[0.95rem] font-bold tracking-[-0.01em] text-[var(--text-primary)]">{note.title}</h3>
+                                            <p className="mt-1.5 text-[0.88rem] leading-[1.65] text-[var(--text-secondary)]">{note.body}</p>
                                         </div>
                                     </div>
-                                </PixelLedgerRow>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="border-y border-white/8 px-4 py-16 md:py-20">
-                <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <SectionLead
-                        eyebrow="System notes"
-                        title="The deeper mechanics stay public, but they do not need to dominate the landing page."
-                        body="The token model, pricing discipline, exit path, wallet view, and governance phasing stay public. They just sit in short notes instead of a second homepage."
-                    />
-
-                    <div className="mt-8 border-y border-white/8">
-                        <SystemNote
-                            id="token"
-                            title="Token"
-                            body="$CATCH follows the full GM10 strategy, not one card. It sits next to entries, holdings, exits, and the upside path as the system matures."
-                        />
-                        <SystemNote
-                            id="pricing"
-                            title="Pricing"
-                            body="Real executed trades reset marks first. Strong comparable sales come next. Soft estimates stay conservative when liquidity gets thin."
-                        />
-                        <SystemNote
-                            id="exits"
-                            title="Exits"
-                            body="Sale money lands back onchain before anything else. Principal gets restored first, and realized profit then routes into treasury, buyback, LP, and reserve buckets."
-                        />
-                        <SystemNote
-                            id="wallet"
-                            title="Wallet"
-                            body="The wallet view only shows what GM10 can prove: contributed basis, attributable holdings, and the latest marked value of the strategy."
-                        />
-                        <SystemNote
-                            id="governance"
-                            title="Governance"
-                            body="Early rounds stay execution-led. Later rounds move more target and round decisions into the open as the system hardens."
-                        />
-                    </div>
-                </div>
-            </section>
-
-            <section className="px-4 py-16 md:py-20">
-                <div className="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-                    <div className="grid gap-10 xl:grid-cols-[0.72fr_1.28fr] xl:items-end">
-                        <SectionLead
-                            eyebrow="Fuji live"
-                            title="The mechanics are already live in public."
-                            body="The stack is already visible on Fuji today, while the public-facing mainnet launch stays separate."
-                        />
-                        <PixelStatRail
-                            items={[
-                                {
-                                    label: 'Live round',
-                                    value: `Round ${roundState.roundId}`,
-                                    tone: roundState.round?.isActive ? 'live' : 'warning',
-                                },
-                                {
-                                    label: 'Raised',
-                                    value: roundState.raisedLabel,
-                                },
-                                {
-                                    label: 'Marked value',
-                                    value: proofState.proofSummary.portfolioValueLabel,
-                                    tone: 'warning',
-                                },
-                            ]}
-                        />
+                                </article>
+                            </ScrollReveal>
+                        ))}
                     </div>
 
-                    <div className="mt-10 grid gap-8 xl:grid-cols-[1.02fr_0.98fr] xl:items-center">
-                        <div className="border-t border-white/8 pt-6">
-                            <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">
-                                Live links
-                            </div>
-                            <div className="mt-6 border-y border-white/8">
-                                {proofState.links.map((link) => (
-                                    <PixelLedgerRow key={link.address}>
-                                        <div className="grid gap-3 md:grid-cols-[170px_1fr_auto] md:items-center">
-                                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{link.label}</div>
-                                            <div className="truncate text-sm text-[var(--text-soft)]">{link.address}</div>
-                                            <a
-                                                href={link.snowtraceUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-sm font-medium text-[var(--accent-live)]"
-                                            >
-                                                Snowtrace
-                                            </a>
+                    {/* Governance roadmap */}
+                    <div className="mt-12">
+                        <ScrollReveal>
+                            <div className="label-font">Governance roadmap</div>
+                            <h3 className="mt-3 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">
+                                Progressive decentralization.
+                            </h3>
+                        </ScrollReveal>
+                        <div className="mt-6 flex flex-col gap-0 md:flex-row md:items-stretch">
+                            {GOVERNANCE_PHASES.flatMap((phase, index) => {
+                                const circleClass = index === 0
+                                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                                    : 'border-[var(--border-strong)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]';
+                                const items = [
+                                    <ScrollReveal key={phase.rounds} delay={(index + 1) as 1 | 2 | 3} className="md:flex-1">
+                                        <div className="flex md:flex-col md:flex-1">
+                                            {/* Mobile: vertical stem on left */}
+                                            <div className="mr-4 flex flex-col items-center md:hidden">
+                                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[0.78rem] font-extrabold ${circleClass}`}>
+                                                    {index + 1}
+                                                </div>
+                                                {index < GOVERNANCE_PHASES.length - 1 && (
+                                                    <div className="mt-1 h-full w-px bg-[var(--border)]" />
+                                                )}
+                                            </div>
+                                            {/* Desktop: number centered above card */}
+                                            <div className="mb-4 hidden justify-center md:flex">
+                                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[0.78rem] font-extrabold ${circleClass}`}>
+                                                    {index + 1}
+                                                </div>
+                                            </div>
+                                            <div className={`mb-4 flex-1 rounded-2xl border bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] md:mb-0 ${index === 0 ? 'border-[var(--accent)]/30' : 'border-[var(--border)]'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="label-font text-[var(--accent)]">{phase.rounds}</span>
+                                                    {index === 0 && <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--accent)]">Current</span>}
+                                                </div>
+                                                <h4 className="mt-2.5 text-[0.95rem] font-bold text-[var(--text-primary)]">{phase.title}</h4>
+                                                <p className="mt-1.5 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{phase.detail}</p>
+                                            </div>
                                         </div>
-                                    </PixelLedgerRow>
-                                ))}
-                            </div>
+                                    </ScrollReveal>
+                                ];
+                                if (index < GOVERNANCE_PHASES.length - 1) {
+                                    items.push(
+                                        <div key={`arrow-${index}`} className="hidden shrink-0 items-start pt-1.5 md:flex">
+                                            <span className="text-lg text-[var(--text-tertiary)]">→</span>
+                                        </div>
+                                    );
+                                }
+                                return items;
+                            })}
                         </div>
+                    </div>
+                </div>
+            </section>
 
-                        <div className="flex flex-wrap gap-3">
+            {/* ── FUJI LIVE ── */}
+            <section className="px-4 py-16 md:py-24">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                    <ScrollReveal>
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-green)] opacity-75" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent-green)]" />
+                            </span>
+                            <span className="label-font text-[var(--accent-green)]">Live on Fuji</span>
+                        </div>
+                        <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.5rem]">
+                            Already live. Already inspectable.
+                        </h2>
+                        <p className="mt-4 text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
+                            The full stack runs on Fuji today. Contracts, fund flows, and portfolio positions — all public.
+                        </p>
+                    </ScrollReveal>
+
+                    {/* Stats + Contracts bento */}
+                    <div className="mt-10 grid gap-4 md:grid-cols-3">
+                        {[
+                            { label: 'Live round', value: `Round ${roundState.roundId}`, emoji: '🔄' },
+                            { label: 'Raised', value: roundState.raisedLabel, emoji: '💎' },
+                            { label: 'Marked value', value: proofState.proofSummary.portfolioValueLabel, emoji: '📊' },
+                        ].map((stat, index) => (
+                            <ScrollReveal key={stat.label} delay={(index + 1) as 1 | 2 | 3}>
+                                <div className="group rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-300 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]">
+                                    <div className="flex items-center gap-2">
+                                        <span aria-hidden>{stat.emoji}</span>
+                                        <span className="label-font">{stat.label}</span>
+                                    </div>
+                                    <div className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{stat.value}</div>
+                                </div>
+                            </ScrollReveal>
+                        ))}
+                    </div>
+
+                    {/* Contract addresses as cards */}
+                    <div className="mt-4 grid gap-4 md:grid-cols-3">
+                        {proofState.links.map((link, index) => (
+                            <ScrollReveal key={link.address} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
+                                <a
+                                    href={link.snowtraceUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="group flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-300 hover:border-[var(--accent-blue)]/20 hover:shadow-[var(--shadow-md)]"
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="label-font truncate">{link.label}</span>
+                                        <span className="shrink-0 text-[0.75rem] font-medium text-[var(--accent-blue)] opacity-0 transition-opacity group-hover:opacity-100">Snowtrace ↗</span>
+                                    </div>
+                                    <div className="mt-2 font-mono text-[0.8rem] text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]">
+                                        {formatAddress(link.address)}
+                                    </div>
+                                </a>
+                            </ScrollReveal>
+                        ))}
+                    </div>
+
+                    <ScrollReveal delay={2}>
+                        <div className="mt-8 flex flex-wrap gap-3">
                             <PixelMenuLink to="/fundraising">Buy $CATCH</PixelMenuLink>
                             <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
                                 Follow on X
                             </PixelExternalLink>
                         </div>
-                    </div>
+                    </ScrollReveal>
                 </div>
             </section>
         </main>

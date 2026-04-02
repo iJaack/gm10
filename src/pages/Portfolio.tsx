@@ -1,164 +1,245 @@
 import Page from '../components/Page';
-import { PixelDivider, PixelLabel, PixelLedgerRow, PixelMediaFrame, PixelStatRail } from '../components/PixelUI';
+import { ScrollReveal } from '../components/ScrollReveal';
+import { PixelLabel } from '../components/PixelUI';
 import { PORTFOLIO_PREVIEW, RECENT_CARD_COMPS, SAMPLE_HISTORY } from '../data/protocol';
 import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
+import { useTheme } from '../hooks/useTheme';
 
 function formatAddress(address: string) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export default function Portfolio() {
+    const { theme } = useTheme();
     const proofState = useFujiPortfolioPositions();
 
     return (
-        <Page containerClassName="mx-auto max-w-[min(1760px,calc(100vw-48px))]">
-            <section className="grid gap-12 xl:grid-cols-[0.72fr_1.28fr] xl:items-end">
-                <div className="max-w-[40rem]">
-                    <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">Portfolio</div>
-                    <h1 className="mt-5 font-['Oxanium'] text-5xl font-semibold leading-[0.92] text-[var(--text-main)] md:text-6xl xl:max-w-[11.5ch]">
-                        The card universe first. The live stack underneath.
+        <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+
+            {/* ── PAGE HEADER ── */}
+            <section>
+                <ScrollReveal>
+                    <div className="label-font">Portfolio</div>
+                    <h1 className="mt-4 text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
+                        The vault. Every card, every position.
                     </h1>
-                    <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--text-soft)]">
-                        GM10 targets scarce, high-grade cards with visible demand, thin top-grade supply, and cleaner comp history.
+                    <p className="mt-4 text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
+                        Scarce, high-grade slabs with verified provenance, visible demand, and real market comps.
                     </p>
-                    <div className="mt-7 flex flex-wrap gap-3">
+                    <div className="mt-5 flex flex-wrap gap-2">
                         <PixelLabel tone="warning">Target roster</PixelLabel>
                         <PixelLabel tone="live">{proofState.proofSummary.holdingsChipLabel}</PixelLabel>
                     </div>
+                </ScrollReveal>
+
+                {/* Stat panels */}
+                <div className="mt-8 grid gap-4 md:grid-cols-3">
+                    {[
+                        { emoji: '📦', label: 'Positions', value: proofState.collectiblePositionCount },
+                        { emoji: '📊', label: 'Marked value', value: proofState.proofSummary.portfolioValueLabel },
+                        { emoji: '💵', label: 'Cash buffer', value: proofState.proofSummary.liquidTreasuryLabel },
+                    ].map((stat, index) => (
+                        <ScrollReveal key={stat.label} delay={(index + 1) as 1 | 2 | 3}>
+                            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]">
+                                <div className="flex items-center gap-2">
+                                    <span aria-hidden>{stat.emoji}</span>
+                                    <span className="label-font">{stat.label}</span>
+                                </div>
+                                <div className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{stat.value}</div>
+                            </div>
+                        </ScrollReveal>
+                    ))}
                 </div>
 
-                <div className="grid gap-6">
-                    <PixelStatRail
-                        items={[
-                            { label: 'Positions', value: proofState.collectiblePositionCount, tone: 'warning' },
-                            { label: 'Marked value', value: proofState.proofSummary.portfolioValueLabel, tone: 'live' },
-                            { label: 'Cash buffer', value: proofState.proofSummary.liquidTreasuryLabel },
-                        ]}
-                    />
-                    <div className="border-t border-white/8 pt-5">
-                        <div className="pixel-font text-[0.68rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Live on Fuji</div>
-                        <div className="mt-5 border-y border-white/8">
-                            {proofState.links.map((link) => (
-                                <PixelLedgerRow key={link.address}>
-                                    <div className="grid gap-3 md:grid-cols-[170px_1fr_auto] md:items-center">
-                                        <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{link.label}</div>
-                                        <div className="text-sm text-[var(--text-soft)]">{formatAddress(link.address)}</div>
-                                        <a
-                                            href={link.snowtraceUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-sm font-medium text-[var(--accent-live)]"
-                                        >
-                                            Snowtrace
-                                        </a>
-                                    </div>
-                                </PixelLedgerRow>
-                            ))}
-                        </div>
-                    </div>
+                {/* Live contracts */}
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    {proofState.links.map((link, index) => (
+                        <ScrollReveal key={link.address} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
+                            <a
+                                href={link.snowtraceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group flex w-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-all duration-200 hover:border-[var(--accent-blue)]/20 hover:shadow-[var(--shadow-sm)]"
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="label-font truncate">{link.label}</span>
+                                    <span className="shrink-0 text-[0.7rem] font-medium text-[var(--accent-blue)] opacity-0 transition-opacity group-hover:opacity-100">Snowtrace ↗</span>
+                                </div>
+                                <div className="mt-1.5 truncate font-mono text-[0.78rem] text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]">
+                                    {formatAddress(link.address)}
+                                </div>
+                            </a>
+                        </ScrollReveal>
+                    ))}
                 </div>
             </section>
 
+            {/* ── TARGET UNIVERSE ── */}
             <section className="mt-16">
-                <PixelDivider label="Target universe" />
-                <div className="mt-8 grid gap-8 xl:grid-cols-[1.12fr_0.88fr]">
-                    <PixelMediaFrame
-                        eyebrow="Grail vintage"
-                        title={RECENT_CARD_COMPS[0].name}
-                        caption={`${RECENT_CARD_COMPS[0].grade} • ${RECENT_CARD_COMPS[0].priceLabel}`}
-                    >
-                        <div className="grid gap-6 lg:grid-cols-[0.45fr_0.55fr] lg:items-center">
-                            <img
-                                src={RECENT_CARD_COMPS[0].imageSrc}
-                                alt={RECENT_CARD_COMPS[0].imageAlt}
-                                className="aspect-[4/5] w-full rounded-[22px] object-cover"
-                            />
-                            <div className="px-2 pb-2">
-                                <div className="pixel-font text-[0.68rem] uppercase tracking-[0.18em] text-[var(--accent-warning)]">
-                                    Premium lane
+                <div className="label-font">Target universe</div>
+
+                {/* All 3 cards in one row: Charizard left, Moonbreon top-right, Lugia bottom-right */}
+                <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_1fr]">
+                    {/* Charizard — anchor card, full height */}
+                    <ScrollReveal>
+                        <div className="group flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)]">
+                            <div className="flex items-center justify-between">
+                                <div className="label-font text-[var(--accent)]">Grail vintage</div>
+                                <PixelLabel tone="warning">{PORTFOLIO_PREVIEW[0].status}</PixelLabel>
+                            </div>
+                            <div className="mt-4 flex flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start">
+                                <img
+                                    src={RECENT_CARD_COMPS[0].imageSrc}
+                                    alt={RECENT_CARD_COMPS[0].imageAlt}
+                                    className="aspect-[4/5] w-full max-w-[220px] shrink-0 rounded-xl object-cover"
+                                />
+                                <div className="flex flex-1 flex-col py-1">
+                                    <h2 className="text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                                        {RECENT_CARD_COMPS[0].name}
+                                    </h2>
+                                    <div className="mt-0.5 text-[0.8rem] text-[var(--text-tertiary)]">
+                                        {RECENT_CARD_COMPS[0].subtitle} · {RECENT_CARD_COMPS[0].grade}
+                                    </div>
+                                    <p className="mt-3 text-[0.88rem] leading-[1.6] text-[var(--text-secondary)]">
+                                        The fund's cornerstone — recognizable, scarce, and easy to comp. Clear provenance and a public auction record.
+                                    </p>
+                                    <div className="mt-auto pt-4 border-t border-[var(--border)]">
+                                        <div className="label-font">Recent public comp</div>
+                                        <div className="mt-1.5 text-2xl font-bold tracking-[-0.03em] text-[var(--accent)]">{RECENT_CARD_COMPS[0].priceLabel}</div>
+                                        <div className="mt-0.5 text-[0.78rem] text-[var(--text-tertiary)]">{RECENT_CARD_COMPS[0].recencyLabel}</div>
+                                    </div>
                                 </div>
-                                <p className="mt-4 text-base leading-8 text-[var(--text-soft)]">
-                                    The fund’s top-end lane: iconic vintage slabs, clear provenance, and visible premiums at the highest grades.
-                                </p>
                             </div>
                         </div>
-                    </PixelMediaFrame>
+                    </ScrollReveal>
 
-                    <div className="grid gap-6">
-                        {PORTFOLIO_PREVIEW.slice(1).map((item, index) => (
-                            <article key={item.name} className="border-t border-white/10 pt-5">
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <PixelLabel tone={index === 0 ? 'live' : 'warning'}>{item.status}</PixelLabel>
-                                    <span className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">{item.chain}</span>
+                    {/* Right column: Moonbreon (top) + Lugia (bottom) */}
+                    <div className="grid gap-4">
+                        {/* Moonbreon */}
+                        <ScrollReveal delay={1}>
+                            <div className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)]">
+                                <div className="flex items-center justify-between">
+                                    <div className="label-font text-[var(--accent-blue)]">Modern momentum</div>
+                                    <PixelLabel tone="live">{PORTFOLIO_PREVIEW[1].status}</PixelLabel>
                                 </div>
-                                <h3 className="mt-4 font-['Oxanium'] text-3xl font-semibold text-[var(--text-main)]">{item.name}</h3>
-                                <div className="mt-3 text-sm leading-7 text-[var(--text-soft)]">Where it could trade: {item.venue}</div>
-                                <div className="mt-3 text-sm font-semibold text-[var(--accent-live)]">Recent public comp: {item.recentComp}</div>
-                                <p className="mt-3 text-sm leading-7 text-[var(--text-soft)]">{item.note}</p>
-                            </article>
-                        ))}
+                                <div className="mt-3 flex items-start gap-4">
+                                    <img
+                                        src={RECENT_CARD_COMPS[1].imageSrc}
+                                        alt={RECENT_CARD_COMPS[1].imageAlt}
+                                        className="aspect-[4/5] w-24 shrink-0 rounded-lg object-cover"
+                                    />
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)]">{RECENT_CARD_COMPS[1].name}</h3>
+                                        <div className="mt-0.5 text-[0.78rem] text-[var(--text-tertiary)]">
+                                            {RECENT_CARD_COMPS[1].subtitle} · {RECENT_CARD_COMPS[1].grade}
+                                        </div>
+                                        <p className="mt-2 text-[0.84rem] leading-[1.55] text-[var(--text-secondary)]">{PORTFOLIO_PREVIEW[1].note}</p>
+                                        <div className="mt-3 flex items-baseline gap-2">
+                                            <span className="text-xl font-bold text-[var(--accent-blue)]">{RECENT_CARD_COMPS[1].priceLabel}</span>
+                                            <span className="text-[0.72rem] text-[var(--text-tertiary)]">{RECENT_CARD_COMPS[1].recencyLabel}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollReveal>
+
+                        {/* Lugia */}
+                        <ScrollReveal delay={2}>
+                            <div className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)]">
+                                <div className="flex items-center justify-between">
+                                    <div className="label-font text-[var(--accent-green)]">Vintage collector</div>
+                                    <PixelLabel tone="warning">{PORTFOLIO_PREVIEW[2].status}</PixelLabel>
+                                </div>
+                                <div className="mt-3 flex items-start gap-4">
+                                    <img
+                                        src={RECENT_CARD_COMPS[2].imageSrc}
+                                        alt={RECENT_CARD_COMPS[2].imageAlt}
+                                        className="aspect-[4/5] w-24 shrink-0 rounded-lg object-cover"
+                                    />
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)]">{RECENT_CARD_COMPS[2].name}</h3>
+                                        <div className="mt-0.5 text-[0.78rem] text-[var(--text-tertiary)]">
+                                            {RECENT_CARD_COMPS[2].subtitle} · {RECENT_CARD_COMPS[2].grade}
+                                        </div>
+                                        <p className="mt-2 text-[0.84rem] leading-[1.55] text-[var(--text-secondary)]">{PORTFOLIO_PREVIEW[2].note}</p>
+                                        <div className="mt-3 flex items-baseline gap-2">
+                                            <span className="text-xl font-bold text-[var(--accent-blue)]">{RECENT_CARD_COMPS[2].priceLabel}</span>
+                                            <span className="text-[0.72rem] text-[var(--text-tertiary)]">{RECENT_CARD_COMPS[2].recencyLabel}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollReveal>
                     </div>
                 </div>
             </section>
 
-            <section className="mt-16 grid gap-12 xl:grid-cols-[0.95fr_1.05fr] xl:gap-16">
-                <div>
-                    <PixelDivider label="Example buys" />
-                    <h2 className="mt-6 font-['Oxanium'] text-4xl font-semibold text-[var(--text-main)]">How buys could look.</h2>
-                    <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--text-soft)]">
-                        Simple examples, not live buys from the round.
-                    </p>
-                    <div className="mt-8 border-y border-white/8">
+            {/* ── EXAMPLE HISTORY ── */}
+            <section className="mt-16 grid gap-12 xl:grid-cols-2 xl:gap-16">
+                <div className="flex h-full flex-col">
+                    <ScrollReveal>
+                        <div className="label-font">Example buys</div>
+                        <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">Example acquisitions.</h2>
+                        <p className="mt-2 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
+                            Illustrative, not live positions. Shows how the fund acquires.
+                        </p>
+                    </ScrollReveal>
+                    <div className="mt-6 flex-1 grid gap-3 content-start">
                         {SAMPLE_HISTORY.buys.map((item, index) => (
-                            <PixelLedgerRow key={`${item.date}-${item.item}`}>
-                                <div className="grid gap-4 lg:grid-cols-[150px_minmax(0,1fr)_auto] lg:items-start lg:gap-8">
-                                    <PixelLabel tone={index === 0 ? 'warning' : 'live'}>{item.date}</PixelLabel>
-                                    <div>
-                                        <h3 className="font-['Oxanium'] text-2xl font-semibold text-[var(--text-main)]">{item.item}</h3>
-                                        <p className="mt-3 text-sm leading-7 text-[var(--text-soft)]">
-                                            {item.chain} • {item.venue}
-                                        </p>
+                            <ScrollReveal key={`${item.date}-${item.item}`} delay={(index + 1) as 1 | 2}>
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <h3 className="text-[0.95rem] font-bold text-[var(--text-primary)]">{item.item}</h3>
+                                            <p className="mt-1 text-[0.8rem] text-[var(--text-secondary)]">
+                                                {item.chain} · {item.venue}
+                                            </p>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <div className="text-[0.95rem] font-bold text-[var(--accent-blue)]">{item.amount}</div>
+                                            <div className="mt-0.5 text-[0.72rem] text-[var(--text-tertiary)]">{item.date}</div>
+                                        </div>
                                     </div>
-                                    <div className="text-lg font-semibold text-[var(--accent-live)]">{item.amount}</div>
                                 </div>
-                            </PixelLedgerRow>
+                            </ScrollReveal>
                         ))}
                     </div>
                 </div>
 
-                <div>
-                    <PixelDivider label="Example sales" />
-                    <h2 className="mt-6 font-['Oxanium'] text-4xl font-semibold text-[var(--text-main)]">How sales could look.</h2>
-                    <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--text-soft)]">
-                        Simple examples, not real exits. The gain or loss number compares the sale with the original buy after fees.
-                    </p>
-                    <div className="mt-8 border-y border-white/8">
-                        {SAMPLE_HISTORY.sales.map((item) => (
-                            <PixelLedgerRow key={`${item.date}-${item.item}`}>
-                                <div className="grid gap-5">
-                                    <div className="flex flex-wrap items-center justify-between gap-4">
-                                        <h3 className="font-['Oxanium'] text-2xl font-semibold text-[var(--text-main)]">{item.item}</h3>
-                                        <div className={`text-sm font-semibold ${item.pnl.startsWith('+') ? 'text-[var(--accent-profit)]' : 'text-[var(--accent-loss)]'}`}>
-                                            {item.pnl.startsWith('+') ? 'Gain ' : 'Loss '}
+                <div className="flex h-full flex-col">
+                    <ScrollReveal>
+                        <div className="label-font">Example sales</div>
+                        <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">Example exits.</h2>
+                        <p className="mt-2 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
+                            Illustrative only. Gain or loss compares the exit with the original acquisition after fees.
+                        </p>
+                    </ScrollReveal>
+                    <div className="mt-6 flex-1 grid gap-3 content-start">
+                        {SAMPLE_HISTORY.sales.map((item, index) => (
+                            <ScrollReveal key={`${item.date}-${item.item}`} delay={(index + 1) as 1 | 2}>
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <h3 className="text-[0.95rem] font-bold text-[var(--text-primary)]">{item.item}</h3>
+                                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[0.75rem] font-semibold ${item.pnl.startsWith('+') ? 'bg-[rgba(94,196,137,0.1)] text-[var(--accent-green)]' : 'bg-[rgba(232,124,124,0.1)] text-[var(--accent-red)]'}`}>
                                             {item.pnl}
-                                        </div>
+                                        </span>
                                     </div>
-                                    <div className="grid gap-4 md:grid-cols-3">
+                                    <div className="mt-3 grid grid-cols-3 gap-3">
                                         <div>
-                                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Sale price</div>
-                                            <div className="mt-2 text-lg font-semibold text-[var(--text-main)]">{item.gross}</div>
+                                            <div className="label-font" style={{ fontSize: '0.6rem' }}>Sale price</div>
+                                            <div className="mt-1 text-[0.9rem] font-bold text-[var(--text-primary)]">{item.gross}</div>
                                         </div>
                                         <div>
-                                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">After fees</div>
-                                            <div className="mt-2 text-lg font-semibold text-[var(--text-main)]">{item.net}</div>
+                                            <div className="label-font" style={{ fontSize: '0.6rem' }}>After fees</div>
+                                            <div className="mt-1 text-[0.9rem] font-bold text-[var(--text-primary)]">{item.net}</div>
                                         </div>
                                         <div>
-                                            <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--text-dim)]">Type</div>
-                                            <div className="mt-2 text-lg font-semibold text-[var(--text-main)]">{item.date}</div>
+                                            <div className="label-font" style={{ fontSize: '0.6rem' }}>Date</div>
+                                            <div className="mt-1 text-[0.9rem] font-bold text-[var(--text-primary)]">{item.date}</div>
                                         </div>
                                     </div>
                                 </div>
-                            </PixelLedgerRow>
+                            </ScrollReveal>
                         ))}
                     </div>
                 </div>
