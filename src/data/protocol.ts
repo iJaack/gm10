@@ -130,62 +130,62 @@ export const RECENT_CARD_COMPS = [
 
 export const THESIS_PILLARS: readonly ThesisPillar[] = [
     {
-        title: 'Elite cards are hard to reach alone',
-        body: 'The cards with the strongest scarcity and collector signal usually cost too much for most people to buy casually, let alone build a basket around.',
+        title: '🏆 The grails are out of reach',
+        body: 'A single trophy-tier slab can cost more than most people will spend on cards in a lifetime. Building a diversified position at the top is even harder.',
     },
     {
-        title: 'The top end behaves differently',
-        body: 'Iconic high-grade cards tend to command outsized premiums because the best copies are scarce, recognizable, and easy for collectors to compare.',
+        title: '💎 Scarcity drives the premium',
+        body: 'The highest-graded copies of iconic cards trade in a different band entirely. Fewer exist, more collectors want them, and comps keep climbing.',
     },
     {
-        title: 'GM10 turns that into shared exposure',
-        body: 'Instead of picking, grading, storing, and exiting cards alone, people can follow the same run through one community fund and one token layer.',
+        title: '🚪 GM10 opens the door',
+        body: 'One fund, one token, one strategy. No solo card-picking, no storage logistics, no exit negotiations. Just shared exposure to the top of the market.',
     },
 ] as const;
 
 export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
     {
-        label: 'Record high-end demand',
-        value: '$550,000',
-        takeaway: 'A PSA 10 1st Edition Base Set Charizard set a fresh public record sale at Heritage on December 16, 2025.',
-        sourceLabel: 'Heritage, December 16, 2025',
-        sourceUrl: 'https://comics.ha.com/heritage-auctions-press-releases-and-news/-550-000-psa-10-charizard-breaks-record-leads-all-time-high-5.27-million-total-at-heritage-trading-card-games-auction.s?releaseId=5371',
+        label: 'Record public sale',
+        value: '$16.5M',
+        takeaway: 'Pikachu Illustrator PSA 10. Goldin Auctions, February 2026. The most expensive Pokémon card ever sold — and proof the ceiling keeps moving.',
+        sourceLabel: 'Goldin Auctions',
+        sourceUrl: 'https://goldin.co',
     },
     {
-        label: 'Top-grade premium below trophy tier',
-        value: '$8.7k-$13.9k',
-        takeaway: 'Recent PSA 10 Base Set Charizard sales still sit in a very different band from raw or lower-grade copies.',
-        sourceLabel: 'PriceCharting, Charizard #4',
+        label: 'Grade premium',
+        value: '$8.7k–$13.9k',
+        takeaway: 'PSA 10 Base Set Charizard trades at multiples of a raw copy. The grade creates the premium.',
+        sourceLabel: 'PriceCharting',
         sourceUrl: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4',
     },
     {
-        label: 'Scarcity at the top grade',
+        label: 'Population scarcity',
         value: '77 PSA 10s',
-        takeaway: 'PriceCharting shows Neo Genesis Lugia #9 with 8,125 graded copies total, but only 77 in PSA 10.',
-        sourceLabel: 'PriceCharting, Neo Genesis population',
+        takeaway: '8,125 graded copies of Neo Genesis Lugia exist. Only 77 earned a perfect 10. Less than 1%.',
+        sourceLabel: 'PriceCharting',
         sourceUrl: 'https://www.pricecharting.com/pop/set/pokemon-neo-genesis',
     },
     {
-        label: 'Modern grails still command a premium',
-        value: '$1.7k-$3.4k',
-        takeaway: 'Recent BGS 9.5 Umbreon VMAX #215 sales show that modern chase cards can still hold a meaningful high-grade premium.',
-        sourceLabel: 'PriceCharting, Umbreon VMAX #215',
+        label: 'Modern chase premium',
+        value: '$1.7k–$3.4k',
+        takeaway: 'Umbreon VMAX BGS 9.5 comps prove that modern cards can hold a meaningful premium at the top grade.',
+        sourceLabel: 'PriceCharting',
         sourceUrl: 'https://www.pricecharting.com/game/pokemon-evolving-skies/umbreon-vmax-215',
     },
 ] as const;
 
 export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     {
-        title: 'Join the round',
-        body: 'People join the GM10 round with test AVAX on Fuji today, and later rounds open the same exposure path on mainnet.',
+        title: '🪙 Enter the round',
+        body: 'Each round opens a window to contribute. Test AVAX on Fuji today — mainnet follows the same path.',
     },
     {
-        title: 'GM10 chases elite slabs',
-        body: 'The fund targets scarce, high-grade Pokemon cards instead of asking each person to pick and manage cards by themselves.',
+        title: '🃏 We acquire the cards',
+        body: 'GM10 targets verified, high-grade slabs with clear provenance and visible market comps. No guesswork.',
     },
     {
-        title: '$CATCH follows the run',
-        body: '$CATCH sits next to entries, holdings, exits, and the upside path as the strategy compounds and matures.',
+        title: '📊 $CATCH tracks it all',
+        body: 'One token follows every acquisition, every holding, every exit. Your position moves with the strategy.',
     },
 ] as const;
 
@@ -289,6 +289,24 @@ export const SALE_FLOW = [
     },
 ] as const;
 
+export const GOVERNANCE_PHASES = [
+    {
+        rounds: 'Rounds 1–3',
+        title: 'Centralized card selection',
+        detail: 'The founding team picks every target. Speed matters more than process while the portfolio is small and the strategy is proving itself.',
+    },
+    {
+        rounds: 'Rounds 4–5',
+        title: 'Offchain community selection',
+        detail: 'Token holders propose and vote on card targets offchain. The team still executes, but the community sets the direction.',
+    },
+    {
+        rounds: 'From Round 6',
+        title: 'Onchain enforcement',
+        detail: 'Buy and sell decisions are enforced onchain. The governance contract controls the fund — no single party can override a vote.',
+    },
+] as const;
+
 export const PORTFOLIO_PREVIEW = [
     {
         name: 'Charizard grail lane',
@@ -330,30 +348,34 @@ export const SAMPLE_HISTORY = {
 export const FAQ_TOPICS = [
     {
         question: 'What is GM10?',
-        answer: 'GM10 is a community fund built to give people proxy access to the upside of scarce, high-grade Pokemon cards without making them buy and manage the cards directly.',
+        answer: '🎯 A shared investment fund for high-grade Pokémon cards. One strategy, one token, one team doing the card work.',
     },
     {
-        question: 'What does $CATCH actually do?',
-        answer: '$CATCH is the tokenized way to follow and participate in the GM10 card run. It sits next to entries, holdings, exits, and the upside path as the system matures.',
+        question: 'What does $CATCH do?',
+        answer: '🔗 $CATCH is your position in the fund. It tracks every card acquired, every holding marked, and every exit completed.',
     },
     {
-        question: 'Why not just buy cards directly?',
-        answer: 'Because buying elite slabs directly means handling card selection, grading risk, storage, provenance, liquidity, and very high ticket sizes on your own. GM10 turns that into shared exposure.',
+        question: 'Why not buy cards directly?',
+        answer: '💸 Trophy-tier slabs cost $2k–$550k each. Then you handle authentication, grading, insured storage, and finding a buyer. GM10 does that for you.',
     },
     {
-        question: 'Why focus on expensive high-grade cards?',
-        answer: 'Because the strongest cards usually have the clearest scarcity, the most visible collector demand, and the least room for supply to expand. GM10 is built around that top-end part of the market.',
+        question: 'Why only high-grade cards?',
+        answer: '📈 Because scarcity concentrates at the top. A PSA 10 and a PSA 8 of the same card can be 10–50x apart in price. The premium is the strategy.',
     },
     {
-        question: 'Why is the live Buy page still on Fuji?',
-        answer: 'Because Fuji is where the public mechanics are live today. It lets people inspect the flow before the public mainnet launch is presented as open.',
+        question: 'Why Fuji testnet first?',
+        answer: '🔍 So anyone can inspect the contracts, the flow, and the mechanics before real capital is at stake. Transparency before trust.',
     },
     {
-        question: 'Does GM10 guarantee gains?',
-        answer: 'No. GM10 is about exposure to a strategy and an asset class, not guaranteed returns. Market evidence supports the thesis, but prices can still move against the fund.',
+        question: 'Does GM10 guarantee returns?',
+        answer: '⚠️ No. This is exposure to a strategy, not a guarantee. The market evidence supports the thesis. Prices can still move against the fund.',
     },
     {
-        question: 'How do the live Fuji holdings fit in?',
-        answer: 'They show that GM10 can already authorize a buy, release funds, and record NFT positions onchain through the modular Fuji stack.',
+        question: 'What do the live holdings prove?',
+        answer: '✅ That GM10 can authorize acquisitions, release funds, and record positions onchain today. The stack works.',
+    },
+    {
+        question: 'Who decides which cards to buy?',
+        answer: '🗳️ Rounds 1–3: the founding team picks every target. Rounds 4–5: token holders propose and vote offchain. From Round 6 onward: buy and sell decisions are enforced onchain through the governance contract.',
     },
 ] as const;

@@ -171,9 +171,9 @@ describe('page compression regressions', () => {
     it('keeps the home page focused on proxy access to elite pokemon-card upside', () => {
         renderAt('/');
 
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/proxy access to elite pokemon-card upside/i);
-        expect(screen.getByText(/get exposure to scarce, high-grade grails/i)).toBeInTheDocument();
-        expect(screen.getByText(/follows entries, holdings, exits, and the upside path of the full card run/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/the cards you can't buy alone/i);
+        expect(screen.getAllByText(/trophy-grade/i).length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByText(/your share/i)).toBeInTheDocument();
         expect(document.getElementById('why-gm10')).not.toBeNull();
         expect(document.getElementById('evidence')).not.toBeNull();
         expect(document.getElementById('how-it-works')).not.toBeNull();
@@ -185,18 +185,18 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/market evidence, not guaranteed results/i)).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /buy \$catch/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
-        expect(screen.getByRole('heading', { name: /the mechanics are already live in public/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /already live\. already inspectable\./i })).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', () => {
         renderAt('/fundraising');
 
-        expect(screen.getByRole('heading', { name: /join the live testnet round for pokemon-card exposure/i })).toBeInTheDocument();
-        expect(screen.getByText(/you are not buying one slab\. you are buying into the run\./i)).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /the upgraded fuji stack is already public/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /enter the round\./i })).toBeInTheDocument();
+        expect(screen.getByText(/you're not buying one card/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /inspect everything\./i })).toBeInTheDocument();
         expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^2$/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/the module links, round state, and recorded positions are already visible onchain/i)).toBeInTheDocument();
+        expect(screen.getByText(/contracts, round state, and recorded positions/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
@@ -205,7 +205,7 @@ describe('page compression regressions', () => {
     it('keeps the portfolio split between editorial lanes and live fuji status', () => {
         renderAt('/portfolio');
 
-        expect(screen.getByRole('heading', { name: /the card universe first\. the live stack underneath\./i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /the vault\. every card, every position\./i })).toBeInTheDocument();
         expect(screen.getByText(/^charizard$/i)).toBeInTheDocument();
         expect(screen.getByText(/^live on fuji$/i)).toBeInTheDocument();
         expect(screen.getByText(/^2 positions$/i)).toBeInTheDocument();
@@ -218,9 +218,9 @@ describe('page compression regressions', () => {
         renderAt('/faq');
 
         expect(screen.getByRole('heading', { name: /the short answers\./i })).toBeInTheDocument();
-        expect(document.querySelectorAll('summary')).toHaveLength(7);
+        expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
 
-        const nextSection = screen.getByRole('heading', { name: /buy the round or follow the story\./i }).closest('section');
+        const nextSection = screen.getByRole('heading', { name: /ready to get started\?/i }).closest('section');
         expect(nextSection).not.toBeNull();
         expect(within(nextSection!).getByRole('link', { name: /buy \$catch/i })).toBeInTheDocument();
         expect(within(nextSection!).getByRole('link', { name: /portfolio/i })).toBeInTheDocument();
