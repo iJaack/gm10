@@ -1,126 +1,151 @@
 import { useEffect, useState } from 'react';
-import { PixelDivider, PixelExternalLink, PixelLabel, PixelMediaFrame, PixelMenuLink } from './PixelUI';
-import { RECENT_CARD_COMPS, SITE_LINKS } from '../data/protocol';
-
-const [charizard, umbreon, lugia] = RECENT_CARD_COMPS;
+import { PixelExternalLink, PixelMenuLink } from './PixelUI';
+import { SITE_LINKS } from '../data/protocol';
+import { useTheme } from '../hooks/useTheme';
 
 export default function Hero() {
+    const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    // Text tokens derived from the actual overlay color — always maximally contrasted
+    // against the photo background regardless of theme or viewport size
+    const onPhoto = {
+        primary:   theme === 'dark' ? '#ffffff'                : '#0f0e0a',
+        secondary: theme === 'dark' ? 'rgba(255,255,255,0.85)' : 'rgba(15,14,10,0.82)',
+        muted:     theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(15,14,10,0.55)',
+        // Heavy layered halo — text stays readable against any part of the photo
+        shadow:    theme === 'dark'
+            ? '0 1px 4px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.7)'
+            : '0 1px 4px rgba(255,255,255,1), 0 0 16px rgba(255,255,255,0.95), 0 0 40px rgba(255,255,255,0.75)',
+    };
+
     return (
-        <section className="relative overflow-hidden border-b border-white/8 pb-8 pt-16 sm:pt-20 lg:min-h-[calc(100svh-76px)] lg:pb-10">
-            <div className="absolute inset-0 pixel-grid opacity-30" aria-hidden />
+        <section className="relative overflow-hidden pb-6 pt-24 sm:pt-28 md:pb-8 md:pt-32">
+            {/* Photo background — day in light mode, night in dark mode */}
+            <div className="absolute inset-0 z-0">
+                <img
+                    src={theme === 'dark' ? '/brand/cover-pokeball-night.png' : '/brand/cover-pokeball.png'}
+                    alt=""
+                    aria-hidden
+                    className="h-full w-full object-cover object-center"
+                />
+                {/* Overlay sm→lg — very faint, photo almost fully visible */}
+                <div
+                    className="absolute inset-0 hidden sm:block lg:hidden"
+                    style={{
+                        background: theme === 'dark'
+                            ? 'linear-gradient(105deg, rgba(11,10,20,0.14) 0%, rgba(11,10,20,0.05) 60%, rgba(11,10,20,0.01) 100%)'
+                            : 'linear-gradient(105deg, rgba(250,247,240,0.10) 0%, rgba(250,247,240,0.03) 60%, rgba(250,247,240,0.00) 100%)',
+                    }}
+                />
+                {/* Overlay lg+ — slightly more present for wide layouts */}
+                <div
+                    className="absolute inset-0 hidden lg:block"
+                    style={{
+                        background: theme === 'dark'
+                            ? 'linear-gradient(105deg, rgba(11,10,20,0.28) 0%, rgba(11,10,20,0.10) 60%, rgba(11,10,20,0.02) 100%)'
+                            : 'linear-gradient(105deg, rgba(250,247,240,0.22) 0%, rgba(250,247,240,0.08) 60%, rgba(250,247,240,0.01) 100%)',
+                    }}
+                />
+            </div>
+
+            {/* Mobile-only frosted backdrop — keeps text legible against the photo */}
             <div
-                className="absolute inset-0"
-                aria-hidden
+                className="absolute inset-x-0 bottom-0 top-0 z-[5] sm:hidden"
                 style={{
-                    background:
-                        'radial-gradient(circle at 72% 18%, rgba(105,200,255,0.16), transparent 22%), radial-gradient(circle at 24% 72%, rgba(217,177,99,0.12), transparent 22%), linear-gradient(140deg, rgba(105,200,255,0.05), transparent 32%, rgba(217,177,99,0.04) 80%, transparent 100%)',
+                    background: theme === 'dark'
+                        ? 'linear-gradient(to bottom, rgba(11,10,20,0.68) 0%, rgba(11,10,20,0.50) 70%, rgba(11,10,20,0.20) 100%)'
+                        : 'linear-gradient(to bottom, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.60) 70%, rgba(255,255,255,0.15) 100%)',
+                    backdropFilter: 'blur(2px)',
+                    WebkitBackdropFilter: 'blur(2px)',
                 }}
             />
 
-            <div className="relative mx-auto max-w-[min(1820px,calc(100vw-40px))] px-4">
-                <div className="grid gap-10 lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] lg:items-start lg:gap-6 xl:gap-10">
-                    <div className={`${mounted ? 'scan-reveal' : 'opacity-0'} max-w-[38rem] lg:pt-0`}>
-                        <div className="flex flex-wrap gap-3">
-                            <PixelLabel tone="live">GM10</PixelLabel>
-                            <PixelLabel tone="warning">Live on Fuji</PixelLabel>
-                        </div>
+            <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))] px-4">
+                {/* Headline */}
+                <h1
+                    className={`mt-6 max-w-[20ch] text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] sm:text-[3.4rem] lg:text-[4.2rem] ${mounted ? 'scan-reveal scan-delay-1' : 'opacity-0'}`}
+                    style={{ color: onPhoto.primary, textShadow: onPhoto.shadow }}
+                >
+                    The 'mons you can't $CATCH alone.
+                </h1>
 
-                        <div className="mt-7">
-                            <div className="pixel-font text-[0.72rem] uppercase tracking-[0.22em] text-[var(--text-dim)]">
-                                Gem Mint Strategy
-                            </div>
-                            <h1 className="mt-4 max-w-[12ch] font-['Oxanium'] text-[3.35rem] font-semibold leading-[0.9] text-[var(--text-main)] sm:text-[4rem] lg:text-[4.85rem]">
-                                Proxy access to elite Pokemon-card upside.
-                            </h1>
-                        </div>
+                {/* Subtitle + Tagline — frosted pill guarantees readability over any photo */}
+                <div
+                    className={`mt-5 w-fit max-w-[34rem] rounded-2xl px-4 py-3 ${mounted ? 'scan-reveal scan-delay-2' : 'opacity-0'}`}
+                    style={{
+                        background: theme === 'dark' ? 'rgba(11,10,20,0.55)' : 'rgba(255,255,255,0.72)',
+                        backdropFilter: 'blur(14px)',
+                        WebkitBackdropFilter: 'blur(14px)',
+                        border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+                    }}
+                >
+                    <p
+                        className="text-[1.05rem] leading-[1.65] sm:text-[1.15rem]"
+                        style={{ color: onPhoto.secondary }}
+                    >
+                        Share the upside of trophy-grade Pokémon grails — without buying them solo. One fund, one token, zero card work.
+                    </p>
+                    <p
+                        className="mt-2 text-[0.88rem]"
+                        style={{ color: onPhoto.muted }}
+                    >
+                        <span style={{ fontWeight: 600, color: onPhoto.secondary }}>$CATCH</span> is your share. Built on Avalanche. Agent-ready.
+                    </p>
+                </div>
 
-                        <p className="mt-5 max-w-[33rem] text-lg leading-8 text-[var(--text-soft)] sm:text-[1.08rem]">
-                            Get exposure to scarce, high-grade grails without picking, buying, storing, or exiting the slabs yourself.
-                        </p>
-
-                        <div className="mt-4 max-w-[34rem] text-sm leading-7 text-[var(--text-soft)]">
-                            <span className="font-semibold text-[var(--text-main)]">$CATCH</span> follows entries, holdings, exits, and the upside path of the full card run.
-                        </div>
-
-                        <div className="mt-6 flex flex-wrap gap-3">
-                            <PixelMenuLink to="/fundraising" active>
-                                Buy $CATCH
-                            </PixelMenuLink>
-                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                                Follow on X
-                            </PixelExternalLink>
-                        </div>
-
-                    </div>
-
-                    <div className={`${mounted ? 'scan-reveal scan-delay-1' : 'opacity-0'} relative min-h-[360px] sm:min-h-[430px] lg:min-h-[500px]`}>
-                        <PixelDivider label="Premium TCG spread" className="mb-5" />
-
-                        <div className="relative h-full">
-                            <div className="absolute inset-[6%_2%_8%_4%] rounded-[44px] border border-white/8 bg-[radial-gradient(circle_at_28%_30%,rgba(105,200,255,0.18),transparent_20%),radial-gradient(circle_at_85%_18%,rgba(217,177,99,0.12),transparent_18%),linear-gradient(145deg,rgba(255,255,255,0.04),transparent_28%),rgba(8,13,24,0.42)] shadow-[0_26px_90px_rgba(0,0,0,0.34)]" />
-                            <div className="absolute inset-[12%_6%_14%_12%] rounded-[46px] bg-[linear-gradient(120deg,rgba(255,255,255,0.04),transparent_28%),rgba(7,12,23,0.24)]" />
-
-                            <PixelMediaFrame
-                                eyebrow="Anchor card"
-                                title={`${charizard.name} ${charizard.grade}`}
-                                caption={`${charizard.priceLabel} • ${charizard.recencyLabel}`}
-                                className="absolute left-[18%] top-[10%] z-30 w-[43%] max-w-[410px] -rotate-[8deg]"
-                            >
-                                <img
-                                    src={charizard.imageSrc}
-                                    alt={charizard.imageAlt}
-                                    className="aspect-[4/5] w-full rounded-[22px] object-cover"
-                                    loading="eager"
-                                />
-                            </PixelMediaFrame>
-
-                            <PixelMediaFrame
-                                eyebrow="Modern chase"
-                                title={umbreon.name}
-                                caption={`${umbreon.grade} • ${umbreon.priceLabel}`}
-                                className="absolute left-[2%] bottom-[8%] z-20 w-[27%] max-w-[245px] -rotate-[2deg]"
-                            >
-                                <img
-                                    src={umbreon.imageSrc}
-                                    alt={umbreon.imageAlt}
-                                    className="aspect-[4/5] w-full rounded-[22px] object-cover"
-                                    loading="lazy"
-                                />
-                            </PixelMediaFrame>
-
-                            <PixelMediaFrame
-                                eyebrow="Vintage signal"
-                                title={lugia.name}
-                                caption={`${lugia.grade} • ${lugia.priceLabel}`}
-                                className="absolute right-[4%] top-[18%] z-20 w-[24%] max-w-[215px] rotate-[9deg]"
-                            >
-                                <img
-                                    src={lugia.imageSrc}
-                                    alt={lugia.imageAlt}
-                                    className="aspect-[4/5] w-full rounded-[22px] object-cover"
-                                    loading="lazy"
-                                />
-                            </PixelMediaFrame>
-
-                            <div className="absolute bottom-[10%] right-[8%] z-40 w-[36%] min-w-[220px] max-w-[290px] rounded-[28px] border border-[rgba(217,177,99,0.24)] bg-[linear-gradient(140deg,rgba(255,255,255,0.04),transparent_32%),rgba(9,14,25,0.88)] p-5 shadow-[0_20px_54px_rgba(0,0,0,0.28)] backdrop-blur-sm">
-                                <div className="pixel-font text-[0.66rem] uppercase tracking-[0.18em] text-[var(--accent-warning)]">
-                                    Grade premium
-                                </div>
-                                <div className="mt-3 text-3xl font-bold text-[var(--text-main)]">$550k</div>
-                                <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
-                                    Trophy-tier cards clear in a different price band than ordinary inventory.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                {/* CTAs */}
+                <div className={`mt-8 flex flex-wrap gap-3 ${mounted ? 'scan-reveal scan-delay-3' : 'opacity-0'}`}>
+                    <PixelMenuLink to="/fundraising" active>
+                        Buy $CATCH
+                    </PixelMenuLink>
+                    <PixelExternalLink
+                        href={SITE_LINKS.x}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                            background: theme === 'dark' ? 'rgba(10,10,10,0.65)' : 'rgba(255,255,255,0.72)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            borderColor: theme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)',
+                            color: onPhoto.primary,
+                        }}
+                    >
+                        Follow on X
+                    </PixelExternalLink>
                 </div>
             </div>
+
+            {/* Photo credit */}
+            <p
+                className="absolute bottom-2 right-3 z-10 text-[0.65rem]"
+                style={{ color: onPhoto.muted }}
+            >
+                Photo by{' '}
+                <a
+                    href="https://unsplash.com/@bahnijitb?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                    style={{ color: onPhoto.muted }}
+                >
+                    Bahnijit Barman
+                </a>{' '}
+                on{' '}
+                <a
+                    href="https://unsplash.com/photos/two-red-and-white-balls-sitting-in-the-grass-1fZC2rYbpsU?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                    style={{ color: onPhoto.muted }}
+                >
+                    Unsplash
+                </a>
+            </p>
         </section>
     );
 }
