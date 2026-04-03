@@ -16,6 +16,7 @@ import {
 import { GM10_FUND_ABI } from '../data/contracts';
 import { BUY_PAGE_DEFAULTS, FUJI_PRIMARY_DEPLOYMENT, SITE_LINKS } from '../data/protocol';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
+import { Web3Providers } from '../components/Web3Providers';
 
 const AVAX_USD_ESTIMATE = 25;
 
@@ -23,11 +24,16 @@ function formatAddress(address: string) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export default function Fundraising() {
+function FundraisingContent() {
     const { theme } = useTheme();
     const { isConnected } = useAccount();
     const { data: hash, error: writeError, isPending, reset, writeContract } = useWriteContract();
-    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+    const {
+        error: receiptError,
+        isError: isReceiptError,
+        isLoading: isConfirming,
+        isSuccess: isConfirmed,
+    } = useWaitForTransactionReceipt({ hash });
     const [amount, setAmount] = useState('');
     const [txError, setTxError] = useState<string | null>(null);
     const roundState = useFujiRoundState();
@@ -41,26 +47,34 @@ export default function Fundraising() {
     const tokenPrice = roundData ? Number(formatEther(roundData.tokenPrice)) : BUY_PAGE_DEFAULTS.priceAvax;
     const minInvestment = roundData ? Number(formatEther(roundData.minInvestment)) : BUY_PAGE_DEFAULTS.minAvax;
     const maxInvestment = roundData ? Number(formatEther(roundData.maxInvestment)) : BUY_PAGE_DEFAULTS.maxAvax;
-    const isRoundActive = roundData ? roundData.isActive : false;
+    const isRoundActive = roundState.isRoundOpen;
 
     const progress = roundTarget > 0 ? Math.min((roundRaised / roundTarget) * 100, 100) : 0;
     const estimatedTokens = amount ? (Number(amount) / tokenPrice).toFixed(2) : '0.00';
 
     const displayError = useMemo(() => {
         if (txError) return txError;
-        if (!writeError) return null;
-        const message = writeError.message;
-        if (message.includes('RoundNotActive')) return 'This round is not active on Fuji.';
+        const surfacedError = receiptError ?? writeError;
+        if (!surfacedError) return null;
+        const message = surfacedError.message;
+        if (message.includes('RoundNotActive')) return 'This Fuji test round is closed. Mainnet round coming soon.';
+        if (message.includes('reverted')) return 'This Fuji test round is closed. Mainnet round coming soon.';
         if (message.includes('InvestmentBelowMinimum')) return `Minimum buy is ${minInvestment} AVAX.`;
         if (message.includes('InvestmentAboveMaximum')) return `Maximum buy is ${maxInvestment} AVAX.`;
         if (message.includes('TargetReached')) return 'The current round is already full.';
         return message;
-    }, [txError, writeError, minInvestment, maxInvestment]);
+    }, [txError, receiptError, writeError, minInvestment, maxInvestment]);
 
     function handleInvest() {
         if (!amount) return;
         setTxError(null);
         reset();
+
+        if (!roundData || !roundState.isRoundOpen) {
+            setTxError('This Fuji test round is closed. Mainnet round coming soon.');
+            return;
+        }
+
         try {
             writeContract({
                 address: FUJI_PRIMARY_DEPLOYMENT.proxy.address,
@@ -178,11 +192,11 @@ export default function Fundraising() {
                                     <button
                                         type="button"
                                         onClick={handleInvest}
-                                        disabled={!amount || isPending || isConfirming}
+                                        disabled={!amount || !roundState.isRoundOpen || isPending || isConfirming}
                                         className="pixel-menu-link pixel-menu-link-active shrink-0 justify-center disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <span className="pixel-menu-cursor opacity-100">↗</span>
-                                        <span>{isPending || isConfirming ? 'Submitting...' : 'Buy $CATCH'}</span>
+                                        <span>{isPending || isConfirming ? 'Submitting...' : roundState.isRoundOpen ? 'Buy $CATCH' : 'Round closed'}</span>
                                     </button>
                                 )}
                                 <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer" className="shrink-0">
@@ -197,9 +211,19 @@ export default function Fundraising() {
                             <span className="ml-2">(~${(Number(amount || 0) * AVAX_USD_ESTIMATE).toFixed(2)} USD)</span>
                         </div>
 
+                        {!displayError && !isRoundActive ? (
+                            <div className="border-t border-[var(--border)] px-6 py-4">
+                                <PixelMessageBox title="Round closed" body="The Fuji test round has expired. Mainnet round coming soon." />
+                            </div>
+                        ) : null}
                         {displayError ? (
                             <div className="border-t border-[var(--border)] px-6 py-4">
                                 <PixelMessageBox title="Error" body={displayError} />
+                            </div>
+                        ) : null}
+                        {isReceiptError && !displayError ? (
+                            <div className="border-t border-[var(--border)] px-6 py-4">
+                                <PixelMessageBox title="Error" body="The transaction reverted onchain." />
                             </div>
                         ) : null}
                         {isConfirmed ? (
@@ -298,5 +322,13 @@ export default function Fundraising() {
                 </ScrollReveal>
             </section>
         </Page>
+    );
+}
+
+export default function Fundraising() {
+    return (
+        <Web3Providers>
+            <FundraisingContent />
+        </Web3Providers>
     );
 }
