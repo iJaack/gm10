@@ -4,6 +4,8 @@ import { ScrollReveal } from '../components/ScrollReveal';
 import { PixelDivider, PixelExternalLink, PixelMenuLink } from '../components/PixelUI';
 import { FAQ_TOPICS, SITE_LINKS } from '../data/protocol';
 import { useTheme } from '../hooks/useTheme';
+import { useFujiRoundState } from '../hooks/useFujiProof';
+import { Web3Providers } from '../components/Web3Providers';
 
 function FAQItem({ question, answer, index }: { question: string; answer: string; index: number }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -48,8 +50,9 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
     );
 }
 
-export default function FAQ() {
+function FAQContent() {
     const { theme } = useTheme();
+    const roundState = useFujiRoundState();
     return (
         <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
             {/* ── HEADER ── */}
@@ -95,11 +98,13 @@ export default function FAQ() {
                             Ready to get started?
                         </h2>
                         <p className="mx-auto mt-4 max-w-2xl text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
-                            The live round is on Fuji now. Buy in, or follow the story as it unfolds.
+                            {roundState.isRoundOpen
+                                ? 'The live round is on Fuji now. Buy in, or follow the story as it unfolds.'
+                                : 'The Fuji test round is closed. You can still inspect the flow while the mainnet round gets prepared.'}
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
                             <PixelMenuLink to="/fundraising" active>
-                                Buy $CATCH
+                                {roundState.isRoundOpen ? 'Buy $CATCH' : 'See fundraising status'}
                             </PixelMenuLink>
                             <PixelMenuLink to="/portfolio">
                                 Portfolio
@@ -112,5 +117,13 @@ export default function FAQ() {
                 </ScrollReveal>
             </section>
         </Page>
+    );
+}
+
+export default function FAQ() {
+    return (
+        <Web3Providers>
+            <FAQContent />
+        </Web3Providers>
     );
 }
