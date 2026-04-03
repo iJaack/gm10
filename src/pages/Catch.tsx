@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { PixelExternalLink, PixelLabel, PixelMenuLink } from '../components/PixelUI';
+import { Web3Providers } from '../components/Web3Providers';
 import {
     GOVERNANCE_PHASES,
     SITE_LINKS,
@@ -24,6 +25,54 @@ const SLICE_COLOURS: Record<string, string> = {
     'from-violet-500 to-purple-400': '#8b5cf6',
 };
 
+const WATERFALL_CODE_REFERENCE = [
+    {
+        emoji: '🃏',
+        label: 'Card sells',
+        detail: 'Sale event triggers the onchain flow',
+        color: 'var(--accent)',
+        source: 'GemMintStrategyFundV3.sol',
+        code: `function finalizeSale(bytes32 _saleKey) external onlyRole(MANAGER_ROLE) {
+    (, uint256 markedValueUsdt6, uint256 costBasisUsdt6, uint256 netProceedsUsdt6) =
+        IGm10PortfolioRegistry(portfolioRegistry).finalizeSale(_saleKey);`,
+    },
+    {
+        emoji: '⛓',
+        label: 'Proceeds hit contract',
+        detail: 'Full AVAX returned onchain before any split',
+        color: 'var(--accent-blue)',
+        source: 'GemMintStrategyFundV3.sol',
+        code: `uint256 treasuryAllocationUsdt6;
+uint256 buybackAllocationUsdt6;
+uint256 lpAllocationUsdt6;
+uint256 reserveAllocationUsdt6;`,
+    },
+    {
+        emoji: '💰',
+        label: 'Principal restored',
+        detail: 'Investors recover their original cost basis first',
+        color: 'var(--accent-green)',
+        source: 'GemMintStrategyFundV3.sol',
+        code: `if (netProceedsUsdt6 <= costBasisUsdt6) {
+    treasuryAllocationUsdt6 = netProceedsUsdt6;
+} else {
+    uint256 realizedProfitUsdt6 = netProceedsUsdt6 - costBasisUsdt6;
+    treasuryAllocationUsdt6 = costBasisUsdt6 + treasuryProfitShareUsdt6;
+}`,
+    },
+    {
+        emoji: '📊',
+        label: 'Realized profit distributes',
+        detail: 'Splits automatically — four buckets, no discretion',
+        color: 'var(--accent)',
+        source: 'GemMintStrategyFundV3.sol',
+        code: `buybackAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2500, WORKFLOW_BPS);
+lpAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2000, WORKFLOW_BPS);
+reserveAllocationUsdt6 =
+    realizedProfitUsdt6 - treasuryProfitShareUsdt6 - buybackAllocationUsdt6 - lpAllocationUsdt6;`,
+    },
+] as const;
+
 function polarToXY(cx: number, cy: number, r: number, angleDeg: number) {
     const rad = ((angleDeg - 90) * Math.PI) / 180;
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
@@ -43,6 +92,45 @@ interface TooltipState {
     x: number;
     y: number;
     color: string;
+}
+
+function WaterfallHoverCard({
+    emoji,
+    label,
+    detail,
+    color,
+    source,
+    code,
+}: (typeof WATERFALL_CODE_REFERENCE)[number]) {
+    return (
+        <div className="group relative flex w-full max-w-sm flex-col items-center">
+            <div className="w-full rounded-xl border-2 bg-[var(--bg-secondary)] px-5 py-4 text-center transition-transform duration-200 group-hover:-translate-y-0.5 group-focus-within:-translate-y-0.5" style={{ borderColor: color }}>
+                <div className="text-xl">{emoji}</div>
+                <div className="mt-1 text-[0.92rem] font-bold text-[var(--text-primary)]">{label}</div>
+                <div className="mt-0.5 text-[0.75rem] text-[var(--text-secondary)]">{detail}</div>
+                <div className="mt-2 hidden items-center justify-center gap-1 text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)] md:flex">
+                    <span>hover to inspect code</span>
+                </div>
+            </div>
+
+            <div className="pointer-events-none absolute bottom-[calc(100%+1rem)] left-1/2 z-20 hidden w-[min(32rem,88vw)] -translate-x-1/2 rounded-2xl border border-[var(--border-strong)] bg-[color-mix(in_oklab,var(--bg-secondary)_92%,black)] p-4 text-left opacity-0 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-sm transition duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 md:block lg:w-[28rem]">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <div className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Contract proof</div>
+                        <div className="mt-1 text-sm font-bold text-[var(--text-primary)]">{label}</div>
+                    </div>
+                    <div className="rounded-full border px-2 py-1 text-[0.64rem] font-semibold text-[var(--text-secondary)]" style={{ borderColor: color }}>
+                        {source}
+                    </div>
+                </div>
+                <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--bg-primary)_88%,black)] px-3 py-3 text-[0.68rem] leading-[1.55] text-[var(--text-secondary)]"><code>{code}</code></pre>
+                <div className="mt-2 text-[0.7rem] leading-[1.5] text-[var(--text-tertiary)]">
+                    this is the actual branch the UI is describing, not marketing copy.
+                </div>
+                <div className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-[var(--border-strong)] bg-[color-mix(in_oklab,var(--bg-secondary)_92%,black)]" />
+            </div>
+        </div>
+    );
 }
 
 function AllocationPieChart() {
@@ -202,8 +290,9 @@ const NAV_RULES = [
 ];
 
 
-export default function Catch() {
+function CatchContent() {
     const roundState = useFujiRoundState();
+    const roundTone = roundState.isRoundOpen ? 'live' : 'warning';
 
     return (
         <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
@@ -220,8 +309,8 @@ export default function Catch() {
                     </p>
                     <div className="mt-5 flex flex-wrap gap-2">
                         <PixelLabel tone="live">ERC-20 on Avalanche</PixelLabel>
-                        <PixelLabel tone="warning">Fuji testnet live</PixelLabel>
-                        <PixelLabel tone={roundState.round?.isActive ? 'live' : 'warning'}>{roundState.status}</PixelLabel>
+                        <PixelLabel tone={roundTone}>{roundState.isRoundOpen ? 'Fuji testnet live' : 'Fuji test round closed'}</PixelLabel>
+                        <PixelLabel tone={roundTone}>{roundState.status}</PixelLabel>
                     </div>
                 </ScrollReveal>
 
@@ -231,7 +320,7 @@ export default function Catch() {
                         { emoji: '🪙', label: 'Total supply', value: '100,000,000', unit: 'CATCH' },
                         { emoji: '💰', label: 'Public allocation', value: '40%', unit: 'Fundraising rounds' },
                         { emoji: '🔒', label: 'Team vesting', value: '48 months', unit: '6-mo cliff + 42-mo linear' },
-                        { emoji: '📊', label: 'Current round', value: `Round ${roundState.roundId}`, unit: 'Fuji testnet' },
+                        { emoji: '📊', label: roundState.isRoundOpen ? 'Current round' : 'Last test round', value: `Round ${roundState.roundId}`, unit: roundState.isRoundOpen ? 'Fuji testnet' : 'Closed on Fuji' },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
@@ -317,6 +406,9 @@ export default function Catch() {
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
                         Sale proceeds return onchain first. Principal is restored, then realized profit splits into four buckets — automatically, with no discretion.
                     </p>
+                    <p className="mt-2 hidden text-[0.75rem] uppercase tracking-[0.16em] text-[var(--text-tertiary)] md:block">
+                        hover any step to inspect the matching contract branch
+                    </p>
                 </ScrollReveal>
 
                 {/* Flowchart */}
@@ -324,28 +416,16 @@ export default function Catch() {
                     <div className="mt-8 flex flex-col items-center">
 
                         {/* Pipeline steps */}
-                        {[
-                            { emoji: '🃏', label: 'Card sells', detail: 'Sale event triggers the onchain flow', color: 'var(--accent)' },
-                            { emoji: '⛓', label: 'Proceeds hit contract', detail: 'Full AVAX returned onchain before any split', color: 'var(--accent-blue)' },
-                            { emoji: '💰', label: 'Principal restored', detail: 'Investors recover their original cost basis first', color: 'var(--accent-green)' },
-                        ].map((step) => (
+                        {WATERFALL_CODE_REFERENCE.slice(0, 3).map((step) => (
                             <div key={step.label} className="flex w-full max-w-sm flex-col items-center">
-                                <div className="w-full rounded-xl border-2 bg-[var(--bg-secondary)] px-5 py-4 text-center" style={{ borderColor: step.color }}>
-                                    <div className="text-xl">{step.emoji}</div>
-                                    <div className="mt-1 text-[0.92rem] font-bold text-[var(--text-primary)]">{step.label}</div>
-                                    <div className="mt-0.5 text-[0.75rem] text-[var(--text-secondary)]">{step.detail}</div>
-                                </div>
+                                <WaterfallHoverCard {...step} />
                                 <div className="h-5 w-px bg-[var(--border-strong)]" />
                                 <svg width="10" height="6" viewBox="0 0 10 6" className="text-[var(--border-strong)]"><path d="M5 6L0 0h10z" fill="currentColor"/></svg>
                             </div>
                         ))}
 
                         {/* Profit split node */}
-                        <div className="w-full max-w-sm rounded-xl border-2 border-[var(--accent)] bg-[var(--bg-secondary)] px-5 py-4 text-center" style={{ boxShadow: '0 0 20px var(--gold-glow)' }}>
-                            <div className="text-xl">📊</div>
-                            <div className="mt-1 text-[0.92rem] font-bold text-[var(--text-primary)]">Realized profit distributes</div>
-                            <div className="mt-0.5 text-[0.75rem] text-[var(--text-secondary)]">Splits automatically — four buckets, no discretion</div>
-                        </div>
+                        <WaterfallHoverCard {...WATERFALL_CODE_REFERENCE[3]} />
 
                         {/* Fork */}
                         <div className="h-5 w-px bg-[var(--border-strong)]" />
@@ -472,13 +552,15 @@ export default function Catch() {
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-6 py-12 text-center transition-colors">
                         <div className="label-font">Ready?</div>
                         <h2 className="mx-auto mt-3 text-3xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
-                            The round is open on Fuji.
+                            {roundState.isRoundOpen ? 'The round is open on Fuji.' : 'The Fuji test round is closed.'}
                         </h2>
                         <p className="mx-auto mt-3 max-w-xl text-[0.95rem] leading-[1.7] text-[var(--text-secondary)]">
-                            Test the flow, inspect the contracts, then buy in when you're ready.
+                            {roundState.isRoundOpen
+                                ? 'Test the flow, inspect the contracts, then buy in when you\'re ready.'
+                                : 'You can still inspect the contracts and mechanics here. Mainnet round coming soon.'}
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
-                            <PixelMenuLink to="/fundraising" active>Buy $CATCH</PixelMenuLink>
+                            <PixelMenuLink to="/fundraising" active>{roundState.isRoundOpen ? 'Buy $CATCH' : 'See fundraising status'}</PixelMenuLink>
                             <PixelMenuLink to="/portfolio">Portfolio</PixelMenuLink>
                             <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
                                 Follow on X
@@ -488,5 +570,13 @@ export default function Catch() {
                 </ScrollReveal>
             </section>
         </Page>
+    );
+}
+
+export default function Catch() {
+    return (
+        <Web3Providers>
+            <CatchContent />
+        </Web3Providers>
     );
 }
