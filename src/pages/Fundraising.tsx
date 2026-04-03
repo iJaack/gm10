@@ -105,10 +105,12 @@ function FundraisingContent() {
                     <div>
                         <div className="label-font">Buy</div>
                         <h1 className="mt-4 text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
-                            Enter the round.
+                            {isRoundActive ? 'Enter the round.' : 'Fuji round closed.'}
                         </h1>
                         <p className="mt-3 text-[1.05rem] leading-[1.7] text-[var(--text-secondary)]">
-                            The live round is open on Fuji. Inspect the contracts, review the flow, then buy in when you're ready.
+                            {isRoundActive
+                                ? 'The live round is open on Fuji. Inspect the contracts, review the flow, then buy in when you\'re ready.'
+                                : 'The Fuji test round has ended. Inspect the contracts, review the flow, and watch for the mainnet round soon.'}
                         </p>
                     </div>
                 </ScrollReveal>
