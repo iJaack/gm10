@@ -1,3 +1,4 @@
+import { Suspense, lazy, useEffect, useState } from 'react';
 import Hero from '../components/Hero';
 import CAGRChart from '../components/CAGRChart';
 import { ScrollReveal } from '../components/ScrollReveal';
@@ -12,8 +13,11 @@ import {
     THESIS_EVIDENCE,
     THESIS_PILLARS,
 } from '../data/protocol';
-import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useTheme } from '../hooks/useTheme';
+import { useFujiRoundState } from '../hooks/useFujiProof';
+import { Web3Providers } from '../components/Web3Providers';
+
+const HomeFujiSection = lazy(() => import('../components/HomeFujiSection'));
 
 const SYSTEM_NOTES = [
     { id: 'token', emoji: '🪙', title: 'Token', body: '$CATCH tracks the full GM10 strategy — not a single card. Every entry, holding, and exit flows through it.' },
@@ -24,14 +28,48 @@ const SYSTEM_NOTES = [
     { id: 'agents', emoji: '🤖', title: 'Agents', body: 'GM10 is agent-ready. Every contract, position, and round is inspectable by humans and their agents. Built on Avalanche.' },
 ];
 
-function formatAddress(address: string) {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-export default function Home() {
-    const roundState = useFujiRoundState();
-    const proofState = useFujiPortfolioPositions();
+function HomeContent() {
     const { theme } = useTheme();
+    const [showFujiSection, setShowFujiSection] = useState(false);
+    const roundState = useFujiRoundState();
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            setShowFujiSection(true);
+        }, 1200);
+
+        return () => window.clearTimeout(timer);
+    }, []);
+
+    const fujiSectionFallback = (
+        <section className="px-4 py-16 md:py-24">
+            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                        <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${roundState.isRoundOpen ? 'animate-ping bg-[var(--accent-green)]' : 'bg-[var(--accent)]'}`} />
+                        <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${roundState.isRoundOpen ? 'bg-[var(--accent-green)]' : 'bg-[var(--accent)]'}`} />
+                    </span>
+                    <span className={`label-font ${roundState.isRoundOpen ? 'text-[var(--accent-green)]' : 'text-[var(--accent)]'}`}>
+                        {roundState.isRoundOpen ? 'Live on Fuji' : 'Fuji round closed'}
+                    </span>
+                </div>
+                <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.5rem]">
+                    Already inspectable.
+                </h2>
+                <p className="mt-4 max-w-[42rem] text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
+                    {roundState.isRoundOpen
+                        ? 'The live proof block loads after first paint so the hero renders first, but the onchain data is still available below the fold.'
+                        : 'The Fuji test round is closed. The proof block still loads below the fold so anyone can inspect the contracts and state while mainnet gets lined up.'}
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                    <PixelMenuLink to="/fundraising#proof">Inspect the Fuji stack</PixelMenuLink>
+                    <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
+                        Follow on X
+                    </PixelExternalLink>
+                </div>
+            </div>
+        </section>
+    );
 
     return (
         <main>
@@ -49,8 +87,10 @@ export default function Home() {
                     <section id="why-gm10" className="relative overflow-hidden border-b border-[var(--border)] px-4 py-16 md:py-24">
                         {/* Card pile background */}
                         <img
-                            src="/brand/why-bg.png"
+                            src="/brand/why-bg.webp"
                             aria-hidden alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="absolute inset-0 h-full w-full object-cover object-center"
                             style={{ filter: theme === 'light' ? 'saturate(0.55) brightness(1.15)' : 'saturate(0.7) brightness(0.6)' }}
                         />
@@ -155,8 +195,10 @@ export default function Home() {
                         {/* ── Right: evidence photo — no card frame, sits inline ── */}
                         <ScrollReveal delay={1}>
                             <img
-                                src="/brand/evidence-bg.png"
+                                src="/brand/evidence-bg.webp"
                                 alt="Pokémon Illustrator card — evidence of trophy-grade demand"
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full rounded-xl"
                                 style={{
                                     filter: theme === 'light'
@@ -303,76 +345,19 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* ── FUJI LIVE ── */}
-            <section className="px-4 py-16 md:py-24">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
-                    <ScrollReveal>
-                        <div className="flex items-center gap-2">
-                            <span className="relative flex h-2.5 w-2.5">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-green)] opacity-75" />
-                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent-green)]" />
-                            </span>
-                            <span className="label-font text-[var(--accent-green)]">Live on Fuji</span>
-                        </div>
-                        <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.5rem]">
-                            Already live. Already inspectable.
-                        </h2>
-                        <p className="mt-4 text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
-                            The full stack runs on Fuji today. Contracts, fund flows, and portfolio positions — all public.
-                        </p>
-                    </ScrollReveal>
-
-                    {/* Stats + Contracts bento */}
-                    <div className="mt-10 grid gap-4 md:grid-cols-3">
-                        {[
-                            { label: 'Live round', value: `Round ${roundState.roundId}`, emoji: '🔄' },
-                            { label: 'Raised', value: roundState.raisedLabel, emoji: '💎' },
-                            { label: 'Marked value', value: proofState.proofSummary.portfolioValueLabel, emoji: '📊' },
-                        ].map((stat, index) => (
-                            <ScrollReveal key={stat.label} delay={(index + 1) as 1 | 2 | 3}>
-                                <div className="group rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-300 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]">
-                                    <div className="flex items-center gap-2">
-                                        <span aria-hidden>{stat.emoji}</span>
-                                        <span className="label-font">{stat.label}</span>
-                                    </div>
-                                    <div className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{stat.value}</div>
-                                </div>
-                            </ScrollReveal>
-                        ))}
-                    </div>
-
-                    {/* Contract addresses as cards */}
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
-                        {proofState.links.map((link, index) => (
-                            <ScrollReveal key={link.address} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
-                                <a
-                                    href={link.snowtraceUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="group flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-300 hover:border-[var(--accent-blue)]/20 hover:shadow-[var(--shadow-md)]"
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="label-font truncate">{link.label}</span>
-                                        <span className="shrink-0 text-[0.75rem] font-medium text-[var(--accent-blue)] opacity-0 transition-opacity group-hover:opacity-100">Snowtrace ↗</span>
-                                    </div>
-                                    <div className="mt-2 font-mono text-[0.8rem] text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]">
-                                        {formatAddress(link.address)}
-                                    </div>
-                                </a>
-                            </ScrollReveal>
-                        ))}
-                    </div>
-
-                    <ScrollReveal delay={2}>
-                        <div className="mt-8 flex flex-wrap gap-3">
-                            <PixelMenuLink to="/fundraising">Buy $CATCH</PixelMenuLink>
-                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                                Follow on X
-                            </PixelExternalLink>
-                        </div>
-                    </ScrollReveal>
-                </div>
-            </section>
+            {showFujiSection ? (
+                <Suspense fallback={fujiSectionFallback}>
+                    <HomeFujiSection />
+                </Suspense>
+            ) : fujiSectionFallback}
         </main>
+    );
+}
+
+export default function Home() {
+    return (
+        <Web3Providers>
+            <HomeContent />
+        </Web3Providers>
     );
 }
