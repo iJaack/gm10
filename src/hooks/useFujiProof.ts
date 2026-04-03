@@ -88,11 +88,27 @@ export function useFujiRoundState() {
         ? Math.min((Number(round.raisedAmount) / Number(round.targetAmount)) * 100, 100)
         : 0;
 
-    const status = round?.isActive
-        ? 'Live on Fuji'
-        : round?.isFinalized
-            ? 'Round closed'
-            : 'Waiting for activation';
+    const now = Math.floor(Date.now() / 1000);
+    const startsAt = round ? Number(round.startTime) : null;
+    const endsAt = round ? Number(round.endTime) : null;
+    const isWithinWindow = Boolean(
+        round
+        && startsAt !== null
+        && endsAt !== null
+        && now >= startsAt
+        && now <= endsAt,
+    );
+    const isRoundOpen = Boolean(round?.isActive && !round?.isFinalized && isWithinWindow);
+
+    const status = !round
+        ? 'Waiting for activation'
+        : isRoundOpen
+            ? 'Live on Fuji'
+            : round.isFinalized || (endsAt !== null && now > endsAt)
+                ? 'Round closed'
+                : startsAt !== null && now < startsAt
+                    ? 'Waiting for activation'
+                    : 'Round inactive';
 
     return {
         links,
@@ -100,6 +116,9 @@ export function useFujiRoundState() {
         round,
         status,
         progress,
+        isRoundOpen,
+        startsAt,
+        endsAt,
         targetLabel: round ? `${Number(formatEther(round.targetAmount)).toLocaleString()} AVAX` : 'Pending',
         raisedLabel: round ? `${Number(formatEther(round.raisedAmount)).toLocaleString()} AVAX` : 'Pending',
         priceLabel: round ? `${Number(formatEther(round.tokenPrice))} AVAX` : 'Pending',
