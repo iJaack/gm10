@@ -1,16 +1,15 @@
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { PixelLabel } from '../components/PixelUI';
+import { Web3Providers } from '../components/Web3Providers';
 import { PORTFOLIO_PREVIEW, RECENT_CARD_COMPS, SAMPLE_HISTORY } from '../data/protocol';
 import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
-import { useTheme } from '../hooks/useTheme';
 
 function formatAddress(address: string) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export default function Portfolio() {
-    const { theme } = useTheme();
+function PortfolioContent() {
     const proofState = useFujiPortfolioPositions();
 
     return (
@@ -245,5 +244,13 @@ export default function Portfolio() {
                 </div>
             </section>
         </Page>
+    );
+}
+
+export default function Portfolio() {
+    return (
+        <Web3Providers>
+            <PortfolioContent />
+        </Web3Providers>
     );
 }

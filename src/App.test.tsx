@@ -6,6 +6,10 @@ vi.mock('@rainbow-me/rainbowkit', () => ({
     ConnectButton: () => <button type="button">Connect Wallet</button>,
 }));
 
+vi.mock('./components/Web3Providers', () => ({
+    Web3Providers: ({ children }: { children: any }) => <>{children}</>,
+}));
+
 vi.mock('wagmi', () => ({
     useAccount: () => ({ isConnected: false }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
@@ -137,7 +141,7 @@ afterEach(() => {
 });
 
 describe('route simplification', () => {
-    it('shows only the four public routes in the desktop nav', () => {
+    it('shows the public routes in the desktop nav', () => {
         const { container } = renderAt('/');
         const desktopNav = container.querySelector('header nav');
 
@@ -146,14 +150,14 @@ describe('route simplification', () => {
             link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
-        expect(labels).toEqual(['Home', 'Buy', 'Portfolio', 'FAQ']);
+        expect(labels).toEqual(['Home', 'Buy', 'Portfolio', '$CATCH', 'FAQ']);
         expect(screen.queryByText('How it Works')).not.toBeInTheDocument();
     });
 
     it.each([
         ['/testnet-status', '/fundraising#proof'],
         ['/how-it-works', '/#how-it-works'],
-        ['/tokenomics', '/#token'],
+        ['/tokenomics', '/catch'],
         ['/governance', '/#governance'],
         ['/nav-methodology', '/#pricing'],
         ['/sales-proceeds', '/#exits'],
@@ -171,7 +175,7 @@ describe('page compression regressions', () => {
     it('keeps the home page focused on proxy access to elite pokemon-card upside', () => {
         renderAt('/');
 
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/the cards you can't buy alone/i);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/can't \$catch alone/i);
         expect(screen.getAllByText(/trophy-grade/i).length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText(/your share/i)).toBeInTheDocument();
         expect(document.getElementById('why-gm10')).not.toBeNull();
@@ -188,10 +192,10 @@ describe('page compression regressions', () => {
         expect(screen.getByRole('heading', { name: /already live\. already inspectable\./i })).toBeInTheDocument();
     });
 
-    it('merges buy and live proof into the fundraising route', () => {
+    it('merges buy and live proof into the fundraising route', async () => {
         renderAt('/fundraising');
 
-        expect(screen.getByRole('heading', { name: /enter the round\./i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /enter the round\./i })).toBeInTheDocument();
         expect(screen.getByText(/you're not buying one card/i)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /inspect everything\./i })).toBeInTheDocument();
         expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
@@ -202,22 +206,22 @@ describe('page compression regressions', () => {
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
 
-    it('keeps the portfolio split between editorial lanes and live fuji status', () => {
+    it('keeps the portfolio split between editorial lanes and live fuji status', async () => {
         renderAt('/portfolio');
 
-        expect(screen.getByRole('heading', { name: /the vault\. every card, every position\./i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /the vault\. every card, every position\./i })).toBeInTheDocument();
         expect(screen.getByText(/^charizard$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^live on fuji$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^target roster$/i)).toBeInTheDocument();
         expect(screen.getByText(/^2 positions$/i)).toBeInTheDocument();
         expect(screen.getByText(/marked value/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
     });
 
-    it('keeps faq as a short edge-case page with forward links', () => {
+    it('keeps faq as a short edge-case page with forward links', async () => {
         renderAt('/faq');
 
-        expect(screen.getByRole('heading', { name: /the short answers\./i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /the short answers\./i })).toBeInTheDocument();
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
 
         const nextSection = screen.getByRole('heading', { name: /ready to get started\?/i }).closest('section');

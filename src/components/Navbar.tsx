@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useTheme } from '../hooks/useTheme';
 import Logo from './Logo';
+
+const NavbarWalletButton = lazy(() => import('./NavbarWalletButton'));
 
 const navLinks = [
     { path: '/', label: 'Home' },
@@ -15,8 +16,10 @@ const navLinks = [
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [walletReady, setWalletReady] = useState(false);
     const location = useLocation();
     const { theme, toggle } = useTheme();
+    const showWalletButton = location.pathname === '/fundraising';
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -34,6 +37,19 @@ export default function Navbar() {
             document.body.style.overflow = '';
         };
     }, [mobileMenuOpen]);
+
+    useEffect(() => {
+        if (!showWalletButton) {
+            setWalletReady(false);
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setWalletReady(true);
+        }, 1200);
+
+        return () => window.clearTimeout(timer);
+    }, [showWalletButton]);
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -89,9 +105,11 @@ export default function Navbar() {
                             </button>
 
                             {/* Connect wallet */}
-                            <div className="hidden sm:block [&_.iekbcc0]:!rounded-full [&_.iekbcc0]:!border [&_.iekbcc0]:!border-[var(--accent)] [&_.iekbcc0]:!bg-[var(--accent)] [&_.iekbcc0]:!px-4 [&_.iekbcc0]:!shadow-[0_0_14px_var(--gold-glow),0_0_32px_var(--gold-glow)] [&_.iekbcc0]:!font-['Inter'] [&_.iekbcc0]:!text-[var(--bg-primary)] [&_.iekbcc0]:!font-bold [&_.iekbcc0]:hover:!shadow-[0_0_20px_rgba(240,192,48,0.35),0_0_48px_rgba(240,192,48,0.15)] [&_.iekbcc0]:!transition-shadow [&_.ju367v7]:!font-['Inter']">
-                                <ConnectButton accountStatus="address" chainStatus="icon" showBalance={false} />
-                            </div>
+                            {showWalletButton ? (
+                                <Suspense fallback={null}>
+                                    {walletReady ? <NavbarWalletButton /> : null}
+                                </Suspense>
+                            ) : null}
 
                             {/* Mobile menu toggle */}
                             <button
@@ -136,9 +154,11 @@ export default function Navbar() {
                             </Link>
                         ))}
                     </div>
-                    <div className="mt-4 border-t border-[var(--border)] pt-4 [&_.iekbcc0]:!rounded-full [&_.iekbcc0]:!border [&_.iekbcc0]:!border-[var(--accent)] [&_.iekbcc0]:!bg-[var(--accent)] [&_.iekbcc0]:!px-4 [&_.iekbcc0]:!shadow-[0_0_14px_var(--gold-glow),0_0_32px_var(--gold-glow)] [&_.iekbcc0]:!font-['Inter'] [&_.iekbcc0]:!text-[var(--bg-primary)] [&_.iekbcc0]:!font-bold [&_.ju367v7]:!font-['Inter']">
-                        <ConnectButton accountStatus="address" chainStatus="icon" showBalance={false} />
-                    </div>
+                    {showWalletButton ? (
+                        <Suspense fallback={null}>
+                            {walletReady ? <NavbarWalletButton mobile /> : null}
+                        </Suspense>
+                    ) : null}
                 </div>
             </div>
         </>

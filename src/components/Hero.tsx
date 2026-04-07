@@ -1,15 +1,9 @@
-import { useEffect, useState } from 'react';
 import { PixelExternalLink, PixelMenuLink } from './PixelUI';
 import { SITE_LINKS } from '../data/protocol';
 import { useTheme } from '../hooks/useTheme';
 
 export default function Hero() {
     const { theme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     // Text tokens derived from the actual overlay color — always maximally contrasted
     // against the photo background regardless of theme or viewport size
@@ -28,9 +22,11 @@ export default function Hero() {
             {/* Photo background — day in light mode, night in dark mode */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src={theme === 'dark' ? '/brand/cover-pokeball-night.png' : '/brand/cover-pokeball.png'}
+                    src={theme === 'dark' ? '/brand/cover-pokeball-night.webp' : '/brand/cover-pokeball.webp'}
                     alt=""
                     aria-hidden
+                    loading="eager"
+                    decoding="async"
                     className="h-full w-full object-cover object-center"
                 />
                 {/* Overlay sm→lg — very faint, photo almost fully visible */}
@@ -68,7 +64,7 @@ export default function Hero() {
             <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))] px-4">
                 {/* Headline */}
                 <h1
-                    className={`mt-6 max-w-[20ch] text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] sm:text-[3.4rem] lg:text-[4.2rem] ${mounted ? 'scan-reveal scan-delay-1' : 'opacity-0'}`}
+                    className="mt-6 max-w-[20ch] text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] scan-reveal scan-delay-1 sm:text-[3.4rem] lg:text-[4.2rem]"
                     style={{ color: onPhoto.primary, textShadow: onPhoto.shadow }}
                 >
                     The 'mons you can't $CATCH alone.
@@ -76,7 +72,7 @@ export default function Hero() {
 
                 {/* Subtitle + Tagline — frosted pill guarantees readability over any photo */}
                 <div
-                    className={`mt-5 w-fit max-w-[34rem] rounded-2xl px-4 py-3 ${mounted ? 'scan-reveal scan-delay-2' : 'opacity-0'}`}
+                    className="mt-5 w-fit max-w-[34rem] rounded-2xl px-4 py-3 scan-reveal scan-delay-2"
                     style={{
                         background: theme === 'dark' ? 'rgba(11,10,20,0.55)' : 'rgba(255,255,255,0.72)',
                         backdropFilter: 'blur(14px)',
@@ -99,7 +95,7 @@ export default function Hero() {
                 </div>
 
                 {/* CTAs */}
-                <div className={`mt-8 flex flex-wrap gap-3 ${mounted ? 'scan-reveal scan-delay-3' : 'opacity-0'}`}>
+                <div className="mt-8 flex flex-wrap gap-3 scan-reveal scan-delay-3">
                     <PixelMenuLink to="/fundraising" active>
                         Buy $CATCH
                     </PixelMenuLink>
