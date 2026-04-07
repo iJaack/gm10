@@ -35,6 +35,24 @@ module.exports = {
         : { ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [] }),
       gasPrice: 25000000000,
     },
+    // Polygon Mainnet
+    polygon: {
+      url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
+      chainId: 137,
+      ...(process.env.PRIVATE_KEY
+        ? { accounts: [process.env.PRIVATE_KEY] }
+        : { ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [] }),
+      gasPrice: 50000000000, // 50 gwei
+    },
+    // Polygon Amoy Testnet
+    amoy: {
+      url: process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology",
+      chainId: 80002,
+      ...(process.env.PRIVATE_KEY
+        ? { accounts: [process.env.PRIVATE_KEY] }
+        : { ledgerAccounts: process.env.LEDGER_ADDRESS ? [process.env.LEDGER_ADDRESS] : [] }),
+      gasPrice: 25000000000,
+    },
     // Local development
     localhost: {
       url: "http://127.0.0.1:8545",
@@ -61,6 +79,8 @@ module.exports = {
     apiKey: {
       avalanche: process.env.SNOWTRACE_API_KEY || "snowtrace-placeholder",
       avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY || "snowtrace-placeholder",
+      polygon: process.env.POLYGONSCAN_API_KEY || "polygonscan-placeholder",
+      polygonAmoy: process.env.POLYGONSCAN_API_KEY || "polygonscan-placeholder",
     },
   },
   gasReporter: {
