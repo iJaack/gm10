@@ -38,38 +38,21 @@ export const FUND_V4_ABI = [
         type: 'function',
     },
     {
-        inputs: [{ name: 'router', type: 'address' }],
-        name: 'setSwapRouterV4',
-        outputs: [],
-        stateMutability: 'nonpayable',
-        type: 'function',
-    },
-    {
         inputs: [],
         name: 'swapRouterV4',
         outputs: [{ name: '', type: 'address' }],
         stateMutability: 'view',
         type: 'function',
     },
-    // Bridge ref lookup
+    // Bridge guard
     {
         inputs: [{ name: 'purchaseKey', type: 'bytes32' }],
-        name: 'purchaseBridgeRefs',
-        outputs: [{
-            components: [
-                { name: 'dstChainEid', type: 'uint32' },
-                { name: 'dstSafe', type: 'address' },
-                { name: 'tokenBridged', type: 'address' },
-                { name: 'amountBridged', type: 'uint256' },
-                { name: 'bridgedAt', type: 'uint256' },
-            ],
-            name: '',
-            type: 'tuple',
-        }],
+        name: 'isBridged',
+        outputs: [{ name: '', type: 'bool' }],
         stateMutability: 'view',
         type: 'function',
     },
-    // swapAndBridge
+    // swapAndBridge — dstEid + dstSafe are explicit params (no registry lookup)
     {
         inputs: [
             { name: 'purchaseKey', type: 'bytes32' },
@@ -79,6 +62,8 @@ export const FUND_V4_ABI = [
             { name: 'amountOut', type: 'uint256' },
             { name: 'maxAmountIn', type: 'uint256' },
             { name: 'bridgeAdapter', type: 'address' },
+            { name: 'dstEid', type: 'uint32' },
+            { name: 'dstSafe', type: 'address' },
             { name: 'lzOptions', type: 'bytes' },
         ],
         name: 'swapAndBridge',
@@ -91,8 +76,8 @@ export const FUND_V4_ABI = [
         anonymous: false,
         inputs: [
             { indexed: true, name: 'purchaseKey', type: 'bytes32' },
-            { indexed: true, name: 'dstChainEid', type: 'uint32' },
-            { indexed: true, name: 'dstSafe', type: 'address' },
+            { indexed: false, name: 'dstEid', type: 'uint32' },
+            { indexed: false, name: 'dstSafe', type: 'address' },
             { indexed: false, name: 'tokenBridged', type: 'address' },
             { indexed: false, name: 'amountBridged', type: 'uint256' },
             { indexed: false, name: 'bridgeFee', type: 'uint256' },

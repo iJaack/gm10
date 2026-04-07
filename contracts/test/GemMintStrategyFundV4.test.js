@@ -106,31 +106,22 @@ describe("GemMintStrategyFundV4", function () {
     // Fund the contract with AVAX
     await investor.sendTransaction({ to: await fund.getAddress(), value: ethers.parseEther("10") });
 
-    // Set up a purchase authorization on Polygon (chain EID 30109)
+    // Registry setup (still needed for V3 releasePurchaseFunds in test 9)
     const POLYGON_EID = 30109;
     const polygonSafe = other.address; // use 'other' as the mock Polygon Safe
     const marketId = ethers.id("COURTYARD");
     const purchaseKey = ethers.id("purchase-v4-1");
 
-    // ops has GOVERNANCE_ROLE inherited from V3 initializeV3
     await portfolioRegistry.connect(governance).setChainSafe(
-      POLYGON_EID,
-      polygonSafe,
-      ethers.ZeroHash,
-      ethers.id("POLYGON_SAFE"),
-      true
+      POLYGON_EID, polygonSafe, ethers.ZeroHash, ethers.id("POLYGON_SAFE"), true
     );
     await portfolioRegistry.connect(governance).setMarketplaceApproval(marketId, true);
     await portfolioRegistry.connect(governance).authorizePurchase(
-      purchaseKey,
-      POLYGON_EID,
-      marketId,
-      ethers.id("asset-courtyard-1"),
-      500_000_000n, // $500 max spend
-      ethers.id("mandate-v4-1")
+      purchaseKey, POLYGON_EID, marketId,
+      ethers.id("asset-courtyard-1"), 500_000_000n, ethers.id("mandate-v4-1")
     );
 
-    const AVAX_PATH = [ethers.ZeroAddress, await usdc.getAddress()]; // tokenIn=address(0), tokenOut=USDC
+    const AVAX_PATH = [ethers.ZeroAddress, await usdc.getAddress()];
     const MOCK_BRIDGE_FEE = ethers.parseEther("0.01");
     const AMOUNT_OUT = ethers.parseUnits("100", 6); // 100 USDC
 
@@ -139,8 +130,7 @@ describe("GemMintStrategyFundV4", function () {
       swapRouter, mockStargate, adapter,
       owner, ops, governance, failsafe, investor, operator, other,
       POLYGON_EID, polygonSafe, marketId, purchaseKey,
-      AVAX_PATH, MOCK_BRIDGE_FEE, AMOUNT_OUT,
-      OPERATOR_ROLE,
+      AVAX_PATH, MOCK_BRIDGE_FEE, AMOUNT_OUT, OPERATOR_ROLE,
     };
   }
 
@@ -149,12 +139,8 @@ describe("GemMintStrategyFundV4", function () {
   async function seedRound(fund, manager, investor, amount, price = "1") {
     const now = await time.latest();
     await fund.connect(manager).createFundraisingRound(
-      ethers.parseEther("1000"),
-      ethers.parseEther(price),
-      0n,
-      ethers.parseEther("1000"),
-      now,
-      now + 3600
+      ethers.parseEther("1000"), ethers.parseEther(price), 0n,
+      ethers.parseEther("1000"), now, now + 3600
     );
     await fund.connect(investor).invest(await fund.currentRoundId(), { value: ethers.parseEther(amount) });
   }
@@ -162,23 +148,23 @@ describe("GemMintStrategyFundV4", function () {
   // ── Test 1: Happy path AVAX → USDC, bridge to Polygon Safe ─────────────────
 
   it("1. happy path: swapAndBridge AVAX→USDC to Polygon Safe emits PurchaseFundsBridged", async function () {
-    const { fund, usdc, adapter, operator, polygonSafe, purchaseKey, AVAX_PATH, MOCK_BRIDGE_FEE, AMOUNT_OUT, POLYGON_EID } =
+    const { fund, usdc, adapter, operator, polygonSafe, purchaseKey,
+            AVAX_PATH, MOCK_BRIDGE_FEE, AMOUNT_OUT, POLYGON_EID } =
       await loadFixture(deployV4Fixture);
 
-    const addrFund = await fund.getAddress();
-    const addrAdapter = await adapter.getAddress();
-
-    const totalValue = MOCK_BRIDGE_FEE + ethers.parseEther("1"); // bridge fee + swap budget
+    const totalValue = MOCK_BRIDGE_FEE + ethers.parseEther("1");
 
     await expect(
       fund.connect(operator).swapAndBridge(
         purchaseKey,
-        ethers.ZeroAddress,       // tokenIn = native AVAX
-        await usdc.getAddress(),  // tokenOut = USDC
+        ethers.ZeroAddress,
+        await usdc.getAddress(),
         AVAX_PATH,
         AMOUNT_OUT,
-        ethers.parseEther("1"),   // maxAmountIn: 1 AVAX
-        addrAdapter,
+        ethers.parseEther("1"),
+        await adapter.getAddress(),
+        POLYGON_EID,
+        polygonSafe,
         "0x",
         { value: totalValue }
       )
@@ -186,56 +172,46 @@ describe("GemMintStrategyFundV4", function () {
       .to.emit(fund, "PurchaseFundsBridged")
       .withArgs(purchaseKey, POLYGON_EID, polygonSafe, await usdc.getAddress(), AMOUNT_OUT, MOCK_BRIDGE_FEE);
 
-    // Bridge ref recorded
-    const ref = await fund.purchaseBridgeRefs(purchaseKey);
-    expect(ref.dstChainEid).to.equal(POLYGON_EID);
-    expect(ref.dstSafe).to.equal(polygonSafe);
-    expect(ref.tokenBridged).to.equal(await usdc.getAddress());
-    expect(ref.amountBridged).to.equal(AMOUNT_OUT);
-    expect(ref.bridgedAt).to.be.gt(0n);
+    expect(await fund.isBridged(purchaseKey)).to.be.true;
   });
 
   // ── Test 2: ERC-20 in → different tokenOut (WAVAX → USDC path) ─────────────
 
   it("2. ERC-20 tokenIn: swaps WAVAX→USDC and bridges", async function () {
-    const { fund, usdc, wavax, swapRouter, adapter, operator, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT } =
+    const { fund, usdc, wavax, adapter, operator, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
-    const addrAdapter = await adapter.getAddress();
-    const addrFund = await fund.getAddress();
-
-    // Seed fund with WAVAX
-    await wavax.mint(addrFund, ethers.parseEther("10"));
+    await wavax.mint(await fund.getAddress(), ethers.parseEther("10"));
 
     const path = [await wavax.getAddress(), await usdc.getAddress()];
-    const maxIn = ethers.parseEther("5"); // max 5 WAVAX
 
     await expect(
       fund.connect(operator).swapAndBridge(
         purchaseKey,
-        await wavax.getAddress(), // ERC-20 tokenIn
+        await wavax.getAddress(),
         await usdc.getAddress(),
         path,
         AMOUNT_OUT,
-        maxIn,
-        addrAdapter,
+        ethers.parseEther("5"),
+        await adapter.getAddress(),
+        POLYGON_EID,
+        polygonSafe,
         "0x",
         { value: MOCK_BRIDGE_FEE }
       )
     ).to.emit(fund, "PurchaseFundsBridged");
 
-    const ref = await fund.purchaseBridgeRefs(purchaseKey);
-    expect(ref.amountBridged).to.equal(AMOUNT_OUT);
+    expect(await fund.isBridged(purchaseKey)).to.be.true;
   });
 
   // ── Test 3: Slippage guard (avaxForSwap > maxAmountIn) ─────────────────────
 
   it("3. reverts when AVAX swap budget exceeds maxAmountIn", async function () {
-    const { fund, usdc, adapter, operator, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT } =
+    const { fund, usdc, adapter, operator, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
-    // Send 2 AVAX for swap budget but restrict maxAmountIn to 1 AVAX.
-    // avaxForSwap = msg.value - bridgeFee = 2 AVAX > maxAmountIn = 1 AVAX → SlippageTooHigh
     await expect(
       fund.connect(operator).swapAndBridge(
         purchaseKey,
@@ -243,10 +219,12 @@ describe("GemMintStrategyFundV4", function () {
         await usdc.getAddress(),
         [ethers.ZeroAddress, await usdc.getAddress()],
         AMOUNT_OUT,
-        ethers.parseEther("1"),  // maxAmountIn = 1 AVAX
+        ethers.parseEther("1"),
         await adapter.getAddress(),
+        POLYGON_EID,
+        polygonSafe,
         "0x",
-        { value: MOCK_BRIDGE_FEE + ethers.parseEther("2") } // sends 2 AVAX for swap
+        { value: MOCK_BRIDGE_FEE + ethers.parseEther("2") }
       )
     ).to.be.revertedWithCustomError(fund, "SlippageTooHigh");
   });
@@ -254,7 +232,8 @@ describe("GemMintStrategyFundV4", function () {
   // ── Test 4: Unapproved adapter ─────────────────────────────────────────────
 
   it("4. reverts when adapter is not approved", async function () {
-    const { fund, usdc, operator, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT } =
+    const { fund, usdc, operator, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
     const fakeAdapter = ethers.Wallet.createRandom().address;
@@ -268,6 +247,8 @@ describe("GemMintStrategyFundV4", function () {
         AMOUNT_OUT,
         ethers.parseEther("1"),
         fakeAdapter,
+        POLYGON_EID,
+        polygonSafe,
         "0x",
         { value: MOCK_BRIDGE_FEE + ethers.parseEther("1") }
       )
@@ -277,7 +258,8 @@ describe("GemMintStrategyFundV4", function () {
   // ── Test 5: Double-bridge prevention ──────────────────────────────────────
 
   it("5. reverts on double-bridge for the same purchaseKey", async function () {
-    const { fund, usdc, adapter, operator, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH } =
+    const { fund, usdc, adapter, operator, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
     const callArgs = [
@@ -288,14 +270,14 @@ describe("GemMintStrategyFundV4", function () {
       AMOUNT_OUT,
       ethers.parseEther("1"),
       await adapter.getAddress(),
+      POLYGON_EID,
+      polygonSafe,
       "0x",
     ];
     const callValue = { value: MOCK_BRIDGE_FEE + ethers.parseEther("1") };
 
-    // First call succeeds
     await fund.connect(operator).swapAndBridge(...callArgs, callValue);
 
-    // Second call reverts
     await expect(
       fund.connect(operator).swapAndBridge(...callArgs, callValue)
     ).to.be.revertedWithCustomError(fund, "AlreadyBridged");
@@ -304,7 +286,8 @@ describe("GemMintStrategyFundV4", function () {
   // ── Test 6: Non-operator caller ────────────────────────────────────────────
 
   it("6. reverts when caller does not have OPERATOR_ROLE", async function () {
-    const { fund, usdc, adapter, other, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH } =
+    const { fund, usdc, adapter, other, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
     await expect(
@@ -316,16 +299,19 @@ describe("GemMintStrategyFundV4", function () {
         AMOUNT_OUT,
         ethers.parseEther("1"),
         await adapter.getAddress(),
+        POLYGON_EID,
+        polygonSafe,
         "0x",
         { value: MOCK_BRIDGE_FEE + ethers.parseEther("1") }
       )
-    ).to.be.reverted; // AccessControl revert
+    ).to.be.reverted;
   });
 
   // ── Test 7: Insufficient bridge fee ────────────────────────────────────────
 
   it("7. reverts when msg.value is less than the bridge fee", async function () {
-    const { fund, usdc, adapter, operator, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH } =
+    const { fund, usdc, adapter, operator, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
     await expect(
@@ -337,8 +323,10 @@ describe("GemMintStrategyFundV4", function () {
         AMOUNT_OUT,
         ethers.parseEther("1"),
         await adapter.getAddress(),
+        POLYGON_EID,
+        polygonSafe,
         "0x",
-        { value: MOCK_BRIDGE_FEE - 1n } // just under fee
+        { value: MOCK_BRIDGE_FEE - 1n }
       )
     ).to.be.revertedWithCustomError(fund, "InsufficientBridgeFee");
   });
@@ -346,13 +334,12 @@ describe("GemMintStrategyFundV4", function () {
   // ── Test 8: Swap returns less than amountOut ───────────────────────────────
 
   it("8. reverts when swap router returns less than amountOut", async function () {
-    const { fund, usdc, adapter, swapRouter, operator, purchaseKey, MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH } =
+    const { fund, usdc, adapter, swapRouter, operator, purchaseKey,
+            MOCK_BRIDGE_FEE, AMOUNT_OUT, AVAX_PATH, POLYGON_EID, polygonSafe } =
       await loadFixture(deployV4Fixture);
 
     await swapRouter.setShouldReturnLess(true);
 
-    // The router mints amountOut-1, but the fund tries to approve+bridge amountOut.
-    // The ERC20 transfer in the adapter will fail (insufficient balance/allowance).
     await expect(
       fund.connect(operator).swapAndBridge(
         purchaseKey,
@@ -362,6 +349,8 @@ describe("GemMintStrategyFundV4", function () {
         AMOUNT_OUT,
         ethers.parseEther("1"),
         await adapter.getAddress(),
+        POLYGON_EID,
+        polygonSafe,
         "0x",
         { value: MOCK_BRIDGE_FEE + ethers.parseEther("1") }
       )
@@ -380,21 +369,17 @@ describe("GemMintStrategyFundV4", function () {
     const purchaseKeyV3 = ethers.id("purchase-v3-legacy");
     const CHAIN_ETH = 30101;
 
-    await portfolioRegistry.connect(governance).setChainSafe(CHAIN_ETH, ops.address, ethers.ZeroHash, ethers.id("ETH_SAFE"), true);
+    await portfolioRegistry.connect(governance).setChainSafe(
+      CHAIN_ETH, ops.address, ethers.ZeroHash, ethers.id("ETH_SAFE"), true
+    );
     await portfolioRegistry.connect(governance).authorizePurchase(
-      purchaseKeyV3,
-      CHAIN_ETH,
-      marketId,
-      ethers.id("legacy-asset"),
-      100_000_000n,
-      ethers.id("legacy-mandate")
+      purchaseKeyV3, CHAIN_ETH, marketId,
+      ethers.id("legacy-asset"), 100_000_000n, ethers.id("legacy-mandate")
     );
 
     const amountUsdt6 = 50_000_000n;
     const before = (await fund.stableAccounting()).liquidTreasury;
-
     await fund.connect(ops).releasePurchaseFunds(purchaseKeyV3, amountUsdt6);
-
     const after = (await fund.stableAccounting()).liquidTreasury;
     expect(before - after).to.equal(amountUsdt6);
   });
@@ -406,16 +391,13 @@ describe("GemMintStrategyFundV4", function () {
 
     const newAdapter = other.address;
 
-    // Not approved initially
     expect(await fund.approvedBridgeAdapters(newAdapter)).to.be.false;
 
-    // Add
     await expect(fund.connect(ops).setApprovedBridgeAdapter(newAdapter, true))
       .to.emit(fund, "BridgeAdapterSet")
       .withArgs(newAdapter, true);
     expect(await fund.approvedBridgeAdapters(newAdapter)).to.be.true;
 
-    // Remove
     await expect(fund.connect(ops).setApprovedBridgeAdapter(newAdapter, false))
       .to.emit(fund, "BridgeAdapterSet")
       .withArgs(newAdapter, false);

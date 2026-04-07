@@ -22,6 +22,8 @@ export function SwapPanel() {
     const [tokenOutDecimals, setTokenOutDecimals] = useState('6');
     const [maxAmountInRaw, setMaxAmountInRaw] = useState(''); // in AVAX or token units
     const [bridgeAdapter, setBridgeAdapter] = useState(FUJI.stargateAdapter || '');
+    const [dstEid, setDstEid] = useState('40267'); // Polygon Amoy testnet
+    const [dstSafe, setDstSafe] = useState('');
     const [lzOptions, setLzOptions] = useState('0x');
     const [bridgeFeeEth, setBridgeFeeEth] = useState('0.05'); // AVAX for bridge fee
 
@@ -40,12 +42,12 @@ export function SwapPanel() {
         address: bridgeAdapter as `0x${string}`,
         abi: STARGATE_ADAPTER_ABI,
         functionName: 'quoteBridge',
-        args: [30109, tokenOut, amountOut, lzOptions as `0x${string}`],
-        query: { enabled: !!bridgeAdapter && amountOut > 0n },
+        args: [parseInt(dstEid) as unknown as number, tokenOut, amountOut, lzOptions as `0x${string}`],
+        query: { enabled: !!bridgeAdapter && amountOut > 0n && !!dstEid },
     });
 
     function handleSubmit() {
-        if (!purchaseKey || amountOut === 0n || !bridgeAdapter) return;
+        if (!purchaseKey || amountOut === 0n || !bridgeAdapter || !dstSafe) return;
         writeContract({
             address: FUJI.fundProxy,
             abi: FUND_V4_ABI,
@@ -58,6 +60,8 @@ export function SwapPanel() {
                 amountOut,
                 maxAmountIn,
                 bridgeAdapter as `0x${string}`,
+                parseInt(dstEid) as unknown as number,
+                dstSafe as `0x${string}`,
                 lzOptions as `0x${string}`,
             ],
             value: totalValue,
@@ -152,6 +156,26 @@ export function SwapPanel() {
                         placeholder="0x…"
                         value={bridgeAdapter}
                         onChange={e => setBridgeAdapter(e.target.value)}
+                    />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-400">Destination chain EID</span>
+                    <input
+                        className="rounded bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0]"
+                        placeholder="40267"
+                        value={dstEid}
+                        onChange={e => setDstEid(e.target.value)}
+                    />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-400">Destination Safe address</span>
+                    <input
+                        className="rounded bg-black/40 px-3 py-2 font-mono text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0]"
+                        placeholder="0x…"
+                        value={dstSafe}
+                        onChange={e => setDstSafe(e.target.value)}
                     />
                 </label>
 
