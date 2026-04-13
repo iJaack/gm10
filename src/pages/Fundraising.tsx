@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useBalance, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { formatEther, parseEther } from 'viem';
+import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
 import {
@@ -24,7 +25,7 @@ import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiPr
 import { Web3Providers } from '../components/Web3Providers';
 import { RoundTimingCallout } from '../components/RoundTimingCallout';
 
-const AVAX_USD_ESTIMATE = 25;
+const GAS_RESERVE = 0.05; // keep 0.05 AVAX for gas
 
 function formatAddress(address?: string) {
     if (!address) return 'Pending deployment';
@@ -40,7 +41,7 @@ function formatUtcTimestamp(timestamp: number) {
 }
 
 function FundraisingContent() {
-    const { isConnected } = useAccount();
+    const { address, isConnected } = useAccount();
     const { data: hash, error: writeError, isPending, reset, writeContract } = useWriteContract();
     const {
         error: receiptError,
@@ -52,6 +53,10 @@ function FundraisingContent() {
     const [txError, setTxError] = useState<string | null>(null);
     const roundState = useFujiRoundState();
     const proofState = useFujiPortfolioPositions();
+    const avaxUsd = useAvaxPrice();
+    const { data: balanceData } = useBalance({ address, query: { enabled: Boolean(address) } });
+    const walletAvax = balanceData ? Number(formatEther(balanceData.value)) : 0;
+    const spendableAvax = Math.max(0, walletAvax - GAS_RESERVE);
 
     const activeRoundId = roundState.roundId;
     const roundData = roundState.round;
@@ -226,7 +231,7 @@ function FundraisingContent() {
                             <div className="hidden shrink-0 text-[0.8rem] text-[var(--text-tertiary)] lg:flex lg:items-center lg:gap-1.5">
                                 <span>→</span>
                                 <span className="font-semibold text-[var(--accent-blue)]">{estimatedTokens} CATCH</span>
-                                <span className="text-[0.72rem]">(~${(Number(amount || 0) * AVAX_USD_ESTIMATE).toFixed(2)})</span>
+                                <span className="text-[0.72rem]">(~${(Number(amount || 0) * avaxUsd).toFixed(2)})</span>
                             </div>
 
                             {/* CTA buttons — always side-by-side */}
@@ -260,10 +265,36 @@ function FundraisingContent() {
                             </div>
                         </div>
 
+                        {/* Wallet balance + quick-fill */}
+                        {isConnected && walletAvax > 0 ? (
+                            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-6 py-2.5">
+                                <span className="text-[0.78rem] text-[var(--text-tertiary)]">
+                                    Balance: {walletAvax.toFixed(4)} AVAX
+                                </span>
+                                <div className="flex gap-1.5">
+                                    {[25, 50, 75, 100].map((pct) => {
+                                        const raw = spendableAvax * (pct / 100);
+                                        const clamped = Math.min(Math.max(raw, minInvestment), maxInvestment);
+                                        const value = Number(clamped.toFixed(4));
+                                        return (
+                                            <button
+                                                key={pct}
+                                                type="button"
+                                                onClick={() => setAmount(String(value))}
+                                                className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[0.7rem] font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                                            >
+                                                {pct === 100 ? 'MAX' : `${pct}%`}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : null}
+
                         {/* Mobile output (hidden on desktop) */}
                         <div className="border-t border-[var(--border)] px-6 py-2.5 text-[0.8rem] text-[var(--text-tertiary)] lg:hidden">
                             → <span className="font-semibold text-[var(--accent-blue)]">{estimatedTokens} CATCH</span>
-                            <span className="ml-2">(~${(Number(amount || 0) * AVAX_USD_ESTIMATE).toFixed(2)} USD)</span>
+                            <span className="ml-2">(~${(Number(amount || 0) * avaxUsd).toFixed(2)} USD)</span>
                         </div>
 
                         {!displayError && !isRoundActive ? (
