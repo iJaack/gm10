@@ -337,6 +337,7 @@ export function getRoundPrimaryCtaLabel(isRoundOpen: boolean) {
 }
 
 export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
+    { to: '/fundraising', label: 'Join' },
     { to: '/catch', label: 'How It Works' },
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/fundraising#proof', label: 'Proof' },
