@@ -1,4 +1,4 @@
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useSwitchChain } from 'wagmi';
 import { avalanche } from 'wagmi/chains';
 import type { ReactNode } from 'react';
 import { GM10_NETWORK_LABEL } from '../data/gm10Config';
@@ -8,8 +8,7 @@ const REQUIRED_CHAIN_ID = avalanche.id;
 type Props = { children: ReactNode };
 
 export default function FujiGuard({ children }: Props) {
-    const { isConnected } = useAccount();
-    const chainId = useChainId();
+    const { isConnected, chainId } = useAccount();
     const { switchChain } = useSwitchChain();
 
     // Not connected — let RainbowKit handle it downstream
