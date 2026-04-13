@@ -73,7 +73,7 @@ export default function Hero() {
                             Inspect the Proof
                         </PixelMenuLink>
                     </div>
-                    <div className="mt-6 max-w-[42rem] lg:max-w-none scan-reveal scan-delay-3">
+                    <div className="mt-6 max-w-[42rem] lg:max-w-[42%] scan-reveal scan-delay-3">
                         <RoundTimingCallout roundState={roundState} compact />
                     </div>
                 </div>

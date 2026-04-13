@@ -119,10 +119,10 @@ export function RoundTimingCallout({
             <div className={compact ? 'mt-3' : 'mt-4'}>
                 <div className="flex items-center justify-between text-[0.75rem] text-[var(--text-secondary)]">
                     <span>
-                        <span className="font-semibold text-[var(--text-primary)]">{raised.toLocaleString()} AVAX</span> raised
+                        <span className="font-semibold text-[var(--text-primary)]">{raised.toLocaleString('en-US')} AVAX</span> raised
                     </span>
                     <span>
-                        <span className="font-semibold text-[var(--text-primary)]">{remaining.toLocaleString()} AVAX</span> left of {target.toLocaleString()}
+                        <span className="font-semibold text-[var(--text-primary)]">{remaining.toLocaleString('en-US')} AVAX</span> left of {target.toLocaleString('en-US')}
                     </span>
                 </div>
                 <div className={`${compact ? 'mt-1.5 h-2' : 'mt-2 h-3'} overflow-hidden rounded-full bg-[var(--bg-tertiary)]`}>

@@ -144,12 +144,12 @@ export function InvestorPnlDiagram() {
                     },
                     {
                         label: 'Current NAV value',
-                        value: `$${sampleValue.toLocaleString()}`,
+                        value: `$${sampleValue.toLocaleString('en-US')}`,
                         tone: 'profit',
                     },
                     {
                         label: 'Unrealized PnL',
-                        value: `$${sampleUnrealized.toLocaleString()}`,
+                        value: `$${sampleUnrealized.toLocaleString('en-US')}`,
                         tone: 'live',
                     },
                 ]}

@@ -127,8 +127,8 @@ export function useFujiRoundState() {
         isRoundOpen,
         startsAt,
         endsAt,
-        targetLabel: round ? `${Number(formatEther(round.targetAmount)).toLocaleString()} AVAX` : `${BUY_PAGE_DEFAULTS.targetAvax.toLocaleString()} AVAX`,
-        raisedLabel: round ? `${Number(formatEther(round.raisedAmount)).toLocaleString()} AVAX` : '0 AVAX',
+        targetLabel: round ? `${Number(formatEther(round.targetAmount)).toLocaleString('en-US')} AVAX` : `${BUY_PAGE_DEFAULTS.targetAvax.toLocaleString('en-US')} AVAX`,
+        raisedLabel: round ? `${Number(formatEther(round.raisedAmount)).toLocaleString('en-US')} AVAX` : '0 AVAX',
         priceLabel: round ? `${Number(formatEther(round.tokenPrice))} AVAX` : `${BUY_PAGE_DEFAULTS.priceAvax} AVAX`,
         minMaxLabel: round
             ? `${Number(formatEther(round.minInvestment))} to ${Number(formatEther(round.maxInvestment))} AVAX`
@@ -200,9 +200,9 @@ export function useFujiPortfolioPositions() {
             portfolioValueLabel: stableAccounting ? formatUsdt6(stableAccounting[0]) : '$0.00',
             liquidTreasuryLabel: stableAccounting ? formatUsdt6(stableAccounting[2]) : '$0.00',
             referenceNavLabel: referenceNav !== undefined ? formatUsdt6(referenceNav) : '$0.00',
-            circulatingSupplyLabel: circulatingSupply !== undefined ? `${Number(formatUnits(circulatingSupply, 18)).toLocaleString()} CATCH` : '0 CATCH',
-            profitEligibleSupplyLabel: profitEligibleSupply !== undefined ? `${Number(formatUnits(profitEligibleSupply, 18)).toLocaleString()} CATCH` : '0 CATCH',
-            claimableProfitLabel: claimableProfit !== undefined ? `${Number(formatEther(claimableProfit)).toLocaleString()} AVAX` : 'Connect wallet',
+            circulatingSupplyLabel: circulatingSupply !== undefined ? `${Number(formatUnits(circulatingSupply, 18)).toLocaleString('en-US')} CATCH` : '0 CATCH',
+            profitEligibleSupplyLabel: profitEligibleSupply !== undefined ? `${Number(formatUnits(profitEligibleSupply, 18)).toLocaleString('en-US')} CATCH` : '0 CATCH',
+            claimableProfitLabel: claimableProfit !== undefined ? `${Number(formatEther(claimableProfit)).toLocaleString('en-US')} AVAX` : 'Connect wallet',
         },
     };
 }
