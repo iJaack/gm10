@@ -319,7 +319,24 @@ function FundraisingContent() {
                         ) : null}
                         {isConfirmed ? (
                             <div className="border-t border-[var(--border)] px-6 py-4">
-                                <PixelMessageBox title="Confirmed" body="Buy confirmed onchain." />
+                                <PixelMessageBox
+                                    title="Confirmed"
+                                    body={
+                                        <span>
+                                            Buy confirmed onchain.{' '}
+                                            {hash ? (
+                                                <a
+                                                    href={`https://snowtrace.io/tx/${hash}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="font-semibold text-[var(--accent-blue)] underline underline-offset-2"
+                                                >
+                                                    View on Snowtrace ↗
+                                                </a>
+                                            ) : null}
+                                        </span>
+                                    }
+                                />
                             </div>
                         ) : null}
 

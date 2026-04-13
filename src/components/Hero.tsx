@@ -44,7 +44,7 @@ export default function Hero() {
                         Onchain collectible exposure
                     </div>
                     <h1
-                        className="mt-5 max-w-[18ch] text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.04em] scan-reveal scan-delay-1 sm:text-[3.5rem] lg:text-[4.35rem]"
+                        className="mt-5 max-w-[18ch] lg:max-w-none text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.04em] scan-reveal scan-delay-1 sm:text-[3.5rem] lg:text-[4.35rem]"
                         style={{ color: onPhoto.primary, textShadow: onPhoto.shadow }}
                     >
                         Get exposure to trophy-grade Pokemon cards without running the card book yourself.

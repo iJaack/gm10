@@ -205,7 +205,7 @@ export function PixelMessageBox({
     className = '',
 }: {
     title?: string;
-    body: string;
+    body: ReactNode;
     className?: string;
 }) {
     return (
