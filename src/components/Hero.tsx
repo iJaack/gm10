@@ -38,8 +38,8 @@ export default function Hero() {
                 />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))]">
-                <div className="max-w-[44rem]">
+            <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="max-w-[44rem] lg:max-w-none">
                     <div className="label-font scan-reveal scan-delay-1" style={{ color: onPhoto.muted }}>
                         Onchain collectible exposure
                     </div>
@@ -50,7 +50,7 @@ export default function Hero() {
                         Get exposure to trophy-grade Pokemon cards without running the card book yourself.
                     </h1>
                     <div
-                        className="mt-6 max-w-[38rem] rounded-3xl px-5 py-4 scan-reveal scan-delay-2"
+                        className="mt-6 max-w-[38rem] lg:max-w-none rounded-3xl px-5 py-4 scan-reveal scan-delay-2"
                         style={{
                             background: theme === 'dark' ? 'rgba(11,10,20,0.55)' : 'rgba(255,255,255,0.72)',
                             backdropFilter: 'blur(14px)',
@@ -73,7 +73,7 @@ export default function Hero() {
                             Inspect the Proof
                         </PixelMenuLink>
                     </div>
-                    <div className="mt-6 max-w-[42rem] scan-reveal scan-delay-3">
+                    <div className="mt-6 max-w-[42rem] lg:max-w-none scan-reveal scan-delay-3">
                         <RoundTimingCallout roundState={roundState} compact />
                     </div>
                 </div>
