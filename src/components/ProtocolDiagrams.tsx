@@ -66,9 +66,9 @@ export function ProfitWaterfallDiagram() {
                                 <div className="text-2xl font-bold text-[var(--accent-live)]">{slice.percent}%</div>
                                 <div className="text-sm leading-7 text-[var(--text-soft)]">
                                     {slice.label === 'Treasury reinvestment' && 'Returned to the strategy and future card buying power.'}
+                                    {slice.label === 'Holder distributions' && 'Realized profit routed into claimable AVAX distributions for eligible circulating holders.'}
+                                    {slice.label === 'LP replenishment' && 'Reserved for LP replenishment and split across Trader Joe and Pharaoh.'}
                                     {slice.label === 'Buyback and burn' && 'Used to support the token through buyback-and-burn logic.'}
-                                    {slice.label === 'CATCH / AVAX LP' && 'Reserved for CATCH / AVAX market depth and trading structure.'}
-                                    {slice.label === 'Redemption reserve' && 'Held back as a liquidity cushion for future redemptions.'}
                                 </div>
                             </div>
                         </div>
@@ -174,7 +174,7 @@ export function RoundOneChart() {
                 {
                     label: 'Default target',
                     value: BUY_PAGE_DEFAULTS.targetAvax,
-                    detail: 'AVAX on Fuji',
+                    detail: 'AVAX on Avalanche mainnet',
                 },
                 {
                     label: 'Price',
@@ -188,11 +188,11 @@ export function RoundOneChart() {
 
 export function TestnetProofTimeline() {
     const steps = [
-        'Fresh modular V3 proxy deployed on Fuji',
-        'Live Fuji round created for the public Buy flow',
-        'Test AVAX contributed into the round',
-        'Two purchase authorizations recorded onchain',
-        'Two ERC-721 holdings written into the portfolio registry',
+        'Mainnet fund proxy deployed and verified',
+        'Round 1 created with locked start and end timestamps',
+        'Round stays closed until the opening block window',
+        'Proof links expose fund, registry, and investor accounting',
+        'Acquired cards appear after fundraising finalization',
     ] as const;
 
     return (

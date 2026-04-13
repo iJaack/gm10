@@ -1,16 +1,19 @@
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
-import { PixelLabel } from '../components/PixelUI';
+import { PixelLabel, PixelMenuLink } from '../components/PixelUI';
 import { Web3Providers } from '../components/Web3Providers';
-import { PORTFOLIO_PREVIEW, RECENT_CARD_COMPS, SAMPLE_HISTORY } from '../data/protocol';
-import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
+import { PORTFOLIO_PREVIEW, RECENT_CARD_COMPS, SAMPLE_HISTORY, SUPPORT_PAGE_COPY, getRoundPrimaryCtaLabel } from '../data/protocol';
+import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 
-function formatAddress(address: string) {
+function formatAddress(address?: string) {
+    if (!address) return 'Pending deployment';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 function PortfolioContent() {
     const proofState = useFujiPortfolioPositions();
+    const roundState = useFujiRoundState();
+    const pageCopy = SUPPORT_PAGE_COPY.portfolio;
 
     return (
         <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
@@ -20,11 +23,17 @@ function PortfolioContent() {
                 <ScrollReveal>
                     <div className="label-font">Portfolio</div>
                     <h1 className="mt-4 text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
-                        The vault. Every card, every position.
+                        {pageCopy.title}
                     </h1>
                     <p className="mt-4 text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
-                        Scarce, high-grade slabs with verified provenance, visible demand, and real market comps.
+                        {pageCopy.body}
                     </p>
+                    <div className="mt-6 flex flex-wrap gap-3">
+                        <PixelMenuLink to={pageCopy.primaryCtaTo} active>
+                            {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
+                        </PixelMenuLink>
+                        <PixelMenuLink to={pageCopy.secondaryCtaTo}>Inspect the Proof</PixelMenuLink>
+                    </div>
                     <div className="mt-5 flex flex-wrap gap-2">
                         <PixelLabel tone="warning">Target roster</PixelLabel>
                         <PixelLabel tone="live">{proofState.proofSummary.holdingsChipLabel}</PixelLabel>
@@ -36,9 +45,12 @@ function PortfolioContent() {
                     {[
                         { emoji: '📦', label: 'Positions', value: proofState.collectiblePositionCount },
                         { emoji: '📊', label: 'Marked value', value: proofState.proofSummary.portfolioValueLabel },
-                        { emoji: '💵', label: 'Cash buffer', value: proofState.proofSummary.liquidTreasuryLabel },
+                        { emoji: '🧭', label: 'Reference NAV/token', value: proofState.proofSummary.referenceNavLabel },
+                        { emoji: '🪙', label: 'Circulating supply', value: proofState.proofSummary.circulatingSupplyLabel },
+                        { emoji: '💸', label: 'Profit-eligible supply', value: proofState.proofSummary.profitEligibleSupplyLabel },
+                        { emoji: '🎁', label: 'Your claimable profit', value: proofState.proofSummary.claimableProfitLabel },
                     ].map((stat, index) => (
-                        <ScrollReveal key={stat.label} delay={(index + 1) as 1 | 2 | 3}>
+                        <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]">
                                 <div className="flex items-center gap-2">
                                     <span aria-hidden>{stat.emoji}</span>
@@ -100,7 +112,7 @@ function PortfolioContent() {
                                         {RECENT_CARD_COMPS[0].subtitle} · {RECENT_CARD_COMPS[0].grade}
                                     </div>
                                     <p className="mt-3 text-[0.88rem] leading-[1.6] text-[var(--text-secondary)]">
-                                        The fund's cornerstone — recognizable, scarce, and easy to comp. Clear provenance and a public auction record.
+                                        GM10 treats Charizard as the anchor-grail case: iconic demand, scarce top-grade supply, and public auction data that supports disciplined marking.
                                     </p>
                                     <div className="mt-auto pt-4 border-t border-[var(--border)]">
                                         <div className="label-font">Recent public comp</div>
@@ -132,7 +144,9 @@ function PortfolioContent() {
                                         <div className="mt-0.5 text-[0.78rem] text-[var(--text-tertiary)]">
                                             {RECENT_CARD_COMPS[1].subtitle} · {RECENT_CARD_COMPS[1].grade}
                                         </div>
-                                        <p className="mt-2 text-[0.84rem] leading-[1.55] text-[var(--text-secondary)]">{PORTFOLIO_PREVIEW[1].note}</p>
+                                        <p className="mt-2 text-[0.84rem] leading-[1.55] text-[var(--text-secondary)]">
+                                            GM10 uses lanes like this for liquid collector demand with visible comps. Modern cards matter when the bid is deep enough to validate pricing fast.
+                                        </p>
                                         <div className="mt-3 flex items-baseline gap-2">
                                             <span className="text-xl font-bold text-[var(--accent-blue)]">{RECENT_CARD_COMPS[1].priceLabel}</span>
                                             <span className="text-[0.72rem] text-[var(--text-tertiary)]">{RECENT_CARD_COMPS[1].recencyLabel}</span>
@@ -146,7 +160,7 @@ function PortfolioContent() {
                         <ScrollReveal delay={2}>
                             <div className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)]">
                                 <div className="flex items-center justify-between">
-                                    <div className="label-font text-[var(--accent-green)]">Vintage collector</div>
+                                    <div className="label-font text-[var(--accent-green)]">Vintage scarcity</div>
                                     <PixelLabel tone="warning">{PORTFOLIO_PREVIEW[2].status}</PixelLabel>
                                 </div>
                                 <div className="mt-3 flex items-start gap-4">
@@ -160,7 +174,9 @@ function PortfolioContent() {
                                         <div className="mt-0.5 text-[0.78rem] text-[var(--text-tertiary)]">
                                             {RECENT_CARD_COMPS[2].subtitle} · {RECENT_CARD_COMPS[2].grade}
                                         </div>
-                                        <p className="mt-2 text-[0.84rem] leading-[1.55] text-[var(--text-secondary)]">{PORTFOLIO_PREVIEW[2].note}</p>
+                                        <p className="mt-2 text-[0.84rem] leading-[1.55] text-[var(--text-secondary)]">
+                                            GM10 uses lanes like this where scarcity is real but liquidity is thinner, so provenance, grading quality, and comp selection carry more weight.
+                                        </p>
                                         <div className="mt-3 flex items-baseline gap-2">
                                             <span className="text-xl font-bold text-[var(--accent-blue)]">{RECENT_CARD_COMPS[2].priceLabel}</span>
                                             <span className="text-[0.72rem] text-[var(--text-tertiary)]">{RECENT_CARD_COMPS[2].recencyLabel}</span>
@@ -180,7 +196,7 @@ function PortfolioContent() {
                         <div className="label-font">Example buys</div>
                         <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">Example acquisitions.</h2>
                         <p className="mt-2 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
-                            Illustrative, not live positions. Shows how the fund acquires.
+                            Illustrative, not live positions. These examples show how GM10 thinks about sourcing and execution rather than promising a fixed roster.
                         </p>
                     </ScrollReveal>
                     <div className="mt-6 flex-1 grid gap-3 content-start">
@@ -210,7 +226,7 @@ function PortfolioContent() {
                         <div className="label-font">Example sales</div>
                         <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">Example exits.</h2>
                         <p className="mt-2 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
-                            Illustrative only. Gain or loss compares the exit with the original acquisition after fees.
+                            Illustrative only. Exit outcomes matter because they feed the waterfall and show how collectible exposure turns back into onchain cash.
                         </p>
                     </ScrollReveal>
                     <div className="mt-6 flex-1 grid gap-3 content-start">

@@ -29,7 +29,7 @@ function App() {
                                 <Route path="/portfolio" element={<Portfolio />} />
                                 <Route path="/faq" element={<FAQ />} />
                                 <Route path="/catch" element={<Catch />} />
-                                <Route path="/testnet-status" element={<Navigate to="/fundraising#proof" replace />} />
+                                <Route path="/proof" element={<Navigate to="/fundraising#proof" replace />} />
                                 <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
                                 <Route path="/tokenomics" element={<Navigate to="/catch" replace />} />
                                 <Route path="/governance" element={<Navigate to="/#governance" replace />} />

@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
-import { PixelDivider, PixelExternalLink, PixelMenuLink } from '../components/PixelUI';
-import { FAQ_TOPICS, SITE_LINKS } from '../data/protocol';
+import { PixelDivider, PixelMenuLink } from '../components/PixelUI';
+import { FAQ_TOPICS, SUPPORT_PAGE_COPY, getRoundPrimaryCtaLabel } from '../data/protocol';
 import { useTheme } from '../hooks/useTheme';
 import { useFujiRoundState } from '../hooks/useFujiProof';
 import { Web3Providers } from '../components/Web3Providers';
@@ -53,18 +53,25 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 function FAQContent() {
     const { theme } = useTheme();
     const roundState = useFujiRoundState();
+    const pageCopy = SUPPORT_PAGE_COPY.faq;
     return (
         <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
             {/* ── HEADER ── */}
             <section className="mx-auto max-w-3xl text-center">
                 <ScrollReveal>
-                    <div className="label-font">FAQ</div>
+                    <div className="label-font">{pageCopy.eyebrow}</div>
                     <h1 className="mt-5 text-[2.8rem] font-extrabold tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
-                        The short answers.
+                        {pageCopy.title}
                     </h1>
                     <p className="mx-auto mt-5 max-w-2xl text-[1.1rem] leading-[1.7] text-[var(--text-secondary)]">
-                        What GM10 is. What $CATCH does. Why high-grade cards. Why Fuji first.
+                        {pageCopy.body}
                     </p>
+                    <div className="mt-6 flex flex-wrap justify-center gap-3">
+                        <PixelMenuLink to={pageCopy.primaryCtaTo} active>
+                            {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
+                        </PixelMenuLink>
+                        <PixelMenuLink to={pageCopy.secondaryCtaTo}>Inspect the Proof</PixelMenuLink>
+                    </div>
                 </ScrollReveal>
             </section>
 
@@ -99,19 +106,14 @@ function FAQContent() {
                         </h2>
                         <p className="mx-auto mt-4 max-w-2xl text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
                             {roundState.isRoundOpen
-                                ? 'The live round is on Fuji now. Buy in, or follow the story as it unfolds.'
-                                : 'The Fuji test round is closed. You can still inspect the flow while the mainnet round gets prepared.'}
+                                ? 'The round page is where the answer set turns into a decision: review the module, what the position means, and the proof stack.'
+                                : 'The round page still contains the proof stack and module behavior even while Round 1 is upcoming or closed.'}
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
                             <PixelMenuLink to="/fundraising" active>
-                                {roundState.isRoundOpen ? 'Buy $CATCH' : 'See fundraising status'}
+                                {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
                             </PixelMenuLink>
-                            <PixelMenuLink to="/portfolio">
-                                Portfolio
-                            </PixelMenuLink>
-                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                                Follow on X
-                            </PixelExternalLink>
+                            <PixelMenuLink to="/fundraising#proof">Inspect the Proof</PixelMenuLink>
                         </div>
                     </div>
                 </ScrollReveal>

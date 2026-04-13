@@ -1,10 +1,9 @@
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { avalancheFuji } from 'wagmi/chains';
+import { avalanche } from 'wagmi/chains';
 import type { ReactNode } from 'react';
+import { GM10_NETWORK_LABEL } from '../data/gm10Config';
 
-// Hard-coded — this app only runs on Fuji testnet (43113).
-// Mainnet is intentionally blocked to prevent loss of real funds.
-const REQUIRED_CHAIN_ID = avalancheFuji.id; // 43113
+const REQUIRED_CHAIN_ID = avalanche.id;
 
 type Props = { children: ReactNode };
 
@@ -24,16 +23,16 @@ export default function FujiGuard({ children }: Props) {
                     <div className="text-5xl mb-6">⚠️</div>
                     <h2 className="text-2xl font-bold text-white mb-3">Wrong Network</h2>
                     <p className="text-gray-400 mb-2">
-                        This app runs on <span className="text-orange-400 font-semibold">Avalanche Fuji Testnet</span> only.
+                        This app runs on <span className="text-orange-400 font-semibold">{GM10_NETWORK_LABEL}</span>.
                     </p>
                     <p className="text-gray-500 text-sm mb-8">
-                        Mainnet is intentionally disabled — this is a testnet deployment. Use test AVAX only.
+                        Switch to Avalanche mainnet to access the Round 1 buy flow and proof surface.
                     </p>
                     <button
                         onClick={() => switchChain({ chainId: REQUIRED_CHAIN_ID })}
                         className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-400 rounded-xl font-bold text-white hover:opacity-90 transition-all shadow-lg shadow-orange-500/25"
                     >
-                        Switch to Fuji Testnet
+                        Switch to Avalanche Mainnet
                     </button>
                 </div>
             </div>

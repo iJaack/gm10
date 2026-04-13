@@ -1,25 +1,46 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { GLOBAL_CTA_ROUTE, PUBLIC_NAV_LINKS, getRoundPrimaryCtaLabel } from '../data/protocol';
 import { useTheme } from '../hooks/useTheme';
+import { useFujiRoundState } from '../hooks/useFujiProof';
 import Logo from './Logo';
+import { Web3Providers } from './Web3Providers';
+import { getRoundScheduleShortLabel } from './RoundTimingCallout';
 
-const NavbarWalletButton = lazy(() => import('./NavbarWalletButton'));
+function NavbarRoundCta({ mobile = false }: { mobile?: boolean }) {
+    const roundState = useFujiRoundState();
 
-const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/fundraising', label: 'Buy' },
-    { path: '/portfolio', label: 'Portfolio' },
-    { path: '/catch', label: '$CATCH' },
-    { path: '/faq', label: 'FAQ' },
-];
+    return (
+        <Link
+            to={GLOBAL_CTA_ROUTE}
+            className={`pixel-menu-link pixel-menu-link-active ${mobile ? 'w-full justify-center' : ''}`.trim()}
+        >
+            <span className="pixel-menu-cursor" aria-hidden>↗</span>
+            <span className="flex flex-col leading-tight">
+                <span>{getRoundPrimaryCtaLabel(roundState.isRoundOpen)}</span>
+                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.08em] opacity-75">
+                    {getRoundScheduleShortLabel(roundState)}
+                </span>
+            </span>
+        </Link>
+    );
+}
+
+function isLinkActive(currentPath: string, currentHash: string, target: string) {
+    const [path, hash = ''] = target.split('#');
+
+    if (hash) {
+        return currentPath === path && currentHash === `#${hash}`;
+    }
+
+    return currentPath === path;
+}
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [walletReady, setWalletReady] = useState(false);
     const location = useLocation();
     const { theme, toggle } = useTheme();
-    const showWalletButton = location.pathname === '/fundraising';
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -29,7 +50,7 @@ export default function Navbar() {
 
     useEffect(() => {
         setMobileMenuOpen(false);
-    }, [location.pathname]);
+    }, [location.pathname, location.hash]);
 
     useEffect(() => {
         document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
@@ -37,21 +58,6 @@ export default function Navbar() {
             document.body.style.overflow = '';
         };
     }, [mobileMenuOpen]);
-
-    useEffect(() => {
-        if (!showWalletButton) {
-            setWalletReady(false);
-            return;
-        }
-
-        const timer = window.setTimeout(() => {
-            setWalletReady(true);
-        }, 1200);
-
-        return () => window.clearTimeout(timer);
-    }, [showWalletButton]);
-
-    const isActive = (path: string) => location.pathname === path;
 
     return (
         <>
@@ -63,8 +69,7 @@ export default function Navbar() {
                 }`}
             >
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] px-4">
-                    <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
-                        {/* Logo */}
+                    <div className={`flex items-center justify-between gap-3 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
                         <Link to="/" className="flex items-center gap-2 text-[var(--text-primary)]">
                             <Logo size={28} />
                             <div className="holo-shimmer font-['Inter'] text-[0.95rem] font-bold tracking-[-0.02em]">
@@ -72,14 +77,13 @@ export default function Navbar() {
                             </div>
                         </Link>
 
-                        {/* Desktop nav — seamless text links */}
                         <nav className="hidden lg:flex items-center gap-1">
-                            {navLinks.map((link) => (
+                            {PUBLIC_NAV_LINKS.map((link) => (
                                 <Link
-                                    key={link.path}
-                                    to={link.path}
+                                    key={link.to}
+                                    to={link.to}
                                     className={`rounded-full px-4 py-1.5 text-[0.88rem] font-medium transition-all duration-200 ${
-                                        isActive(link.path)
+                                        isLinkActive(location.pathname, location.hash, link.to)
                                             ? 'bg-[var(--surface-active)] text-[var(--text-primary)]'
                                             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'
                                     }`}
@@ -90,7 +94,6 @@ export default function Navbar() {
                         </nav>
 
                         <div className="flex items-center gap-2">
-                            {/* Theme toggle */}
                             <button
                                 type="button"
                                 onClick={toggle}
@@ -104,14 +107,12 @@ export default function Navbar() {
                                 )}
                             </button>
 
-                            {/* Connect wallet */}
-                            {showWalletButton ? (
-                                <Suspense fallback={null}>
-                                    {walletReady ? <NavbarWalletButton /> : null}
-                                </Suspense>
-                            ) : null}
+                            <div className="hidden lg:block">
+                                <Web3Providers>
+                                    <NavbarRoundCta />
+                                </Web3Providers>
+                            </div>
 
-                            {/* Mobile menu toggle */}
                             <button
                                 type="button"
                                 className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)]"
@@ -130,7 +131,6 @@ export default function Navbar() {
                 </div>
             </header>
 
-            {/* Mobile menu */}
             <div
                 className={`fixed inset-0 z-40 transition-all duration-300 lg:hidden ${
                     mobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
@@ -139,26 +139,25 @@ export default function Navbar() {
                 <div className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
                 <div className="absolute inset-x-4 top-20 rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5 shadow-[var(--shadow-lg)]">
                     <div className="grid gap-1">
-                        {navLinks.map((link) => (
+                        {PUBLIC_NAV_LINKS.map((link) => (
                             <Link
-                                key={link.path}
-                                to={link.path}
+                                key={link.to}
+                                to={link.to}
                                 className={`rounded-xl px-4 py-3 text-[0.95rem] font-medium transition-colors ${
-                                    isActive(link.path)
+                                    isLinkActive(location.pathname, location.hash, link.to)
                                         ? 'bg-[var(--surface-active)] text-[var(--text-primary)]'
                                         : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
                                 }`}
-                                onClick={() => setMobileMenuOpen(false)}
                             >
                                 {link.label}
                             </Link>
                         ))}
                     </div>
-                    {showWalletButton ? (
-                        <Suspense fallback={null}>
-                            {walletReady ? <NavbarWalletButton mobile /> : null}
-                        </Suspense>
-                    ) : null}
+                    <div className="mt-4 border-t border-[var(--border)] pt-4">
+                        <Web3Providers>
+                            <NavbarRoundCta mobile />
+                        </Web3Providers>
+                    </div>
                 </div>
             </div>
         </>

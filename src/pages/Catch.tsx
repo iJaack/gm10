@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
-import { PixelExternalLink, PixelLabel, PixelMenuLink } from '../components/PixelUI';
+import { PixelLabel, PixelMenuLink } from '../components/PixelUI';
 import { Web3Providers } from '../components/Web3Providers';
 import {
     GOVERNANCE_PHASES,
-    SITE_LINKS,
+    SUPPORT_PAGE_COPY,
     TOKEN_ALLOCATION,
     TOKEN_RELEASE_RULES,
+    getRoundPrimaryCtaLabel,
 } from '../data/protocol';
 import { useFujiRoundState } from '../hooks/useFujiProof';
 
@@ -289,10 +290,26 @@ const NAV_RULES = [
     },
 ];
 
+const SYSTEM_FLOW_STEPS = [
+    {
+        title: 'Contribute through the round',
+        body: 'The round module is the entry point. Capital enters on Avalanche rails and the system records the contribution against the active round.',
+    },
+    {
+        title: 'GM10 acquires and marks positions',
+        body: 'The team handles sourcing and execution, while the system tracks positions, marks, and liquid treasury against the portfolio.',
+    },
+    {
+        title: '$CATCH tracks the strategy result',
+        body: 'The token represents exposure to the portfolio process: holdings, realized exits, and the accounting rules that govern each update.',
+    },
+] as const;
+
 
 function CatchContent() {
     const roundState = useFujiRoundState();
     const roundTone = roundState.isRoundOpen ? 'live' : 'warning';
+    const pageCopy = SUPPORT_PAGE_COPY.catch;
 
     return (
         <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
@@ -300,16 +317,22 @@ function CatchContent() {
             {/* ── HEADER ── */}
             <section>
                 <ScrollReveal>
-                    <div className="label-font">$CATCH</div>
+                    <div className="label-font">{pageCopy.eyebrow}</div>
                     <h1 className="mt-4 text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
-                        One token. The full strategy.
+                        {pageCopy.title}
                     </h1>
                     <p className="mt-4 text-[1.05rem] leading-[1.7] text-[var(--text-secondary)]">
-                        $CATCH is your position in the GM10 fund. It tracks every card acquired, every holding marked, and every exit completed. Built on Avalanche.
+                        {pageCopy.body}
                     </p>
+                    <div className="mt-6 flex flex-wrap gap-3">
+                        <PixelMenuLink to={pageCopy.primaryCtaTo} active>
+                            {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
+                        </PixelMenuLink>
+                        <PixelMenuLink to={pageCopy.secondaryCtaTo}>Inspect the Proof</PixelMenuLink>
+                    </div>
                     <div className="mt-5 flex flex-wrap gap-2">
                         <PixelLabel tone="live">ERC-20 on Avalanche</PixelLabel>
-                        <PixelLabel tone={roundTone}>{roundState.isRoundOpen ? 'Fuji testnet live' : 'Fuji test round closed'}</PixelLabel>
+                        <PixelLabel tone={roundTone}>{roundState.isRoundOpen ? 'Round 1 live' : roundState.isUpcoming ? 'Round 1 upcoming' : 'Round 1 closed'}</PixelLabel>
                         <PixelLabel tone={roundTone}>{roundState.status}</PixelLabel>
                     </div>
                 </ScrollReveal>
@@ -320,7 +343,7 @@ function CatchContent() {
                         { emoji: '🪙', label: 'Total supply', value: '100,000,000', unit: 'CATCH' },
                         { emoji: '💰', label: 'Public allocation', value: '40%', unit: 'Fundraising rounds' },
                         { emoji: '🔒', label: 'Team vesting', value: '48 months', unit: '6-mo cliff + 42-mo linear' },
-                        { emoji: '📊', label: roundState.isRoundOpen ? 'Current round' : 'Last test round', value: `Round ${roundState.roundId}`, unit: roundState.isRoundOpen ? 'Fuji testnet' : 'Closed on Fuji' },
+                        { emoji: '📊', label: roundState.isRoundOpen ? 'Current round' : 'Round status', value: `Round ${roundState.roundId}`, unit: roundState.isRoundOpen ? 'Avalanche mainnet' : roundState.status },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
@@ -330,6 +353,30 @@ function CatchContent() {
                                 </div>
                                 <div className="mt-2 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">{stat.value}</div>
                                 <div className="mt-0.5 text-[0.75rem] text-[var(--text-tertiary)]">{stat.unit}</div>
+                            </div>
+                        </ScrollReveal>
+                    ))}
+                </div>
+            </section>
+
+            <section className="mt-16">
+                <ScrollReveal>
+                    <div className="label-font">System flow</div>
+                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                        How GM10 turns one token into portfolio exposure.
+                    </h2>
+                    <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
+                        Read this page as a sequence: contribution, portfolio construction, valuation discipline, and realized exit handling.
+                    </p>
+                </ScrollReveal>
+
+                <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    {SYSTEM_FLOW_STEPS.map((step, index) => (
+                        <ScrollReveal key={step.title} delay={(index + 1) as 1 | 2 | 3}>
+                            <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-colors hover:border-[var(--border-strong)]">
+                                <div className="label-font text-[var(--accent)]">0{index + 1}</div>
+                                <h3 className="mt-3 text-lg font-bold text-[var(--text-primary)]">{step.title}</h3>
+                                <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{step.body}</p>
                             </div>
                         </ScrollReveal>
                     ))}
@@ -434,10 +481,10 @@ function CatchContent() {
                             <div className="absolute top-0 left-[12.5%] right-[12.5%] h-px bg-[var(--border-strong)]" />
                             <div className="grid grid-cols-2 gap-3 pt-5 sm:grid-cols-4">
                                 {([
-                                    { label: 'Treasury reinvestment', percent: 40, color: '#0ea5e9', desc: 'Future card buying power' },
-                                    { label: 'Buyback & burn', percent: 25, color: '#6366f1', desc: 'Token support via buyback logic' },
+                                    { label: 'Treasury reinvestment', percent: 25, color: '#0ea5e9', desc: 'Future card buying power' },
+                                    { label: 'Holder distributions', percent: 40, color: '#6366f1', desc: 'Claimable AVAX from realized profit' },
                                     { label: 'CATCH/AVAX LP', percent: 20, color: '#10b981', desc: 'Market depth & liquidity' },
-                                    { label: 'Redemption reserve', percent: 15, color: '#f59e0b', desc: 'Exit liquidity cushion' },
+                                    { label: 'Buyback & burn', percent: 15, color: '#f59e0b', desc: 'Supply support via buyback logic' },
                                 ] as const).map((out) => (
                                     <div key={out.label} className="flex flex-col items-center">
                                         <div className="h-5 w-px bg-[var(--border-strong)]" />
@@ -550,21 +597,18 @@ function CatchContent() {
             <section className="mt-16">
                 <ScrollReveal>
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-6 py-12 text-center transition-colors">
-                        <div className="label-font">Ready?</div>
+                        <div className="label-font">Next step</div>
                         <h2 className="mx-auto mt-3 text-3xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
-                            {roundState.isRoundOpen ? 'The round is open on Fuji.' : 'The Fuji test round is closed.'}
+                            {roundState.isRoundOpen ? 'Use the round page to act on the strategy.' : 'Use the round page to inspect the module and wait for the next public round.'}
                         </h2>
                         <p className="mx-auto mt-3 max-w-xl text-[0.95rem] leading-[1.7] text-[var(--text-secondary)]">
                             {roundState.isRoundOpen
-                                ? 'Test the flow, inspect the contracts, then buy in when you\'re ready.'
-                                : 'You can still inspect the contracts and mechanics here. Mainnet round coming soon.'}
+                                ? 'The round page combines contribution flow, what the position represents, and the live proof stack in one decision surface.'
+                                : 'The round page still exposes the live proof and module behavior even while Round 1 is upcoming or closed.'}
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
-                            <PixelMenuLink to="/fundraising" active>{roundState.isRoundOpen ? 'Buy $CATCH' : 'See fundraising status'}</PixelMenuLink>
-                            <PixelMenuLink to="/portfolio">Portfolio</PixelMenuLink>
-                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                                Follow on X
-                            </PixelExternalLink>
+                            <PixelMenuLink to="/fundraising" active>{getRoundPrimaryCtaLabel(roundState.isRoundOpen)}</PixelMenuLink>
+                            <PixelMenuLink to="/fundraising#proof">Inspect the Proof</PixelMenuLink>
                         </div>
                     </div>
                 </ScrollReveal>
