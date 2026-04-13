@@ -1,10 +1,10 @@
-export type FujiContractLink = {
+export type ContractLink = {
     label: string;
     address: `0x${string}`;
     snowtraceUrl: string;
 };
 
-export type FujiPositionArtifact = {
+export type PositionArtifact = {
     positionId: number;
     chain: string;
 };
@@ -33,64 +33,13 @@ export const SITE_LINKS = {
 } as const;
 
 export const BUY_PAGE_DEFAULTS = {
-    targetAvax: 10_000,
-    priceAvax: 0.0025,
+    targetAvax: 500,
+    priceAvax: 0.003,
     minAvax: 0.1,
     maxAvax: 200,
-    networkLabel: 'Fuji testnet',
+    networkLabel: 'Avalanche Mainnet',
     contributionAsset: 'AVAX',
 } as const;
-
-export const FUJI_PRIMARY_DEPLOYMENT = {
-    proxy: {
-        label: 'Fund proxy',
-        address: '0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C' as const,
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C',
-    },
-    portfolioRegistry: {
-        label: 'Portfolio registry',
-        address: '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9' as const,
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
-    },
-    investorAccounting: {
-        label: 'Wallet accounting',
-        address: '0x526a0DeBfEF61966060342C2b12ae0325cffA210' as const,
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x526a0DeBfEF61966060342C2b12ae0325cffA210',
-    },
-} as const;
-
-export const FUJI_PURCHASE_TEST_DEPLOYMENT = {
-    proxy: {
-        label: 'Fund proxy',
-        address: '0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9' as const,
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x0C0A8D5bb3f8BD3002cad720a149c2b99e6ed1C9',
-    },
-    portfolioRegistry: {
-        label: 'Portfolio registry',
-        address: '0x79678b78f7c2b8099bBd18d6754891774632F8F4' as const,
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x79678b78f7c2b8099bBd18d6754891774632F8F4',
-    },
-    investorAccounting: {
-        label: 'Wallet accounting',
-        address: '0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91' as const,
-        snowtraceUrl: 'https://testnet.snowtrace.io/address/0x99EdFdF5785EE56A1E126ee72ee3D9694c262a91',
-    },
-} as const;
-
-export const FUJI_CONTRACTS = FUJI_PRIMARY_DEPLOYMENT;
-export const FUJI_PURCHASE_TEST_CONTRACTS = FUJI_PURCHASE_TEST_DEPLOYMENT;
-export const FUJI_TEST_POSITION_IDS = [1, 2] as const;
-
-export const FUJI_TEST_PORTFOLIO_ARTIFACTS: readonly FujiPositionArtifact[] = [
-    {
-        positionId: 1,
-        chain: 'Avalanche Fuji',
-    },
-    {
-        positionId: 2,
-        chain: 'Avalanche Fuji',
-    },
-] as const;
 
 export const RECENT_CARD_COMPS = [
     {
@@ -177,15 +126,15 @@ export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
 export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     {
         title: '🪙 Enter the round',
-        body: 'Each round opens a window to contribute. Test AVAX on Fuji today — mainnet follows the same path.',
+        body: 'Round 1 is live on Avalanche mainnet. Buy $CATCH directly from the round module while the window is open.',
     },
     {
         title: '🃏 We acquire the cards',
-        body: 'GM10 targets verified, high-grade slabs with clear provenance and visible market comps. No guesswork.',
+        body: 'GM10 targets verified, high-grade slabs with clear provenance, visible comps, and recorded execution proofs from supported marketplaces.',
     },
     {
         title: '📊 $CATCH tracks it all',
-        body: 'One token follows every acquisition, every holding, every exit. Your position moves with the strategy.',
+        body: 'One token tracks every round contribution, holding, realized exit, LP replenishment, holder distributions, and reference NAV as the strategy evolves.',
     },
 ] as const;
 
@@ -218,13 +167,13 @@ export const TOKEN_ALLOCATION = [
         label: 'Liquidity & Market Structure',
         percent: 10,
         color: 'from-amber-500 to-yellow-400',
-        detail: 'Reserved for CATCH/AVAX liquidity support and onchain market structure as the token expands.',
+        detail: 'Reserved for market structure, with 10% of each round and 20% of realized sale profit routed to LP and split 50/50 between Trader Joe and Pharaoh.',
     },
     {
         label: 'Advisors',
         percent: 5,
         color: 'from-fuchsia-500 to-pink-400',
-        detail: 'For specialist contributors across legal, technical, marketplace, and collectible work.',
+        detail: 'For specialist contributors across legal, technical, marketplace, and collectible work. This bucket is liquid after Round 1 finalization.',
     },
     {
         label: 'Strategic Partnerships',
@@ -237,36 +186,36 @@ export const TOKEN_ALLOCATION = [
 export const TOKEN_RELEASE_RULES = [
     ['Fundraising Rounds Reserve', 'Released only as rounds are opened.'],
     ['Core Team', '6-month cliff, then 42 months linear vesting.'],
-    ['Advisors', '6-month cliff, then 24 months linear vesting.'],
-    ['Governance Treasury', 'Timelocked or governance-controlled.'],
-    ['Liquidity & Market Structure', 'Released only when liquidity is actually seeded or expanded.'],
+    ['Advisors', 'Liquid after Round 1 finalization.'],
+    ['Governance Treasury', 'Minted to the governance treasury wallet after Round 1 finalization.'],
+    ['Liquidity & Market Structure', '10% of raised AVAX funds LP and 20% of realized sale profit replenishes LP, split 50/50 between Trader Joe and Pharaoh.'],
     ['Community & Ecosystem', 'Progressive release, not fully live at launch.'],
     ['Strategic Partnerships', 'Released only for approved partnership allocations.'],
 ] as const;
 
 export const WATERFALL = [
-    { label: 'Treasury reinvestment', percent: 40, color: 'from-sky-400 to-blue-500' },
-    { label: 'Buyback and burn', percent: 25, color: 'from-cyan-400 to-sky-500' },
-    { label: 'CATCH / AVAX LP', percent: 20, color: 'from-emerald-400 to-teal-500' },
-    { label: 'Redemption reserve', percent: 15, color: 'from-amber-400 to-orange-500' },
+    { label: 'Treasury reinvestment', percent: 25, color: 'from-sky-400 to-blue-500' },
+    { label: 'Holder distributions', percent: 40, color: 'from-cyan-400 to-sky-500' },
+    { label: 'LP replenishment', percent: 20, color: 'from-emerald-400 to-teal-500' },
+    { label: 'Buyback and burn', percent: 15, color: 'from-amber-400 to-orange-500' },
 ] as const;
 
 export const PURCHASE_FLOW = [
     {
-        title: 'The buy page gets charged up',
-        detail: 'The live page runs on Fuji today. Test AVAX mints CATCH while the public-facing mainnet launch stays under wraps.',
+        title: 'The round opens onchain',
+        detail: 'Round 1 is live on Avalanche mainnet. The buy window closes when the cap is reached or the end timestamp passes.',
     },
     {
         title: 'Card targets get greenlit',
-        detail: 'The early governance path is still Pokemon-first: grails, slabs, provenance, price discipline, and venue-specific execution plans.',
+        detail: 'Round 1 remains ops-led: grails, slabs, provenance, price discipline, and venue-specific execution plans across Courtyard and future marketplaces.',
     },
     {
         title: 'Ops secures the slab',
-        detail: 'Execution can happen through rails like Courtyard or other collectible venues, but the target is still the card itself, not the marketplace.',
+        detail: 'Execution is operator-assisted and proof-backed. Courtyard is the first supported marketplace workflow, with room for others to follow.',
     },
     {
         title: 'The scoreboard updates onchain',
-        detail: 'Positions, marks, sale receipts, and wallet reporting all route back to Avalanche so the run stays transparent.',
+        detail: 'Positions, marks, sale receipts, LP funding, and wallet reporting route back to Avalanche mainnet so the run stays transparent.',
     },
 ] as const;
 
@@ -285,7 +234,7 @@ export const SALE_FLOW = [
     },
     {
         title: 'Principal first, profit next',
-        detail: 'Once principal is restored, realized profit is forced into treasury, buyback, LP, and reserve buckets.',
+        detail: 'Once principal is restored, realized profit is forced into treasury, holder distributions, LP, and buyback buckets.',
     },
 ] as const;
 
@@ -347,35 +296,158 @@ export const SAMPLE_HISTORY = {
 
 export const FAQ_TOPICS = [
     {
-        question: 'What is GM10?',
-        answer: '🎯 A shared investment fund for high-grade Pokémon cards. One strategy, one token, one team doing the card work.',
+        question: 'What am I buying with GM10?',
+        answer: 'GM10 is onchain exposure to a managed portfolio of trophy-grade Pokemon cards. You are buying access to the strategy, not a claim on a single slab.',
     },
     {
-        question: 'What does $CATCH do?',
-        answer: '🔗 $CATCH is your position in the fund. It tracks every card acquired, every holding marked, and every exit completed.',
+        question: 'What does $CATCH represent?',
+        answer: '$CATCH is the token that tracks the GM10 strategy. It reflects round participation, marked holdings, and realized exits as the portfolio evolves.',
     },
     {
         question: 'Why not buy cards directly?',
-        answer: '💸 Trophy-tier slabs cost $2k–$550k each. Then you handle authentication, grading, insured storage, and finding a buyer. GM10 does that for you.',
+        answer: 'Direct card ownership means sourcing, authenticity checks, insured storage, pricing discipline, and exit negotiation. GM10 packages those jobs into one managed position.',
     },
     {
-        question: 'Why only high-grade cards?',
-        answer: '📈 Because scarcity concentrates at the top. A PSA 10 and a PSA 8 of the same card can be 10–50x apart in price. The premium is the strategy.',
+        question: 'Why use Avalanche for this?',
+        answer: 'Avalanche is the transparency layer for round accounting, contract execution, and public reporting. It keeps the strategy inspectable instead of trust-me opaque.',
     },
     {
-        question: 'Why Fuji testnet first?',
-        answer: '🔍 So anyone can inspect the contracts, the flow, and the mechanics before real capital is at stake. Transparency before trust.',
+        question: 'How is value tracked if cards do not trade every day?',
+        answer: 'GM10 marks positions from executed trades first, then comparable sales, then conservative listing-band fallbacks. The system is designed to be public and disciplined, not optimistic.',
+    },
+    {
+        question: 'What is live today versus planned later?',
+        answer: 'Round 1 is live on Avalanche mainnet with live buying, public proof links, fixed token allocations, claimable AVAX profit distributions from realized exits, and public reference NAV reporting.',
     },
     {
         question: 'Does GM10 guarantee returns?',
-        answer: '⚠️ No. This is exposure to a strategy, not a guarantee. The market evidence supports the thesis. Prices can still move against the fund.',
-    },
-    {
-        question: 'What do the live holdings prove?',
-        answer: '✅ That GM10 can authorize acquisitions, release funds, and record positions onchain today. The stack works.',
-    },
-    {
-        question: 'Who decides which cards to buy?',
-        answer: '🗳️ Rounds 1–3: the founding team picks every target. Rounds 4–5: token holders propose and vote offchain. From Round 6 onward: buy and sell decisions are enforced onchain through the governance contract.',
+        answer: 'No. GM10 offers exposure to a thesis and an execution process, not guaranteed performance. Card prices, exit timing, and liquidity can all move against the fund.',
     },
 ] as const;
+
+export type SiteNavItem = {
+    to: string;
+    label: string;
+};
+
+export const GLOBAL_CTA_ROUTE = '/fundraising' as const;
+
+export function getRoundPrimaryCtaLabel(isRoundOpen: boolean) {
+    return isRoundOpen ? 'Join the Round' : 'Join Next Round';
+}
+
+export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
+    { to: '/catch', label: 'How It Works' },
+    { to: '/portfolio', label: 'Portfolio' },
+    { to: '/fundraising#proof', label: 'Proof' },
+    { to: '/faq', label: 'FAQ' },
+] as const;
+
+export const FOOTER_EXPLORE_LINKS: readonly SiteNavItem[] = [
+    { to: '/catch', label: 'How It Works' },
+    { to: '/portfolio', label: 'Portfolio' },
+    { to: '/faq', label: 'FAQ' },
+] as const;
+
+export const FOOTER_PROOF_LINKS: readonly SiteNavItem[] = [
+    { to: '/fundraising', label: 'Round status' },
+    { to: '/fundraising#proof', label: 'Live proof' },
+] as const;
+
+export const HOME_PROOF_STRIP = [
+    {
+        label: 'Asset thesis',
+        value: '$16.5M peak sale',
+        detail: 'Trophy-tier Pokemon cards already trade like a serious alternative asset class.',
+    },
+    {
+        label: 'Public mechanics',
+        value: 'Mainnet round logic',
+        detail: 'Round accounting, contract links, and proof surfaces are designed to stay inspectable on Avalanche mainnet.',
+    },
+    {
+        label: 'Execution layer',
+        value: 'Built on Avalanche',
+        detail: 'The strategy settles on transparent onchain rails instead of spreadsheet-only reporting.',
+    },
+] as const;
+
+export const HOME_MARKET_REASONS = [
+    {
+        title: 'A niche market with visible price ceilings',
+        body: 'The highest-grade grails have public comps, headline sales, and scarcity dynamics that already look like a real asset class, not a hobby-only curiosity.',
+    },
+    {
+        title: 'Scarcity compounds at the top grade',
+        body: 'The spread between raw, mid-grade, and elite-grade copies can be enormous. GM10 is built around the part of the market where scarcity matters most.',
+    },
+    {
+        title: 'Collectors pay for provenance and condition',
+        body: 'The best opportunities come from verified slabs with clear history, recognizable demand, and comparable exits. That is where GM10 concentrates.',
+    },
+] as const;
+
+export const HOME_GM10_ADVANTAGES = [
+    {
+        title: 'Skip the operational burden',
+        body: 'You do not need to source inventory, validate provenance, or manage insured storage just to get exposure.',
+    },
+    {
+        title: 'Stay diversified at the right end of the market',
+        body: 'A single trophy-tier card can cost more than most investors want tied to one collectible. GM10 lets one position cover the broader strategy.',
+    },
+    {
+        title: 'Keep the strategy inspectable',
+        body: 'Round state, contracts, holdings, and fund mechanics live on Avalanche so diligence does not stop at a PDF deck.',
+    },
+] as const;
+
+export const HOME_INVESTOR_OBJECTIONS = [
+    {
+        question: 'Why not just buy one good card?',
+        answer: 'Because one card still leaves you with concentration risk plus all of the operational work. GM10 spreads that work across a managed strategy.',
+    },
+    {
+        question: 'How do I know the marks are not inflated?',
+        answer: 'GM10 uses executed trades first, comparable sales second, and conservative fallbacks last. The valuation logic is part of the public system story.',
+    },
+    {
+        question: 'What proves the system is ready for mainnet?',
+        answer: 'Round 1 is live on mainnet with public proof links and contract-enforced timing and sale mechanics. Inspect the contracts on Snowtrace.',
+    },
+    {
+        question: 'Why does Avalanche matter here?',
+        answer: 'Avalanche gives the fund a transparent settlement and reporting layer. The site can point to live contracts instead of asking visitors to trust an opaque back office.',
+    },
+] as const;
+
+export const SUPPORT_PAGE_COPY = {
+    fundraising: {
+        eyebrow: 'Join the round',
+        title: 'Take one position in the full GM10 strategy.',
+        body: 'Use the Round 1 module to get exposure to the managed portfolio, then inspect the live Avalanche mainnet proof below.',
+        primaryCtaTo: '/fundraising#buy-panel',
+        secondaryCtaTo: '/fundraising#proof',
+    },
+    portfolio: {
+        eyebrow: 'Portfolio',
+        title: 'See what GM10 is targeting and why it fits the strategy.',
+        body: 'The portfolio page explains how GM10 thinks about grails, modern momentum, and price visibility before a card ever enters the fund.',
+        primaryCtaTo: GLOBAL_CTA_ROUTE,
+        secondaryCtaTo: '/fundraising#proof',
+    },
+    catch: {
+        eyebrow: 'How it works',
+        title: 'From contribution to exit, the system is designed to stay explainable.',
+        body: 'This page shows how GM10 turns one token into portfolio exposure, valuation discipline, and a transparent exit waterfall.',
+        primaryCtaTo: GLOBAL_CTA_ROUTE,
+        secondaryCtaTo: '/fundraising#proof',
+    },
+    faq: {
+        eyebrow: 'FAQ',
+        title: 'The investor questions that need short answers.',
+        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how Round 1 operates on mainnet.',
+        primaryCtaTo: GLOBAL_CTA_ROUTE,
+        secondaryCtaTo: '/fundraising#proof',
+    },
+} as const;

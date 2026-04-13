@@ -4,7 +4,6 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { formatEther, parseEther } from 'viem';
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
-import { useTheme } from '../hooks/useTheme';
 import {
     PixelExternalLink,
     PixelLabel,
@@ -14,18 +13,33 @@ import {
     PixelPanel,
 } from '../components/PixelUI';
 import { GM10_FUND_ABI } from '../data/contracts';
-import { BUY_PAGE_DEFAULTS, FUJI_PRIMARY_DEPLOYMENT, SITE_LINKS } from '../data/protocol';
+import { BUY_PAGE_DEFAULTS, SITE_LINKS, SUPPORT_PAGE_COPY, getRoundPrimaryCtaLabel } from '../data/protocol';
+import {
+    GM10_NETWORK_LABEL,
+    GM10_PRIMARY_DEPLOYMENT,
+    ROUND_1_END_AT,
+    ROUND_1_START_AT,
+} from '../data/gm10Config';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { Web3Providers } from '../components/Web3Providers';
+import { RoundTimingCallout } from '../components/RoundTimingCallout';
 
 const AVAX_USD_ESTIMATE = 25;
 
-function formatAddress(address: string) {
+function formatAddress(address?: string) {
+    if (!address) return 'Pending deployment';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+function formatUtcTimestamp(timestamp: number) {
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'UTC',
+    }).format(new Date(timestamp * 1000));
+}
+
 function FundraisingContent() {
-    const { theme } = useTheme();
     const { isConnected } = useAccount();
     const { data: hash, error: writeError, isPending, reset, writeContract } = useWriteContract();
     const {
@@ -48,20 +62,24 @@ function FundraisingContent() {
     const minInvestment = roundData ? Number(formatEther(roundData.minInvestment)) : BUY_PAGE_DEFAULTS.minAvax;
     const maxInvestment = roundData ? Number(formatEther(roundData.maxInvestment)) : BUY_PAGE_DEFAULTS.maxAvax;
     const isRoundActive = roundState.isRoundOpen;
-
+    const isUpcoming = roundState.isUpcoming;
+    const isClosed = roundState.isClosed;
+    const buyUnavailable = !roundState.isRoundOpen || !GM10_PRIMARY_DEPLOYMENT.proxy.address;
+    const roundWindowLabel = `${formatUtcTimestamp(roundState.startsAt ?? ROUND_1_START_AT)} UTC → ${formatUtcTimestamp(roundState.endsAt ?? ROUND_1_END_AT)} UTC`;
     const progress = roundTarget > 0 ? Math.min((roundRaised / roundTarget) * 100, 100) : 0;
     const estimatedTokens = amount ? (Number(amount) / tokenPrice).toFixed(2) : '0.00';
+    const pageCopy = SUPPORT_PAGE_COPY.fundraising;
 
     const displayError = useMemo(() => {
         if (txError) return txError;
         const surfacedError = receiptError ?? writeError;
         if (!surfacedError) return null;
         const message = surfacedError.message;
-        if (message.includes('RoundNotActive')) return 'This Fuji test round is closed. Mainnet round coming soon.';
-        if (message.includes('reverted')) return 'This Fuji test round is closed. Mainnet round coming soon.';
+        if (message.includes('RoundNotActive')) return 'Round 1 is not open for buying right now.';
+        if (message.includes('reverted')) return 'The round rejected this transaction.';
         if (message.includes('InvestmentBelowMinimum')) return `Minimum buy is ${minInvestment} AVAX.`;
         if (message.includes('InvestmentAboveMaximum')) return `Maximum buy is ${maxInvestment} AVAX.`;
-        if (message.includes('TargetReached')) return 'The current round is already full.';
+        if (message.includes('TargetReached')) return 'Round 1 is already at capacity.';
         return message;
     }, [txError, receiptError, writeError, minInvestment, maxInvestment]);
 
@@ -70,14 +88,23 @@ function FundraisingContent() {
         setTxError(null);
         reset();
 
-        if (!roundData || !roundState.isRoundOpen) {
-            setTxError('This Fuji test round is closed. Mainnet round coming soon.');
+        if (!GM10_PRIMARY_DEPLOYMENT.proxy.address) {
+            setTxError('Mainnet fund address has not been configured yet.');
+            return;
+        }
+
+        if (!roundState.isRoundOpen) {
+            setTxError(
+                isUpcoming
+                    ? 'Round 1 has not opened yet. Buying stays disabled until the start timestamp.'
+                    : 'Round 1 is closed for new buys.',
+            );
             return;
         }
 
         try {
             writeContract({
-                address: FUJI_PRIMARY_DEPLOYMENT.proxy.address,
+                address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
                 abi: GM10_FUND_ABI,
                 functionName: 'invest',
                 args: [BigInt(activeRoundId)],
@@ -93,8 +120,8 @@ function FundraisingContent() {
             {/* Status bar */}
             <ScrollReveal>
                 <div className="flex flex-wrap gap-2">
-                    <PixelLabel tone={isRoundActive ? 'live' : 'warning'}>{roundState.status}</PixelLabel>
-                    <PixelLabel tone="warning">Test AVAX only</PixelLabel>
+                    <PixelLabel tone={isRoundActive ? 'live' : isUpcoming ? 'warning' : 'base'}>{roundState.status}</PixelLabel>
+                    <PixelLabel tone="warning">{GM10_NETWORK_LABEL}</PixelLabel>
                     <PixelLabel tone="live">Verified on Snowtrace</PixelLabel>
                 </div>
             </ScrollReveal>
@@ -103,24 +130,40 @@ function FundraisingContent() {
             <section className="mt-6">
                 <ScrollReveal>
                     <div>
-                        <div className="label-font">Buy</div>
+                        <div className="label-font">{pageCopy.eyebrow}</div>
                         <h1 className="mt-4 text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
-                            {isRoundActive ? 'Enter the round.' : 'Fuji round closed.'}
+                            {pageCopy.title}
                         </h1>
                         <p className="mt-3 text-[1.05rem] leading-[1.7] text-[var(--text-secondary)]">
                             {isRoundActive
-                                ? 'The live round is open on Fuji. Inspect the contracts, review the flow, then buy in when you\'re ready.'
-                                : 'The Fuji test round has ended. Inspect the contracts, review the flow, and watch for the mainnet round soon.'}
+                                ? pageCopy.body
+                                : isUpcoming
+                                    ? 'Round 1 is about to open on Avalanche mainnet. Buying activates at the exact start timestamp — the live terms, timeline, and proof links are already visible below.'
+                                    : 'Round 1 is closed for new buys. The page still shows exactly what the position represents, how the module works, and where to inspect the live proof.'}
                         </p>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <PixelMenuLink to={pageCopy.primaryCtaTo} active>
+                                {getRoundPrimaryCtaLabel(isRoundActive)}
+                            </PixelMenuLink>
+                            <PixelMenuLink to={pageCopy.secondaryCtaTo}>
+                                Inspect the Proof
+                            </PixelMenuLink>
+                        </div>
                     </div>
                 </ScrollReveal>
 
                 <ScrollReveal delay={1}>
+                    <div className="mt-6">
+                        <RoundTimingCallout roundState={roundState} />
+                    </div>
+                </ScrollReveal>
+
+                <ScrollReveal delay={2}>
                     <div className="mt-5 grid gap-3 md:grid-cols-3">
                         {[
                             ['🎯', 'Exposure', "You're not buying one card. You're buying into the full strategy."],
-                            ['💰', 'Pricing', 'Marks come from executed trades first, then the strongest available comps.'],
-                            ['🚪', 'Exits', 'Sale proceeds return onchain before any splits are calculated.'],
+                            ['🕒', 'Round window', roundWindowLabel],
+                            ['💸', 'Profit share', 'Profitable exits route 40% of realized profit into claimable AVAX distributions for eligible holders.'],
                         ].map(([emoji, title, body]) => (
                             <div key={title} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
                                 <span className="shrink-0 text-lg" aria-hidden>{emoji}</span>
@@ -135,14 +178,14 @@ function FundraisingContent() {
             </section>
 
             {/* Buy panel — full width, single flow */}
-            <section className="mt-8">
-                <ScrollReveal delay={2}>
+            <section id="buy-panel" className="mt-8 scroll-mt-28">
+                <ScrollReveal delay={3}>
                     <PixelPanel tone={isRoundActive ? 'live' : 'warning'} className="!rounded-2xl !p-0 !overflow-hidden">
                         {/* Progress strip */}
                         <div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-6 py-4">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)]">Buy $CATCH</h2>
-                                <PixelLabel tone="warning">Fuji</PixelLabel>
+                                <PixelLabel tone="warning">{GM10_NETWORK_LABEL}</PixelLabel>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="hidden w-40 sm:block">
@@ -194,11 +237,21 @@ function FundraisingContent() {
                                     <button
                                         type="button"
                                         onClick={handleInvest}
-                                        disabled={!amount || !roundState.isRoundOpen || isPending || isConfirming}
+                                        disabled={!amount || buyUnavailable || isPending || isConfirming}
                                         className="pixel-menu-link pixel-menu-link-active shrink-0 justify-center disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <span className="pixel-menu-cursor opacity-100">↗</span>
-                                        <span>{isPending || isConfirming ? 'Submitting...' : roundState.isRoundOpen ? 'Buy $CATCH' : 'Round closed'}</span>
+                                        <span>
+                                            {isPending || isConfirming
+                                                ? 'Submitting...'
+                                                : isUpcoming
+                                                    ? 'Round upcoming'
+                                                    : isClosed
+                                                        ? 'Round closed'
+                                                        : !GM10_PRIMARY_DEPLOYMENT.proxy.address
+                                                            ? 'Awaiting deploy'
+                                                            : 'Buy $CATCH'}
+                                        </span>
                                     </button>
                                 )}
                                 <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer" className="shrink-0">
@@ -215,7 +268,12 @@ function FundraisingContent() {
 
                         {!displayError && !isRoundActive ? (
                             <div className="border-t border-[var(--border)] px-6 py-4">
-                                <PixelMessageBox title="Round closed" body="The Fuji test round has expired. Mainnet round coming soon." />
+                                <PixelMessageBox
+                                    title={isUpcoming ? 'Round upcoming' : 'Round closed'}
+                                    body={isUpcoming
+                                        ? `Buying stays disabled until ${roundWindowLabel}.`
+                                        : 'Round 1 is closed for new buys. Use this page to review the module and inspect the proof.'}
+                                />
                             </div>
                         ) : null}
                         {displayError ? (
@@ -236,7 +294,7 @@ function FundraisingContent() {
 
                         {/* Disclaimer */}
                         <div className="border-t border-[var(--border)] px-6 py-3 text-[0.75rem] text-[var(--text-tertiary)]">
-                            Test AVAX only. This surface gives proxy access to the run while keeping the live mechanics public.
+                            Round 1 is live on Avalanche mainnet. The buy window closes when the 500 AVAX cap is reached or the end timestamp passes.
                         </div>
                     </PixelPanel>
                 </ScrollReveal>
@@ -245,12 +303,12 @@ function FundraisingContent() {
             {/* ── PROOF SECTION ── */}
             <section id="proof" className="mt-10 scroll-mt-28">
                 <ScrollReveal>
-                    <div className="label-font">Fuji stack</div>
+                    <div className="label-font">Mainnet proof</div>
                     <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
                         Inspect everything.
                     </h2>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        Contracts, round state, and recorded positions. All live on Fuji, all verified on Snowtrace.
+                        Contracts, round state, and recorded positions. All wired for Avalanche mainnet and verified on Snowtrace.
                     </p>
                 </ScrollReveal>
 
@@ -275,7 +333,7 @@ function FundraisingContent() {
 
                 {/* Contracts */}
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {[...roundState.links, ...proofState.links].map((contract, index) => (
+                    {proofState.links.map((contract, index) => (
                         <ScrollReveal key={`${contract.address}-${index}`} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <a
                                 href={contract.snowtraceUrl}
@@ -299,26 +357,17 @@ function FundraisingContent() {
             {/* ── BOTTOM CTA ── */}
             <section className="mt-10">
                 <ScrollReveal>
-                    <div
-                        className="rounded-2xl border border-[var(--border)] px-6 py-12 text-center transition-colors"
-                        style={{
-                            background: theme === 'dark'
-                                ? 'radial-gradient(ellipse 70% 80% at 20% 50%, rgba(240,192,48,0.09) 0%, transparent 65%), radial-gradient(ellipse 60% 70% at 80% 30%, rgba(79,168,224,0.08) 0%, transparent 65%), var(--bg-secondary)'
-                                : 'radial-gradient(ellipse 70% 80% at 20% 50%, rgba(240,192,48,0.10) 0%, transparent 65%), radial-gradient(ellipse 60% 70% at 80% 30%, rgba(79,168,224,0.09) 0%, transparent 65%), var(--bg-secondary)',
-                        }}
-                    >
-                        <div className="label-font">What you are buying</div>
-                        <h2 className="mx-auto mt-3 max-w-[22ch] text-3xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
-                            The full strategy. One token.
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-6 py-12 text-center transition-colors">
+                        <div className="label-font">What the position represents</div>
+                        <h2 className="mx-auto mt-3 max-w-[24ch] text-3xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                            One contribution buys exposure to the full GM10 strategy, not a single card.
                         </h2>
                         <p className="mx-auto mt-3 max-w-xl text-[0.95rem] leading-[1.7] text-[var(--text-secondary)]">
-                            GM10 acquires the cards. $CATCH tracks the round, the holdings, and every exit.
+                            Use the portfolio page to review target selection, or stay on this page and inspect the proof stack before, during, or after Round 1.
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
                             <PixelMenuLink to="/portfolio">Open portfolio</PixelMenuLink>
-                            <PixelExternalLink href={SITE_LINKS.x} target="_blank" rel="noreferrer">
-                                Follow on X
-                            </PixelExternalLink>
+                            <PixelMenuLink to="/fundraising#proof">Inspect the Proof</PixelMenuLink>
                         </div>
                     </div>
                 </ScrollReveal>

@@ -2,6 +2,7 @@ import { PixelMenuLink } from './PixelUI';
 import { HOME_PROOF_STRIP, getRoundPrimaryCtaLabel } from '../data/protocol';
 import { useTheme } from '../hooks/useTheme';
 import { useFujiRoundState } from '../hooks/useFujiProof';
+import { RoundTimingCallout } from './RoundTimingCallout';
 
 export default function Hero() {
     const { theme } = useTheme();
@@ -61,7 +62,7 @@ export default function Hero() {
                             GM10 turns sourcing, diligence, custody, valuation, and exits into one managed onchain strategy, so a single position can track the full portfolio.
                         </p>
                         <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
-                            Avalanche mainnet is the reporting and execution layer for Round 1, with public proof links and contract-enforced timing.
+                            Round 1 is live on Avalanche mainnet. Public proof links, contract-enforced timing, and verified contracts on Snowtrace.
                         </p>
                     </div>
                     <div className="mt-8 flex flex-wrap gap-3 scan-reveal scan-delay-3">
@@ -71,6 +72,9 @@ export default function Hero() {
                         <PixelMenuLink to="/fundraising#proof">
                             Inspect the Proof
                         </PixelMenuLink>
+                    </div>
+                    <div className="mt-6 max-w-[42rem] scan-reveal scan-delay-3">
+                        <RoundTimingCallout roundState={roundState} compact />
                     </div>
                 </div>
 
