@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatEther } from 'viem';
 import { ROUND_1_END_AT, ROUND_1_START_AT } from '../data/gm10Config';
-import { GLOBAL_CTA_ROUTE } from '../data/protocol';
+import { BUY_PAGE_DEFAULTS, GLOBAL_CTA_ROUTE } from '../data/protocol';
 
 type RoundTimingState = {
     isRoundOpen: boolean;
@@ -9,6 +10,10 @@ type RoundTimingState = {
     isClosed: boolean;
     startsAt?: number;
     endsAt?: number;
+    round?: {
+        targetAmount: bigint;
+        raisedAmount: bigint;
+    };
 };
 
 function formatUtcTimestamp(timestamp: number) {
@@ -78,6 +83,11 @@ export function RoundTimingCallout({
             ? `Buying is live until ${formatUtcTimestamp(endsAt)}, unless the 500 AVAX cap is reached first.`
             : `Round 1 ran ${formatUtcTimestamp(startsAt)} to ${formatUtcTimestamp(endsAt)}.`;
 
+    const target = roundState.round ? Number(formatEther(roundState.round.targetAmount)) : BUY_PAGE_DEFAULTS.targetAvax;
+    const raised = roundState.round ? Number(formatEther(roundState.round.raisedAmount)) : 0;
+    const remaining = Math.max(0, target - raised);
+    const progress = target > 0 ? Math.min((raised / target) * 100, 100) : 0;
+
     return (
         <div
             className={`relative overflow-hidden rounded-2xl border border-[var(--accent)]/40 bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] ${
@@ -103,6 +113,32 @@ export function RoundTimingCallout({
                         <span>{roundState.isUpcoming ? 'Review Round 1' : roundState.isRoundOpen ? 'Join Round 1' : 'Inspect Proof'}</span>
                     </Link>
                 ) : null}
+            </div>
+
+            {/* Progress bar */}
+            <div className={compact ? 'mt-3' : 'mt-4'}>
+                <div className="flex items-center justify-between text-[0.75rem] text-[var(--text-secondary)]">
+                    <span>
+                        <span className="font-semibold text-[var(--text-primary)]">{raised.toLocaleString()} AVAX</span> raised
+                    </span>
+                    <span>
+                        <span className="font-semibold text-[var(--text-primary)]">{remaining.toLocaleString()} AVAX</span> left of {target.toLocaleString()}
+                    </span>
+                </div>
+                <div className={`${compact ? 'mt-1.5 h-2' : 'mt-2 h-3'} overflow-hidden rounded-full bg-[var(--bg-tertiary)]`}>
+                    <div
+                        className="h-full rounded-full transition-all duration-700 ease-out"
+                        style={{
+                            width: `${progress}%`,
+                            background: roundState.isClosed
+                                ? 'var(--text-tertiary)'
+                                : 'linear-gradient(90deg, var(--accent), var(--accent-blue))',
+                        }}
+                    />
+                </div>
+                <div className="mt-1 text-right text-[0.7rem] font-semibold tabular-nums text-[var(--text-tertiary)]">
+                    {progress.toFixed(1)}%
+                </div>
             </div>
         </div>
     );

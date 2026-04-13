@@ -24,7 +24,6 @@ import {
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { Web3Providers } from '../components/Web3Providers';
 import { RoundTimingCallout } from '../components/RoundTimingCallout';
-import { RoundProgressBar } from '../components/RoundProgressBar';
 
 const GAS_RESERVE = 0.05; // keep 0.05 AVAX for gas
 
@@ -161,17 +160,6 @@ function FundraisingContent() {
                 <ScrollReveal delay={1}>
                     <div className="mt-6">
                         <RoundTimingCallout roundState={roundState} />
-                    </div>
-                </ScrollReveal>
-
-                <ScrollReveal delay={1}>
-                    <div className="mt-5">
-                        <RoundProgressBar
-                            round={roundState.round}
-                            endsAt={roundState.endsAt}
-                            isRoundOpen={roundState.isRoundOpen}
-                            isClosed={roundState.isClosed}
-                        />
                     </div>
                 </ScrollReveal>
 

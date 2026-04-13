@@ -1,5 +1,4 @@
 import Hero from '../components/Hero';
-import { RoundProgressBar } from '../components/RoundProgressBar';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { PixelMenuLink } from '../components/PixelUI';
 import HomeFujiSection from '../components/HomeFujiSection';
@@ -21,19 +20,6 @@ function HomeContent() {
     return (
         <main>
             <Hero />
-
-            <section className="border-b border-[var(--border)] px-4 py-8">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
-                    <ScrollReveal>
-                        <RoundProgressBar
-                            round={roundState.round}
-                            endsAt={roundState.endsAt}
-                            isRoundOpen={roundState.isRoundOpen}
-                            isClosed={roundState.isClosed}
-                        />
-                    </ScrollReveal>
-                </div>
-            </section>
 
             <section id="why-market" className="border-b border-[var(--border)] px-4 py-16 md:py-24">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
