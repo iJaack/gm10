@@ -523,6 +523,34 @@ export function CourtyardWizardPanel() {
         updateDraft((current) => ({ ...current, position: { ...current.position, [key]: value } }));
     }
 
+    async function quoteFundingForAsset(resolvedAsset: CourtyardAsset) {
+        if (!effectiveTreasuryAddress) throw new Error('Avalanche treasury Safe is unavailable.');
+        const quoteParams = new URLSearchParams({
+            usdcRaw: resolvedAsset.listing.priceRaw,
+            fromAddress: effectiveTreasuryAddress,
+            toAddress: polygonHotWallet,
+        });
+        const quoteResponse = await fetch(`/api/lifi-quotes?${quoteParams.toString()}`);
+        const quotePayload = await quoteResponse.json();
+        if (!quoteResponse.ok) throw new Error(quotePayload.error || 'Unable to quote LI.FI route');
+        const resolvedQuotes = quotePayload as FundingQuotes;
+        if (!resolvedQuotes.usdc.enoughOutput || !resolvedQuotes.usdc.transactionRequest?.to) {
+            throw new Error('LI.FI did not return a sufficient executable USDC route.');
+        }
+        return resolvedQuotes;
+    }
+
+    async function refreshBridgeQuote() {
+        if (!asset) throw new Error('Resolve a Courtyard listing before refreshing the LI.FI route.');
+        const freshQuotes = await quoteFundingForAsset(asset);
+        updateDraft((current) => ({
+            ...current,
+            quotes: freshQuotes,
+            withdrawalAvax: freshQuotes.summary.bufferedAvax,
+        }));
+        return freshQuotes;
+    }
+
     async function resolveListing() {
         setError('');
         setIsResolving(true);
@@ -532,19 +560,7 @@ export function CourtyardWizardPanel() {
             const assetPayload = await assetResponse.json();
             if (!assetResponse.ok) throw new Error(assetPayload.error || 'Unable to resolve Courtyard listing');
             const resolvedAsset = assetPayload as CourtyardAsset;
-
-            const quoteParams = new URLSearchParams({
-                usdcRaw: resolvedAsset.listing.priceRaw,
-                fromAddress: effectiveTreasuryAddress,
-                toAddress: polygonHotWallet,
-            });
-            const quoteResponse = await fetch(`/api/lifi-quotes?${quoteParams.toString()}`);
-            const quotePayload = await quoteResponse.json();
-            if (!quoteResponse.ok) throw new Error(quotePayload.error || 'Unable to quote LI.FI route');
-            const resolvedQuotes = quotePayload as FundingQuotes;
-            if (!resolvedQuotes.usdc.enoughOutput || !resolvedQuotes.usdc.transactionRequest?.to) {
-                throw new Error('LI.FI did not return a sufficient executable USDC route.');
-            }
+            const resolvedQuotes = await quoteFundingForAsset(resolvedAsset);
 
             updateDraft((current) => ({
                 ...current,
@@ -631,7 +647,8 @@ export function CourtyardWizardPanel() {
     async function submitBridgeUsdc() {
         setError('');
         try {
-            const tx = quotes?.usdc.transactionRequest;
+            const freshQuotes = await refreshBridgeQuote();
+            const tx = freshQuotes.usdc.transactionRequest;
             if (!tx?.to) throw new Error('LI.FI route is missing a transaction request. Refresh the quote.');
             await ensureAvalanche();
             const hash = await sendTransactionAsync({
@@ -888,6 +905,17 @@ export function CourtyardWizardPanel() {
                         <PrimaryButton onClick={submitBridgeUsdc} disabled={!quotes?.usdc.transactionRequest?.to || isBridgePending || bridgeRouteDone}>
                             {isBridgePending || (pendingTx?.step === 'bridge_usdc_to_hot_wallet' && !bridgeRouteDone) ? 'Waiting...' : 'Submit LI.FI bridge'}
                         </PrimaryButton>
+                        <SecondaryButton
+                            onClick={() => {
+                                setError('');
+                                void refreshBridgeQuote().catch((caught) => {
+                                    setError(caught instanceof Error ? caught.message : 'Unable to refresh LI.FI route');
+                                });
+                            }}
+                            disabled={!asset || isBridgePending}
+                        >
+                            Refresh LI.FI route
+                        </SecondaryButton>
                         <SecondaryButton onClick={() => void refetchHotWalletUsdc()}>Refresh Hot Wallet balance</SecondaryButton>
                     </Panel>
                 );
