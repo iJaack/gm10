@@ -1,13 +1,4 @@
-// V4 fund ABI — only the functions the admin dashboard uses
-export const FUND_V4_ABI = [
-    // Role management
-    {
-        inputs: [],
-        name: 'OPERATOR_ROLE',
-        outputs: [{ name: '', type: 'bytes32' }],
-        stateMutability: 'view',
-        type: 'function',
-    },
+export const FUND_ADMIN_ABI = [
     {
         inputs: [{ name: 'role', type: 'bytes32' }, { name: 'account', type: 'address' }],
         name: 'hasRole',
@@ -22,118 +13,152 @@ export const FUND_V4_ABI = [
         stateMutability: 'nonpayable',
         type: 'function',
     },
-    // Bridge adapter config
     {
-        inputs: [{ name: 'adapter', type: 'address' }],
-        name: 'approvedBridgeAdapters',
-        outputs: [{ name: '', type: 'bool' }],
+        inputs: [],
+        name: 'profitDistributor',
+        outputs: [{ name: '', type: 'address' }],
         stateMutability: 'view',
         type: 'function',
     },
     {
-        inputs: [{ name: 'adapter', type: 'address' }, { name: 'approved', type: 'bool' }],
-        name: 'setApprovedBridgeAdapter',
+        inputs: [],
+        name: 'liquidityCoordinator',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'referenceNavPerTokenUsdt6',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: '_roundId', type: 'uint256' }],
+        name: 'getRound',
+        outputs: [
+            {
+                components: [
+                    { name: 'roundId', type: 'uint256' },
+                    { name: 'targetAmount', type: 'uint256' },
+                    { name: 'raisedAmount', type: 'uint256' },
+                    { name: 'tokenPrice', type: 'uint256' },
+                    { name: 'minInvestment', type: 'uint256' },
+                    { name: 'maxInvestment', type: 'uint256' },
+                    { name: 'startTime', type: 'uint256' },
+                    { name: 'endTime', type: 'uint256' },
+                    { name: 'isActive', type: 'bool' },
+                    { name: 'isFinalized', type: 'bool' },
+                ],
+                name: '',
+                type: 'tuple',
+            },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: '_roundId', type: 'uint256' }],
+        name: 'finalizeRound',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'account', type: 'address' }, { name: 'excluded', type: 'bool' }],
+        name: 'setProfitShareExclusion',
         outputs: [],
         stateMutability: 'nonpayable',
         type: 'function',
     },
     {
         inputs: [],
-        name: 'swapRouterV4',
-        outputs: [{ name: '', type: 'address' }],
+        name: 'stableAccounting',
+        outputs: [
+            { name: 'canonicalPortfolioValue', type: 'uint256' },
+            { name: 'lastStableNavUpdateTimestamp', type: 'uint256' },
+            { name: 'liquidTreasury', type: 'uint256' },
+            { name: 'outstandingPurchaseReleases', type: 'uint256' },
+            { name: 'buybackAccrued', type: 'uint256' },
+            { name: 'lpAccrued', type: 'uint256' },
+            { name: 'holderDistributionAccrued', type: 'uint256' },
+            { name: 'weeklyNavCap', type: 'uint256' },
+        ],
         stateMutability: 'view',
         type: 'function',
-    },
-    // Bridge guard
-    {
-        inputs: [{ name: 'purchaseKey', type: 'bytes32' }],
-        name: 'isBridged',
-        outputs: [{ name: '', type: 'bool' }],
-        stateMutability: 'view',
-        type: 'function',
-    },
-    // swapAndBridge — dstEid + dstSafe are explicit params (no registry lookup)
-    {
-        inputs: [
-            { name: 'purchaseKey', type: 'bytes32' },
-            { name: 'tokenIn', type: 'address' },
-            { name: 'tokenOut', type: 'address' },
-            { name: 'path', type: 'address[]' },
-            { name: 'amountOut', type: 'uint256' },
-            { name: 'maxAmountIn', type: 'uint256' },
-            { name: 'bridgeAdapter', type: 'address' },
-            { name: 'dstEid', type: 'uint32' },
-            { name: 'dstSafe', type: 'address' },
-            { name: 'lzOptions', type: 'bytes' },
-        ],
-        name: 'swapAndBridge',
-        outputs: [],
-        stateMutability: 'payable',
-        type: 'function',
-    },
-    // Events
-    {
-        anonymous: false,
-        inputs: [
-            { indexed: true, name: 'purchaseKey', type: 'bytes32' },
-            { indexed: false, name: 'dstEid', type: 'uint32' },
-            { indexed: false, name: 'dstSafe', type: 'address' },
-            { indexed: false, name: 'tokenBridged', type: 'address' },
-            { indexed: false, name: 'amountBridged', type: 'uint256' },
-            { indexed: false, name: 'bridgeFee', type: 'uint256' },
-        ],
-        name: 'PurchaseFundsBridged',
-        type: 'event',
-    },
-    {
-        anonymous: false,
-        inputs: [
-            { indexed: true, name: 'adapter', type: 'address' },
-            { indexed: false, name: 'approved', type: 'bool' },
-        ],
-        name: 'BridgeAdapterSet',
-        type: 'event',
     },
 ] as const;
 
-// Stargate bridge adapter ABI
-export const STARGATE_ADAPTER_ABI = [
+export const LIQUIDITY_COORDINATOR_ABI = [
     {
-        inputs: [{ name: 'token', type: 'address' }],
-        name: 'stargatePool',
-        outputs: [{ name: '', type: 'address' }],
-        stateMutability: 'view',
-        type: 'function',
-    },
-    {
-        inputs: [{ name: 'token', type: 'address' }, { name: 'pool', type: 'address' }],
-        name: 'setPool',
-        outputs: [],
-        stateMutability: 'nonpayable',
-        type: 'function',
-    },
-    {
-        inputs: [
-            { name: 'dstEid', type: 'uint32' },
-            { name: 'token', type: 'address' },
-            { name: 'amount', type: 'uint256' },
-            { name: 'options', type: 'bytes' },
-        ],
-        name: 'quoteBridge',
-        outputs: [{ name: 'nativeFee', type: 'uint256' }],
+        inputs: [],
+        name: 'traderJoeLpDeployedAvaxWei',
+        outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function',
     },
     {
         inputs: [],
-        name: 'fund',
-        outputs: [{ name: '', type: 'address' }],
+        name: 'pharaohLpDeployedAvaxWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'traderJoeLpTokenDeployed18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'pharaohLpTokenDeployed18',
+        outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function',
     },
 ] as const;
 
-// Portfolio registry ABI — chain safe config
+export const PROFIT_DISTRIBUTOR_ABI = [
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'excludedFromProfitShare',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'claimableProfit',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'eligibleSupply',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'cumulativeProfitPerTokenWei18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'totalProfitDepositedWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 export const REGISTRY_ABI = [
     {
         inputs: [
@@ -149,27 +174,215 @@ export const REGISTRY_ABI = [
         type: 'function',
     },
     {
-        inputs: [{ name: 'chainEid', type: 'uint32' }],
-        name: 'getChainSafe',
-        outputs: [{
-            components: [
-                { name: 'enabled', type: 'bool' },
-                { name: 'chainEid', type: 'uint32' },
-                { name: 'evmSafe', type: 'address' },
-                { name: 'nonEvmSafe', type: 'bytes32' },
-                { name: 'label', type: 'bytes32' },
-            ],
-            name: '',
-            type: 'tuple',
-        }],
-        stateMutability: 'view',
-        type: 'function',
-    },
-    {
         inputs: [{ name: 'marketplaceId', type: 'bytes32' }, { name: 'approved', type: 'bool' }],
         name: 'setMarketplaceApproval',
         outputs: [],
         stateMutability: 'nonpayable',
         type: 'function',
     },
+    {
+        inputs: [{ name: 'chainEid', type: 'uint32' }],
+        name: 'getChainSafe',
+        outputs: [
+            {
+                components: [
+                    { name: 'enabled', type: 'bool' },
+                    { name: 'chainEid', type: 'uint32' },
+                    { name: 'evmSafe', type: 'address' },
+                    { name: 'nonEvmSafe', type: 'bytes32' },
+                    { name: 'label', type: 'bytes32' },
+                ],
+                name: '',
+                type: 'tuple',
+            },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'marketplaceId', type: 'bytes32' }],
+        name: 'isMarketplaceApproved',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'purchaseKey', type: 'bytes32' }],
+        name: 'getPurchaseAuthorization',
+        outputs: [
+            {
+                components: [
+                    { name: 'purchaseKey', type: 'bytes32' },
+                    { name: 'status', type: 'uint8' },
+                    { name: 'chainEid', type: 'uint32' },
+                    { name: 'marketplaceId', type: 'bytes32' },
+                    { name: 'assetRef', type: 'bytes32' },
+                    { name: 'maxSpendUsdt6', type: 'uint256' },
+                    { name: 'releasedUsdt6', type: 'uint256' },
+                    { name: 'destinationSafe', type: 'address' },
+                    { name: 'destinationSafeAlt', type: 'bytes32' },
+                    { name: 'approvedAt', type: 'uint256' },
+                    { name: 'mandateHash', type: 'bytes32' },
+                    { name: 'executionRef', type: 'bytes32' },
+                    { name: 'settlementRef', type: 'bytes32' },
+                    { name: 'proofHash', type: 'bytes32' },
+                ],
+                name: '',
+                type: 'tuple',
+            },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'saleKey', type: 'bytes32' }],
+        name: 'getSaleAuthorization',
+        outputs: [
+            {
+                components: [
+                    { name: 'saleKey', type: 'bytes32' },
+                    { name: 'status', type: 'uint8' },
+                    { name: 'positionId', type: 'uint256' },
+                    { name: 'chainEid', type: 'uint32' },
+                    { name: 'marketplaceId', type: 'bytes32' },
+                    { name: 'minNetProceedsUsdt6', type: 'uint256' },
+                    { name: 'grossProceedsUsdt6', type: 'uint256' },
+                    { name: 'marketplaceFeesUsdt6', type: 'uint256' },
+                    { name: 'bridgeFeesUsdt6', type: 'uint256' },
+                    { name: 'netProceedsUsdt6', type: 'uint256' },
+                    { name: 'netProceedsNativeWei', type: 'uint256' },
+                    { name: 'approvedAt', type: 'uint256' },
+                    { name: 'mandateHash', type: 'bytes32' },
+                    { name: 'executionRef', type: 'bytes32' },
+                    { name: 'proceedsRef', type: 'bytes32' },
+                    { name: 'proofHash', type: 'bytes32' },
+                ],
+                name: '',
+                type: 'tuple',
+            },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
 ] as const;
+
+export const COURTYARD_WORKFLOW_ABI = [
+    {
+        inputs: [
+            { name: 'chainEid', type: 'uint32' },
+            { name: 'evmSafe', type: 'address' },
+            { name: 'nonEvmSafe', type: 'bytes32' },
+            { name: 'label', type: 'bytes32' },
+            { name: 'enabled', type: 'bool' },
+        ],
+        name: 'configureCourtyardChain',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'purchaseKey', type: 'bytes32' },
+            { name: 'chainEid', type: 'uint32' },
+            { name: 'assetRef', type: 'bytes32' },
+            { name: 'maxSpendUsdt6', type: 'uint256' },
+            { name: 'mandateHash', type: 'bytes32' },
+        ],
+        name: 'authorizeCourtyardPurchase',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'purchaseKey', type: 'bytes32' }, { name: 'amountUsdt6', type: 'uint256' }],
+        name: 'releaseCourtyardPurchaseFunds',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'purchaseKey', type: 'bytes32' },
+            { name: 'executionRef', type: 'bytes32' },
+            { name: 'settlementRef', type: 'bytes32' },
+            { name: 'proofHash', type: 'bytes32' },
+        ],
+        name: 'recordCourtyardPurchaseExecution',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'purchaseKey', type: 'bytes32' },
+            {
+                components: [
+                    { name: 'custodyMode', type: 'uint8' },
+                    { name: 'tokenStandard', type: 'bytes32' },
+                    { name: 'evmCollection', type: 'address' },
+                    { name: 'nonEvmCollection', type: 'bytes32' },
+                    { name: 'tokenId', type: 'uint256' },
+                    { name: 'nonEvmTokenId', type: 'bytes32' },
+                    { name: 'externalAssetId', type: 'bytes32' },
+                    { name: 'categoryId', type: 'bytes32' },
+                    { name: 'marketplaceProvenanceRef', type: 'bytes32' },
+                    { name: 'acquisitionPriceUsdt6', type: 'uint256' },
+                    { name: 'metadataHash', type: 'bytes32' },
+                    { name: 'proofHash', type: 'bytes32' },
+                ],
+                name: 'input',
+                type: 'tuple',
+            },
+        ],
+        name: 'recordCourtyardPosition',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'saleKey', type: 'bytes32' },
+            { name: 'positionId', type: 'uint256' },
+            { name: 'minNetProceedsUsdt6', type: 'uint256' },
+            { name: 'mandateHash', type: 'bytes32' },
+        ],
+        name: 'authorizeCourtyardSale',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'saleKey', type: 'bytes32' },
+            { name: 'grossProceedsUsdt6', type: 'uint256' },
+            { name: 'marketplaceFeesUsdt6', type: 'uint256' },
+            { name: 'bridgeFeesUsdt6', type: 'uint256' },
+            { name: 'executionRef', type: 'bytes32' },
+            { name: 'proceedsRef', type: 'bytes32' },
+            { name: 'proofHash', type: 'bytes32' },
+        ],
+        name: 'recordCourtyardSaleExecution',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'saleKey', type: 'bytes32' }, { name: 'netProceedsUsdt6', type: 'uint256' }],
+        name: 'confirmCourtyardSaleProceeds',
+        outputs: [],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'saleKey', type: 'bytes32' }],
+        name: 'finalizeCourtyardSale',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+] as const;
+
+// Legacy aliases retained so older admin-only panels still typecheck even though
+// the live admin app now targets the profit-participation surface.
+export const FUND_V4_ABI = FUND_ADMIN_ABI;
+export const STARGATE_ADAPTER_ABI = [] as const;
