@@ -9,6 +9,7 @@ import { ThemeContext, useThemeProvider } from './hooks/useTheme';
 const Fundraising = lazy(() => import('./pages/Fundraising'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const Portfolio = lazy(() => import('./pages/Portfolio'));
+const Holders = lazy(() => import('./pages/Holders'));
 const Catch = lazy(() => import('./pages/Catch'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -27,15 +28,17 @@ function App() {
                                 <Route path="/" element={<Home />} />
                                 <Route path="/fundraising" element={<Fundraising />} />
                                 <Route path="/portfolio" element={<Portfolio />} />
+                                <Route path="/holders" element={<Holders />} />
                                 <Route path="/faq" element={<FAQ />} />
                                 <Route path="/catch" element={<Catch />} />
+                                <Route path="/testnet-status" element={<Navigate to="/fundraising#proof" replace />} />
                                 <Route path="/proof" element={<Navigate to="/fundraising#proof" replace />} />
                                 <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
                                 <Route path="/tokenomics" element={<Navigate to="/catch" replace />} />
                                 <Route path="/governance" element={<Navigate to="/#governance" replace />} />
                                 <Route path="/nav-methodology" element={<Navigate to="/#pricing" replace />} />
                                 <Route path="/sales-proceeds" element={<Navigate to="/#exits" replace />} />
-                                <Route path="/investor-pnl" element={<Navigate to="/#wallet" replace />} />
+                                <Route path="/investor-pnl" element={<Navigate to="/holders" replace />} />
                                 <Route path="*" element={<NotFound />} />
                             </Routes>
                         </Suspense>

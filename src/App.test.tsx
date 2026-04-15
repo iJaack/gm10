@@ -12,6 +12,7 @@ vi.mock('./components/Web3Providers', () => ({
 
 vi.mock('wagmi', () => ({
     useAccount: () => ({ isConnected: false }),
+    useBalance: () => ({ data: undefined }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
     useWriteContract: () => ({
         data: undefined,
@@ -104,28 +105,118 @@ vi.mock('./hooks/useFujiProof', () => ({
         positions: [
             {
                 positionId: 1,
+                title: 'Gengar VMAX',
+                subtitle: 'PSA 10',
+                imageSrc: '/brand/cover-pokeball-night.webp',
+                imageAlt: 'Gengar card',
+                note: 'Recorded card',
                 acquisition: '$18.00',
                 currentValue: '$18.00',
+                lastNavMark: '$18.00',
                 chain: 'Avalanche Fuji',
                 tokenId: '1',
                 collectionAddress: '0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
+                collectionLabel: '0xA2...74fF',
                 snowtraceUrl: 'https://testnet.snowtrace.io/address/0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
+                acquisitionDateLabel: 'Apr 15, 2026',
+                lastValuationLabel: 'Apr 15, 2026',
+                statusLabel: 'Active',
             },
             {
                 positionId: 2,
+                title: 'Recorded card #2',
+                subtitle: 'Metadata pending',
+                imageSrc: '/brand/cover-pokeball-night.webp',
+                imageAlt: 'GM10 card',
                 acquisition: '$22.00',
                 currentValue: '$22.00',
+                lastNavMark: '$22.00',
                 chain: 'Avalanche Fuji',
                 tokenId: '1',
                 collectionAddress: '0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
+                collectionLabel: '0x05...eA66',
                 snowtraceUrl: 'https://testnet.snowtrace.io/address/0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
+                acquisitionDateLabel: 'Apr 15, 2026',
+                lastValuationLabel: 'Apr 15, 2026',
+                statusLabel: 'Active',
             },
+        ],
+        activity: [
+            { id: 'buy-1', type: 'Buy', item: 'Gengar VMAX', date: 'Apr 15, 2026', amount: '$18.00', detail: 'Avalanche Fuji position #1' },
+            { id: 'buy-2', type: 'Buy', item: 'Recorded card #2', date: 'Apr 15, 2026', amount: '$22.00', detail: 'Avalanche Fuji position #2' },
         ],
         proofSummary: {
             holdingsLabel: '2 recorded positions',
-            holdingsChipLabel: '2 positions',
+            holdingsChipLabel: '2 acquired cards',
+            costBasisLabel: '$40.00',
+            onchainCurrentMarkLabel: '$40.00',
+            platformNavLabel: '$44.00',
+            unrealizedPnlLabel: '$4.00',
+            unrealizedSourceLabel: 'Courtyard profile NAV',
             portfolioValueLabel: '$40.00',
             liquidTreasuryLabel: '$10.00',
+            referenceNavLabel: '$0.02',
+        },
+    }),
+}));
+
+vi.mock('./hooks/useCourtyardProfileNav', () => ({
+    useCourtyardProfileNav: () => ({
+        source: 'courtyard',
+        netWorthUsd: 44,
+        fetchedAt: '2026-04-15T22:00:00.000Z',
+        profileUrl: 'https://courtyard.io/user/gm10xyz/collection',
+        status: 'available',
+        isLoading: false,
+    }),
+}));
+
+vi.mock('./hooks/useHolderDashboard', () => ({
+    useHolderDashboard: () => ({
+        isConnected: false,
+        claimState: {
+            canClaim: false,
+            reason: 'Connect a wallet to check realized profit.',
+        },
+        labels: {
+            totalSupply: '183,333.3333 CATCH',
+            profitEligibleSupply: '174,421.1693 CATCH',
+            referenceNav: '$0.02',
+            navPerToken: '$0.02',
+            catchBalance: 'Connect wallet',
+            remainingCostBasis: 'Connect wallet',
+            currentReferenceValue: 'Connect wallet',
+            unrealizedReferencePnl: 'Connect wallet',
+            claimableProfit: 'Connect wallet',
+            claimedProfit: 'Connect wallet',
+            totalProfitDeposited: '0 AVAX',
+            liquidTreasury: '$3,528.60',
+            holderDistributionAccrued: '$0.00',
+        },
+    }),
+}));
+
+vi.mock('./hooks/useCatchMarketData', () => ({
+    useCatchMarketData: () => ({
+        status: 'available',
+        spotPriceUsd: 0.022,
+        fetchedAt: '2026-04-15T22:00:00.000Z',
+        lfj: {
+            venue: 'LFJ',
+            status: 'available',
+            pairAddress: '0x1111111111111111111111111111111111111111',
+            quoteToken: 'AVAX',
+            priceUsd: 0.022,
+            liquidityUsd: 10000,
+            volume24hUsd: 500,
+            priceChange24h: 1.2,
+            url: 'https://lfj.gg',
+        },
+        pharaoh: {
+            venue: 'Pharaoh',
+            status: 'unavailable',
+            fallbackAvax: 1n,
+            fallbackCatch: 1000000000000000000n,
         },
     }),
 }));
@@ -150,8 +241,7 @@ describe('route simplification', () => {
             link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
-        expect(labels).toEqual(['Home', 'Buy', 'Portfolio', '$CATCH', 'FAQ']);
-        expect(screen.queryByText('How it Works')).not.toBeInTheDocument();
+        expect(labels).toEqual(['Join', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
     });
 
     it.each([
@@ -161,7 +251,7 @@ describe('route simplification', () => {
         ['/governance', '/#governance'],
         ['/nav-methodology', '/#pricing'],
         ['/sales-proceeds', '/#exits'],
-        ['/investor-pnl', '/#wallet'],
+        ['/investor-pnl', '/holders'],
     ])('redirects %s to %s', async (from, to) => {
         renderAt(from);
 
@@ -175,27 +265,24 @@ describe('page compression regressions', () => {
     it('keeps the home page focused on proxy access to elite pokemon-card upside', () => {
         renderAt('/');
 
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/can't \$catch alone/i);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/get exposure to trophy-grade pokemon cards/i);
         expect(screen.getAllByText(/trophy-grade/i).length).toBeGreaterThanOrEqual(1);
-        expect(screen.getByText(/your share/i)).toBeInTheDocument();
+        expect(screen.getByText(/GM10 gives crypto investors the exposure/i)).toBeInTheDocument();
+        expect(document.getElementById('why-market')).not.toBeNull();
         expect(document.getElementById('why-gm10')).not.toBeNull();
-        expect(document.getElementById('evidence')).not.toBeNull();
         expect(document.getElementById('how-it-works')).not.toBeNull();
-        expect(document.getElementById('token')).not.toBeNull();
-        expect(document.getElementById('pricing')).not.toBeNull();
-        expect(document.getElementById('exits')).not.toBeNull();
-        expect(document.getElementById('wallet')).not.toBeNull();
-        expect(document.getElementById('governance')).not.toBeNull();
-        expect(screen.getByText(/market evidence, not guaranteed results/i)).toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /buy \$catch/i }).length).toBeGreaterThan(0);
+        expect(document.getElementById('proof')).not.toBeNull();
+        expect(document.getElementById('investor-objections')).not.toBeNull();
+        expect(screen.getByText(/Move from the story to the live round and proof/i)).toBeInTheDocument();
+        expect(screen.getAllByRole('link', { name: /join next round|join the round/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
-        expect(screen.getByRole('heading', { name: /already live\. already inspectable\./i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /the strategy already has a public proof surface/i })).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', async () => {
         renderAt('/fundraising');
 
-        expect(await screen.findByRole('heading', { name: /enter the round\./i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /take one position in the full gm10 strategy/i })).toBeInTheDocument();
         expect(screen.getByText(/you're not buying one card/i)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /inspect everything\./i })).toBeInTheDocument();
         expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
@@ -206,28 +293,43 @@ describe('page compression regressions', () => {
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
 
-    it('keeps the portfolio split between editorial lanes and live fuji status', async () => {
+    it('renders the portfolio gallery with live positions and activity', async () => {
         renderAt('/portfolio');
 
-        expect(await screen.findByRole('heading', { name: /the vault\. every card, every position\./i })).toBeInTheDocument();
-        expect(screen.getByText(/^charizard$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^target roster$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^2 positions$/i)).toBeInTheDocument();
-        expect(screen.getByText(/marked value/i)).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /card portfolio/i })).toBeInTheDocument();
+        expect(screen.getByText(/^2 acquired cards$/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/courtyard platform nav/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/^activity$/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/^buy$/i).length).toBeGreaterThanOrEqual(1);
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
+    });
+
+    it('renders the holder dashboard with gated claim and market rows', async () => {
+        renderAt('/holders');
+
+        expect(await screen.findByRole('heading', { name: /holder dashboard/i })).toBeInTheDocument();
+        expect(screen.getByText(/claim gated/i)).toBeInTheDocument();
+        expect(screen.getByText(/connect a wallet to check realized profit/i)).toBeInTheDocument();
+        expect(screen.getByText(/\$catch price and liquidity/i)).toBeInTheDocument();
+        expect(screen.getByText(/^LFJ$/)).toBeInTheDocument();
+        expect(screen.getByText(/^Pharaoh$/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /claim avax disabled/i })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
     });
 
     it('keeps faq as a short edge-case page with forward links', async () => {
         renderAt('/faq');
 
-        expect(await screen.findByRole('heading', { name: /the short answers\./i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /the investor questions that need short answers/i })).toBeInTheDocument();
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
 
         const nextSection = screen.getByRole('heading', { name: /ready to get started\?/i }).closest('section');
         expect(nextSection).not.toBeNull();
-        expect(within(nextSection!).getByRole('link', { name: /buy \$catch/i })).toBeInTheDocument();
-        expect(within(nextSection!).getByRole('link', { name: /portfolio/i })).toBeInTheDocument();
-        expect(within(nextSection!).getByRole('link', { name: /follow on x/i })).toBeInTheDocument();
+        expect(within(nextSection!).getByRole('link', { name: /join next round/i })).toBeInTheDocument();
+        expect(within(nextSection!).getByRole('link', { name: /inspect the proof/i })).toBeInTheDocument();
     });
 });

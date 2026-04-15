@@ -25,6 +25,14 @@ const portfolioRegistryAddress = parseAddress(
 const investorAccountingAddress = parseAddress(
     import.meta.env.VITE_GM10_INVESTOR_ACCOUNTING_ADDRESS || '0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963',
 );
+const catchTokenAddress = parseAddress(
+    import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,
+);
+const liquidityCoordinatorAddress = parseAddress(
+    import.meta.env.VITE_GM10_LIQUIDITY_COORDINATOR_ADDRESS || '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
+);
+const lfjPairAddress = parseAddress(import.meta.env.VITE_GM10_LFJ_PAIR_ADDRESS);
+const pharaohPoolAddress = parseAddress(import.meta.env.VITE_GM10_PHARAOH_POOL_ADDRESS);
 
 export const GM10_PRIMARY_DEPLOYMENT = {
     proxy: {
@@ -51,3 +59,13 @@ export type Gm10ContractLink = {
 };
 
 export const GM10_POSITION_IDS = [1, 2] as const;
+
+export const GM10_MARKET_CONFIG = {
+    catchTokenAddress,
+    liquidityCoordinatorAddress,
+    lfjPairAddress,
+    pharaohPoolAddress,
+    dexscreenerTokenUrl: catchTokenAddress
+        ? `https://api.dexscreener.com/latest/dex/tokens/${catchTokenAddress}`
+        : undefined,
+} as const;

@@ -1,0 +1,53 @@
+import { useEffect, useState } from 'react';
+import type { CourtyardProfileNav } from '../data/courtyardNav';
+
+const PROFILE_URL = 'https://courtyard.io/user/gm10xyz/collection';
+
+const initialState: CourtyardProfileNav = {
+    source: 'courtyard',
+    fetchedAt: '',
+    profileUrl: PROFILE_URL,
+    status: 'unavailable',
+    reason: 'Not fetched yet',
+};
+
+export function useCourtyardProfileNav() {
+    const [state, setState] = useState<CourtyardProfileNav>(initialState);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        async function loadNav() {
+            try {
+                setIsLoading(true);
+                const response = await fetch('/api/courtyard-profile-nav', {
+                    signal: controller.signal,
+                    headers: { Accept: 'application/json' },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Courtyard NAV returned ${response.status}`);
+                }
+
+                const payload = await response.json() as CourtyardProfileNav;
+                setState(payload);
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                setState({
+                    ...initialState,
+                    fetchedAt: new Date().toISOString(),
+                    reason: error instanceof Error ? error.message : 'Courtyard NAV unavailable',
+                });
+            } finally {
+                if (!controller.signal.aborted) setIsLoading(false);
+            }
+        }
+
+        void loadNav();
+
+        return () => controller.abort();
+    }, []);
+
+    return { ...state, isLoading };
+}

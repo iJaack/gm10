@@ -340,12 +340,14 @@ export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
     { to: '/fundraising', label: 'Join' },
     { to: '/catch', label: 'How It Works' },
     { to: '/portfolio', label: 'Portfolio' },
+    { to: '/holders', label: 'Holders' },
     { to: '/faq', label: 'FAQ' },
 ] as const;
 
 export const FOOTER_EXPLORE_LINKS: readonly SiteNavItem[] = [
     { to: '/catch', label: 'How It Works' },
     { to: '/portfolio', label: 'Portfolio' },
+    { to: '/holders', label: 'Holders' },
     { to: '/faq', label: 'FAQ' },
 ] as const;
 

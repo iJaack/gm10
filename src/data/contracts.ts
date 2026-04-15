@@ -180,3 +180,82 @@ export const GM10_INVESTOR_ACCOUNTING_ABI = [
         type: 'function',
     },
 ] as const;
+
+export const GM10_ERC20_ABI = [
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'balanceOf',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
+export const GM10_PROFIT_DISTRIBUTOR_ABI = [
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'excludedFromProfitShare',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'claimableProfit',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'eligibleSupply',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'cumulativeProfitPerTokenWei18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'totalProfitDepositedWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
+export const GM10_LIQUIDITY_COORDINATOR_ABI = [
+    {
+        inputs: [],
+        name: 'traderJoeLpDeployedAvaxWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'pharaohLpDeployedAvaxWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'traderJoeLpTokenDeployed18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'pharaohLpTokenDeployed18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
