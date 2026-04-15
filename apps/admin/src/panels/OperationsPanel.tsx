@@ -202,6 +202,7 @@ export function OperationsPanel() {
         functionName: 'treasury',
         query: { enabled: Boolean(MAINNET.fundProxy) },
     });
+    const effectiveTreasuryAddress = (treasuryAddress ?? MAINNET.treasurySafe) as `0x${string}` | undefined;
 
     const { data: referenceNav } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -430,14 +431,14 @@ export function OperationsPanel() {
     }
 
     function submitTreasuryWithdrawal() {
-        if (!MAINNET.fundProxy || !treasuryAddress || !treasuryWithdrawalAvax.trim()) return;
+        if (!MAINNET.fundProxy || !effectiveTreasuryAddress || !treasuryWithdrawalAvax.trim()) return;
         reset();
         writeContract({
             address: MAINNET.fundProxy,
             abi: FUND_ADMIN_ABI,
             functionName: 'withdrawFromTreasury',
             args: [
-                treasuryAddress,
+                effectiveTreasuryAddress,
                 parseEther(treasuryWithdrawalAvax.trim()),
                 treasuryWithdrawalReason.trim() || 'Fund Polygon Courtyard Safe',
             ],
@@ -745,7 +746,10 @@ export function OperationsPanel() {
 
                         <Section title="Fund Polygon Safe">
                             <div className="grid gap-1 text-xs text-gray-400">
-                                <div>Avalanche treasury Safe: {treasuryAddress ?? 'Unavailable'}</div>
+                                <div>
+                                    Avalanche treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}
+                                    {!treasuryAddress && effectiveTreasuryAddress ? ' (configured)' : ''}
+                                </div>
                                 <div>Polygon custody Safe: {polygonChainSafe?.evmSafe ?? polygonSafe}</div>
                                 <div>Liquid treasury reference: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
                             </div>
@@ -778,7 +782,7 @@ export function OperationsPanel() {
                                     onClick={submitTreasuryWithdrawal}
                                     txHash={txHash}
                                     isPending={isPending}
-                                    disabled={!MAINNET.fundProxy || !treasuryAddress || !treasuryWithdrawalAvax.trim()}
+                                    disabled={!MAINNET.fundProxy || !effectiveTreasuryAddress || !treasuryWithdrawalAvax.trim()}
                                 >
                                     Withdraw AVAX to treasury Safe
                                 </TxButton>
