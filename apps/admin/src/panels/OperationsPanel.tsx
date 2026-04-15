@@ -15,9 +15,71 @@ const SALE_STATUS = ['None', 'Approved', 'Executed', 'Proceeds received', 'Final
 const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
 const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
+const POL_GAS_BUFFER = '0.5';
 const LiFiWidget = lazy(() => import('@lifi/widget').then((mod) => ({ default: mod.LiFiWidget })));
 
 type Bytes32 = `0x${string}`;
+
+type CourtyardAsset = {
+    assetId: string;
+    sourceUrl: string;
+    title: string;
+    image: string;
+    collectionName: string;
+    collectionContract: string;
+    tokenId: string;
+    collectibleId: string;
+    metadataUrl: string;
+    listing: {
+        orderId: string;
+        priceDecimal: string;
+        priceRaw: string;
+        currency: { symbol: string; contract: string; decimals: number };
+        expiration: string;
+        expiresSoon: boolean;
+    };
+    prefill: {
+        purchaseKey: string;
+        assetRef: string;
+        maxSpendUsdt: string;
+        releaseAmountUsdt: string;
+        mandateRef: string;
+        custodyMode: string;
+        tokenStandard: string;
+        evmCollection: string;
+        tokenId: string;
+        nonEvmCollection: string;
+        nonEvmTokenId: string;
+        externalAssetId: string;
+        categoryId: string;
+        marketplaceProvenanceRef: string;
+        acquisitionPriceUsdt: string;
+        metadataRef: string;
+        proofRef: string;
+    };
+};
+
+type FundingQuote = {
+    kind: string;
+    tool: string;
+    fromAmountAvax: string;
+    sourceGasAvax: string;
+    totalInputAvax: string;
+    toAmountUsd: string;
+    executionDuration: number;
+    enoughOutput: boolean;
+};
+
+type FundingQuotes = {
+    usdc: FundingQuote;
+    pol: FundingQuote;
+    summary: {
+        totalAvax: string;
+        bufferedAvax: string;
+        bufferBps: number;
+        polGasBuffer: string;
+    };
+};
 
 type PurchaseForm = {
     key: string;
@@ -130,7 +192,13 @@ export function OperationsPanel() {
     const [polygonSafe, setPolygonSafe] = useState<string>(MAINNET.polygonCourtyardSafe ?? '');
     const [treasuryWithdrawalAvax, setTreasuryWithdrawalAvax] = useState('');
     const [treasuryWithdrawalReason, setTreasuryWithdrawalReason] = useState('Fund Polygon Courtyard Safe');
-    const [lifiFromAmount, setLifiFromAmount] = useState('');
+    const [courtyardUrl, setCourtyardUrl] = useState('');
+    const [autopilotAsset, setAutopilotAsset] = useState<CourtyardAsset | null>(null);
+    const [fundingQuotes, setFundingQuotes] = useState<FundingQuotes | null>(null);
+    const [autopilotError, setAutopilotError] = useState('');
+    const [autopilotLoading, setAutopilotLoading] = useState(false);
+    const [lifiUsdcFromAmount, setLifiUsdcFromAmount] = useState('');
+    const [lifiPolFromAmount, setLifiPolFromAmount] = useState('');
     const [purchase, setPurchase] = useState<PurchaseForm>({
         key: 'courtyard-purchase-1',
         assetRef: '',
@@ -323,14 +391,14 @@ export function OperationsPanel() {
         query: { enabled: Boolean(MAINNET.portfolioRegistry) && Boolean(sale.key.trim()) },
     });
 
-    const lifiWidgetConfig = useMemo<WidgetConfig>(
+    const lifiUsdcWidgetConfig = useMemo<WidgetConfig>(
         () => ({
             integrator: 'gm10-admin',
             fromChain: AVALANCHE_CHAIN_ID,
             toChain: POLYGON_CHAIN_ID,
             fromToken: ADDRESS_ZERO,
             toToken: POLYGON_USDC,
-            fromAmount: lifiFromAmount || undefined,
+            fromAmount: lifiUsdcFromAmount || undefined,
             toAddress: {
                 name: 'GM10 Polygon Courtyard Safe',
                 address: polygonSafe,
@@ -351,7 +419,7 @@ export function OperationsPanel() {
             },
             appearance: 'dark',
             buildUrl: false,
-            keyPrefix: 'gm10-courtyard-lifi',
+            keyPrefix: 'gm10-courtyard-lifi-usdc',
             theme: {
                 container: {
                     border: '1px solid rgba(255,255,255,0.1)',
@@ -360,7 +428,47 @@ export function OperationsPanel() {
                 },
             },
         }),
-        [lifiFromAmount, polygonSafe],
+        [lifiUsdcFromAmount, polygonSafe],
+    );
+
+    const lifiPolWidgetConfig = useMemo<WidgetConfig>(
+        () => ({
+            integrator: 'gm10-admin',
+            fromChain: AVALANCHE_CHAIN_ID,
+            toChain: POLYGON_CHAIN_ID,
+            fromToken: ADDRESS_ZERO,
+            toToken: ADDRESS_ZERO,
+            fromAmount: lifiPolFromAmount || undefined,
+            toAddress: {
+                name: 'GM10 Polygon Courtyard Safe',
+                address: polygonSafe,
+                chainType: ChainType.EVM,
+            },
+            chains: {
+                allow: [AVALANCHE_CHAIN_ID, POLYGON_CHAIN_ID],
+            },
+            disabledUI: ['toAddress', 'toToken'],
+            hiddenUI: ['appearance', 'language', 'reverseTokensButton'],
+            requiredUI: ['toAddress'],
+            routePriority: 'CHEAPEST',
+            slippage: 0.005,
+            variant: 'wide',
+            subvariant: 'split',
+            subvariantOptions: {
+                split: 'bridge',
+            },
+            appearance: 'dark',
+            buildUrl: false,
+            keyPrefix: 'gm10-courtyard-lifi-pol',
+            theme: {
+                container: {
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                    background: 'rgba(0,0,0,0.2)',
+                },
+            },
+        }),
+        [lifiPolFromAmount, polygonSafe],
     );
 
     const round1 = round1Data;
@@ -455,6 +563,70 @@ export function OperationsPanel() {
 
     function updateSale<K extends keyof SaleForm>(key: K, value: SaleForm[K]) {
         setSale((current) => ({ ...current, [key]: value }));
+    }
+
+    async function resolveCourtyardAutopilot() {
+        setAutopilotError('');
+        setAutopilotLoading(true);
+        setAutopilotAsset(null);
+        setFundingQuotes(null);
+        try {
+            if (!effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe)) {
+                throw new Error('Configure the Avalanche treasury Safe and Polygon Safe before resolving funding.');
+            }
+            const assetResponse = await fetch(`/api/courtyard-asset?url=${encodeURIComponent(courtyardUrl.trim())}`);
+            const assetPayload = await assetResponse.json();
+            if (!assetResponse.ok) throw new Error(assetPayload.error || 'Unable to resolve Courtyard listing');
+            const asset = assetPayload as CourtyardAsset;
+
+            const quoteParams = new URLSearchParams({
+                usdcRaw: asset.listing.priceRaw,
+                fromAddress: effectiveTreasuryAddress,
+                toAddress: polygonSafe,
+            });
+            const quoteResponse = await fetch(`/api/lifi-quotes?${quoteParams.toString()}`);
+            const quotePayload = await quoteResponse.json();
+            if (!quoteResponse.ok) throw new Error(quotePayload.error || 'Unable to quote LI.FI funding routes');
+            const quotes = quotePayload as FundingQuotes;
+            if (!quotes.usdc.enoughOutput || !quotes.pol.enoughOutput) {
+                throw new Error('LI.FI quote output is below the target amount.');
+            }
+
+            setAutopilotAsset(asset);
+            setFundingQuotes(quotes);
+            setTreasuryWithdrawalAvax(quotes.summary.bufferedAvax);
+            setTreasuryWithdrawalReason(`Fund Courtyard purchase ${asset.assetId}`);
+            setLifiUsdcFromAmount(quotes.usdc.fromAmountAvax);
+            setLifiPolFromAmount(quotes.pol.fromAmountAvax);
+            setPurchase({
+                key: asset.prefill.purchaseKey,
+                assetRef: asset.prefill.assetRef,
+                maxSpendUsdt: asset.prefill.maxSpendUsdt,
+                releaseAmountUsdt: asset.prefill.releaseAmountUsdt,
+                mandateRef: asset.prefill.mandateRef,
+                executionRef: '',
+                settlementRef: '',
+                proofRef: '',
+            });
+            setPosition({
+                custodyMode: asset.prefill.custodyMode,
+                tokenStandard: asset.prefill.tokenStandard,
+                evmCollection: asset.prefill.evmCollection,
+                tokenId: asset.prefill.tokenId,
+                nonEvmCollection: asset.prefill.nonEvmCollection,
+                nonEvmTokenId: asset.prefill.nonEvmTokenId,
+                externalAssetId: asset.prefill.externalAssetId,
+                categoryId: asset.prefill.categoryId,
+                marketplaceProvenanceRef: asset.prefill.marketplaceProvenanceRef,
+                acquisitionPriceUsdt: asset.prefill.acquisitionPriceUsdt,
+                metadataRef: asset.prefill.metadataRef,
+                proofRef: asset.prefill.proofRef,
+            });
+        } catch (caught) {
+            setAutopilotError(caught instanceof Error ? caught.message : 'Unable to prepare Courtyard autopilot');
+        } finally {
+            setAutopilotLoading(false);
+        }
     }
 
     function submitAuthorizePurchase() {
@@ -585,6 +757,21 @@ export function OperationsPanel() {
             args: [saleKey],
         });
     }
+
+    const polygonSafeConfigured = Boolean(
+        polygonChainSafe?.enabled &&
+        polygonChainSafe.evmSafe &&
+        polygonChainSafe.evmSafe.toLowerCase() === polygonSafe.toLowerCase(),
+    );
+    const courtyardApproved = courtyardMarketplaceApproved === true;
+    const autopilotReady = Boolean(
+        autopilotAsset &&
+        fundingQuotes &&
+        polygonSafeConfigured &&
+        courtyardApproved &&
+        fundingQuotes.usdc.enoughOutput &&
+        fundingQuotes.pol.enoughOutput,
+    );
 
     return (
         <div className="grid gap-6">
@@ -744,6 +931,68 @@ export function OperationsPanel() {
                             Courtyard collectibles, then run the buy, position-recording, and sale workflow from Avalanche.
                         </p>
 
+                        <Section title="Autopilot from Courtyard URL">
+                            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                                <Field
+                                    label="Courtyard asset URL"
+                                    value={courtyardUrl}
+                                    onChange={setCourtyardUrl}
+                                    placeholder="https://courtyard.io/asset/..."
+                                    mono
+                                />
+                                <button
+                                    type="button"
+                                    onClick={resolveCourtyardAutopilot}
+                                    disabled={autopilotLoading || !courtyardUrl.trim() || !effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe)}
+                                    className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {autopilotLoading ? 'Preparing...' : 'Resolve listing'}
+                                </button>
+                            </div>
+                            {autopilotError ? (
+                                <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                    {autopilotError}
+                                </div>
+                            ) : null}
+                            {autopilotAsset ? (
+                                <div className="grid gap-4 md:grid-cols-[120px_1fr]">
+                                    {autopilotAsset.image ? (
+                                        <img
+                                            src={autopilotAsset.image}
+                                            alt={autopilotAsset.title}
+                                            className="aspect-[3/4] w-full max-w-[120px] rounded-lg object-cover"
+                                        />
+                                    ) : null}
+                                    <div className="grid gap-2 text-xs text-gray-400">
+                                        <div className="text-sm font-semibold text-white">{autopilotAsset.title}</div>
+                                        <div>Price: {autopilotAsset.listing.priceDecimal} {autopilotAsset.listing.currency.symbol}</div>
+                                        <div>Order ID: {autopilotAsset.listing.orderId}</div>
+                                        <div>Expires: {autopilotAsset.listing.expiration}</div>
+                                        <div>Collection: {autopilotAsset.collectionContract}</div>
+                                        <div className="break-all">Token ID: {autopilotAsset.tokenId}</div>
+                                        <div>Prepared purchase key: {purchase.key}</div>
+                                    </div>
+                                </div>
+                            ) : null}
+                            <div className="grid gap-1 text-xs text-gray-400">
+                                <div>Listing resolved: {autopilotAsset ? 'yes' : 'pending'}</div>
+                                <div>Polygon Safe configured: {polygonSafeConfigured ? 'yes' : 'no'}</div>
+                                <div>COURTYARD marketplace approved: {courtyardApproved ? 'yes' : 'no'}</div>
+                                <div>LI.FI USDC quote sufficient: {fundingQuotes ? String(fundingQuotes.usdc.enoughOutput) : 'pending'}</div>
+                                <div>LI.FI POL gas quote sufficient: {fundingQuotes ? String(fundingQuotes.pol.enoughOutput) : 'pending'}</div>
+                            </div>
+                            {autopilotAsset?.listing.expiresSoon ? (
+                                <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                    This listing expires within 24 hours. Refresh the quote before signing any funding or purchase transactions.
+                                </div>
+                            ) : null}
+                            {autopilotReady ? (
+                                <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs leading-5 text-emerald-100">
+                                    Autopilot prepared the withdrawal amount, LI.FI funding amounts, purchase authorization, fund release, and position fields. Review each prepared action before signing.
+                                </div>
+                            ) : null}
+                        </Section>
+
                         <Section title="Fund Polygon Safe">
                             <div className="grid gap-1 text-xs text-gray-400">
                                 <div>
@@ -774,9 +1023,18 @@ export function OperationsPanel() {
                                 />
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                                For the Gengar card, target at least 96 USDC on Polygon. The Polygon Safe also needs POL for gas;
-                                use LI.FI refuel or send a small POL balance separately before signing the Courtyard purchase.
+                                The prepared withdrawal includes the LI.FI USDC route, a fixed {POL_GAS_BUFFER} POL gas route,
+                                source-chain gas estimates, and a 2% buffer. Release amount accounting stays equal to the listing price.
                             </div>
+                            {fundingQuotes ? (
+                                <div className="grid gap-1 text-xs text-gray-400">
+                                    <div>USDC route AVAX input: {fundingQuotes.usdc.fromAmountAvax} AVAX via {fundingQuotes.usdc.tool || 'LI.FI'}</div>
+                                    <div>POL gas route AVAX input: {fundingQuotes.pol.fromAmountAvax} AVAX via {fundingQuotes.pol.tool || 'LI.FI'}</div>
+                                    <div>Estimated source gas: {fundingQuotes.usdc.sourceGasAvax} + {fundingQuotes.pol.sourceGasAvax} AVAX</div>
+                                    <div>Total before buffer: {fundingQuotes.summary.totalAvax} AVAX</div>
+                                    <div>Prepared withdrawal with 2% buffer: {fundingQuotes.summary.bufferedAvax} AVAX</div>
+                                </div>
+                            ) : null}
                             <div className="flex flex-wrap gap-3">
                                 <TxButton
                                     onClick={submitTreasuryWithdrawal}
@@ -787,21 +1045,39 @@ export function OperationsPanel() {
                                     Withdraw AVAX to treasury Safe
                                 </TxButton>
                             </div>
-                            <div className="grid gap-3">
-                                <Field
-                                    label="LI.FI source amount (AVAX)"
-                                    value={lifiFromAmount}
-                                    onChange={setLifiFromAmount}
-                                    placeholder="1"
-                                    type="number"
-                                />
-                                <div className="grid gap-2 text-xs text-gray-400">
-                                    <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
-                                    <div>LI.FI destination: Polygon USDC to {polygonSafe}</div>
+                            <div className="grid gap-3 lg:grid-cols-2">
+                                <div className="grid gap-3">
+                                    <Field
+                                        label="USDC route source amount (AVAX)"
+                                        value={lifiUsdcFromAmount}
+                                        onChange={setLifiUsdcFromAmount}
+                                        placeholder="Resolve a Courtyard listing"
+                                        type="number"
+                                    />
+                                    <div className="grid gap-2 text-xs text-gray-400">
+                                        <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
+                                        <div>LI.FI destination: Polygon USDC to {polygonSafe}</div>
+                                    </div>
+                                    <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI USDC route...</div>}>
+                                        <LiFiWidget config={lifiUsdcWidgetConfig} integrator="gm10-admin" />
+                                    </Suspense>
                                 </div>
-                                <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI bridge...</div>}>
-                                    <LiFiWidget config={lifiWidgetConfig} integrator="gm10-admin" />
-                                </Suspense>
+                                <div className="grid gap-3">
+                                    <Field
+                                        label="POL gas route source amount (AVAX)"
+                                        value={lifiPolFromAmount}
+                                        onChange={setLifiPolFromAmount}
+                                        placeholder="Resolve a Courtyard listing"
+                                        type="number"
+                                    />
+                                    <div className="grid gap-2 text-xs text-gray-400">
+                                        <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
+                                        <div>LI.FI destination: {POL_GAS_BUFFER} POL gas buffer to {polygonSafe}</div>
+                                    </div>
+                                    <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI POL route...</div>}>
+                                        <LiFiWidget config={lifiPolWidgetConfig} integrator="gm10-admin" />
+                                    </Suspense>
+                                </div>
                             </div>
                         </Section>
 
@@ -890,7 +1166,7 @@ export function OperationsPanel() {
                                 </label>
                                 <Field label="Token standard" value={position.tokenStandard} onChange={(value) => updatePosition('tokenStandard', value)} placeholder="ERC721" />
                                 <Field label="EVM collection" value={position.evmCollection} onChange={(value) => updatePosition('evmCollection', value)} placeholder="0x..." mono />
-                                <Field label="Token ID" value={position.tokenId} onChange={(value) => updatePosition('tokenId', value)} placeholder="0" type="number" />
+                                <Field label="Token ID" value={position.tokenId} onChange={(value) => updatePosition('tokenId', value)} placeholder="0" mono />
                                 <Field label="Non-EVM collection" value={position.nonEvmCollection} onChange={(value) => updatePosition('nonEvmCollection', value)} placeholder="optional" mono />
                                 <Field label="Non-EVM token ID" value={position.nonEvmTokenId} onChange={(value) => updatePosition('nonEvmTokenId', value)} placeholder="optional" mono />
                                 <Field label="External asset ID" value={position.externalAssetId} onChange={(value) => updatePosition('externalAssetId', value)} placeholder="Courtyard card ID" mono />

@@ -1,0 +1,13 @@
+import { fetchCourtyardAsset, parseCourtyardAssetId } from './lib/courtyard.js';
+
+export default async function handler(request, response) {
+  try {
+    const input = request.query?.url || request.query?.assetId;
+    const assetId = parseCourtyardAssetId(input);
+    const asset = await fetchCourtyardAsset(assetId);
+    response.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120');
+    response.status(200).json(asset);
+  } catch (error) {
+    response.status(400).json({ error: error instanceof Error ? error.message : 'Unable to resolve Courtyard asset' });
+  }
+}
