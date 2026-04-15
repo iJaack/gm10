@@ -341,7 +341,7 @@ function SecondaryButton({
 function TxSummary({ tx }: { tx: PendingTx | null }) {
     if (!tx) return null;
     return (
-        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-gray-300">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-gray-300">
             <div>{tx.label}</div>
             <a href={`${EXPLORER_TX_BASE_URL}/${tx.hash}`} target="_blank" rel="noreferrer" className="font-mono text-[#4fa8e0] underline">
                 {shortHash(tx.hash)}
@@ -353,7 +353,7 @@ function TxSummary({ tx }: { tx: PendingTx | null }) {
 function StoredTxSummary({ hash, label }: { hash?: `0x${string}`; label: string }) {
     if (!hash) return null;
     return (
-        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-gray-300">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-gray-300">
             <div>{label}</div>
             <a href={`${EXPLORER_TX_BASE_URL}/${hash}`} target="_blank" rel="noreferrer" className="font-mono text-[#4fa8e0] underline">
                 {shortHash(hash)}
@@ -1080,7 +1080,7 @@ export function CourtyardWizardPanel() {
                 </div>
 
                 {error ? (
-                    <div className="mb-4 rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                    <div className="mb-4 max-h-40 min-w-0 overflow-auto break-words rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100 [overflow-wrap:anywhere]">
                         {error}
                     </div>
                 ) : null}
@@ -1089,7 +1089,7 @@ export function CourtyardWizardPanel() {
                 <div className={pendingTx ? 'mt-4' : ''}>{renderStep()}</div>
 
                 {asset ? (
-                    <div className="mt-4 grid gap-1 text-xs text-gray-500">
+                    <div className="mt-4 grid min-w-0 gap-1 text-xs text-gray-500 [overflow-wrap:anywhere]">
                         <div>Purchase key hash: {purchaseKey}</div>
                         <div>Listing price raw: {asset.listing.priceRaw}</div>
                         <div>Detected Hot Wallet USDC: {hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC` : 'Unavailable'}</div>
