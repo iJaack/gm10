@@ -6,6 +6,9 @@ export const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
 export const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
 export const POL_GAS_BUFFER_RAW = parseDecimalUnits('0.5', 18);
 export const ROUTE_BUFFER_BPS = 200;
+const MIN_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('0.005', 18));
+const MAX_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('100', 18));
+const POL_FALLBACK_FROM_AMOUNT_RAW = parseDecimalUnits('0.01', 18);
 
 function sourceGasRaw(quote) {
   return (quote.estimate?.gasCosts ?? [])
@@ -18,6 +21,7 @@ export function normalizeQuote(kind, quote, targetRaw) {
   const gasRaw = sourceGasRaw(quote);
   const target = BigInt(targetRaw);
   const toAmountRaw = BigInt(quote.estimate?.toAmount ?? '0');
+  const toAmountMinRaw = BigInt(quote.estimate?.toAmountMin ?? quote.estimate?.toAmount ?? '0');
   return {
     kind,
     id: quote.id,
@@ -30,11 +34,11 @@ export function normalizeQuote(kind, quote, targetRaw) {
     totalInputAvax: formatDecimalUnits(fromAmountRaw + gasRaw, 18, 8),
     targetRaw: target.toString(),
     toAmountRaw: toAmountRaw.toString(),
-    toAmountMinRaw: String(quote.estimate?.toAmountMin ?? '0'),
+    toAmountMinRaw: toAmountMinRaw.toString(),
     toAmountUsd: String(quote.estimate?.toAmountUSD ?? ''),
     fromAmountUsd: String(quote.estimate?.fromAmountUSD ?? ''),
     executionDuration: Number(quote.estimate?.executionDuration ?? 0),
-    enoughOutput: toAmountRaw >= target,
+    enoughOutput: toAmountMinRaw >= target,
   };
 }
 
@@ -52,8 +56,8 @@ export function summarizeFunding(usdcQuote, polQuote) {
   };
 }
 
-export async function fetchLiFiQuote(params, fetchImpl = fetch) {
-  const url = new URL('https://li.quest/v1/quote/toAmount');
+async function requestLiFiQuote(path, params, fetchImpl = fetch) {
+  const url = new URL(`https://li.quest${path}`);
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, String(value));
@@ -72,6 +76,87 @@ export async function fetchLiFiQuote(params, fetchImpl = fetch) {
   return payload;
 }
 
+export function fetchLiFiQuote(params, fetchImpl = fetch) {
+  return requestLiFiQuote('/v1/quote/toAmount', params, fetchImpl);
+}
+
+function fetchLiFiSourceQuote(params, fetchImpl = fetch) {
+  return requestLiFiQuote('/v1/quote', params, fetchImpl);
+}
+
+function fallbackFromAmounts(preferredRaw) {
+  const preferred = BigInt(preferredRaw || parseDecimalUnits('1', 18));
+  const start = preferred > MIN_FALLBACK_FROM_AMOUNT_RAW * 2n ? preferred / 2n : MIN_FALLBACK_FROM_AMOUNT_RAW;
+  const amounts = new Set();
+  for (let candidate = start; candidate <= MAX_FALLBACK_FROM_AMOUNT_RAW; candidate *= 2n) {
+    amounts.add(candidate.toString());
+  }
+  amounts.add(MAX_FALLBACK_FROM_AMOUNT_RAW.toString());
+  return [...amounts].sort((left, right) => (BigInt(left) < BigInt(right) ? -1 : 1));
+}
+
+function usdcPreferredFromAmountRaw(usdcRaw) {
+  return ((BigInt(usdcRaw) * 10n ** 12n) / 10n).toString();
+}
+
+async function fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmountRaw, fetchImpl) {
+  let lastError;
+  let low = 0n;
+  let high = 0n;
+  let bestQuote = null;
+
+  for (const fromAmount of fallbackFromAmounts(preferredFromAmountRaw)) {
+    try {
+      const quote = await fetchLiFiSourceQuote({ ...params, fromAmount }, fetchImpl);
+      const normalized = normalizeQuote(kind, quote, targetRaw);
+      if (normalized.enoughOutput) {
+        high = BigInt(fromAmount);
+        bestQuote = quote;
+        break;
+      }
+      low = BigInt(fromAmount);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!bestQuote) {
+    throw new Error(lastError?.message || 'No available LI.FI quote can satisfy the target output');
+  }
+
+  for (let index = 0; index < 6; index += 1) {
+    const mid = (low + high) / 2n;
+    if (mid <= low || mid >= high) break;
+    try {
+      const quote = await fetchLiFiSourceQuote({ ...params, fromAmount: mid.toString() }, fetchImpl);
+      if (normalizeQuote(kind, quote, targetRaw).enoughOutput) {
+        bestQuote = quote;
+        high = mid;
+      } else {
+        low = mid;
+      }
+    } catch (error) {
+      lastError = error;
+      low = mid;
+    }
+  }
+
+  return bestQuote;
+}
+
+async function fetchLiFiTargetQuote(kind, params, targetRaw, preferredFromAmountRaw, fetchImpl) {
+  try {
+    const exactQuote = await fetchLiFiQuote({ ...params, toAmount: targetRaw }, fetchImpl);
+    if (normalizeQuote(kind, exactQuote, targetRaw).enoughOutput) {
+      return exactQuote;
+    }
+  } catch {
+    // Fall through to the documented exact-source quote endpoint below.
+  }
+
+  return fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmountRaw, fetchImpl);
+}
+
 export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress }, fetchImpl = fetch) {
   if (!/^\d+$/.test(String(usdcRaw ?? ''))) throw new Error('Missing USDC raw target amount');
   if (!fromAddress || !toAddress) throw new Error('Missing Safe address for LI.FI quote');
@@ -88,8 +173,8 @@ export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress }, fe
   };
 
   const [usdcRawQuote, polRawQuote] = await Promise.all([
-    fetchLiFiQuote({ ...base, toToken: POLYGON_USDC, toAmount: usdcRaw }, fetchImpl),
-    fetchLiFiQuote({ ...base, toToken: NATIVE_TOKEN, toAmount: POL_GAS_BUFFER_RAW }, fetchImpl),
+    fetchLiFiTargetQuote('polygonUsdc', { ...base, toToken: POLYGON_USDC }, usdcRaw, usdcPreferredFromAmountRaw(usdcRaw), fetchImpl),
+    fetchLiFiTargetQuote('polygonPolGas', { ...base, toToken: NATIVE_TOKEN }, POL_GAS_BUFFER_RAW, POL_FALLBACK_FROM_AMOUNT_RAW, fetchImpl),
   ]);
   const usdc = normalizeQuote('polygonUsdc', usdcRawQuote, usdcRaw);
   const pol = normalizeQuote('polygonPolGas', polRawQuote, POL_GAS_BUFFER_RAW);
