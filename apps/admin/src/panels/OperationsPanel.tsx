@@ -15,7 +15,6 @@ const SALE_STATUS = ['None', 'Approved', 'Executed', 'Proceeds received', 'Final
 const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
 const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
-const POL_GAS_BUFFER = '0.5';
 const LiFiWidget = lazy(() => import('@lifi/widget').then((mod) => ({ default: mod.LiFiWidget })));
 
 type Bytes32 = `0x${string}`;
@@ -72,12 +71,10 @@ type FundingQuote = {
 
 type FundingQuotes = {
     usdc: FundingQuote;
-    pol: FundingQuote;
     summary: {
         totalAvax: string;
         bufferedAvax: string;
         bufferBps: number;
-        polGasBuffer: string;
     };
 };
 
@@ -199,7 +196,6 @@ export function OperationsPanel() {
     const [autopilotError, setAutopilotError] = useState('');
     const [autopilotLoading, setAutopilotLoading] = useState(false);
     const [lifiUsdcFromAmount, setLifiUsdcFromAmount] = useState('');
-    const [lifiPolFromAmount, setLifiPolFromAmount] = useState('');
     const [purchase, setPurchase] = useState<PurchaseForm>({
         key: 'courtyard-purchase-1',
         assetRef: '',
@@ -432,46 +428,6 @@ export function OperationsPanel() {
         [lifiUsdcFromAmount, polygonHotWallet],
     );
 
-    const lifiPolWidgetConfig = useMemo<WidgetConfig>(
-        () => ({
-            integrator: 'gm10-admin',
-            fromChain: AVALANCHE_CHAIN_ID,
-            toChain: POLYGON_CHAIN_ID,
-            fromToken: ADDRESS_ZERO,
-            toToken: ADDRESS_ZERO,
-            fromAmount: lifiPolFromAmount || undefined,
-            toAddress: {
-                name: 'GM10 Polygon Courtyard Hot Wallet',
-                address: polygonHotWallet,
-                chainType: ChainType.EVM,
-            },
-            chains: {
-                allow: [AVALANCHE_CHAIN_ID, POLYGON_CHAIN_ID],
-            },
-            disabledUI: ['toAddress', 'toToken'],
-            hiddenUI: ['appearance', 'language', 'reverseTokensButton'],
-            requiredUI: ['toAddress'],
-            routePriority: 'CHEAPEST',
-            slippage: 0.005,
-            variant: 'wide',
-            subvariant: 'split',
-            subvariantOptions: {
-                split: 'bridge',
-            },
-            appearance: 'dark',
-            buildUrl: false,
-            keyPrefix: 'gm10-courtyard-lifi-pol',
-            theme: {
-                container: {
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    background: 'rgba(0,0,0,0.2)',
-                },
-            },
-        }),
-        [lifiPolFromAmount, polygonHotWallet],
-    );
-
     const round1 = round1Data;
     const round1Status = !round1
         ? 'Unavailable'
@@ -589,7 +545,7 @@ export function OperationsPanel() {
             const quotePayload = await quoteResponse.json();
             if (!quoteResponse.ok) throw new Error(quotePayload.error || 'Unable to quote LI.FI funding routes');
             const quotes = quotePayload as FundingQuotes;
-            if (!quotes.usdc.enoughOutput || !quotes.pol.enoughOutput) {
+            if (!quotes.usdc.enoughOutput) {
                 throw new Error('LI.FI quote output is below the target amount.');
             }
 
@@ -598,7 +554,6 @@ export function OperationsPanel() {
             setTreasuryWithdrawalAvax(quotes.summary.bufferedAvax);
             setTreasuryWithdrawalReason(`Fund Courtyard purchase ${asset.assetId}`);
             setLifiUsdcFromAmount(quotes.usdc.fromAmountAvax);
-            setLifiPolFromAmount(quotes.pol.fromAmountAvax);
             setPurchase({
                 key: asset.prefill.purchaseKey,
                 assetRef: asset.prefill.assetRef,
@@ -772,8 +727,7 @@ export function OperationsPanel() {
         polygonSafeConfigured &&
         polygonHotWalletConfigured &&
         courtyardApproved &&
-        fundingQuotes.usdc.enoughOutput &&
-        fundingQuotes.pol.enoughOutput,
+        fundingQuotes.usdc.enoughOutput,
     );
 
     return (
@@ -984,7 +938,6 @@ export function OperationsPanel() {
                                 <div>Polygon Hot Wallet configured: {polygonHotWalletConfigured ? 'yes' : 'no'}</div>
                                 <div>COURTYARD marketplace approved: {courtyardApproved ? 'yes' : 'no'}</div>
                                 <div>LI.FI USDC quote sufficient: {fundingQuotes ? String(fundingQuotes.usdc.enoughOutput) : 'pending'}</div>
-                                <div>LI.FI POL gas quote sufficient: {fundingQuotes ? String(fundingQuotes.pol.enoughOutput) : 'pending'}</div>
                             </div>
                             {autopilotAsset?.listing.expiresSoon ? (
                                 <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
@@ -1010,8 +963,8 @@ export function OperationsPanel() {
                             </div>
                             <p className="text-xs leading-5 text-gray-400">
                                 This withdraws AVAX from the fund to the Avalanche treasury Safe. Then use the LI.FI widget
-                                below from the connected Avalanche Safe to deliver Polygon USDC and POL gas to the Polygon
-                                Hot Wallet before buying on Courtyard.
+                                below from the connected Avalanche Safe to deliver Polygon USDC to the Polygon Hot Wallet
+                                before buying on Courtyard.
                             </p>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Field
@@ -1029,14 +982,13 @@ export function OperationsPanel() {
                                 />
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                                The prepared withdrawal includes the LI.FI USDC route, a fixed {POL_GAS_BUFFER} POL gas route,
-                                source-chain gas estimates, and a 2% buffer. Release amount accounting stays equal to the listing price.
+                                The prepared withdrawal includes the LI.FI USDC route, source-chain gas estimates, and a 2%
+                                buffer. Release amount accounting stays equal to the listing price.
                             </div>
                             {fundingQuotes ? (
                                 <div className="grid gap-1 text-xs text-gray-400">
                                     <div>USDC route AVAX input: {fundingQuotes.usdc.fromAmountAvax} AVAX via {fundingQuotes.usdc.tool || 'LI.FI'}</div>
-                                    <div>POL gas route AVAX input: {fundingQuotes.pol.fromAmountAvax} AVAX via {fundingQuotes.pol.tool || 'LI.FI'}</div>
-                                    <div>Estimated source gas: {fundingQuotes.usdc.sourceGasAvax} + {fundingQuotes.pol.sourceGasAvax} AVAX</div>
+                                    <div>Estimated source gas: {fundingQuotes.usdc.sourceGasAvax} AVAX</div>
                                     <div>Total before buffer: {fundingQuotes.summary.totalAvax} AVAX</div>
                                     <div>Prepared withdrawal with 2% buffer: {fundingQuotes.summary.bufferedAvax} AVAX</div>
                                 </div>
@@ -1051,7 +1003,7 @@ export function OperationsPanel() {
                                     Withdraw AVAX to treasury Safe
                                 </TxButton>
                             </div>
-                            <div className="grid gap-3 lg:grid-cols-2">
+                            <div className="grid gap-3">
                                 <div className="grid gap-3">
                                     <Field
                                         label="USDC route source amount (AVAX)"
@@ -1066,22 +1018,6 @@ export function OperationsPanel() {
                                     </div>
                                     <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI USDC route...</div>}>
                                         <LiFiWidget config={lifiUsdcWidgetConfig} integrator="gm10-admin" />
-                                    </Suspense>
-                                </div>
-                                <div className="grid gap-3">
-                                    <Field
-                                        label="POL gas route source amount (AVAX)"
-                                        value={lifiPolFromAmount}
-                                        onChange={setLifiPolFromAmount}
-                                        placeholder="Resolve a Courtyard listing"
-                                        type="number"
-                                    />
-                                    <div className="grid gap-2 text-xs text-gray-400">
-                                        <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
-                                        <div>LI.FI destination: {POL_GAS_BUFFER} POL gas buffer to {polygonHotWallet}</div>
-                                    </div>
-                                    <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI POL route...</div>}>
-                                        <LiFiWidget config={lifiPolWidgetConfig} integrator="gm10-admin" />
                                     </Suspense>
                                 </div>
                             </div>

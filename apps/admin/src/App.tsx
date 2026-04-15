@@ -6,13 +6,14 @@ import { useState } from 'react';
 import { config } from './wagmi';
 import { RoleGate } from './components/RoleGate';
 import { OperationsPanel } from './panels/OperationsPanel';
+import { CourtyardWizardPanel } from './panels/CourtyardWizardPanel';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from './hooks/useAdminRole';
 import { SafeAppBootstrap } from './components/SafeAppBootstrap';
 
 const queryClient = new QueryClient();
 
-const TABS = ['Operations'] as const;
+const TABS = ['Operations', 'Courtyard Wizard'] as const;
 type Tab = typeof TABS[number];
 
 function AdminApp() {
@@ -64,6 +65,7 @@ function AdminApp() {
             {/* Content */}
             <main className="mx-auto max-w-5xl px-6 py-8">
                 {tab === 'Operations' && <OperationsPanel />}
+                {tab === 'Courtyard Wizard' && <CourtyardWizardPanel />}
             </main>
         </div>
     );

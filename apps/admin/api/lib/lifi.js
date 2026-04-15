@@ -4,11 +4,9 @@ export const AVALANCHE_CHAIN_ID = 43114;
 export const POLYGON_CHAIN_ID = 137;
 export const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
 export const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-export const POL_GAS_BUFFER_RAW = parseDecimalUnits('0.5', 18);
 export const ROUTE_BUFFER_BPS = 200;
 const MIN_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('0.005', 18));
 const MAX_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('100', 18));
-const POL_FALLBACK_FROM_AMOUNT_RAW = parseDecimalUnits('0.01', 18);
 
 function sourceGasRaw(quote) {
   return (quote.estimate?.gasCosts ?? [])
@@ -39,11 +37,23 @@ export function normalizeQuote(kind, quote, targetRaw) {
     fromAmountUsd: String(quote.estimate?.fromAmountUSD ?? ''),
     executionDuration: Number(quote.estimate?.executionDuration ?? 0),
     enoughOutput: toAmountMinRaw >= target,
+    transactionRequest: quote.transactionRequest
+      ? {
+          to: quote.transactionRequest.to,
+          data: quote.transactionRequest.data,
+          value: quote.transactionRequest.value ?? '0',
+          chainId: quote.transactionRequest.chainId,
+          gasLimit: quote.transactionRequest.gasLimit,
+          gasPrice: quote.transactionRequest.gasPrice,
+          maxFeePerGas: quote.transactionRequest.maxFeePerGas,
+          maxPriorityFeePerGas: quote.transactionRequest.maxPriorityFeePerGas,
+        }
+      : null,
   };
 }
 
-export function summarizeFunding(usdcQuote, polQuote) {
-  const totalRaw = BigInt(usdcQuote.totalInputRaw) + BigInt(polQuote.totalInputRaw);
+export function summarizeFunding(usdcQuote) {
+  const totalRaw = BigInt(usdcQuote.totalInputRaw);
   const bufferedRaw = addBps(totalRaw, ROUTE_BUFFER_BPS);
   return {
     totalRaw: totalRaw.toString(),
@@ -51,8 +61,6 @@ export function summarizeFunding(usdcQuote, polQuote) {
     bufferedRaw: bufferedRaw.toString(),
     bufferedAvax: formatDecimalUnits(bufferedRaw, 18, 8),
     bufferBps: ROUTE_BUFFER_BPS,
-    polGasBufferRaw: POL_GAS_BUFFER_RAW,
-    polGasBuffer: '0.5',
   };
 }
 
@@ -172,15 +180,16 @@ export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress }, fe
     order: 'CHEAPEST',
   };
 
-  const [usdcRawQuote, polRawQuote] = await Promise.all([
-    fetchLiFiTargetQuote('polygonUsdc', { ...base, toToken: POLYGON_USDC }, usdcRaw, usdcPreferredFromAmountRaw(usdcRaw), fetchImpl),
-    fetchLiFiTargetQuote('polygonPolGas', { ...base, toToken: NATIVE_TOKEN }, POL_GAS_BUFFER_RAW, POL_FALLBACK_FROM_AMOUNT_RAW, fetchImpl),
-  ]);
+  const usdcRawQuote = await fetchLiFiTargetQuote(
+    'polygonUsdc',
+    { ...base, toToken: POLYGON_USDC },
+    usdcRaw,
+    usdcPreferredFromAmountRaw(usdcRaw),
+    fetchImpl,
+  );
   const usdc = normalizeQuote('polygonUsdc', usdcRawQuote, usdcRaw);
-  const pol = normalizeQuote('polygonPolGas', polRawQuote, POL_GAS_BUFFER_RAW);
   return {
     usdc,
-    pol,
-    summary: summarizeFunding(usdc, pol),
+    summary: summarizeFunding(usdc),
   };
 }

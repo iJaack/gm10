@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildFundingQuotes, normalizeQuote, POL_GAS_BUFFER_RAW } from '../api/lib/lifi.js';
+import { buildFundingQuotes, normalizeQuote } from '../api/lib/lifi.js';
 
 function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', tool = 'stargateV2Bus' }) {
   return {
@@ -24,6 +24,12 @@ function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', 
         },
       ],
     },
+    transactionRequest: {
+      to: '0x1111111111111111111111111111111111111111',
+      data: '0x1234',
+      value: fromAmount,
+      chainId: 43114,
+    },
   };
 }
 
@@ -33,24 +39,24 @@ test('normalizes exact-output quote and source gas', () => {
   assert.equal(normalized.sourceGasAvax, '0.01');
   assert.equal(normalized.totalInputAvax, '1.01');
   assert.equal(normalized.enoughOutput, true);
+  assert.equal(normalized.transactionRequest.to, '0x1111111111111111111111111111111111111111');
 
   const belowMinimum = normalizeQuote('polygonUsdc', quote({ fromAmount: '1000000000000000000', toAmount: '97000000', toAmountMin: '95000000' }), '96000000');
   assert.equal(belowMinimum.enoughOutput, false);
 });
 
-test('builds USDC and POL routes with a 2 percent AVAX buffer', async () => {
+test('builds one USDC route with a 2 percent AVAX buffer', async () => {
   const fetchImpl = async (url) => {
     const parsed = new URL(url);
     const toAmount = parsed.searchParams.get('toAmount');
-    const isPol = toAmount === POL_GAS_BUFFER_RAW;
     return {
       ok: true,
       async json() {
         return quote({
-          fromAmount: isPol ? '2000000000000000000' : '1000000000000000000',
+          fromAmount: '1000000000000000000',
           toAmount,
-          gasAmount: isPol ? '20000000000000000' : '10000000000000000',
-          tool: isPol ? 'gasZip' : 'stargateV2Bus',
+          gasAmount: '10000000000000000',
+          tool: 'stargateV2Bus',
         });
       },
     };
@@ -61,10 +67,9 @@ test('builds USDC and POL routes with a 2 percent AVAX buffer', async () => {
     toAddress: '0x39971795266a794a8156271729A07994952a6FAD',
   }, fetchImpl);
   assert.equal(result.usdc.totalInputAvax, '1.01');
-  assert.equal(result.pol.totalInputAvax, '2.02');
-  assert.equal(result.summary.totalAvax, '3.03');
-  assert.equal(result.summary.bufferedAvax, '3.0906');
-  assert.equal(result.summary.polGasBuffer, '0.5');
+  assert.equal(result.pol, undefined);
+  assert.equal(result.summary.totalAvax, '1.01');
+  assert.equal(result.summary.bufferedAvax, '1.0302');
 });
 
 test('falls back to exact-source LI.FI quotes when exact-output routing is unavailable', async () => {
@@ -81,16 +86,15 @@ test('falls back to exact-source LI.FI quotes when exact-output routing is unava
       };
     }
     const fromAmount = parsed.searchParams.get('fromAmount');
-    const isPol = parsed.searchParams.get('toToken') === '0x0000000000000000000000000000000000000000';
-    const enough = isPol ? BigInt(fromAmount) >= 10_000_000_000_000_000n : BigInt(fromAmount) >= 1_000_000_000_000_000_000n;
+    const enough = BigInt(fromAmount) >= 1_000_000_000_000_000_000n;
     return {
       ok: true,
       async json() {
         return quote({
           fromAmount,
-          toAmount: enough ? (isPol ? POL_GAS_BUFFER_RAW : '97000000') : (isPol ? '100000000000000000' : '10000000'),
-          toAmountMin: enough ? (isPol ? POL_GAS_BUFFER_RAW : '96000000') : (isPol ? '100000000000000000' : '10000000'),
-          tool: isPol ? 'gasZip' : 'stargateV2Bus',
+          toAmount: enough ? '97000000' : '10000000',
+          toAmountMin: enough ? '96000000' : '10000000',
+          tool: 'stargateV2Bus',
         });
       },
     };
@@ -103,7 +107,6 @@ test('falls back to exact-source LI.FI quotes when exact-output routing is unava
   }, fetchImpl);
 
   assert.equal(result.usdc.enoughOutput, true);
-  assert.equal(result.pol.enoughOutput, true);
   assert.ok(calls.some((call) => call.startsWith('/v1/quote:')));
 });
 
