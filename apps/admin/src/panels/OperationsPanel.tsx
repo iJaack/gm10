@@ -190,8 +190,9 @@ export function OperationsPanel() {
     const [marketplaceLabel, setMarketplaceLabel] = useState('COURTYARD');
     const [marketplaceApproved, setMarketplaceApproved] = useState(true);
     const [polygonSafe, setPolygonSafe] = useState<string>(MAINNET.polygonCourtyardSafe ?? '');
+    const [polygonHotWallet, setPolygonHotWallet] = useState<string>(MAINNET.polygonCourtyardHotWallet ?? '');
     const [treasuryWithdrawalAvax, setTreasuryWithdrawalAvax] = useState('');
-    const [treasuryWithdrawalReason, setTreasuryWithdrawalReason] = useState('Fund Polygon Courtyard Safe');
+    const [treasuryWithdrawalReason, setTreasuryWithdrawalReason] = useState('Fund Polygon Courtyard Hot Wallet');
     const [courtyardUrl, setCourtyardUrl] = useState('');
     const [autopilotAsset, setAutopilotAsset] = useState<CourtyardAsset | null>(null);
     const [fundingQuotes, setFundingQuotes] = useState<FundingQuotes | null>(null);
@@ -400,8 +401,8 @@ export function OperationsPanel() {
             toToken: POLYGON_USDC,
             fromAmount: lifiUsdcFromAmount || undefined,
             toAddress: {
-                name: 'GM10 Polygon Courtyard Safe',
-                address: polygonSafe,
+                name: 'GM10 Polygon Courtyard Hot Wallet',
+                address: polygonHotWallet,
                 chainType: ChainType.EVM,
             },
             chains: {
@@ -428,7 +429,7 @@ export function OperationsPanel() {
                 },
             },
         }),
-        [lifiUsdcFromAmount, polygonSafe],
+        [lifiUsdcFromAmount, polygonHotWallet],
     );
 
     const lifiPolWidgetConfig = useMemo<WidgetConfig>(
@@ -440,8 +441,8 @@ export function OperationsPanel() {
             toToken: ADDRESS_ZERO,
             fromAmount: lifiPolFromAmount || undefined,
             toAddress: {
-                name: 'GM10 Polygon Courtyard Safe',
-                address: polygonSafe,
+                name: 'GM10 Polygon Courtyard Hot Wallet',
+                address: polygonHotWallet,
                 chainType: ChainType.EVM,
             },
             chains: {
@@ -468,7 +469,7 @@ export function OperationsPanel() {
                 },
             },
         }),
-        [lifiPolFromAmount, polygonSafe],
+        [lifiPolFromAmount, polygonHotWallet],
     );
 
     const round1 = round1Data;
@@ -548,7 +549,7 @@ export function OperationsPanel() {
             args: [
                 effectiveTreasuryAddress,
                 parseEther(treasuryWithdrawalAvax.trim()),
-                treasuryWithdrawalReason.trim() || 'Fund Polygon Courtyard Safe',
+                treasuryWithdrawalReason.trim() || 'Fund Polygon Courtyard Hot Wallet',
             ],
         });
     }
@@ -571,8 +572,8 @@ export function OperationsPanel() {
         setAutopilotAsset(null);
         setFundingQuotes(null);
         try {
-            if (!effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe)) {
-                throw new Error('Configure the Avalanche treasury Safe and Polygon Safe before resolving funding.');
+            if (!effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe) || !ADDRESS_RE.test(polygonHotWallet)) {
+                throw new Error('Configure the Avalanche treasury Safe, Polygon custody Safe, and Polygon Hot Wallet before resolving funding.');
             }
             const assetResponse = await fetch(`/api/courtyard-asset?url=${encodeURIComponent(courtyardUrl.trim())}`);
             const assetPayload = await assetResponse.json();
@@ -582,7 +583,7 @@ export function OperationsPanel() {
             const quoteParams = new URLSearchParams({
                 usdcRaw: asset.listing.priceRaw,
                 fromAddress: effectiveTreasuryAddress,
-                toAddress: polygonSafe,
+                toAddress: polygonHotWallet,
             });
             const quoteResponse = await fetch(`/api/lifi-quotes?${quoteParams.toString()}`);
             const quotePayload = await quoteResponse.json();
@@ -763,11 +764,13 @@ export function OperationsPanel() {
         polygonChainSafe.evmSafe &&
         polygonChainSafe.evmSafe.toLowerCase() === polygonSafe.toLowerCase(),
     );
+    const polygonHotWalletConfigured = ADDRESS_RE.test(polygonHotWallet);
     const courtyardApproved = courtyardMarketplaceApproved === true;
     const autopilotReady = Boolean(
         autopilotAsset &&
         fundingQuotes &&
         polygonSafeConfigured &&
+        polygonHotWalletConfigured &&
         courtyardApproved &&
         fundingQuotes.usdc.enoughOutput &&
         fundingQuotes.pol.enoughOutput,
@@ -927,8 +930,9 @@ export function OperationsPanel() {
                 ) : mode === 'courtyard' ? (
                     <div className="grid gap-4">
                         <p className="text-xs leading-5 text-gray-400">
-                            Courtyard custody is Polygon-side. Configure the Polygon Safe that will custody tokenized
-                            Courtyard collectibles, then run the buy, position-recording, and sale workflow from Avalanche.
+                            Courtyard does not support Safe transactions directly. Fund and operate the Privy Polygon Hot Wallet
+                            for buy/sell execution, then transfer purchased collectibles to the Polygon custody Safe before
+                            recording the final position.
                         </p>
 
                         <Section title="Autopilot from Courtyard URL">
@@ -943,7 +947,7 @@ export function OperationsPanel() {
                                 <button
                                     type="button"
                                     onClick={resolveCourtyardAutopilot}
-                                    disabled={autopilotLoading || !courtyardUrl.trim() || !effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe)}
+                                    disabled={autopilotLoading || !courtyardUrl.trim() || !effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe) || !ADDRESS_RE.test(polygonHotWallet)}
                                     className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {autopilotLoading ? 'Preparing...' : 'Resolve listing'}
@@ -976,7 +980,8 @@ export function OperationsPanel() {
                             ) : null}
                             <div className="grid gap-1 text-xs text-gray-400">
                                 <div>Listing resolved: {autopilotAsset ? 'yes' : 'pending'}</div>
-                                <div>Polygon Safe configured: {polygonSafeConfigured ? 'yes' : 'no'}</div>
+                                <div>Polygon custody Safe configured: {polygonSafeConfigured ? 'yes' : 'no'}</div>
+                                <div>Polygon Hot Wallet configured: {polygonHotWalletConfigured ? 'yes' : 'no'}</div>
                                 <div>COURTYARD marketplace approved: {courtyardApproved ? 'yes' : 'no'}</div>
                                 <div>LI.FI USDC quote sufficient: {fundingQuotes ? String(fundingQuotes.usdc.enoughOutput) : 'pending'}</div>
                                 <div>LI.FI POL gas quote sufficient: {fundingQuotes ? String(fundingQuotes.pol.enoughOutput) : 'pending'}</div>
@@ -993,19 +998,20 @@ export function OperationsPanel() {
                             ) : null}
                         </Section>
 
-                        <Section title="Fund Polygon Safe">
+                        <Section title="Fund Polygon Hot Wallet">
                             <div className="grid gap-1 text-xs text-gray-400">
                                 <div>
                                     Avalanche treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}
                                     {!treasuryAddress && effectiveTreasuryAddress ? ' (configured)' : ''}
                                 </div>
-                                <div>Polygon custody Safe: {polygonChainSafe?.evmSafe ?? polygonSafe}</div>
+                                <div>Polygon Hot Wallet for Courtyard buy/sell: {polygonHotWallet}</div>
+                                <div>Polygon custody Safe after purchase: {polygonChainSafe?.evmSafe ?? polygonSafe}</div>
                                 <div>Liquid treasury reference: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
                             </div>
                             <p className="text-xs leading-5 text-gray-400">
                                 This withdraws AVAX from the fund to the Avalanche treasury Safe. Then use the LI.FI widget
-                                below from the connected Avalanche Safe to deliver Polygon USDC to the Polygon custody Safe
-                                before buying on Courtyard.
+                                below from the connected Avalanche Safe to deliver Polygon USDC and POL gas to the Polygon
+                                Hot Wallet before buying on Courtyard.
                             </p>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Field
@@ -1019,7 +1025,7 @@ export function OperationsPanel() {
                                     label="Withdrawal reason"
                                     value={treasuryWithdrawalReason}
                                     onChange={setTreasuryWithdrawalReason}
-                                    placeholder="Fund Polygon Courtyard Safe"
+                                    placeholder="Fund Polygon Courtyard Hot Wallet"
                                 />
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
@@ -1056,7 +1062,7 @@ export function OperationsPanel() {
                                     />
                                     <div className="grid gap-2 text-xs text-gray-400">
                                         <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
-                                        <div>LI.FI destination: Polygon USDC to {polygonSafe}</div>
+                                        <div>LI.FI destination: Polygon USDC to {polygonHotWallet}</div>
                                     </div>
                                     <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI USDC route...</div>}>
                                         <LiFiWidget config={lifiUsdcWidgetConfig} integrator="gm10-admin" />
@@ -1072,7 +1078,7 @@ export function OperationsPanel() {
                                     />
                                     <div className="grid gap-2 text-xs text-gray-400">
                                         <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
-                                        <div>LI.FI destination: {POL_GAS_BUFFER} POL gas buffer to {polygonSafe}</div>
+                                        <div>LI.FI destination: {POL_GAS_BUFFER} POL gas buffer to {polygonHotWallet}</div>
                                     </div>
                                     <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI POL route...</div>}>
                                         <LiFiWidget config={lifiPolWidgetConfig} integrator="gm10-admin" />
@@ -1084,14 +1090,15 @@ export function OperationsPanel() {
                         <Section title="Live Courtyard configuration">
                             <div className="grid gap-1 text-xs text-gray-400">
                                 <div>Polygon EID: {LZ_EID.POLYGON_MAINNET}</div>
-                                <div>Polygon Safe: {polygonChainSafe?.evmSafe ?? 'Unavailable'}</div>
-                                <div>Polygon Safe enabled: {polygonChainSafe ? String(polygonChainSafe.enabled) : 'Unavailable'}</div>
+                                <div>Polygon custody Safe: {polygonChainSafe?.evmSafe ?? 'Unavailable'}</div>
+                                <div>Polygon Hot Wallet: {polygonHotWallet}</div>
+                                <div>Polygon custody Safe enabled: {polygonChainSafe ? String(polygonChainSafe.enabled) : 'Unavailable'}</div>
                                 <div>COURTYARD marketplace approved: {courtyardMarketplaceApproved === undefined ? 'Unavailable' : String(courtyardMarketplaceApproved)}</div>
                                 <div>COURTYARD marketplace ID: {COURTYARD_MARKETPLACE_ID}</div>
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                                Use a Safe on Polygon mainnet. This writes through the Courtyard workflow, which also keeps the
-                                COURTYARD marketplace approval in sync.
+                                Configure the Polygon custody Safe on-chain. The Hot Wallet is an off-chain operator wallet used
+                                only because Courtyard does not support Safe execution.
                             </div>
                             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                                 <Field
@@ -1110,6 +1117,13 @@ export function OperationsPanel() {
                                     Configure Polygon Safe
                                 </TxButton>
                             </div>
+                            <Field
+                                label="Polygon Hot Wallet for Courtyard buy/sell"
+                                value={polygonHotWallet}
+                                onChange={setPolygonHotWallet}
+                                placeholder="0x..."
+                                mono
+                            />
                         </Section>
 
                         <Section title="Purchase">
@@ -1152,6 +1166,11 @@ export function OperationsPanel() {
                         </Section>
 
                         <Section title="Record position">
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                Record the position after the Courtyard token has been transferred from the Polygon Hot Wallet
+                                to the Polygon custody Safe. Keep the Courtyard purchase tx as the execution proof and use the
+                                transfer tx as supporting custody proof if available.
+                            </div>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <label className="flex flex-col gap-1">
                                     <span className="text-xs text-gray-400">Custody mode</span>

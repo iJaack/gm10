@@ -10,6 +10,7 @@ export const MAINNET = {
     courtyardWorkflow: parseAddress(import.meta.env.VITE_GM10_ADMIN_COURTYARD_WORKFLOW_ADDRESS) ?? '0x5448884263E8C27c87CCE6279faE8175271D131c',
     treasurySafe: parseAddress(import.meta.env.VITE_GM10_ADMIN_TREASURY_SAFE_ADDRESS) ?? '0x39971795266a794a8156271729A07994952a6FAD',
     polygonCourtyardSafe: parseAddress(import.meta.env.VITE_GM10_ADMIN_POLYGON_COURTYARD_SAFE_ADDRESS) ?? '0x39971795266a794a8156271729A07994952a6FAD',
+    polygonCourtyardHotWallet: parseAddress(import.meta.env.VITE_GM10_ADMIN_POLYGON_COURTYARD_HOT_WALLET_ADDRESS) ?? '0xc6E01B7A2e8D842447ED43d30FE89Ae9a9077b50',
     stargateAdapter: parseAddress(import.meta.env.VITE_GM10_ADMIN_STARGATE_ADAPTER_ADDRESS),
 } as const;
 
