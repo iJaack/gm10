@@ -5,21 +5,19 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { useState } from 'react';
 import { config } from './wagmi';
 import { RoleGate } from './components/RoleGate';
-import { SwapPanel } from './panels/SwapPanel';
-import { BridgePanel } from './panels/BridgePanel';
-import { AdaptersPanel } from './panels/AdaptersPanel';
-import { ChainSafesPanel } from './panels/ChainSafesPanel';
+import { OperationsPanel } from './panels/OperationsPanel';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from './hooks/useAdminRole';
+import { SafeAppBootstrap } from './components/SafeAppBootstrap';
 
 const queryClient = new QueryClient();
 
-const TABS = ['Swap & Bridge', 'Bridge Only', 'Adapters', 'Chain Safes'] as const;
+const TABS = ['Operations'] as const;
 type Tab = typeof TABS[number];
 
 function AdminApp() {
-    const [tab, setTab] = useState<Tab>('Swap & Bridge');
-    const { address, isAdmin } = useAdminRole();
+    const [tab, setTab] = useState<Tab>('Operations');
+    const { address, isAdmin, isManager } = useAdminRole();
 
     return (
         <div className="min-h-screen bg-[#0b0a14] text-white">
@@ -35,6 +33,7 @@ function AdminApp() {
                             <span className="hidden rounded-full bg-white/5 px-3 py-1 font-mono text-[0.7rem] text-gray-400 sm:block">
                                 {address.slice(0, 6)}…{address.slice(-4)}
                                 {isAdmin && <span className="ml-2 text-[#f0c030]">admin</span>}
+                                {!isAdmin && isManager && <span className="ml-2 text-[#4fa8e0]">manager</span>}
                             </span>
                         )}
                         <ConnectButton showBalance={false} chainStatus="none" />
@@ -64,10 +63,7 @@ function AdminApp() {
 
             {/* Content */}
             <main className="mx-auto max-w-5xl px-6 py-8">
-                {tab === 'Swap & Bridge' && <SwapPanel />}
-                {tab === 'Bridge Only' && <BridgePanel />}
-                {tab === 'Adapters' && <AdaptersPanel />}
-                {tab === 'Chain Safes' && <ChainSafesPanel />}
+                {tab === 'Operations' && <OperationsPanel />}
             </main>
         </div>
     );
@@ -78,6 +74,7 @@ export default function App() {
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
                 <RainbowKitProvider theme={darkTheme({ accentColor: '#4fa8e0' })}>
+                    <SafeAppBootstrap />
                     <RoleGate>
                         <AdminApp />
                     </RoleGate>

@@ -1,4 +1,5 @@
 import { useWaitForTransactionReceipt } from 'wagmi';
+import { EXPLORER_TX_BASE_URL } from '../addresses';
 
 type TxButtonProps = {
     onClick: () => void;
@@ -55,7 +56,7 @@ export function TxResult({ hash, error }: TxResultProps) {
             <p className="mt-2 text-xs text-gray-400">
                 Tx:{' '}
                 <a
-                    href={`https://testnet.snowtrace.io/tx/${hash}`}
+                    href={`${EXPLORER_TX_BASE_URL}/${hash}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[#4fa8e0] underline"

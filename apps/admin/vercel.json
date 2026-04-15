@@ -1,0 +1,34 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, content-type, Authorization"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors https://app.safe.global https://*.safe.global"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!.*\\.).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

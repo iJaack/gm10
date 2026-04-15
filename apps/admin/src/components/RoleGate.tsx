@@ -8,7 +8,10 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#0b0a14] text-white">
                 <p className="text-lg font-semibold text-[#4fa8e0]">GM10 Admin</p>
-                <p className="text-sm text-gray-400">Connect a wallet with OPERATOR_ROLE or DEFAULT_ADMIN_ROLE to continue.</p>
+                <p className="max-w-md text-center text-sm text-gray-400">
+                    Open this app inside the Treasury Safe on app.safe.global, then connect with Safe. Direct Ledger connections
+                    are not enough because privileged roles belong to the Safe.
+                </p>
                 <ConnectButton />
             </div>
         );
@@ -27,7 +30,8 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
             <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0b0a14] text-white">
                 <p className="text-lg font-semibold text-red-400">Not authorized</p>
                 <p className="text-sm text-gray-400">
-                    This wallet does not hold OPERATOR_ROLE or DEFAULT_ADMIN_ROLE on the fund contract.
+                    This wallet does not hold MANAGER_ROLE, OPERATOR_ROLE, or DEFAULT_ADMIN_ROLE on the fund contract.
+                    Use the Treasury Safe app connection for production operations.
                 </p>
                 <ConnectButton />
             </div>

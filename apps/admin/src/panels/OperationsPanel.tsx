@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
+import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useReadContract, useWriteContract } from 'wagmi';
 import { COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
@@ -11,6 +12,10 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const COURTYARD_MARKETPLACE_ID = keccak256(stringToHex('COURTYARD'));
 const PURCHASE_STATUS = ['None', 'Approved', 'Funds released', 'Executed', 'Position recorded', 'Cancelled'] as const;
 const SALE_STATUS = ['None', 'Approved', 'Executed', 'Proceeds received', 'Finalized', 'Cancelled'] as const;
+const POLYGON_CHAIN_ID = 137;
+const AVALANCHE_CHAIN_ID = 43114;
+const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
+const LiFiWidget = lazy(() => import('@lifi/widget').then((mod) => ({ default: mod.LiFiWidget })));
 
 type Bytes32 = `0x${string}`;
 
@@ -123,6 +128,9 @@ export function OperationsPanel() {
     const [marketplaceLabel, setMarketplaceLabel] = useState('COURTYARD');
     const [marketplaceApproved, setMarketplaceApproved] = useState(true);
     const [polygonSafe, setPolygonSafe] = useState<string>(MAINNET.polygonCourtyardSafe ?? '');
+    const [treasuryWithdrawalAvax, setTreasuryWithdrawalAvax] = useState('');
+    const [treasuryWithdrawalReason, setTreasuryWithdrawalReason] = useState('Fund Polygon Courtyard Safe');
+    const [lifiFromAmount, setLifiFromAmount] = useState('');
     const [purchase, setPurchase] = useState<PurchaseForm>({
         key: 'courtyard-purchase-1',
         assetRef: '',
@@ -187,6 +195,13 @@ export function OperationsPanel() {
     });
 
     const liquidityCoordinator = MAINNET.liquidityCoordinator ?? fundLiquidityCoordinator;
+
+    const { data: treasuryAddress } = useReadContract({
+        address: MAINNET.fundProxy as `0x${string}`,
+        abi: FUND_ADMIN_ABI,
+        functionName: 'treasury',
+        query: { enabled: Boolean(MAINNET.fundProxy) },
+    });
 
     const { data: referenceNav } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -307,6 +322,46 @@ export function OperationsPanel() {
         query: { enabled: Boolean(MAINNET.portfolioRegistry) && Boolean(sale.key.trim()) },
     });
 
+    const lifiWidgetConfig = useMemo<WidgetConfig>(
+        () => ({
+            integrator: 'gm10-admin',
+            fromChain: AVALANCHE_CHAIN_ID,
+            toChain: POLYGON_CHAIN_ID,
+            fromToken: ADDRESS_ZERO,
+            toToken: POLYGON_USDC,
+            fromAmount: lifiFromAmount || undefined,
+            toAddress: {
+                name: 'GM10 Polygon Courtyard Safe',
+                address: polygonSafe,
+                chainType: ChainType.EVM,
+            },
+            chains: {
+                allow: [AVALANCHE_CHAIN_ID, POLYGON_CHAIN_ID],
+            },
+            disabledUI: ['toAddress', 'toToken'],
+            hiddenUI: ['appearance', 'language', 'reverseTokensButton'],
+            requiredUI: ['toAddress'],
+            routePriority: 'CHEAPEST',
+            slippage: 0.005,
+            variant: 'wide',
+            subvariant: 'split',
+            subvariantOptions: {
+                split: 'bridge',
+            },
+            appearance: 'dark',
+            buildUrl: false,
+            keyPrefix: 'gm10-courtyard-lifi',
+            theme: {
+                container: {
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                    background: 'rgba(0,0,0,0.2)',
+                },
+            },
+        }),
+        [lifiFromAmount, polygonSafe],
+    );
+
     const round1 = round1Data;
     const round1Status = !round1
         ? 'Unavailable'
@@ -370,6 +425,21 @@ export function OperationsPanel() {
                 zeroHash,
                 labelBytes32('POLYGON'),
                 true,
+            ],
+        });
+    }
+
+    function submitTreasuryWithdrawal() {
+        if (!MAINNET.fundProxy || !treasuryAddress || !treasuryWithdrawalAvax.trim()) return;
+        reset();
+        writeContract({
+            address: MAINNET.fundProxy,
+            abi: FUND_ADMIN_ABI,
+            functionName: 'withdrawFromTreasury',
+            args: [
+                treasuryAddress,
+                parseEther(treasuryWithdrawalAvax.trim()),
+                treasuryWithdrawalReason.trim() || 'Fund Polygon Courtyard Safe',
             ],
         });
     }
@@ -672,6 +742,64 @@ export function OperationsPanel() {
                             Courtyard custody is Polygon-side. Configure the Polygon Safe that will custody tokenized
                             Courtyard collectibles, then run the buy, position-recording, and sale workflow from Avalanche.
                         </p>
+
+                        <Section title="Fund Polygon Safe">
+                            <div className="grid gap-1 text-xs text-gray-400">
+                                <div>Avalanche treasury Safe: {treasuryAddress ?? 'Unavailable'}</div>
+                                <div>Polygon custody Safe: {polygonChainSafe?.evmSafe ?? polygonSafe}</div>
+                                <div>Liquid treasury reference: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
+                            </div>
+                            <p className="text-xs leading-5 text-gray-400">
+                                This withdraws AVAX from the fund to the Avalanche treasury Safe. Then use the LI.FI widget
+                                below from the connected Avalanche Safe to deliver Polygon USDC to the Polygon custody Safe
+                                before buying on Courtyard.
+                            </p>
+                            <div className="grid gap-3 md:grid-cols-2">
+                                <Field
+                                    label="AVAX to withdraw to treasury Safe"
+                                    value={treasuryWithdrawalAvax}
+                                    onChange={setTreasuryWithdrawalAvax}
+                                    placeholder="1"
+                                    type="number"
+                                />
+                                <Field
+                                    label="Withdrawal reason"
+                                    value={treasuryWithdrawalReason}
+                                    onChange={setTreasuryWithdrawalReason}
+                                    placeholder="Fund Polygon Courtyard Safe"
+                                />
+                            </div>
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                For the Gengar card, target at least 96 USDC on Polygon. The Polygon Safe also needs POL for gas;
+                                use LI.FI refuel or send a small POL balance separately before signing the Courtyard purchase.
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                                <TxButton
+                                    onClick={submitTreasuryWithdrawal}
+                                    txHash={txHash}
+                                    isPending={isPending}
+                                    disabled={!MAINNET.fundProxy || !treasuryAddress || !treasuryWithdrawalAvax.trim()}
+                                >
+                                    Withdraw AVAX to treasury Safe
+                                </TxButton>
+                            </div>
+                            <div className="grid gap-3">
+                                <Field
+                                    label="LI.FI source amount (AVAX)"
+                                    value={lifiFromAmount}
+                                    onChange={setLifiFromAmount}
+                                    placeholder="1"
+                                    type="number"
+                                />
+                                <div className="grid gap-2 text-xs text-gray-400">
+                                    <div>LI.FI source: Avalanche AVAX from the connected treasury Safe</div>
+                                    <div>LI.FI destination: Polygon USDC to {polygonSafe}</div>
+                                </div>
+                                <Suspense fallback={<div className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-400">Loading LI.FI bridge...</div>}>
+                                    <LiFiWidget config={lifiWidgetConfig} integrator="gm10-admin" />
+                                </Suspense>
+                            </div>
+                        </Section>
 
                         <Section title="Live Courtyard configuration">
                             <div className="grid gap-1 text-xs text-gray-400">

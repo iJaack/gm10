@@ -29,6 +29,13 @@ export const FUND_ADMIN_ABI = [
     },
     {
         inputs: [],
+        name: 'treasury',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
         name: 'referenceNavPerTokenUsdt6',
         outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
@@ -68,6 +75,17 @@ export const FUND_ADMIN_ABI = [
     {
         inputs: [{ name: 'account', type: 'address' }, { name: 'excluded', type: 'bool' }],
         name: 'setProfitShareExclusion',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: '_to', type: 'address' },
+            { name: '_amount', type: 'uint256' },
+            { name: '_reason', type: 'string' },
+        ],
+        name: 'withdrawFromTreasury',
         outputs: [],
         stateMutability: 'nonpayable',
         type: 'function',

@@ -1,0 +1,12 @@
+{
+  "name": "GM10 Admin",
+  "description": "GM10 Treasury Safe operations console for Avalanche mainnet.",
+  "iconPath": "/safe-app-icon.svg",
+  "icons": [
+    {
+      "src": "/safe-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
