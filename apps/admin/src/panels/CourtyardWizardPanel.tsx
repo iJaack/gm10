@@ -350,6 +350,18 @@ function TxSummary({ tx }: { tx: PendingTx | null }) {
     );
 }
 
+function StoredTxSummary({ hash, label }: { hash?: `0x${string}`; label: string }) {
+    if (!hash) return null;
+    return (
+        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-gray-300">
+            <div>{label}</div>
+            <a href={`${EXPLORER_TX_BASE_URL}/${hash}`} target="_blank" rel="noreferrer" className="font-mono text-[#4fa8e0] underline">
+                {shortHash(hash)}
+            </a>
+        </div>
+    );
+}
+
 export function CourtyardWizardPanel() {
     const [draft, setDraft] = useState<WizardDraft>(() => loadDraft());
     const [error, setError] = useState('');
@@ -460,6 +472,13 @@ export function CourtyardWizardPanel() {
     const nftInSafe = sameAddress(nftOwner, polygonSafe);
     const bridgeRouteDone = hotWalletHasUsdc || lifiStatus.data?.status === 'DONE';
     const bridgeRouteFailed = lifiStatus.data?.status === 'FAILED' || lifiStatus.data?.status === 'INVALID';
+    const nextContractStep: Partial<Record<StepId, StepId>> = {
+        withdraw_avax: 'bridge_usdc_to_hot_wallet',
+        authorize_purchase: 'release_funds',
+        release_funds: 'buy_on_courtyard',
+        record_execution: 'record_position',
+        record_position: 'complete',
+    };
 
     const preflightChecks = [
         { label: 'Active Courtyard listing resolved', ok: Boolean(asset) },
@@ -586,6 +605,13 @@ export function CourtyardWizardPanel() {
         }
     }
 
+    async function continueAfterSafeConfirmation(step: StepId) {
+        setError('');
+        await refetchPurchaseAuthorization();
+        completeStep(step, nextContractStep[step] ?? draft.activeStep);
+        setPendingTx(null);
+    }
+
     async function submitWithdraw() {
         if (!effectiveTreasuryAddress) return;
         await submitContractStep('withdraw_avax', 'Withdrawing AVAX to treasury Safe', () =>
@@ -705,14 +731,7 @@ export function CourtyardWizardPanel() {
     useEffect(() => {
         if (!pendingTx || pendingTx.kind !== 'contract' || !contractReceipt.isSuccess) return;
         void refetchPurchaseAuthorization();
-        const nextByStep: Partial<Record<StepId, StepId>> = {
-            withdraw_avax: 'bridge_usdc_to_hot_wallet',
-            authorize_purchase: 'release_funds',
-            release_funds: 'buy_on_courtyard',
-            record_execution: 'record_position',
-            record_position: 'complete',
-        };
-        completeStep(pendingTx.step, nextByStep[pendingTx.step] ?? draft.activeStep);
+        completeStep(pendingTx.step, nextContractStep[pendingTx.step] ?? draft.activeStep);
         setPendingTx(null);
     }, [contractReceipt.isSuccess, pendingTx]);
 
@@ -840,9 +859,15 @@ export function CourtyardWizardPanel() {
                         </div>
                         <Field label="Withdrawal amount (AVAX)" value={draft.withdrawalAvax} onChange={(value) => updateDraft((current) => ({ ...current, withdrawalAvax: value }))} type="number" />
                         <Field label="Reason" value={draft.withdrawalReason} onChange={(value) => updateDraft((current) => ({ ...current, withdrawalReason: value }))} />
+                        <StoredTxSummary hash={draft.txHashes.withdraw_avax} label="Stored withdrawal transaction" />
                         <PrimaryButton onClick={submitWithdraw} disabled={!MAINNET.fundProxy || !effectiveTreasuryAddress || !draft.withdrawalAvax || isContractPending}>
                             {isContractPending || (pendingTx?.step === 'withdraw_avax' && contractReceipt.isLoading) ? 'Waiting...' : 'Submit withdrawal'}
                         </PrimaryButton>
+                        {draft.txHashes.withdraw_avax ? (
+                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('withdraw_avax')}>
+                                I confirmed this in Safe
+                            </SecondaryButton>
+                        ) : null}
                     </Panel>
                 );
             case 'bridge_usdc_to_hot_wallet':
@@ -874,9 +899,15 @@ export function CourtyardWizardPanel() {
                             <div>Max spend: {draft.purchase.maxSpendUsdt} USDT</div>
                             <div>Status: {purchaseStatus}</div>
                         </div>
+                        <StoredTxSummary hash={draft.txHashes.authorize_purchase} label="Stored authorization transaction" />
                         <PrimaryButton onClick={submitAuthorize} disabled={purchaseAuthorized || isContractPending}>
                             {purchaseAuthorized ? 'Already authorized' : 'Submit authorization'}
                         </PrimaryButton>
+                        {draft.txHashes.authorize_purchase ? (
+                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('authorize_purchase')}>
+                                I confirmed this in Safe
+                            </SecondaryButton>
+                        ) : null}
                     </Panel>
                 );
             case 'release_funds':
@@ -884,9 +915,15 @@ export function CourtyardWizardPanel() {
                     <Panel title="Release purchase funds">
                         <Field label="Release amount (USDT)" value={draft.purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} type="number" />
                         <div className="text-xs text-gray-400">Release amount stays equal to listing price. Funding buffer is not added to accounting.</div>
+                        <StoredTxSummary hash={draft.txHashes.release_funds} label="Stored release transaction" />
                         <PrimaryButton onClick={submitRelease} disabled={purchaseReleased || isContractPending}>
                             {purchaseReleased ? 'Already released' : 'Submit release'}
                         </PrimaryButton>
+                        {draft.txHashes.release_funds ? (
+                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('release_funds')}>
+                                I confirmed this in Safe
+                            </SecondaryButton>
+                        ) : null}
                     </Panel>
                 );
             case 'buy_on_courtyard':
@@ -937,9 +974,15 @@ export function CourtyardWizardPanel() {
                             <Field label="Settlement ref" value={draft.purchase.settlementRef} onChange={(value) => updatePurchase('settlementRef', value)} mono />
                             <Field label="Proof ref" value={draft.purchase.proofRef} onChange={(value) => updatePurchase('proofRef', value)} mono />
                         </div>
+                        <StoredTxSummary hash={draft.txHashes.record_execution} label="Stored execution record transaction" />
                         <PrimaryButton onClick={submitRecordExecution} disabled={purchaseExecuted || isContractPending}>
                             {purchaseExecuted ? 'Already recorded' : 'Submit execution record'}
                         </PrimaryButton>
+                        {draft.txHashes.record_execution ? (
+                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('record_execution')}>
+                                I confirmed this in Safe
+                            </SecondaryButton>
+                        ) : null}
                     </Panel>
                 );
             case 'record_position':
@@ -957,9 +1000,15 @@ export function CourtyardWizardPanel() {
                             <Field label="Metadata ref" value={draft.position.metadataRef} onChange={(value) => updatePosition('metadataRef', value)} mono />
                             <Field label="Proof ref" value={draft.position.proofRef} onChange={(value) => updatePosition('proofRef', value)} mono />
                         </div>
+                        <StoredTxSummary hash={draft.txHashes.record_position} label="Stored position record transaction" />
                         <PrimaryButton onClick={submitRecordPosition} disabled={!nftInSafe || positionRecorded || isContractPending}>
                             {positionRecorded ? 'Position recorded' : 'Submit position record'}
                         </PrimaryButton>
+                        {draft.txHashes.record_position ? (
+                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('record_position')}>
+                                I confirmed this in Safe
+                            </SecondaryButton>
+                        ) : null}
                     </Panel>
                 );
             case 'complete':
