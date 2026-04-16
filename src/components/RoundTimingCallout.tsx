@@ -8,6 +8,7 @@ type RoundTimingState = {
     isRoundOpen: boolean;
     isUpcoming: boolean;
     isClosed: boolean;
+    roundId?: number;
     startsAt?: number;
     endsAt?: number;
     round?: {
@@ -70,20 +71,20 @@ export function RoundTimingCallout({
         return () => window.clearInterval(timer);
     }, []);
 
+    const roundId = roundState.roundId ?? 1;
     const secondsToStart = startsAt - now;
     const secondsToEnd = endsAt - now;
+    const target = roundState.round ? Number(formatEther(roundState.round.targetAmount)) : BUY_PAGE_DEFAULTS.targetAvax;
     const title = roundState.isUpcoming
-        ? `Round 1 opens in ${formatCountdown(secondsToStart)}`
+        ? `Round ${roundId} opens in ${formatCountdown(secondsToStart)}`
         : roundState.isRoundOpen
-            ? `Round 1 closes in ${formatCountdown(secondsToEnd)}`
-            : 'Round 1 is closed';
+            ? `Round ${roundId} closes in ${formatCountdown(secondsToEnd)}`
+            : `Round ${roundId} is closed`;
     const detail = roundState.isUpcoming
         ? `Next public buy window starts ${formatUtcTimestamp(startsAt)} (${formatLocalTimestamp(startsAt)} local).`
         : roundState.isRoundOpen
-            ? `Buying is live until ${formatUtcTimestamp(endsAt)}, unless the 500 AVAX cap is reached first.`
-            : `Round 1 ran ${formatUtcTimestamp(startsAt)} to ${formatUtcTimestamp(endsAt)}.`;
-
-    const target = roundState.round ? Number(formatEther(roundState.round.targetAmount)) : BUY_PAGE_DEFAULTS.targetAvax;
+            ? `Buying is live until ${formatUtcTimestamp(endsAt)}, unless the ${target.toLocaleString('en-US')} AVAX cap is reached first.`
+            : `Round ${roundId} ran ${formatUtcTimestamp(startsAt)} to ${formatUtcTimestamp(endsAt)}.`;
     const raised = roundState.round ? Number(formatEther(roundState.round.raisedAmount)) : 0;
     const remaining = Math.max(0, target - raised);
     const progress = target > 0 ? Math.min((raised / target) * 100, 100) : 0;
@@ -110,7 +111,7 @@ export function RoundTimingCallout({
                 {!compact ? (
                     <Link to={GLOBAL_CTA_ROUTE} className="pixel-menu-link pixel-menu-link-active shrink-0 justify-center">
                         <span className="pixel-menu-cursor" aria-hidden>↗</span>
-                        <span>{roundState.isUpcoming ? 'Review Round 1' : roundState.isRoundOpen ? 'Join Round 1' : 'Inspect Proof'}</span>
+                        <span>{roundState.isUpcoming ? `Review Round ${roundId}` : roundState.isRoundOpen ? `Join Round ${roundId}` : 'Inspect Proof'}</span>
                     </Link>
                 ) : null}
             </div>

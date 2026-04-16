@@ -19,7 +19,7 @@ const DEFAULT_PLATFORM_NAV: PlatformNavState = { status: 'unavailable' };
 
 function formatUsdt6(value?: bigint) {
     if (value === undefined) return '$0.00';
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
         minimumFractionDigits: 2,

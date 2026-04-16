@@ -80,11 +80,11 @@ function FundraisingContent() {
         const surfacedError = receiptError ?? writeError;
         if (!surfacedError) return null;
         const message = surfacedError.message;
-        if (message.includes('RoundNotActive')) return 'Round 1 is not open for buying right now.';
+        if (message.includes('RoundNotActive')) return `Round ${activeRoundId} is not open for buying right now.`;
         if (message.includes('reverted')) return 'The round rejected this transaction.';
         if (message.includes('InvestmentBelowMinimum')) return `Minimum buy is ${minInvestment} AVAX.`;
         if (message.includes('InvestmentAboveMaximum')) return `Maximum buy is ${maxInvestment} AVAX.`;
-        if (message.includes('TargetReached')) return 'Round 1 is already at capacity.';
+        if (message.includes('TargetReached')) return `Round ${activeRoundId} is already at capacity.`;
         return message;
     }, [txError, receiptError, writeError, minInvestment, maxInvestment]);
 
@@ -101,8 +101,8 @@ function FundraisingContent() {
         if (!roundState.isRoundOpen) {
             setTxError(
                 isUpcoming
-                    ? 'Round 1 has not opened yet. Buying stays disabled until the start timestamp.'
-                    : 'Round 1 is closed for new buys.',
+                    ? `Round ${activeRoundId} has not opened yet. Buying stays disabled until the start timestamp.`
+                    : `Round ${activeRoundId} is closed for new buys.`,
             );
             return;
         }
@@ -143,8 +143,8 @@ function FundraisingContent() {
                             {isRoundActive
                                 ? pageCopy.body
                                 : isUpcoming
-                                    ? 'Round 1 is about to open on Avalanche mainnet. Buying activates at the exact start timestamp — the live terms, timeline, and proof links are already visible below.'
-                                    : 'Round 1 is closed for new buys. The page still shows exactly what the position represents, how the module works, and where to inspect the live proof.'}
+                                    ? `Round ${activeRoundId} is about to open on Avalanche mainnet. Buying activates at the exact start timestamp — the live terms, timeline, and proof links are already visible below.`
+                                    : `Round ${activeRoundId} is closed for new buys. The page still shows exactly what the position represents, how the module works, and where to inspect the live proof.`}
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <PixelMenuLink to={pageCopy.primaryCtaTo} active>
@@ -163,7 +163,38 @@ function FundraisingContent() {
                     </div>
                 </ScrollReveal>
 
-                <ScrollReveal delay={2}>
+                {/* Round summary — shown when round is closed */}
+                {isClosed ? (
+                    <ScrollReveal delay={2}>
+                        <div className="mt-6">
+                            <div className="label-font text-[var(--accent-green)]">Round {activeRoundId} complete</div>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent-green)' }}>
+                                    <div className="label-font text-[0.6rem]">Total raised</div>
+                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{roundRaised.toLocaleString('en-US')} AVAX</div>
+                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">~${(roundRaised * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })} USD at current price</div>
+                                </div>
+                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent)' }}>
+                                    <div className="label-font text-[0.6rem]">Filled in</div>
+                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">~45 hours</div>
+                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">13 Apr 20:13 → 15 Apr 16:48 UTC</div>
+                                </div>
+                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent-blue)' }}>
+                                    <div className="label-font text-[0.6rem]">Deployed to cards</div>
+                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{proofState.proofSummary.costBasisLabel}</div>
+                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">{proofState.proofSummary.holdingsChipLabel}</div>
+                                </div>
+                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent)' }}>
+                                    <div className="label-font text-[0.6rem]">Liquid treasury</div>
+                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{proofState.proofSummary.liquidTreasuryLabel}</div>
+                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">Remaining AVAX in fund</div>
+                                </div>
+                            </div>
+                        </div>
+                    </ScrollReveal>
+                ) : null}
+
+                <ScrollReveal delay={isClosed ? 3 : 2}>
                     <div className="mt-5 grid gap-3 md:grid-cols-3">
                         {[
                             ['🎯', 'Exposure', "You're not buying one card. You're buying into the full strategy."],
@@ -303,7 +334,7 @@ function FundraisingContent() {
                                     title={isUpcoming ? 'Round upcoming' : 'Round closed'}
                                     body={isUpcoming
                                         ? `Buying stays disabled until ${roundWindowLabel}.`
-                                        : 'Round 1 is closed for new buys. Use this page to review the module and inspect the proof.'}
+                                        : `Round ${activeRoundId} is closed for new buys. Use this page to review the module and inspect the proof.`}
                                 />
                             </div>
                         ) : null}
@@ -342,7 +373,7 @@ function FundraisingContent() {
 
                         {/* Disclaimer */}
                         <div className="border-t border-[var(--border)] px-6 py-3 text-[0.75rem] text-[var(--text-tertiary)]">
-                            Round 1 is live on Avalanche mainnet. The buy window closes when the 500 AVAX cap is reached or the end timestamp passes.
+                            Round {activeRoundId} is live on Avalanche mainnet. The buy window closes when the {roundTarget.toLocaleString('en-US')} AVAX cap is reached or the end timestamp passes.
                         </div>
                     </PixelPanel>
                 </ScrollReveal>
@@ -411,7 +442,7 @@ function FundraisingContent() {
                             One contribution buys exposure to the full GM10 strategy, not a single card.
                         </h2>
                         <p className="mx-auto mt-3 max-w-xl text-[0.95rem] leading-[1.7] text-[var(--text-secondary)]">
-                            Use the portfolio page to review target selection, or stay on this page and inspect the proof stack before, during, or after Round 1.
+                            Use the portfolio page to review target selection, or stay on this page and inspect the proof stack before, during, or after Round {activeRoundId}.
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
                             <PixelMenuLink to="/portfolio">Open portfolio</PixelMenuLink>

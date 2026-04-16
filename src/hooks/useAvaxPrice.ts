@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd';
-const FALLBACK_PRICE = 25;
+const FALLBACK_PRICE = 9.5;
 const REFRESH_MS = 60_000; // 1 minute
 
 export function useAvaxPrice() {
