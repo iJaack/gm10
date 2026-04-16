@@ -26,21 +26,37 @@ function formatFreshness(timestamp?: string) {
     }).format(new Date(timestamp));
 }
 
+const ACTIVITY_DOT_COLOR: Record<string, string> = {
+    Buy: 'bg-[var(--accent-green)]',
+    Mark: 'bg-[var(--accent-blue)]',
+    Sell: 'bg-[var(--accent-red)]',
+};
+
+function activityDotClass(type: string) {
+    return ACTIVITY_DOT_COLOR[type] ?? 'bg-[var(--text-tertiary)]';
+}
+
 function ActivityRail({ activity }: { activity: readonly Gm10PortfolioActivity[] }) {
     return (
         <aside className="xl:sticky xl:top-24 xl:self-start">
             <div className="label-font">Activity</div>
-            <div className="mt-4 overflow-hidden rounded-lg border border-[var(--border)]">
-                <div className="grid grid-cols-[0.7fr_1.6fr_0.8fr] border-b border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]">
+                <div className="grid grid-cols-[0.7fr_1.6fr_0.8fr] border-b border-[var(--border)] px-5 py-3.5 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
                     <span>Type</span>
                     <span>Asset</span>
                     <span className="text-right">Amount</span>
                 </div>
                 {activity.length > 0 ? activity.map((item) => (
-                    <div key={item.id} className="grid grid-cols-[0.7fr_1.6fr_0.8fr] gap-3 border-b border-[var(--border)] px-4 py-3 text-[0.82rem] last:border-b-0">
-                        <div>
-                            <div className="font-semibold text-[var(--accent-green)]">{item.type}</div>
-                            <div className="mt-1 text-[0.72rem] text-[var(--text-tertiary)]">{item.date}</div>
+                    <div
+                        key={item.id}
+                        className="grid grid-cols-[0.7fr_1.6fr_0.8fr] gap-3 border-b border-[var(--border)] px-5 py-4 text-[0.82rem] last:border-b-0"
+                    >
+                        <div className="flex items-start gap-2">
+                            <span className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full ${activityDotClass(item.type)}`} />
+                            <div>
+                                <div className="font-semibold text-[var(--text-primary)]">{item.type}</div>
+                                <div className="mt-1 text-[0.72rem] text-[var(--text-tertiary)]">{item.date}</div>
+                            </div>
                         </div>
                         <div className="min-w-0">
                             <div className="truncate font-medium text-[var(--text-primary)]">{item.item}</div>
@@ -49,7 +65,7 @@ function ActivityRail({ activity }: { activity: readonly Gm10PortfolioActivity[]
                         <div className="text-right font-semibold text-[var(--text-primary)]">{item.amount}</div>
                     </div>
                 )) : (
-                    <div className="px-4 py-5 text-[0.86rem] text-[var(--text-secondary)]">No recorded activity yet.</div>
+                    <div className="px-5 py-6 text-[0.86rem] text-[var(--text-secondary)]">No recorded activity yet.</div>
                 )}
             </div>
         </aside>
@@ -65,12 +81,22 @@ function PortfolioContent() {
     const roundState = useFujiRoundState();
 
     const stats = [
-        { label: 'Cost basis', value: proofState.proofSummary.costBasisLabel, detail: 'Recorded acquisition price' },
-        { label: 'Onchain current mark', value: proofState.proofSummary.onchainCurrentMarkLabel, detail: 'Registry currentValue' },
-        { label: 'Courtyard platform NAV', value: platformNav.isLoading ? 'Checking...' : proofState.proofSummary.platformNavLabel, detail: formatFreshness(platformNav.fetchedAt) },
-        { label: 'Unrealized P/L', value: proofState.proofSummary.unrealizedPnlLabel, detail: proofState.proofSummary.unrealizedSourceLabel },
-        { label: 'Reference NAV/token', value: proofState.proofSummary.referenceNavLabel, detail: 'Onchain accounting' },
-        { label: 'Liquid treasury', value: proofState.proofSummary.liquidTreasuryLabel, detail: 'Stable accounting' },
+        { label: 'Cost basis', value: proofState.proofSummary.costBasisLabel, detail: 'Recorded acquisition price', primary: true },
+        { label: 'Onchain current mark', value: proofState.proofSummary.onchainCurrentMarkLabel, detail: 'Registry currentValue', primary: true },
+        {
+            label: 'Courtyard platform NAV',
+            value: platformNav.isLoading ? 'Checking...' : proofState.proofSummary.platformNavLabel,
+            detail: platformNav.status === 'unavailable' && !platformNav.isLoading
+                ? undefined
+                : formatFreshness(platformNav.fetchedAt),
+            link: platformNav.status === 'unavailable' && !platformNav.isLoading
+                ? { href: 'https://courtyard.io/user/gm10xyz/collection', label: 'View on Courtyard ↗' }
+                : undefined,
+            primary: false,
+        },
+        { label: 'Unrealized P/L', value: proofState.proofSummary.unrealizedPnlLabel, detail: proofState.proofSummary.unrealizedSourceLabel, primary: false },
+        { label: 'Reference NAV/token', value: proofState.proofSummary.referenceNavLabel, detail: 'Onchain accounting', primary: false },
+        { label: 'Liquid treasury', value: proofState.proofSummary.liquidTreasuryLabel, detail: 'Stable accounting', primary: false },
     ];
 
     return (
@@ -100,20 +126,38 @@ function PortfolioContent() {
                     </div>
                 </ScrollReveal>
 
-                <div className="mt-8 grid gap-px overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--border)] md:grid-cols-3">
+                {/* Stats grid */}
+                <div className="mt-8 grid gap-3 md:grid-cols-3">
                     {stats.map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
-                            <div className="h-full bg-[var(--bg-primary)] p-5">
+                            <div
+                                className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-colors hover:border-[var(--border-strong)]"
+                                style={{ borderLeft: '3px solid var(--accent)' }}
+                            >
                                 <div className="label-font">{stat.label}</div>
-                                <div className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{stat.value}</div>
-                                <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">{stat.detail}</div>
+                                <div className={`mt-2 font-bold tracking-[-0.03em] text-[var(--text-primary)] ${stat.primary ? 'text-3xl' : 'text-2xl'}`}>
+                                    {stat.value}
+                                </div>
+                                {stat.detail ? (
+                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">{stat.detail}</div>
+                                ) : null}
+                                {stat.link ? (
+                                    <a
+                                        href={stat.link.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="mt-2 inline-block text-[0.8rem] font-semibold text-[var(--accent-blue)] underline underline-offset-2 hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {stat.link.label}
+                                    </a>
+                                ) : null}
                             </div>
                         </ScrollReveal>
                     ))}
                 </div>
 
                 {platformNav.status === 'unavailable' && !platformNav.isLoading ? (
-                    <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[0.84rem] text-[var(--text-secondary)]">
+                    <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3 text-[0.84rem] text-[var(--text-secondary)]">
                         Courtyard platform NAV is unavailable right now. The page is using onchain current marks for unrealized P/L.
                     </div>
                 ) : null}
@@ -122,34 +166,36 @@ function PortfolioContent() {
             <section className="mt-14 grid gap-8 xl:grid-cols-[1fr_360px]">
                 <div>
                     <div className="label-font">Holdings gallery</div>
-                    <div className="mt-4 grid gap-5 md:grid-cols-2">
+                    <div className="mt-4 flex flex-col gap-6">
                         {proofState.positions.length > 0 ? proofState.positions.map((position, index) => (
                             <ScrollReveal key={position.positionId} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
-                                <article className="group overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] transition-colors hover:border-[var(--border-strong)]">
-                                    <div className="grid min-h-full sm:grid-cols-[180px_1fr]">
-                                        <div className="relative min-h-[260px] overflow-hidden bg-black sm:min-h-full">
+                                <article className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] transition-colors hover:border-[var(--border-strong)]">
+                                    <div className="grid md:grid-cols-[280px_1fr]">
+                                        {/* Card image — left column */}
+                                        <div className="relative flex items-center justify-center overflow-hidden bg-[var(--bg-primary)] p-5 md:p-6">
                                             <img
                                                 src={position.imageSrc}
                                                 alt={position.imageAlt}
-                                                className="h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-[1.03]"
+                                                className="max-h-[360px] w-auto rounded-lg object-contain opacity-90 transition-transform duration-500 group-hover:scale-[1.03]"
                                             />
                                             <div className="absolute left-3 top-3">
                                                 <PixelLabel tone={position.statusLabel === 'Active' ? 'live' : 'warning'}>{position.statusLabel}</PixelLabel>
                                             </div>
-                                        </div>
-                                        <div className="flex min-w-0 flex-col p-5">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <div className="label-font">Position #{position.positionId}</div>
-                                                    <h2 className="mt-2 text-xl font-bold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">{position.title}</h2>
-                                                    {position.subtitle ? <p className="mt-1 text-[0.82rem] text-[var(--text-tertiary)]">{position.subtitle}</p> : null}
-                                                </div>
-                                                <span className="shrink-0 rounded-full bg-[var(--surface-active)] px-3 py-1 text-[0.72rem] font-semibold text-[var(--text-secondary)]">
+                                            <div className="absolute right-3 top-3">
+                                                <span className="rounded-full bg-black/60 px-3 py-1 text-[0.72rem] font-semibold text-white backdrop-blur-sm">
                                                     {position.chain}
                                                 </span>
                                             </div>
+                                        </div>
 
-                                            <div className="mt-5 grid grid-cols-2 gap-3 text-[0.82rem]">
+                                        {/* Details — right column */}
+                                        <div className="flex flex-col p-5 md:p-6">
+                                            <div className="label-font">Position #{position.positionId}</div>
+                                            <h2 className="mt-2 text-xl font-bold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">{position.title}</h2>
+                                            {position.subtitle ? <p className="mt-1 text-[0.82rem] text-[var(--text-tertiary)]">{position.subtitle}</p> : null}
+
+                                            {/* 2×2 stats grid */}
+                                            <div className="mt-5 grid grid-cols-2 gap-4 text-[0.82rem]">
                                                 <div>
                                                     <div className="label-font text-[0.6rem]">Cost basis</div>
                                                     <div className="mt-1 font-semibold text-[var(--text-primary)]">{position.acquisition}</div>
@@ -168,6 +214,7 @@ function PortfolioContent() {
                                                 </div>
                                             </div>
 
+                                            {/* Onchain details */}
                                             <div className="mt-5 grid gap-2 border-t border-[var(--border)] pt-4 text-[0.78rem] text-[var(--text-secondary)]">
                                                 <div className="flex justify-between gap-3">
                                                     <span>Collection</span>
@@ -194,7 +241,7 @@ function PortfolioContent() {
                                 </article>
                             </ScrollReveal>
                         )) : (
-                            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-6 text-[0.9rem] text-[var(--text-secondary)]">
+                            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 text-[0.9rem] text-[var(--text-secondary)]">
                                 No card positions are recorded onchain yet.
                             </div>
                         )}

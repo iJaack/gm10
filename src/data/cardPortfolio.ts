@@ -17,9 +17,16 @@ export const CARD_METADATA_BY_POSITION_ID: Record<number, CardMetadata> = {
     1: {
         title: '2021 Pokemon Sword & Shield Gengar VMAX',
         subtitle: 'High-Class Deck #002, PSA 10 GEM MINT',
-        imageSrc: '/brand/cover-pokeball-night.webp',
-        imageAlt: 'GM10 Gengar VMAX holding',
+        imageSrc: 'https://static.courtyard.io/graded-cards-renders/PSA%20140897946/nft_image.jpg',
+        imageAlt: 'Gengar VMAX PSA 10 — GM10 position #1',
         courtyardUrl: 'https://courtyard.io/asset/1b2115dde17bb90872264342530b288c9c4fc6b6bc11e44e07dccc89edad6008',
+        note: 'Recorded from Courtyard purchase execution and held as a Polygon collectible position.',
+    },
+    2: {
+        title: '2023 Pokemon Sv1a Triplet Beat Magikarp',
+        subtitle: '#080, PSA Certified',
+        imageSrc: 'https://static.courtyard.io/graded-cards-renders/PSA%20102324513/nft_image.jpg',
+        imageAlt: 'Magikarp Triplet Beat #080 — GM10 position #2',
         note: 'Recorded from Courtyard purchase execution and held as a Polygon collectible position.',
     },
 };
