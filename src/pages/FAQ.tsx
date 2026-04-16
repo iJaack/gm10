@@ -107,7 +107,7 @@ function FAQContent() {
                         <p className="mx-auto mt-4 max-w-2xl text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
                             {roundState.isRoundOpen
                                 ? 'The round page is where the answer set turns into a decision: review the module, what the position means, and the proof stack.'
-                                : 'The round page still contains the proof stack and module behavior even while Round 1 is upcoming or closed.'}
+                                : `The round page still contains the proof stack and module behavior even while Round ${roundState.roundId} is upcoming or closed.`}
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
                             <PixelMenuLink to="/fundraising" active>

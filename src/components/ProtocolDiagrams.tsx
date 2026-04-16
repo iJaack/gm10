@@ -189,7 +189,7 @@ export function RoundOneChart() {
 export function TestnetProofTimeline() {
     const steps = [
         'Mainnet fund proxy deployed and verified',
-        'Round 1 created with locked start and end timestamps',
+        'Round 2 created with locked start and end timestamps',
         'Round stays closed until the opening block window',
         'Proof links expose fund, registry, and investor accounting',
         'Acquired cards appear after fundraising finalization',

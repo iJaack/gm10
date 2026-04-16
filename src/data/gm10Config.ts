@@ -15,6 +15,8 @@ export const GM10_EXPLORER_BASE_URL = import.meta.env.VITE_GM10_EXPLORER_BASE_UR
 
 export const ROUND_1_START_AT = Math.floor(new Date('2026-04-13T20:00:00Z').getTime() / 1000);
 export const ROUND_1_END_AT = Math.floor(new Date('2026-04-24T20:00:00Z').getTime() / 1000);
+export const ROUND_2_START_AT = Math.floor(new Date('2026-04-16T15:00:00Z').getTime() / 1000);
+export const ROUND_2_END_AT = Math.floor(new Date('2026-05-16T15:00:00Z').getTime() / 1000);
 
 const fundProxyAddress = parseAddress(
     import.meta.env.VITE_GM10_FUND_PROXY_ADDRESS || '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',

@@ -23,16 +23,33 @@ export const CARD_METADATA_BY_POSITION_ID: Record<number, CardMetadata> = {
         note: 'Recorded from Courtyard purchase execution and held as a Polygon collectible position.',
     },
     2: {
-        title: '2023 Pokemon Sv1a Triplet Beat Magikarp',
-        subtitle: '#080, PSA Certified',
+        title: '2023 Pokemon Sv1a-Triplet Beat #080 Magikarp - Art Rare',
+        subtitle: 'PSA 10 GEM MINT',
         imageSrc: 'https://static.courtyard.io/graded-cards-renders/PSA%20102324513/nft_image.jpg',
-        imageAlt: 'Magikarp Triplet Beat #080 — GM10 position #2',
+        imageAlt: 'Magikarp Art Rare PSA 10 — GM10 position #2',
+        courtyardUrl: 'https://courtyard.io/asset/3593e6341cbcbc1765b92f4ebe46eb29a63dcb9a861886d2332d4ddce9658286',
+        note: 'Recorded from Courtyard purchase execution and held as a Polygon collectible position.',
+    },
+    3: {
+        title: '2024 Pokemon Sv8a-Terastal Fest EX Umbreon EX',
+        subtitle: '#217 Holo Special Art Rare, PSA 10 GEM MINT',
+        imageSrc: 'https://static.courtyard.io/graded-cards-renders/PSA%20102200180/nft_image.jpg',
+        imageAlt: 'Umbreon EX Special Art Rare PSA 10 — GM10 position #3',
+        courtyardUrl: 'https://courtyard.io/asset/90f85586da4ba09bcf5c81b9560c094cfc2d9d3690eed7c9f4b4832056f765d9',
         note: 'Recorded from Courtyard purchase execution and held as a Polygon collectible position.',
     },
 };
 
-export function metadataForPosition(positionId: number): CardMetadata {
-    return CARD_METADATA_BY_POSITION_ID[positionId] ?? {
+export function hasCuratedMetadataForPosition(positionId: number) {
+    return Boolean(CARD_METADATA_BY_POSITION_ID[positionId]);
+}
+
+export function metadataForPosition(positionId: number, liveMetadata?: CardMetadata): CardMetadata {
+    const curated = CARD_METADATA_BY_POSITION_ID[positionId];
+    if (liveMetadata) return liveMetadata;
+    if (curated) return curated;
+
+    return {
         title: `Recorded card #${positionId}`,
         subtitle: 'Metadata pending',
         imageSrc: CARD_IMAGE_FALLBACK.imageSrc,

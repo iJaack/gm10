@@ -1,11 +1,14 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import { WagmiProvider } from 'wagmi';
+import type { Config } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { useState } from 'react';
 import { config } from './wagmi';
 import { RoleGate } from './components/RoleGate';
+import { DashboardPanel } from './panels/DashboardPanel';
 import { OperationsPanel } from './panels/OperationsPanel';
+import { RoundsPanel } from './panels/RoundsPanel';
 import { CourtyardWizardPanel } from './panels/CourtyardWizardPanel';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from './hooks/useAdminRole';
@@ -13,11 +16,11 @@ import { SafeAppBootstrap } from './components/SafeAppBootstrap';
 
 const queryClient = new QueryClient();
 
-const TABS = ['Operations', 'Courtyard Wizard'] as const;
+const TABS = ['Dashboard', 'Rounds', 'Operations', 'Courtyard Wizard'] as const;
 type Tab = typeof TABS[number];
 
 function AdminApp() {
-    const [tab, setTab] = useState<Tab>('Operations');
+    const [tab, setTab] = useState<Tab>('Dashboard');
     const { address, isAdmin, isManager } = useAdminRole();
 
     return (
@@ -64,6 +67,8 @@ function AdminApp() {
 
             {/* Content */}
             <main className="mx-auto max-w-5xl px-6 py-8">
+                {tab === 'Dashboard' && <DashboardPanel />}
+                {tab === 'Rounds' && <RoundsPanel />}
                 {tab === 'Operations' && <OperationsPanel />}
                 {tab === 'Courtyard Wizard' && <CourtyardWizardPanel />}
             </main>
@@ -73,7 +78,7 @@ function AdminApp() {
 
 export default function App() {
     return (
-        <WagmiProvider config={config}>
+        <WagmiProvider config={config as Config}>
             <QueryClientProvider client={queryClient}>
                 <RainbowKitProvider theme={darkTheme({ accentColor: '#4fa8e0' })}>
                     <SafeAppBootstrap />

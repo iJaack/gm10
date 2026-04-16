@@ -102,7 +102,7 @@ export default function Footer() {
                                     GM10 is an onchain strategy wrapper around collectible exposure. It is not legal, tax, or investment advice, and card prices can move against the fund.
                                 </p>
                                 <p className="mt-4 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
-                                    Avalanche mainnet is the reporting and settlement layer for Round 1. Round 1 is live — realized sale profits fund claimable AVAX distributions, and reference NAV stays public after the round.
+                                    Avalanche mainnet is the reporting and settlement layer for Round 2. Round 2 is live — realized sale profits fund claimable AVAX distributions, and reference NAV stays public after the round.
                                 </p>
                             </div>
                         </ScrollReveal>

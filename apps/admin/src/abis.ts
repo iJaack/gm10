@@ -36,6 +36,13 @@ export const FUND_ADMIN_ABI = [
     },
     {
         inputs: [],
+        name: 'currentRoundId',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
         name: 'referenceNavPerTokenUsdt6',
         outputs: [{ name: '', type: 'uint256' }],
         stateMutability: 'view',
@@ -66,10 +73,49 @@ export const FUND_ADMIN_ABI = [
         type: 'function',
     },
     {
+        inputs: [
+            { name: '_targetAmount', type: 'uint256' },
+            { name: '_tokenPrice', type: 'uint256' },
+            { name: '_minInvestment', type: 'uint256' },
+            { name: '_maxInvestment', type: 'uint256' },
+            { name: '_startTime', type: 'uint256' },
+            { name: '_endTime', type: 'uint256' },
+        ],
+        name: 'createFundraisingRound',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
         inputs: [{ name: '_roundId', type: 'uint256' }],
         name: 'finalizeRound',
         outputs: [],
         stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'adapter', type: 'address' }, { name: 'approved', type: 'bool' }],
+        name: 'setApprovedBridgeAdapter',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'purchaseKey', type: 'bytes32' },
+            { name: 'tokenIn', type: 'address' },
+            { name: 'tokenOut', type: 'address' },
+            { name: 'path', type: 'address[]' },
+            { name: 'amountOut', type: 'uint256' },
+            { name: 'maxAmountIn', type: 'uint256' },
+            { name: 'bridgeAdapter', type: 'address' },
+            { name: 'dstEid', type: 'uint32' },
+            { name: 'dstSafe', type: 'address' },
+            { name: 'lzOptions', type: 'bytes' },
+        ],
+        name: 'swapAndBridge',
+        outputs: [],
+        stateMutability: 'payable',
         type: 'function',
     },
     {
@@ -104,6 +150,157 @@ export const FUND_ADMIN_ABI = [
             { name: 'weeklyNavCap', type: 'uint256' },
         ],
         stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
+export const ERC20_ABI = [
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'balanceOf',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }],
+        name: 'allowance',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }],
+        name: 'approve',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+] as const;
+
+export const WAVAX_ABI = [
+    ...ERC20_ABI,
+    {
+        inputs: [],
+        name: 'deposit',
+        outputs: [],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+] as const;
+
+export const LEGACY_JOE_ROUTER_ABI = [
+    {
+        inputs: [{ name: 'amountIn', type: 'uint256' }, { name: 'path', type: 'address[]' }],
+        name: 'getAmountsOut',
+        outputs: [{ name: 'amounts', type: 'uint256[]' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'amountOutMin', type: 'uint256' },
+            { name: 'path', type: 'address[]' },
+            { name: 'to', type: 'address' },
+            { name: 'deadline', type: 'uint256' },
+        ],
+        name: 'swapExactAVAXForTokens',
+        outputs: [{ name: 'amounts', type: 'uint256[]' }],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'token', type: 'address' },
+            { name: 'amountTokenDesired', type: 'uint256' },
+            { name: 'amountTokenMin', type: 'uint256' },
+            { name: 'amountAVAXMin', type: 'uint256' },
+            { name: 'to', type: 'address' },
+            { name: 'deadline', type: 'uint256' },
+        ],
+        name: 'addLiquidityAVAX',
+        outputs: [
+            { name: 'amountToken', type: 'uint256' },
+            { name: 'amountAVAX', type: 'uint256' },
+            { name: 'liquidity', type: 'uint256' },
+        ],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+] as const;
+
+export const PHARAOH_POOL_ABI = [
+    {
+        inputs: [],
+        name: 'slot0',
+        outputs: [
+            { name: 'sqrtPriceX96', type: 'uint160' },
+            { name: 'tick', type: 'int24' },
+            { name: 'observationIndex', type: 'uint16' },
+            { name: 'observationCardinality', type: 'uint16' },
+            { name: 'observationCardinalityNext', type: 'uint16' },
+            { name: 'feeProtocol', type: 'uint8' },
+            { name: 'unlocked', type: 'bool' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
+export const PHARAOH_SWAP_ROUTER_ABI = [
+    {
+        inputs: [
+            {
+                components: [
+                    { name: 'tokenIn', type: 'address' },
+                    { name: 'tokenOut', type: 'address' },
+                    { name: 'fee', type: 'uint24' },
+                    { name: 'recipient', type: 'address' },
+                    { name: 'deadline', type: 'uint256' },
+                    { name: 'amountIn', type: 'uint256' },
+                    { name: 'amountOutMinimum', type: 'uint256' },
+                    { name: 'sqrtPriceLimitX96', type: 'uint160' },
+                ],
+                name: 'params',
+                type: 'tuple',
+            },
+        ],
+        name: 'exactInputSingle',
+        outputs: [{ name: 'amountOut', type: 'uint256' }],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+] as const;
+
+export const PHARAOH_POSITION_MANAGER_ABI = [
+    {
+        inputs: [
+            {
+                components: [
+                    { name: 'token0', type: 'address' },
+                    { name: 'token1', type: 'address' },
+                    { name: 'fee', type: 'uint24' },
+                    { name: 'tickLower', type: 'int24' },
+                    { name: 'tickUpper', type: 'int24' },
+                    { name: 'amount0Desired', type: 'uint256' },
+                    { name: 'amount1Desired', type: 'uint256' },
+                    { name: 'amount0Min', type: 'uint256' },
+                    { name: 'amount1Min', type: 'uint256' },
+                    { name: 'recipient', type: 'address' },
+                    { name: 'deadline', type: 'uint256' },
+                ],
+                name: 'params',
+                type: 'tuple',
+            },
+        ],
+        name: 'mint',
+        outputs: [
+            { name: 'tokenId', type: 'uint256' },
+            { name: 'liquidity', type: 'uint128' },
+            { name: 'amount0', type: 'uint256' },
+            { name: 'amount1', type: 'uint256' },
+        ],
+        stateMutability: 'payable',
         type: 'function',
     },
 ] as const;
@@ -403,4 +600,17 @@ export const COURTYARD_WORKFLOW_ABI = [
 // Legacy aliases retained so older admin-only panels still typecheck even though
 // the live admin app now targets the profit-participation surface.
 export const FUND_V4_ABI = FUND_ADMIN_ABI;
-export const STARGATE_ADAPTER_ABI = [] as const;
+export const STARGATE_ADAPTER_ABI = [
+    {
+        inputs: [
+            { name: 'dstEid', type: 'uint32' },
+            { name: 'token', type: 'address' },
+            { name: 'amount', type: 'uint256' },
+            { name: 'options', type: 'bytes' },
+        ],
+        name: 'quoteBridge',
+        outputs: [{ name: 'nativeFee', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;

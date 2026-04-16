@@ -14,12 +14,18 @@ import {
     PixelPanel,
 } from '../components/PixelUI';
 import { GM10_FUND_ABI } from '../data/contracts';
-import { BUY_PAGE_DEFAULTS, SITE_LINKS, SUPPORT_PAGE_COPY, getRoundPrimaryCtaLabel } from '../data/protocol';
+import {
+    BUY_PAGE_DEFAULTS,
+    ROUND_PROCEEDS_ALLOCATION,
+    SITE_LINKS,
+    SUPPORT_PAGE_COPY,
+    getRoundPrimaryCtaLabel,
+} from '../data/protocol';
 import {
     GM10_NETWORK_LABEL,
     GM10_PRIMARY_DEPLOYMENT,
-    ROUND_1_END_AT,
-    ROUND_1_START_AT,
+    ROUND_2_END_AT,
+    ROUND_2_START_AT,
 } from '../data/gm10Config';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { Web3Providers } from '../components/Web3Providers';
@@ -38,6 +44,13 @@ function formatUtcTimestamp(timestamp: number) {
         timeStyle: 'short',
         timeZone: 'UTC',
     }).format(new Date(timestamp * 1000));
+}
+
+function formatAvaxAmount(value: number, maximumFractionDigits = value < 1 ? 6 : 4) {
+    return value.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits,
+    });
 }
 
 function FundraisingContent() {
@@ -66,14 +79,34 @@ function FundraisingContent() {
     const tokenPrice = roundData ? Number(formatEther(roundData.tokenPrice)) : BUY_PAGE_DEFAULTS.priceAvax;
     const minInvestment = roundData ? Number(formatEther(roundData.minInvestment)) : BUY_PAGE_DEFAULTS.minAvax;
     const maxInvestment = roundData ? Number(formatEther(roundData.maxInvestment)) : BUY_PAGE_DEFAULTS.maxAvax;
+    const remainingWei = roundData && roundData.targetAmount > roundData.raisedAmount
+        ? roundData.targetAmount - roundData.raisedAmount
+        : 0n;
+    const roundRemaining = roundData ? Number(formatEther(remainingWei)) : Math.max(0, roundTarget - roundRaised);
+    const exactDustCloseAmount = roundData && remainingWei > 0n && remainingWei < roundData.minInvestment
+        ? formatEther(remainingWei)
+        : null;
+    const exactDustCloseAvax = exactDustCloseAmount ? Number(exactDustCloseAmount) : null;
+    const maxContribution = roundRemaining > 0 ? Math.min(maxInvestment, roundRemaining) : maxInvestment;
+    const minDisplay = exactDustCloseAmount ?? `${minInvestment}`;
+    const isPlannedRound = roundState.isPlanned;
     const isRoundActive = roundState.isRoundOpen;
     const isUpcoming = roundState.isUpcoming;
     const isClosed = roundState.isClosed;
-    const buyUnavailable = !roundState.isRoundOpen || !GM10_PRIMARY_DEPLOYMENT.proxy.address;
-    const roundWindowLabel = `${formatUtcTimestamp(roundState.startsAt ?? ROUND_1_START_AT)} UTC → ${formatUtcTimestamp(roundState.endsAt ?? ROUND_1_END_AT)} UTC`;
+    const buyUnavailable = isPlannedRound || !roundState.isRoundOpen || !GM10_PRIMARY_DEPLOYMENT.proxy.address;
+    const roundWindowLabel = `${formatUtcTimestamp(roundState.startsAt ?? ROUND_2_START_AT)} UTC → ${formatUtcTimestamp(roundState.endsAt ?? ROUND_2_END_AT)} UTC`;
     const progress = roundTarget > 0 ? Math.min((roundRaised / roundTarget) * 100, 100) : 0;
     const estimatedTokens = amount ? (Number(amount) / tokenPrice).toFixed(2) : '0.00';
     const pageCopy = SUPPORT_PAGE_COPY.fundraising;
+    const allocationBaseAvax = roundRaised > 0 ? roundRaised : roundTarget;
+    const liveAllocation = ROUND_PROCEEDS_ALLOCATION.buckets.map((bucket) => ({
+        ...bucket,
+        currentAvax: allocationBaseAvax * (bucket.percent / 100),
+    }));
+    const archiveRound = roundState.archiveRound;
+    const archiveRaised = archiveRound ? Number(formatEther(archiveRound.raisedAmount)) : 0;
+    const archiveTarget = archiveRound ? Number(formatEther(archiveRound.targetAmount)) : 0;
+    const archiveProgress = archiveTarget > 0 ? Math.min((archiveRaised / archiveTarget) * 100, 100) : 0;
 
     const displayError = useMemo(() => {
         if (txError) return txError;
@@ -86,7 +119,7 @@ function FundraisingContent() {
         if (message.includes('InvestmentAboveMaximum')) return `Maximum buy is ${maxInvestment} AVAX.`;
         if (message.includes('TargetReached')) return `Round ${activeRoundId} is already at capacity.`;
         return message;
-    }, [txError, receiptError, writeError, minInvestment, maxInvestment]);
+    }, [txError, receiptError, writeError, activeRoundId, minInvestment, maxInvestment]);
 
     function handleInvest() {
         if (!amount) return;
@@ -98,12 +131,37 @@ function FundraisingContent() {
             return;
         }
 
+        if (isPlannedRound) {
+            setTxError(`Round ${activeRoundId} has not been created onchain yet. The terms are published here, and buying enables after the admin starts the round.`);
+            return;
+        }
+
         if (!roundState.isRoundOpen) {
             setTxError(
                 isUpcoming
                     ? `Round ${activeRoundId} has not opened yet. Buying stays disabled until the start timestamp.`
                     : `Round ${activeRoundId} is closed for new buys.`,
             );
+            return;
+        }
+
+        const amountNumber = Number(amount);
+        if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+            setTxError('Enter a valid AVAX amount.');
+            return;
+        }
+
+        if (roundRemaining > 0 && amountNumber > roundRemaining) {
+            setTxError(
+                exactDustCloseAmount
+                    ? `Only ${exactDustCloseAmount} AVAX remains. The cap-close buy must use that exact amount; overpaying the remaining cap reverts.`
+                    : `Only ${formatAvaxAmount(roundRemaining)} AVAX remains in Round ${activeRoundId}.`,
+            );
+            return;
+        }
+
+        if (exactDustCloseAmount && exactDustCloseAvax !== null && amountNumber !== exactDustCloseAvax) {
+            setTxError(`Round ${activeRoundId} has only ${exactDustCloseAmount} AVAX left. Use the exact final amount to close and auto-finalize the round.`);
             return;
         }
 
@@ -125,8 +183,9 @@ function FundraisingContent() {
             {/* Status bar */}
             <ScrollReveal>
                 <div className="flex flex-wrap gap-2">
-                    <PixelLabel tone={isRoundActive ? 'live' : isUpcoming ? 'warning' : 'base'}>{roundState.status}</PixelLabel>
+                    <PixelLabel tone={isRoundActive ? 'live' : isUpcoming || isPlannedRound ? 'warning' : 'base'}>{roundState.status}</PixelLabel>
                     <PixelLabel tone="warning">{GM10_NETWORK_LABEL}</PixelLabel>
+                    <PixelLabel tone="base">Round 1 archived</PixelLabel>
                     <PixelLabel tone="live">Verified on Snowtrace</PixelLabel>
                 </div>
             </ScrollReveal>
@@ -142,7 +201,9 @@ function FundraisingContent() {
                         <p className="mt-3 text-[1.05rem] leading-[1.7] text-[var(--text-secondary)]">
                             {isRoundActive
                                 ? pageCopy.body
-                                : isUpcoming
+                                : isPlannedRound
+                                    ? `Round ${activeRoundId} is the current public round. The terms are published here, and buying enables after the admin starts the round onchain. Round 1 is kept below as an archive only.`
+                                    : isUpcoming
                                     ? `Round ${activeRoundId} is about to open on Avalanche mainnet. Buying activates at the exact start timestamp — the live terms, timeline, and proof links are already visible below.`
                                     : `Round ${activeRoundId} is closed for new buys. The page still shows exactly what the position represents, how the module works, and where to inspect the live proof.`}
                         </p>
@@ -158,57 +219,22 @@ function FundraisingContent() {
                 </ScrollReveal>
 
                 <ScrollReveal delay={1}>
-                    <div className="mt-6">
+                    <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
                         <RoundTimingCallout roundState={roundState} />
-                    </div>
-                </ScrollReveal>
-
-                {/* Round summary — shown when round is closed */}
-                {isClosed ? (
-                    <ScrollReveal delay={2}>
-                        <div className="mt-6">
-                            <div className="label-font text-[var(--accent-green)]">Round {activeRoundId} complete</div>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent-green)' }}>
-                                    <div className="label-font text-[0.6rem]">Total raised</div>
-                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{roundRaised.toLocaleString('en-US')} AVAX</div>
-                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">~${(roundRaised * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })} USD at current price</div>
+                        <div className="grid gap-3">
+                            {[
+                                ['🕒', 'Round window', roundWindowLabel],
+                                ['💸', 'Profit share', 'Profitable exits route 40% of realized profit into claimable AVAX distributions for eligible holders.'],
+                            ].map(([emoji, title, body]) => (
+                                <div key={title} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
+                                    <span className="shrink-0 text-lg" aria-hidden>{emoji}</span>
+                                    <div>
+                                        <div className="text-[0.85rem] font-bold text-[var(--text-primary)]">{title}</div>
+                                        <p className="mt-0.5 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{body}</p>
+                                    </div>
                                 </div>
-                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent)' }}>
-                                    <div className="label-font text-[0.6rem]">Filled in</div>
-                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">~45 hours</div>
-                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">13 Apr 20:13 → 15 Apr 16:48 UTC</div>
-                                </div>
-                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent-blue)' }}>
-                                    <div className="label-font text-[0.6rem]">Deployed to cards</div>
-                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{proofState.proofSummary.costBasisLabel}</div>
-                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">{proofState.proofSummary.holdingsChipLabel}</div>
-                                </div>
-                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5" style={{ borderLeft: '3px solid var(--accent)' }}>
-                                    <div className="label-font text-[0.6rem]">Liquid treasury</div>
-                                    <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{proofState.proofSummary.liquidTreasuryLabel}</div>
-                                    <div className="mt-1 text-[0.78rem] text-[var(--text-tertiary)]">Remaining AVAX in fund</div>
-                                </div>
-                            </div>
+                            ))}
                         </div>
-                    </ScrollReveal>
-                ) : null}
-
-                <ScrollReveal delay={isClosed ? 3 : 2}>
-                    <div className="mt-5 grid gap-3 md:grid-cols-3">
-                        {[
-                            ['🎯', 'Exposure', "You're not buying one card. You're buying into the full strategy."],
-                            ['🕒', 'Round window', roundWindowLabel],
-                            ['💸', 'Profit share', 'Profitable exits route 40% of realized profit into claimable AVAX distributions for eligible holders.'],
-                        ].map(([emoji, title, body]) => (
-                            <div key={title} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
-                                <span className="shrink-0 text-lg" aria-hidden>{emoji}</span>
-                                <div>
-                                    <div className="text-[0.85rem] font-bold text-[var(--text-primary)]">{title}</div>
-                                    <p className="mt-0.5 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{body}</p>
-                                </div>
-                            </div>
-                        ))}
                     </div>
                 </ScrollReveal>
             </section>
@@ -234,7 +260,7 @@ function FundraisingContent() {
                         {/* Stats strip */}
                         <div className="grid grid-cols-3 divide-x divide-[var(--border)] border-b border-[var(--border)] text-center">
                             {[
-                                { label: 'Min buy', value: `${minInvestment} AVAX` },
+                                { label: exactDustCloseAmount ? 'Final close' : 'Min buy', value: `${minDisplay} AVAX` },
                                 { label: 'Max buy', value: `${maxInvestment} AVAX` },
                                 { label: 'Token price', value: `${tokenPrice} AVAX` },
                             ].map((stat) => (
@@ -257,6 +283,15 @@ function FundraisingContent() {
                                 />
                                 <span className="shrink-0 text-[0.75rem] font-medium text-[var(--text-tertiary)]">AVAX</span>
                             </div>
+                            {exactDustCloseAmount ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setAmount(exactDustCloseAmount)}
+                                    className="rounded-md border border-[var(--accent-blue)]/50 px-3 py-2 text-[0.78rem] font-semibold text-[var(--accent-blue)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--text-primary)]"
+                                >
+                                    Use exact remaining
+                                </button>
+                            ) : null}
 
                             {/* Arrow + output */}
                             <div className="hidden shrink-0 text-[0.8rem] text-[var(--text-tertiary)] lg:flex lg:items-center lg:gap-1.5">
@@ -280,7 +315,9 @@ function FundraisingContent() {
                                         <span>
                                             {isPending || isConfirming
                                                 ? 'Submitting...'
-                                                : isUpcoming
+                                                : isPlannedRound
+                                                    ? 'Awaiting onchain round'
+                                                    : isUpcoming
                                                     ? 'Round upcoming'
                                                     : isClosed
                                                         ? 'Round closed'
@@ -305,19 +342,30 @@ function FundraisingContent() {
                                 <div className="flex gap-1.5">
                                     {[25, 50, 75, 100].map((pct) => {
                                         const raw = spendableAvax * (pct / 100);
-                                        const clamped = Math.min(Math.max(raw, minInvestment), maxInvestment);
-                                        const value = Number(clamped.toFixed(4));
+                                        const clamped = exactDustCloseAmount
+                                            ? Number(exactDustCloseAmount)
+                                            : Math.min(Math.max(raw, minInvestment), maxContribution);
+                                        const value = exactDustCloseAmount ?? String(Number(clamped.toFixed(4)));
                                         return (
                                             <button
                                                 key={pct}
                                                 type="button"
-                                                onClick={() => setAmount(String(value))}
+                                                onClick={() => setAmount(value)}
                                                 className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[0.7rem] font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                                             >
                                                 {pct === 100 ? 'MAX' : `${pct}%`}
                                             </button>
                                         );
                                     })}
+                                    {exactDustCloseAmount ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAmount(exactDustCloseAmount)}
+                                            className="rounded-md border border-[var(--accent-blue)]/50 px-2 py-0.5 text-[0.7rem] font-semibold text-[var(--accent-blue)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--text-primary)]"
+                                        >
+                                            Fill exact remaining
+                                        </button>
+                                    ) : null}
                                 </div>
                             </div>
                         ) : null}
@@ -328,11 +376,22 @@ function FundraisingContent() {
                             <span className="ml-2">(~${(Number(amount || 0) * avaxUsd).toFixed(2)} USD)</span>
                         </div>
 
+                        {exactDustCloseAmount && isRoundActive ? (
+                            <div className="border-t border-[var(--border)] px-6 py-4">
+                                <PixelMessageBox
+                                    title="Exact cap close available"
+                                    body={`Only ${exactDustCloseAmount} AVAX remains. The contract accepts this exact final contribution below the normal ${minInvestment} AVAX minimum, then auto-finalizes Round ${activeRoundId}. Sending more than the remaining cap reverts.`}
+                                />
+                            </div>
+                        ) : null}
+
                         {!displayError && !isRoundActive ? (
                             <div className="border-t border-[var(--border)] px-6 py-4">
                                 <PixelMessageBox
-                                    title={isUpcoming ? 'Round upcoming' : 'Round closed'}
-                                    body={isUpcoming
+                                    title={isPlannedRound ? 'Round 2 setup pending' : isUpcoming ? 'Round upcoming' : 'Round closed'}
+                                    body={isPlannedRound
+                                        ? `Round ${activeRoundId} terms are published, but the round has not been started onchain yet. Buying stays disabled until the admin creates the round.`
+                                        : isUpcoming
                                         ? `Buying stays disabled until ${roundWindowLabel}.`
                                         : `Round ${activeRoundId} is closed for new buys. Use this page to review the module and inspect the proof.`}
                                 />
@@ -373,9 +432,119 @@ function FundraisingContent() {
 
                         {/* Disclaimer */}
                         <div className="border-t border-[var(--border)] px-6 py-3 text-[0.75rem] text-[var(--text-tertiary)]">
-                            Round {activeRoundId} is live on Avalanche mainnet. The buy window closes when the {roundTarget.toLocaleString('en-US')} AVAX cap is reached or the end timestamp passes.
+                            {isPlannedRound
+                                ? `Round ${activeRoundId} terms are ready for Avalanche mainnet. Once started onchain, the buy window auto-finalizes when the ${roundTarget.toLocaleString('en-US')} AVAX cap is reached.`
+                                : `Round ${activeRoundId} is live on Avalanche mainnet. The buy window auto-finalizes when the ${roundTarget.toLocaleString('en-US')} AVAX cap is reached, or closes when the end timestamp passes.`}
                         </div>
                     </PixelPanel>
+                </ScrollReveal>
+            </section>
+
+            {/* ── ROUND 2 ALLOCATION ── */}
+            <section id="round-2-allocation" className="mt-10 scroll-mt-28">
+                <ScrollReveal>
+                    <div className="label-font">Round 2 proceeds allocation</div>
+                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                        Every AVAX raised has a defined route after finalization.
+                    </h2>
+                    <p className="mt-2 max-w-3xl text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
+                        The percentages apply to actual AVAX raised in Round 2. If the full {ROUND_PROCEEDS_ALLOCATION.fullCapAvax.toLocaleString('en-US')} AVAX cap is reached, the round auto-finalizes onchain and the routing uses the full-cap example below.
+                    </p>
+                </ScrollReveal>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    {liveAllocation.map((bucket, index) => (
+                        <ScrollReveal key={bucket.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
+                            <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-colors hover:border-[var(--border-strong)]">
+                                <div className="label-font">{bucket.percent}%</div>
+                                <h3 className="mt-2 text-[1rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
+                                    {bucket.label}
+                                </h3>
+                                <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">
+                                    {bucket.detail}
+                                </p>
+                                <div className="mt-4 border-t border-[var(--border)] pt-3 text-[0.8rem] text-[var(--text-tertiary)]">
+                                    <div>
+                                        Full cap: <span className="font-semibold text-[var(--text-primary)]">{bucket.fullCapAvax.toLocaleString('en-US')} AVAX</span>
+                                    </div>
+                                    <div className="mt-1">
+                                        Current raised route: <span className="font-semibold text-[var(--text-primary)]">{formatAvaxAmount(bucket.currentAvax, 4)} AVAX</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollReveal>
+                    ))}
+                </div>
+
+                <ScrollReveal delay={2}>
+                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
+                        <div className="label-font">Full-cap example</div>
+                        <p className="mt-2 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
+                            At 5,000 AVAX raised: 4,250 AVAX goes to the strategy/card acquisition treasury, 250 AVAX goes to LFJ LP, 250 AVAX goes to Pharaoh LP, and 250 AVAX goes to the team wallet for bootstrapping expenses.
+                        </p>
+                        <p className="mt-2 break-all font-mono text-[0.78rem] text-[var(--text-tertiary)]">
+                            Team wallet: {ROUND_PROCEEDS_ALLOCATION.teamWallet}
+                        </p>
+                    </div>
+                </ScrollReveal>
+
+                <ScrollReveal delay={3}>
+                    <div className="mt-4">
+                        <PixelMessageBox
+                            title="Separate from realized sale profit"
+                            body={ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall}
+                        />
+                    </div>
+                </ScrollReveal>
+            </section>
+
+            {/* ── ROUND 1 ARCHIVE ── */}
+            <section id="round-1-archive" className="mt-10 scroll-mt-28">
+                <ScrollReveal>
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div>
+                                <div className="label-font text-[var(--text-tertiary)]">Archived round</div>
+                                <h2 className="mt-2 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                                    Round 1 archive
+                                </h2>
+                                <p className="mt-2 max-w-2xl text-[0.88rem] leading-[1.7] text-[var(--text-secondary)]">
+                                    Round 1 is historical context only. The active decision surface on this page is Round 2; archived Round 1 data stays here for auditability and proof review.
+                                </p>
+                            </div>
+                            <PixelMenuLink to="/fundraising#proof">
+                                Inspect archived proof
+                            </PixelMenuLink>
+                        </div>
+
+                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] p-4">
+                                <div className="label-font text-[0.58rem]">Raised</div>
+                                <div className="mt-2 text-lg font-bold text-[var(--text-primary)]">
+                                    {archiveRound ? `${formatAvaxAmount(archiveRaised, 4)} AVAX` : 'Unavailable'}
+                                </div>
+                                <div className="mt-1 text-[0.74rem] text-[var(--text-tertiary)]">
+                                    {archiveRound ? `${archiveProgress.toFixed(1)}% of ${formatAvaxAmount(archiveTarget, 4)} AVAX` : 'Waiting for archive read'}
+                                </div>
+                            </div>
+                            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] p-4">
+                                <div className="label-font text-[0.58rem]">Status</div>
+                                <div className="mt-2 text-lg font-bold text-[var(--text-primary)]">
+                                    {archiveRound?.isFinalized || archiveProgress >= 100 ? 'Finalized' : 'Closed'}
+                                </div>
+                                <div className="mt-1 text-[0.74rem] text-[var(--text-tertiary)]">
+                                    Archive only, not a current buy window
+                                </div>
+                            </div>
+                            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] p-4">
+                                <div className="label-font text-[0.58rem]">Current focus</div>
+                                <div className="mt-2 text-lg font-bold text-[var(--text-primary)]">Round 2</div>
+                                <div className="mt-1 text-[0.74rem] text-[var(--text-tertiary)]">
+                                    5,000 AVAX cap, 500 AVAX max wallet
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </ScrollReveal>
             </section>
 

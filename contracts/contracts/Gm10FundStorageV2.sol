@@ -208,14 +208,30 @@ abstract contract Gm10FundStorageV2 is
         emit RoundFinalized(_roundId, round.raisedAmount, tokensIssued);
     }
 
+    function _autoFinalizeFundedRound(uint256 _roundId) internal {
+        FundraisingRound storage round = fundraisingRounds[_roundId];
+        if (round.isFinalized || round.raisedAmount < round.targetAmount) return;
+
+        round.isActive = false;
+        round.isFinalized = true;
+        totalRoundsCompleted++;
+
+        uint256 tokensIssued;
+        unchecked {
+            tokensIssued = (round.raisedAmount * 1e18) / round.tokenPrice;
+        }
+        emit RoundFinalized(_roundId, round.raisedAmount, tokensIssued);
+    }
+
     function _invest(uint256 _roundId, address _investor, uint256 _amount) internal virtual {
         FundraisingRound storage round = fundraisingRounds[_roundId];
 
         if (!round.isActive) revert RoundNotActive();
         if (block.timestamp < round.startTime || block.timestamp > round.endTime) revert RoundNotActive();
-        if (_amount < round.minInvestment) revert InvestmentBelowMinimum();
+        uint256 remainingAmount = round.targetAmount - round.raisedAmount;
+        if (_amount > remainingAmount) revert TargetReached();
+        if (_amount < round.minInvestment && (remainingAmount == 0 || _amount != remainingAmount)) revert InvestmentBelowMinimum();
         if (roundInvestments[_roundId][_investor] + _amount > round.maxInvestment) revert InvestmentAboveMaximum();
-        if (round.raisedAmount + _amount > round.targetAmount) revert TargetReached();
 
         uint256 tokensToMint;
         unchecked {
@@ -240,6 +256,7 @@ abstract contract Gm10FundStorageV2 is
         _updateNAV();
 
         emit Investment(_investor, _roundId, _amount, tokensToMint);
+        _autoFinalizeFundedRound(_roundId);
     }
 
     function _totalAssets() internal view virtual returns (uint256) {

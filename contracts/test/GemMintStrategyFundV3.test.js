@@ -80,6 +80,58 @@ describe("GemMintStrategyFundV3", function () {
     expect(pnl.currentAttributableValueUsdt6).to.equal(50_000_000n);
   });
 
+  it("accepts exact remaining dust below min and auto-finalizes", async function () {
+    const { fund, ops, investor, receiver } = await loadFixture(deployV3Fixture);
+    const now = await time.latest();
+    const target = ethers.parseEther("5");
+    const dust = ethers.parseEther("0.0004");
+
+    await fund.connect(ops).createFundraisingRound(
+      target,
+      ethers.parseEther("1"),
+      ethers.parseEther("0.1"),
+      target,
+      now,
+      now + 3600
+    );
+    await fund.connect(investor).invest(1n, { value: target - dust });
+
+    await expect(fund.connect(receiver).invest(1n, { value: dust }))
+      .to.emit(fund, "RoundFinalized")
+      .withArgs(1n, target, target);
+
+    const round = await fund.getRound(1n);
+    expect(round.raisedAmount).to.equal(target);
+    expect(round.isActive).to.equal(false);
+    expect(round.isFinalized).to.equal(true);
+  });
+
+  it("rejects overpaying when only dust remains", async function () {
+    const { fund, ops, investor, receiver } = await loadFixture(deployV3Fixture);
+    const now = await time.latest();
+    const target = ethers.parseEther("5");
+    const dust = ethers.parseEther("0.0004");
+
+    await fund.connect(ops).createFundraisingRound(
+      target,
+      ethers.parseEther("1"),
+      ethers.parseEther("0.1"),
+      target,
+      now,
+      now + 3600
+    );
+    await fund.connect(investor).invest(1n, { value: target - dust });
+
+    await expect(
+      fund.connect(receiver).invest(1n, { value: ethers.parseEther("0.1") })
+    ).to.be.revertedWithCustomError(fund, "TargetReached");
+
+    const round = await fund.getRound(1n);
+    expect(round.raisedAmount).to.equal(target - dust);
+    expect(round.isActive).to.equal(true);
+    expect(round.isFinalized).to.equal(false);
+  });
+
   it("limits the failsafe to pause, unpause, and approved recovery withdrawals", async function () {
     const { fund, ops, failsafe, recovery, investor } = await loadFixture(deployV3Fixture);
 

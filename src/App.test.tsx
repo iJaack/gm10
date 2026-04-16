@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { BUY_PAGE_DEFAULTS, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
 
 vi.mock('@rainbow-me/rainbowkit', () => ({
     ConnectButton: () => <button type="button">Connect Wallet</button>,
@@ -56,22 +57,43 @@ vi.mock('./hooks/useFujiProof', () => ({
         ],
     }),
     useFujiRoundState: () => ({
-        roundId: 1,
+        roundId: 2,
         round: {
-            targetAmount: 10000000000000000000n,
-            raisedAmount: 6000000000000000000n,
-            tokenPrice: 2500000000000000n,
+            targetAmount: 5000000000000000000000n,
+            raisedAmount: 4999999600000000000000n,
+            tokenPrice: 3500000000000000n,
             minInvestment: 100000000000000000n,
-            maxInvestment: 200000000000000000000n,
+            maxInvestment: 500000000000000000000n,
+            startTime: 1776351600n,
+            endTime: 1778943600n,
             isActive: true,
             isFinalized: false,
         },
-        status: 'Live on Fuji',
-        progress: 60,
-        targetLabel: '10,000 AVAX',
-        raisedLabel: '6 AVAX',
-        priceLabel: '0.0025 AVAX',
-        minMaxLabel: '0.1 to 200 AVAX',
+        status: 'Open',
+        progress: 99.999992,
+        isRoundOpen: true,
+        isUpcoming: false,
+        isClosed: false,
+        isPlanned: false,
+        roundSource: 'onchain',
+        startsAt: 1776351600,
+        endsAt: 1778943600,
+        archiveRound: {
+            roundId: 1n,
+            targetAmount: 500000000000000000000n,
+            raisedAmount: 500000000000000000000n,
+            tokenPrice: 3000000000000000n,
+            minInvestment: 100000000000000000n,
+            maxInvestment: 200000000000000000000n,
+            startTime: 1776110400n,
+            endTime: 1777051200n,
+            isActive: false,
+            isFinalized: true,
+        },
+        targetLabel: '5,000 AVAX',
+        raisedLabel: '4,999.9996 AVAX',
+        priceLabel: '0.0035 AVAX',
+        minMaxLabel: '0.1 to 500 AVAX',
         links: [
             {
                 label: 'Fund proxy',
@@ -277,13 +299,29 @@ describe('page compression regressions', () => {
         expect(screen.getAllByRole('link', { name: /join next round|join the round/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /the strategy already has a public proof surface/i })).toBeInTheDocument();
+        expect(screen.getByText(/^already raised$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^500 AVAX$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^round 2 raise target$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^up to 5,000 AVAX$/i)).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', async () => {
         renderAt('/fundraising');
 
         expect(await screen.findByRole('heading', { name: /take one position in the full gm10 strategy/i })).toBeInTheDocument();
-        expect(screen.getByText(/you're not buying one card/i)).toBeInTheDocument();
+        expect(screen.queryByText(/you're not buying one card/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/^round window$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^profit share$/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /every avax raised has a defined route after finalization/i })).toBeInTheDocument();
+        expect(screen.getByText(/the percentages apply to actual avax raised in round 2/i)).toBeInTheDocument();
+        expect(screen.getByText(/4,250 AVAX goes to the strategy\/card acquisition treasury/i)).toBeInTheDocument();
+        expect(screen.getByText(/250 AVAX goes to LFJ LP/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/separate from realized sale profit/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Only 0.0004 AVAX remains/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /use exact remaining/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /round 1 archive/i })).toBeInTheDocument();
+        expect(screen.getByText(/round 1 is historical context only/i)).toBeInTheDocument();
+        expect(screen.queryByText(/round 1 complete/i)).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /inspect everything\./i })).toBeInTheDocument();
         expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^2$/i).length).toBeGreaterThan(0);
@@ -291,6 +329,27 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
+    });
+
+    it('keeps round 2 allocation constants aligned with the full-cap example', () => {
+        expect(BUY_PAGE_DEFAULTS).toMatchObject({
+            roundId: 2,
+            targetAvax: 5000,
+            priceAvax: 0.0035,
+            minAvax: 0.1,
+            maxAvax: 500,
+        });
+
+        const strategy = ROUND_PROCEEDS_ALLOCATION.buckets.find((bucket) => bucket.percent === 85);
+        const liquidity = ROUND_PROCEEDS_ALLOCATION.buckets.find((bucket) => bucket.percent === 10);
+        const team = ROUND_PROCEEDS_ALLOCATION.buckets.find((bucket) => bucket.percent === 5);
+
+        expect(strategy?.fullCapAvax).toBe(4250);
+        expect(liquidity?.fullCapAvax).toBe(500);
+        expect(team?.fullCapAvax).toBe(250);
+        expect(liquidity?.detail).toMatch(/250 AVAX to LFJ LP and 250 AVAX to Pharaoh LP/i);
+        expect(team?.detail).toMatch(/bootstrapping expenses/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Separate from realized sale profit/i);
     });
 
     it('renders the portfolio gallery with live positions and activity', async () => {
@@ -326,10 +385,11 @@ describe('page compression regressions', () => {
 
         expect(await screen.findByRole('heading', { name: /the investor questions that need short answers/i })).toBeInTheDocument();
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
+        expect(screen.getByRole('button', { name: /how are round 2 proceeds used/i })).toBeInTheDocument();
 
         const nextSection = screen.getByRole('heading', { name: /ready to get started\?/i }).closest('section');
         expect(nextSection).not.toBeNull();
-        expect(within(nextSection!).getByRole('link', { name: /join next round/i })).toBeInTheDocument();
+        expect(within(nextSection!).getByRole('link', { name: /join the round/i })).toBeInTheDocument();
         expect(within(nextSection!).getByRole('link', { name: /inspect the proof/i })).toBeInTheDocument();
     });
 });

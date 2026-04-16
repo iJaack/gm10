@@ -3,15 +3,25 @@ import { PixelMenuLink } from './PixelUI';
 import { GLOBAL_CTA_ROUTE, getRoundPrimaryCtaLabel } from '../data/protocol';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { Web3Providers } from './Web3Providers';
+import { formatEther } from 'viem';
 
 function formatAddress(address?: string) {
     if (!address) return 'Pending deployment';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+function formatAvax(value?: bigint) {
+    if (value === undefined) return 'Pending archive read';
+
+    return `${Number(formatEther(value)).toLocaleString('en-US', {
+        maximumFractionDigits: 4,
+    })} AVAX`;
+}
+
 function HomeFujiSectionContent() {
     const roundState = useFujiRoundState();
     const proofState = useFujiPortfolioPositions();
+    const alreadyRaisedLabel = formatAvax(roundState.archiveRound?.raisedAmount);
 
     return (
         <section id="proof" className="px-4 py-16 md:py-24">
@@ -37,14 +47,14 @@ function HomeFujiSectionContent() {
                 <div className="mt-10 grid gap-4 md:grid-cols-3">
                     {[
                         {
-                            label: roundState.isRoundOpen ? 'Current round' : 'Round status',
-                            value: `Round ${roundState.roundId}`,
-                            detail: roundState.status,
+                            label: 'Already raised',
+                            value: alreadyRaisedLabel,
+                            detail: 'Round 1 capital already closed. Portfolio proof and accounting stay inspectable.',
                         },
                         {
-                            label: 'Raised in public',
-                            value: roundState.raisedLabel,
-                            detail: `Target ${roundState.targetLabel}`,
+                            label: 'Round 2 raise target',
+                            value: `Up to ${roundState.targetLabel}`,
+                            detail: `${roundState.raisedLabel} raised so far in Round 2. Status: ${roundState.status}.`,
                         },
                         {
                             label: 'Marked portfolio value',

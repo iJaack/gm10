@@ -431,18 +431,17 @@ export function OperationsPanel() {
     const round1 = round1Data;
     const round1Status = !round1
         ? 'Unavailable'
-        : round1.isFinalized
+        : round1.isFinalized || round1.raisedAmount >= round1.targetAmount
           ? 'Finalized'
-          : round1.raisedAmount >= round1.targetAmount
-            ? 'Cap reached, ready to finalize'
-            : BigInt(Math.floor(Date.now() / 1000)) >= round1.endTime
+          : BigInt(Math.floor(Date.now() / 1000)) >= round1.endTime
               ? 'Ended, ready to finalize'
               : 'Still open or upcoming';
     const canFinalizeRound1 = Boolean(
         MAINNET.fundProxy &&
         round1 &&
         !round1.isFinalized &&
-        (round1.raisedAmount >= round1.targetAmount || BigInt(Math.floor(Date.now() / 1000)) >= round1.endTime),
+        round1.raisedAmount < round1.targetAmount &&
+        BigInt(Math.floor(Date.now() / 1000)) >= round1.endTime,
     );
 
     function submitFinalizeRound1() {

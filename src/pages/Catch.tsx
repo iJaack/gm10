@@ -332,7 +332,7 @@ function CatchContent() {
                     </div>
                     <div className="mt-5 flex flex-wrap gap-2">
                         <PixelLabel tone="live">ERC-20 on Avalanche</PixelLabel>
-                        <PixelLabel tone={roundTone}>{roundState.isRoundOpen ? 'Round 1 live' : roundState.isUpcoming ? 'Round 1 upcoming' : 'Round 1 closed'}</PixelLabel>
+                        <PixelLabel tone={roundTone}>{roundState.isRoundOpen ? `Round ${roundState.roundId} live` : roundState.isUpcoming ? `Round ${roundState.roundId} upcoming` : `Round ${roundState.roundId} closed`}</PixelLabel>
                         <PixelLabel tone={roundTone}>{roundState.status}</PixelLabel>
                     </div>
                 </ScrollReveal>
@@ -604,7 +604,7 @@ function CatchContent() {
                         <p className="mx-auto mt-3 max-w-xl text-[0.95rem] leading-[1.7] text-[var(--text-secondary)]">
                             {roundState.isRoundOpen
                                 ? 'The round page combines contribution flow, what the position represents, and the live proof stack in one decision surface.'
-                                : 'The round page still exposes the live proof and module behavior even while Round 1 is upcoming or closed.'}
+                                : `The round page still exposes the live proof and module behavior even while Round ${roundState.roundId} is upcoming or closed.`}
                         </p>
                         <div className="mt-8 flex flex-wrap justify-center gap-3">
                             <PixelMenuLink to="/fundraising" active>{getRoundPrimaryCtaLabel(roundState.isRoundOpen)}</PixelMenuLink>

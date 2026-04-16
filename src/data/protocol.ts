@@ -33,12 +33,40 @@ export const SITE_LINKS = {
 } as const;
 
 export const BUY_PAGE_DEFAULTS = {
-    targetAvax: 500,
-    priceAvax: 0.003,
+    roundId: 2,
+    targetAvax: 5000,
+    priceAvax: 0.0035,
     minAvax: 0.1,
-    maxAvax: 200,
+    maxAvax: 500,
     networkLabel: 'Avalanche Mainnet',
     contributionAsset: 'AVAX',
+} as const;
+
+export const ROUND_PROCEEDS_ALLOCATION = {
+    roundId: 2,
+    fullCapAvax: 5000,
+    teamWallet: '0x5cA0A679025B6c7dA08a70be3b244399fF0D7813',
+    buckets: [
+        {
+            label: 'Strategy/card acquisition treasury',
+            percent: 85,
+            fullCapAvax: 4250,
+            detail: 'Primary treasury for card acquisition and strategy execution.',
+        },
+        {
+            label: 'Liquidity',
+            percent: 10,
+            fullCapAvax: 500,
+            detail: 'At full cap: 250 AVAX to LFJ LP and 250 AVAX to Pharaoh LP.',
+        },
+        {
+            label: 'Team wallet',
+            percent: 5,
+            fullCapAvax: 250,
+            detail: 'Sent to the team wallet after Round 2 finalizes and used for bootstrapping expenses.',
+        },
+    ],
+    realizedProfitWaterfall: 'Separate from realized sale profit, which later follows the sale waterfall: 25% treasury reinvestment, 40% holder distributions, 20% LP replenishment, and 15% buyback and burn.',
 } as const;
 
 export const RECENT_CARD_COMPS = [
@@ -126,7 +154,7 @@ export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
 export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     {
         title: '🪙 Enter the round',
-        body: 'Round 1 is live on Avalanche mainnet. Buy $CATCH directly from the round module while the window is open.',
+        body: 'Round 2 is live on Avalanche mainnet. Buy $CATCH directly from the round module while the window is open.',
     },
     {
         title: '🃏 We acquire the cards',
@@ -203,11 +231,11 @@ export const WATERFALL = [
 export const PURCHASE_FLOW = [
     {
         title: 'The round opens onchain',
-        detail: 'Round 1 is live on Avalanche mainnet. The buy window closes when the cap is reached or the end timestamp passes.',
+        detail: 'Round 2 is live on Avalanche mainnet. The buy window auto-finalizes when the cap is reached or closes when the end timestamp passes.',
     },
     {
         title: 'Card targets get greenlit',
-        detail: 'Round 1 remains ops-led: grails, slabs, provenance, price discipline, and venue-specific execution plans across Courtyard and future marketplaces.',
+        detail: 'Round 2 remains ops-led: grails, slabs, provenance, price discipline, and venue-specific execution plans across Courtyard and future marketplaces.',
     },
     {
         title: 'Ops secures the slab',
@@ -317,7 +345,11 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'What is live today versus planned later?',
-        answer: 'Round 1 is live on Avalanche mainnet with live buying, public proof links, fixed token allocations, claimable AVAX profit distributions from realized exits, and public reference NAV reporting.',
+        answer: 'Round 2 is live on Avalanche mainnet with live buying, public proof links, fixed token allocations, claimable AVAX profit distributions from realized exits, and public reference NAV reporting.',
+    },
+    {
+        question: 'How are Round 2 proceeds used?',
+        answer: 'Round 2 proceeds are allocated from actual AVAX raised: 85% to the strategy/card acquisition treasury, 10% to liquidity, and 5% to the team wallet for bootstrapping expenses. At the full 5,000 AVAX cap that means 4,250 AVAX to strategy treasury, 250 AVAX to LFJ LP, 250 AVAX to Pharaoh LP, and 250 AVAX to the team wallet for bootstrapping expenses. This is separate from the realized sale-profit waterfall.',
     },
     {
         question: 'Does GM10 guarantee returns?',
@@ -415,7 +447,7 @@ export const HOME_INVESTOR_OBJECTIONS = [
     },
     {
         question: 'What proves the system is ready for mainnet?',
-        answer: 'Round 1 is live on mainnet with public proof links and contract-enforced timing and sale mechanics. Inspect the contracts on Snowtrace.',
+        answer: 'Round 2 is live on mainnet with public proof links and contract-enforced timing and sale mechanics. Inspect the contracts on Snowtrace.',
     },
     {
         question: 'Why does Avalanche matter here?',
@@ -427,7 +459,7 @@ export const SUPPORT_PAGE_COPY = {
     fundraising: {
         eyebrow: 'Join the round',
         title: 'Take one position in the full GM10 strategy.',
-        body: 'Use the Round 1 module to get exposure to the managed portfolio, then inspect the live Avalanche mainnet proof below.',
+        body: 'Use the Round 2 module to get exposure to the managed portfolio, then inspect the live Avalanche mainnet proof below.',
         primaryCtaTo: '/fundraising#buy-panel',
         secondaryCtaTo: '/fundraising#proof',
     },
@@ -448,7 +480,7 @@ export const SUPPORT_PAGE_COPY = {
     faq: {
         eyebrow: 'FAQ',
         title: 'The investor questions that need short answers.',
-        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how Round 1 operates on mainnet.',
+        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how Round 2 operates on mainnet.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',
     },

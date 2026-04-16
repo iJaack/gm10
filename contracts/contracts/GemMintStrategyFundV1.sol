@@ -299,9 +299,10 @@ contract GemMintStrategyFundV1 is
 
         if (!round.isActive) revert RoundNotActive();
         if (block.timestamp < round.startTime || block.timestamp > round.endTime) revert RoundNotActive();
-        if (_amount < round.minInvestment) revert InvestmentBelowMinimum();
+        uint256 remainingAmount = round.targetAmount - round.raisedAmount;
+        if (_amount > remainingAmount) revert TargetReached();
+        if (_amount < round.minInvestment && (remainingAmount == 0 || _amount != remainingAmount)) revert InvestmentBelowMinimum();
         if (roundInvestments[_roundId][_investor] + _amount > round.maxInvestment) revert InvestmentAboveMaximum();
-        if (round.raisedAmount + _amount > round.targetAmount) revert TargetReached();
 
         // Calculate tokens to mint (safe: _amount * 1e18 fits uint256)
         uint256 tokensToMint;
@@ -331,6 +332,15 @@ contract GemMintStrategyFundV1 is
         _updateNAV();
 
         emit Investment(_investor, _roundId, _amount, tokensToMint);
+        if (round.raisedAmount == round.targetAmount) {
+            round.isActive = false;
+            round.isFinalized = true;
+            totalRoundsCompleted++;
+
+            uint256 tokensIssued;
+            unchecked { tokensIssued = (round.raisedAmount * 1e18) / round.tokenPrice; }
+            emit RoundFinalized(_roundId, round.raisedAmount, tokensIssued);
+        }
     }
 
     /**

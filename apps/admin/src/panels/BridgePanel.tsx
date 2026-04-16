@@ -14,7 +14,8 @@ export function BridgePanel() {
     const [bridgeAdapter, setBridgeAdapter] = useState(FUJI.stargateAdapter || '');
     const [lzOptions, setLzOptions] = useState('0x');
     const [bridgeFeeEth, setBridgeFeeEth] = useState('0.05');
-    const [dstEid, setDstEid] = useState(LZ_EID.POLYGON_AMOY);
+    const [dstEid, setDstEid] = useState<number>(LZ_EID.POLYGON_AMOY);
+    const [dstSafe, setDstSafe] = useState('');
 
     const { writeContract, data: txHash, isPending, error } = useWriteContract();
 
@@ -31,7 +32,7 @@ export function BridgePanel() {
     });
 
     function handleSubmit() {
-        if (!purchaseKey || amountOut === 0n || !bridgeAdapter) return;
+        if (!purchaseKey || amountOut === 0n || !bridgeAdapter || !dstSafe) return;
         // Bridge-only: set tokenIn = tokenOut (no swap needed — fund holds it already)
         // We still call swapAndBridge with identical tokenIn/tokenOut and amountOut=maxAmountIn
         // so the contract skips swapping (path is a single-element array).
@@ -47,6 +48,8 @@ export function BridgePanel() {
                 amountOut,
                 amountOut,                    // maxAmountIn = amountOut (no swap tolerance needed)
                 bridgeAdapter as `0x${string}`,
+                dstEid,
+                dstSafe as `0x${string}`,
                 lzOptions as `0x${string}`,
             ],
             value: bridgeFeeWei,
@@ -79,7 +82,7 @@ export function BridgePanel() {
                         className="rounded bg-black/40 px-3 py-2 font-mono text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0]"
                         placeholder="0x…"
                         value={tokenOut}
-                        onChange={e => setTokenOut(e.target.value)}
+                        onChange={e => setTokenOut(e.target.value as `0x${string}`)}
                     />
                 </label>
 
@@ -125,6 +128,16 @@ export function BridgePanel() {
                         placeholder="0x…"
                         value={bridgeAdapter}
                         onChange={e => setBridgeAdapter(e.target.value)}
+                    />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-400">Destination Safe address</span>
+                    <input
+                        className="rounded bg-black/40 px-3 py-2 font-mono text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0]"
+                        placeholder="0x…"
+                        value={dstSafe}
+                        onChange={e => setDstSafe(e.target.value)}
                     />
                 </label>
 

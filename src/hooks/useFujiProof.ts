@@ -1,14 +1,14 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatEther, formatUnits } from 'viem';
 import { useAccount, useReadContract, useReadContracts } from 'wagmi';
-import { metadataForPosition } from '../data/cardPortfolio';
+import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
 import { GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
 import {
     GM10_EXPLORER_BASE_URL,
     GM10_PRIMARY_DEPLOYMENT,
-    ROUND_1_END_AT,
-    ROUND_1_START_AT,
+    ROUND_2_END_AT,
+    ROUND_2_START_AT,
     type Gm10ContractLink,
 } from '../data/gm10Config';
 import { BUY_PAGE_DEFAULTS } from '../data/protocol';
@@ -16,6 +16,24 @@ import { BUY_PAGE_DEFAULTS } from '../data/protocol';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 const MAX_PUBLIC_POSITIONS = 40;
 const DEFAULT_PLATFORM_NAV: PlatformNavState = { status: 'unavailable' };
+const AVAX_WEI = 10n ** 18n;
+
+const ROUND_2_PLANNED_ROUND = {
+    roundId: BigInt(BUY_PAGE_DEFAULTS.roundId),
+    targetAmount: 5_000n * AVAX_WEI,
+    raisedAmount: 0n,
+    tokenPrice: 3_500_000_000_000_000n,
+    minInvestment: AVAX_WEI / 10n,
+    maxInvestment: 500n * AVAX_WEI,
+    startTime: BigInt(ROUND_2_START_AT),
+    endTime: BigInt(ROUND_2_END_AT),
+    isActive: false,
+    isFinalized: false,
+} as const;
+
+function hasRoundData<T extends { targetAmount: bigint }>(round?: T): round is T {
+    return Boolean(round && round.targetAmount > 0n);
+}
 
 function formatUsdt6(value?: bigint) {
     if (value === undefined) return '$0.00';
@@ -69,6 +87,8 @@ type CollectiblePositionTuple = {
     acquisitionDate: bigint;
     lastValuationAt: bigint;
     status: number;
+    metadataHash: `0x${string}`;
+    proofHash: `0x${string}`;
 };
 
 export type Gm10PortfolioPosition = {
@@ -104,9 +124,13 @@ export type Gm10PortfolioActivity = {
     detail: string;
 };
 
-function normalizePosition(raw: CollectiblePositionTuple): Gm10PortfolioPosition {
+function positionMetadataKey(raw: CollectiblePositionTuple) {
+    return `${Number(raw.chainEid)}:${raw.evmCollection.toLowerCase()}:${raw.tokenId.toString()}`;
+}
+
+function normalizePosition(raw: CollectiblePositionTuple, liveMetadata?: CardMetadata): Gm10PortfolioPosition {
     const positionId = Number(raw.id);
-    const metadata = metadataForPosition(positionId);
+    const metadata = metadataForPosition(positionId, liveMetadata);
 
     return {
         positionId,
@@ -182,29 +206,42 @@ export function useFujiRoundState() {
         query: { enabled: Boolean(proxyAddress) },
     });
 
-    const roundId = currentRoundId ? Number(currentRoundId) : 1;
-
-    const { data: round } = useReadContract({
+    const { data: round2 } = useReadContract({
         address: proxyAddress ?? ZERO_ADDRESS,
         abi: GM10_FUND_ABI,
         functionName: 'getRound',
-        args: [BigInt(roundId)],
+        args: [BigInt(BUY_PAGE_DEFAULTS.roundId)],
         query: { enabled: Boolean(proxyAddress) },
     });
 
+    const { data: round1Archive } = useReadContract({
+        address: proxyAddress ?? ZERO_ADDRESS,
+        abi: GM10_FUND_ABI,
+        functionName: 'getRound',
+        args: [1n],
+        query: { enabled: Boolean(proxyAddress) },
+    });
+
+    const hasOnchainRound2 = hasRoundData(round2);
+    const round = hasOnchainRound2 ? round2 : ROUND_2_PLANNED_ROUND;
+    const roundId = BUY_PAGE_DEFAULTS.roundId;
     const now = Math.floor(Date.now() / 1000);
-    const startsAt = round ? Number(round.startTime) : ROUND_1_START_AT;
-    const endsAt = round ? Number(round.endTime) : ROUND_1_END_AT;
-    const raisedAmount = round ? round.raisedAmount : 0n;
-    const targetAmount = round ? round.targetAmount : BigInt(Math.floor(BUY_PAGE_DEFAULTS.targetAvax * 1e18));
+    const startsAt = Number(round.startTime);
+    const endsAt = Number(round.endTime);
+    const raisedAmount = round.raisedAmount;
+    const targetAmount = round.targetAmount;
     const capReached = targetAmount > 0n && raisedAmount >= targetAmount;
     const isUpcoming = now < startsAt;
     const isClosedByTime = now > endsAt;
-    const isClosed = capReached || isClosedByTime || Boolean(round?.isFinalized);
-    const isRoundOpen = Boolean(round?.isActive ?? true) && !isUpcoming && !isClosed;
+    const isClosed = hasOnchainRound2 && (capReached || isClosedByTime || Boolean(round.isFinalized));
+    const isRoundOpen = hasOnchainRound2 && Boolean(round.isActive) && !isUpcoming && !isClosed;
 
-    const status = isClosed
-        ? 'Closed'
+    const status = !hasOnchainRound2
+        ? 'Round 2 setup pending'
+        : isClosed
+        ? capReached || Boolean(round?.isFinalized)
+            ? 'Finalized'
+            : 'Closed'
         : isUpcoming
             ? 'Upcoming'
             : isRoundOpen
@@ -217,8 +254,12 @@ export function useFujiRoundState() {
 
     return {
         links,
+        currentRoundId: currentRoundId ? Number(currentRoundId) : undefined,
         roundId,
         round,
+        roundSource: hasOnchainRound2 ? 'onchain' as const : 'planned' as const,
+        isPlanned: !hasOnchainRound2,
+        archiveRound: hasRoundData(round1Archive) ? round1Archive : undefined,
         status,
         progress,
         isUpcoming,
@@ -239,6 +280,7 @@ export function useFujiRoundState() {
 export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAULT_PLATFORM_NAV) {
     const contractState = useFujiContracts(GM10_PRIMARY_DEPLOYMENT);
     const { address } = useAccount();
+    const [liveMetadataByKey, setLiveMetadataByKey] = useState<Record<string, CardMetadata>>({});
 
     const { data: collectiblePositionCount } = useReadContract({
         address: contractState.portfolioRegistryAddress ?? ZERO_ADDRESS,
@@ -307,12 +349,65 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         query: { enabled: Boolean(contractState.proxyAddress && address) },
     });
 
-    const positions = useMemo(() => (positionReads ?? [])
+    const rawPositions = useMemo(() => (positionReads ?? [])
         .flatMap((read) => {
             if (read.status !== 'success' || !read.result) return [];
-            return [normalizePosition(read.result as CollectiblePositionTuple)];
+            return [read.result as CollectiblePositionTuple];
         })
-        .sort((a, b) => a.positionId - b.positionId), [positionReads]);
+        .sort((a, b) => Number(a.id) - Number(b.id)), [positionReads]);
+
+    const liveMetadataRequestKey = useMemo(() => rawPositions
+        .map(positionMetadataKey)
+        .join('|'), [rawPositions]);
+
+    useEffect(() => {
+        const positionsToResolve = rawPositions;
+        if (positionsToResolve.length === 0) {
+            setLiveMetadataByKey({});
+            return;
+        }
+
+        const controller = new AbortController();
+        async function loadMetadata() {
+            try {
+                const response = await fetch('/api/nft-metadata', {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'content-type': 'application/json', accept: 'application/json' },
+                    body: JSON.stringify({
+                        positions: positionsToResolve.map((position) => ({
+                            positionId: Number(position.id),
+                            chainEid: Number(position.chainEid),
+                            collection: position.evmCollection,
+                            tokenId: position.tokenId.toString(),
+                        })),
+                    }),
+                });
+
+                if (!response.ok) throw new Error(`NFT metadata returned ${response.status}`);
+                const payload = await response.json() as {
+                    positions?: Array<{ ok: boolean; metadata?: CardMetadata & { positionId?: number } }>;
+                };
+                const next: Record<string, CardMetadata> = {};
+                for (const item of payload.positions ?? []) {
+                    if (!item.ok || !item.metadata?.positionId) continue;
+                    const raw = positionsToResolve.find((position) => Number(position.id) === item.metadata?.positionId);
+                    if (!raw) continue;
+                    next[positionMetadataKey(raw)] = item.metadata;
+                }
+                setLiveMetadataByKey(next);
+            } catch {
+                if (!controller.signal.aborted) setLiveMetadataByKey({});
+            }
+        }
+
+        void loadMetadata();
+        return () => controller.abort();
+    }, [liveMetadataRequestKey, rawPositions]);
+
+    const positions = useMemo(() => rawPositions
+        .map((raw) => normalizePosition(raw, liveMetadataByKey[positionMetadataKey(raw)]))
+        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, rawPositions]);
 
     const valueSummary = useMemo(
         () => calculatePortfolioValueSummary(positions, platformNav),

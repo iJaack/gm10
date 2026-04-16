@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { formatEther } from 'viem';
-import { ROUND_1_END_AT, ROUND_1_START_AT } from '../data/gm10Config';
-import { BUY_PAGE_DEFAULTS, GLOBAL_CTA_ROUTE } from '../data/protocol';
+import { ROUND_2_END_AT, ROUND_2_START_AT } from '../data/gm10Config';
+import { BUY_PAGE_DEFAULTS } from '../data/protocol';
 
 type RoundTimingState = {
     isRoundOpen: boolean;
     isUpcoming: boolean;
     isClosed: boolean;
+    isPlanned?: boolean;
     roundId?: number;
     startsAt?: number;
     endsAt?: number;
@@ -60,8 +60,8 @@ export function RoundTimingCallout({
     compact?: boolean;
 }) {
     const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
-    const startsAt = roundState.startsAt ?? ROUND_1_START_AT;
-    const endsAt = roundState.endsAt ?? ROUND_1_END_AT;
+    const startsAt = roundState.startsAt ?? ROUND_2_START_AT;
+    const endsAt = roundState.endsAt ?? ROUND_2_END_AT;
 
     useEffect(() => {
         const timer = window.setInterval(() => {
@@ -71,19 +71,23 @@ export function RoundTimingCallout({
         return () => window.clearInterval(timer);
     }, []);
 
-    const roundId = roundState.roundId ?? 1;
+    const roundId = roundState.roundId ?? BUY_PAGE_DEFAULTS.roundId;
     const secondsToStart = startsAt - now;
     const secondsToEnd = endsAt - now;
     const target = roundState.round ? Number(formatEther(roundState.round.targetAmount)) : BUY_PAGE_DEFAULTS.targetAvax;
-    const title = roundState.isUpcoming
+    const title = roundState.isPlanned
+        ? `Round ${roundId} terms are ready`
+        : roundState.isUpcoming
         ? `Round ${roundId} opens in ${formatCountdown(secondsToStart)}`
         : roundState.isRoundOpen
             ? `Round ${roundId} closes in ${formatCountdown(secondsToEnd)}`
             : `Round ${roundId} is closed`;
-    const detail = roundState.isUpcoming
+    const detail = roundState.isPlanned
+        ? `Round ${roundId} is the current public round on this page. It becomes buyable after the admin starts it onchain. Planned window: ${formatUtcTimestamp(startsAt)} to ${formatUtcTimestamp(endsAt)}.`
+        : roundState.isUpcoming
         ? `Next public buy window starts ${formatUtcTimestamp(startsAt)} (${formatLocalTimestamp(startsAt)} local).`
         : roundState.isRoundOpen
-            ? `Buying is live until ${formatUtcTimestamp(endsAt)}, unless the ${target.toLocaleString('en-US')} AVAX cap is reached first.`
+            ? `Buying is live until ${formatUtcTimestamp(endsAt)}, unless the ${target.toLocaleString('en-US')} AVAX cap is reached first and auto-finalizes the round.`
             : `Round ${roundId} ran ${formatUtcTimestamp(startsAt)} to ${formatUtcTimestamp(endsAt)}.`;
     const raised = roundState.round ? Number(formatEther(roundState.round.raisedAmount)) : 0;
     const remaining = Math.max(0, target - raised);
@@ -96,10 +100,10 @@ export function RoundTimingCallout({
             }`}
         >
             <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" aria-hidden />
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
                 <div>
                     <div className="label-font text-[var(--accent)]">
-                        {roundState.isUpcoming ? 'Next opening' : roundState.isRoundOpen ? 'Current window' : 'Round status'}
+                        {roundState.isPlanned ? 'Current round' : roundState.isUpcoming ? 'Next opening' : roundState.isRoundOpen ? 'Current window' : 'Round status'}
                     </div>
                     <div className={`${compact ? 'mt-1 text-[1.05rem]' : 'mt-2 text-[1.45rem] sm:text-[1.75rem]'} font-extrabold tracking-[-0.035em] text-[var(--text-primary)]`}>
                         {title}
@@ -108,12 +112,6 @@ export function RoundTimingCallout({
                         {detail}
                     </p>
                 </div>
-                {!compact ? (
-                    <Link to={GLOBAL_CTA_ROUTE} className="pixel-menu-link pixel-menu-link-active shrink-0 justify-center">
-                        <span className="pixel-menu-cursor" aria-hidden>↗</span>
-                        <span>{roundState.isUpcoming ? `Review Round ${roundId}` : roundState.isRoundOpen ? `Join Round ${roundId}` : 'Inspect Proof'}</span>
-                    </Link>
-                ) : null}
             </div>
 
             {/* Progress bar */}
@@ -146,8 +144,8 @@ export function RoundTimingCallout({
 }
 
 export function getRoundScheduleShortLabel(roundState: RoundTimingState) {
-    const startsAt = roundState.startsAt ?? ROUND_1_START_AT;
-    const endsAt = roundState.endsAt ?? ROUND_1_END_AT;
+    const startsAt = roundState.startsAt ?? ROUND_2_START_AT;
+    const endsAt = roundState.endsAt ?? ROUND_2_END_AT;
 
     if (roundState.isUpcoming) return `Opens ${formatUtcTimestamp(startsAt)}`;
     if (roundState.isRoundOpen) return `Closes ${formatUtcTimestamp(endsAt)}`;

@@ -100,7 +100,7 @@ describe("TDD Audit — Security & Edge Cases", function () {
       ).to.be.revertedWithCustomError(fund, "InvestmentBelowMinimum");
     });
 
-    it("reverts with TargetReached when investment fills target and rounds up", async function () {
+    it("reverts with TargetReached when investment exceeds the remaining cap", async function () {
       const { fund, investor1, roundId, TARGET, MAX } = await loadFixture(deployV1WithRoundFixture);
       // Fill up to TARGET first using two investors or one big investment close to target
       // Invest at MAX to get close, then try to invest more than remaining
@@ -122,6 +122,50 @@ describe("TDD Audit — Security & Edge Cases", function () {
       await expect(
         f2.connect(inv).invest(1n, { value: ethers.parseEther("1") })
       ).to.be.revertedWithCustomError(f2, "TargetReached");
+    });
+
+    it("allows the exact remaining dust below minInvestment and auto-finalizes", async function () {
+      const [owner, investor1, investor2] = await ethers.getSigners();
+      const FundV1 = await ethers.getContractFactory("GemMintStrategyFundV1");
+      const fund = await upgrades.deployProxy(FundV1, [owner.address, 100n, 1000n], { kind: "uups" });
+      const now = await time.latest();
+      const target = ethers.parseEther("5");
+      const min = ethers.parseEther("0.1");
+      const dust = ethers.parseEther("0.0004");
+
+      await fund.createFundraisingRound(target, ethers.parseEther("1"), min, target, now, now + 3600);
+      await fund.connect(investor1).invest(1n, { value: target - dust });
+
+      await expect(fund.connect(investor2).invest(1n, { value: dust }))
+        .to.emit(fund, "RoundFinalized")
+        .withArgs(1n, target, target);
+
+      const round = await fund.getRound(1n);
+      expect(round.raisedAmount).to.equal(target);
+      expect(round.isActive).to.equal(false);
+      expect(round.isFinalized).to.equal(true);
+    });
+
+    it("keeps dust rounds open when a normal min buy would exceed the remaining cap", async function () {
+      const [owner, investor1, investor2] = await ethers.getSigners();
+      const FundV1 = await ethers.getContractFactory("GemMintStrategyFundV1");
+      const fund = await upgrades.deployProxy(FundV1, [owner.address, 100n, 1000n], { kind: "uups" });
+      const now = await time.latest();
+      const target = ethers.parseEther("5");
+      const min = ethers.parseEther("0.1");
+      const dust = ethers.parseEther("0.0004");
+
+      await fund.createFundraisingRound(target, ethers.parseEther("1"), min, target, now, now + 3600);
+      await fund.connect(investor1).invest(1n, { value: target - dust });
+
+      await expect(
+        fund.connect(investor2).invest(1n, { value: min })
+      ).to.be.revertedWithCustomError(fund, "TargetReached");
+
+      const round = await fund.getRound(1n);
+      expect(round.raisedAmount).to.equal(target - dust);
+      expect(round.isActive).to.equal(true);
+      expect(round.isFinalized).to.equal(false);
     });
 
     it("reverts RoundNotActive for a non-existent roundId (roundId 0 or 99)", async function () {
@@ -173,7 +217,7 @@ describe("TDD Audit — Security & Edge Cases", function () {
       ).to.be.revertedWithCustomError(fund, "InvalidParameters");
     });
 
-    it("allows early finalization when target is exactly reached", async function () {
+    it("auto-finalizes when target is exactly reached", async function () {
       // Create a round with small target and fill it exactly
       const [owner, , , , investor] = await ethers.getSigners();
       const FundV1 = await ethers.getContractFactory("GemMintStrategyFundV1");
@@ -181,12 +225,13 @@ describe("TDD Audit — Security & Edge Cases", function () {
       const now = await time.latest();
       const target = ethers.parseEther("5");
       await f.createFundraisingRound(target, ethers.parseEther("1"), 0n, target, now, now + 7200);
-      // Invest exactly target
-      await f.connect(investor).invest(1n, { value: target });
-      // Finalize early — should succeed (raisedAmount >= targetAmount)
-      await expect(f.finalizeRound(1n)).to.not.be.reverted;
+      await expect(f.connect(investor).invest(1n, { value: target }))
+        .to.emit(f, "RoundFinalized")
+        .withArgs(1n, target, target);
       const round = await f.getRound(1n);
+      expect(round.isActive).to.equal(false);
       expect(round.isFinalized).to.equal(true);
+      await expect(f.finalizeRound(1n)).to.be.revertedWithCustomError(f, "InvalidParameters");
     });
   });
 

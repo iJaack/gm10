@@ -62,7 +62,7 @@ export default function Hero() {
                             GM10 turns sourcing, diligence, custody, valuation, and exits into one managed onchain strategy, so a single position can track the full portfolio.
                         </p>
                         <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
-                            Round 1 is live on Avalanche mainnet. Public proof links, contract-enforced timing, and verified contracts on Snowtrace.
+                            Round 2 is live on Avalanche mainnet. Public proof links, contract-enforced timing, and verified contracts on Snowtrace.
                         </p>
                     </div>
                     <div className="mt-8 flex flex-wrap gap-3 scan-reveal scan-delay-3">
