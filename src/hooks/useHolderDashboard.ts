@@ -16,7 +16,7 @@ const HAS_PUBLIC_CLAIM_ACTION = false;
 
 function formatUsdt6(value?: bigint) {
     if (value === undefined) return 'Unavailable';
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
         minimumFractionDigits: 2,
