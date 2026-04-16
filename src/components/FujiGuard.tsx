@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAccount, useSwitchChain } from 'wagmi';
 import { avalanche } from 'wagmi/chains';
 import type { ReactNode } from 'react';
@@ -10,33 +11,52 @@ type Props = { children: ReactNode };
 export default function FujiGuard({ children }: Props) {
     const { isConnected, chainId } = useAccount();
     const { switchChain } = useSwitchChain();
+    const [dismissed, setDismissed] = useState(false);
 
-    // Not connected — let RainbowKit handle it downstream
-    if (!isConnected) return <>{children}</>;
+    const showBanner =
+        isConnected && chainId !== REQUIRED_CHAIN_ID && !dismissed;
 
-    // Wrong network
-    if (chainId !== REQUIRED_CHAIN_ID) {
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0f1c]/95 backdrop-blur-sm px-4">
-                <div className="bg-[#1a1f3c] border border-orange-500/40 rounded-3xl p-12 max-w-md w-full text-center shadow-2xl">
-                    <div className="text-5xl mb-6">⚠️</div>
-                    <h2 className="text-2xl font-bold text-white mb-3">Wrong Network</h2>
-                    <p className="text-gray-400 mb-2">
-                        This app runs on <span className="text-orange-400 font-semibold">{GM10_NETWORK_LABEL}</span>.
-                    </p>
-                    <p className="text-gray-500 text-sm mb-8">
-                        Switch to Avalanche mainnet to access the Round 1 buy flow and proof surface.
-                    </p>
-                    <button
-                        onClick={() => switchChain({ chainId: REQUIRED_CHAIN_ID })}
-                        className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-400 rounded-xl font-bold text-white hover:opacity-90 transition-all shadow-lg shadow-orange-500/25"
-                    >
-                        Switch to Avalanche Mainnet
-                    </button>
+    return (
+        <>
+            {showBanner && (
+                <div
+                    style={{
+                        background: 'var(--bg-secondary)',
+                        borderBottom: '1px solid var(--border)',
+                        color: 'var(--text-secondary)',
+                    }}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-2 text-sm"
+                >
+                    <span style={{ color: 'var(--text-secondary)' }}>
+                        Wrong network — this app runs on{' '}
+                        <span style={{ color: 'var(--accent)' }} className="font-semibold">
+                            {GM10_NETWORK_LABEL}
+                        </span>
+                        . Switch to Avalanche Mainnet to interact with the protocol.
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            onClick={() => switchChain({ chainId: REQUIRED_CHAIN_ID })}
+                            style={{
+                                background: 'var(--accent)',
+                                color: 'var(--text-primary)',
+                            }}
+                            className="px-3 py-1 rounded-lg font-semibold text-xs hover:opacity-90 transition-opacity"
+                        >
+                            Switch Network
+                        </button>
+                        <button
+                            onClick={() => setDismissed(true)}
+                            style={{ color: 'var(--text-secondary)' }}
+                            className="hover:opacity-70 transition-opacity leading-none text-base font-bold px-1"
+                            aria-label="Dismiss"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
-            </div>
-        );
-    }
-
-    return <>{children}</>;
+            )}
+            {children}
+        </>
+    );
 }
