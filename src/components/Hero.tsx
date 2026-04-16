@@ -69,8 +69,8 @@ export default function Hero() {
                         <PixelMenuLink to="/fundraising" active>
                             {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
                         </PixelMenuLink>
-                        <PixelMenuLink to="/fundraising#proof">
-                            Inspect the Proof
+                        <PixelMenuLink to="/portfolio">
+                            View the Portfolio
                         </PixelMenuLink>
                     </div>
                     <div className="mt-6 max-w-[42rem] lg:max-w-[42%] scan-reveal scan-delay-3">

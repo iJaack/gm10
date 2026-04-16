@@ -16,12 +16,12 @@ function FlowDiagram({ steps }: FlowProps) {
                                 Step {index + 1}
                             </PixelLabel>
                             {index < steps.length - 1 ? (
-                                <span className="pixel-font pt-1 text-[0.55rem] text-[var(--text-dim)]">↓</span>
+                                <span className="pixel-font pt-1 text-[0.55rem] text-[var(--text-tertiary)]">↓</span>
                             ) : null}
                         </div>
                         <div>
-                            <h4 className="text-2xl font-bold text-[var(--text-main)]">{step.title}</h4>
-                            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-soft)]">{step.detail}</p>
+                            <h4 className="text-2xl font-bold text-[var(--text-primary)]">{step.title}</h4>
+                            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">{step.detail}</p>
                         </div>
                     </div>
                 </PixelLedgerRow>
@@ -42,7 +42,7 @@ export function ProfitWaterfallDiagram() {
     return (
         <div>
             <PixelDivider label="Profit waterfall" />
-            <div className="mt-6 overflow-hidden border-2 border-[var(--pixel-border)] bg-[#08110d] shadow-[0_0_0_2px_var(--pixel-shadow)]">
+            <div className="mt-6 overflow-hidden border-2 border-[var(--border)] bg-[var(--bg-tertiary)] shadow-[0_0_0_2px_var(--shadow-sm)]">
                 <div className="flex h-8 w-full">
                     {WATERFALL.map((slice) => (
                         <div
@@ -60,11 +60,11 @@ export function ProfitWaterfallDiagram() {
                         <div className="grid gap-3 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] md:items-start">
                             <div className="flex items-center gap-3">
                                 <div className={`h-3 w-3 border border-[rgba(232,240,227,0.18)] bg-gradient-to-r ${slice.color}`} />
-                                <div className="text-lg font-bold text-[var(--text-main)]">{slice.label}</div>
+                                <div className="text-lg font-bold text-[var(--text-primary)]">{slice.label}</div>
                             </div>
                             <div className="grid gap-2 md:grid-cols-[auto_1fr] md:items-start">
-                                <div className="text-2xl font-bold text-[var(--accent-live)]">{slice.percent}%</div>
-                                <div className="text-sm leading-7 text-[var(--text-soft)]">
+                                <div className="text-2xl font-bold text-[var(--accent-blue)]">{slice.percent}%</div>
+                                <div className="text-sm leading-7 text-[var(--text-secondary)]">
                                     {slice.label === 'Treasury reinvestment' && 'Returned to the strategy and future card buying power.'}
                                     {slice.label === 'Holder distributions' && 'Realized profit routed into claimable AVAX distributions for eligible circulating holders.'}
                                     {slice.label === 'LP replenishment' && 'Reserved for LP replenishment and split across Trader Joe and Pharaoh.'}
@@ -113,11 +113,11 @@ export function NavDecisionDiagram() {
                         <div className="flex items-center gap-3">
                             <PixelLabel tone={rule.tone}>{rule.label}</PixelLabel>
                             {index < rules.length - 1 ? (
-                                <span className="pixel-font text-[0.5rem] text-[var(--text-dim)]">↓</span>
+                                <span className="pixel-font text-[0.5rem] text-[var(--text-tertiary)]">↓</span>
                             ) : null}
                         </div>
-                        <div className="text-2xl font-bold text-[var(--text-main)]">{rule.title}</div>
-                        <p className="max-w-2xl text-sm leading-7 text-[var(--text-soft)]">{rule.detail}</p>
+                        <div className="text-2xl font-bold text-[var(--text-primary)]">{rule.title}</div>
+                        <p className="max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">{rule.detail}</p>
                     </div>
                 </PixelLedgerRow>
             ))}
@@ -201,7 +201,7 @@ export function TestnetProofTimeline() {
                 <PixelLedgerRow key={step}>
                     <div className="grid gap-4 md:grid-cols-[140px_1fr] md:gap-8">
                         <PixelLabel tone={index === steps.length - 1 ? 'warning' : 'live'}>Proof {index + 1}</PixelLabel>
-                        <p className="text-sm leading-7 text-[var(--text-soft)]">{step}</p>
+                        <p className="text-sm leading-7 text-[var(--text-secondary)]">{step}</p>
                     </div>
                 </PixelLedgerRow>
             ))}
@@ -212,7 +212,7 @@ export function TestnetProofTimeline() {
 export function TokenAllocationDiagram() {
     return (
         <div>
-            <div className="overflow-hidden border-2 border-[var(--pixel-border)] bg-[#08110d] shadow-[0_0_0_2px_var(--pixel-shadow)]">
+            <div className="overflow-hidden border-2 border-[var(--border)] bg-[var(--bg-tertiary)] shadow-[0_0_0_2px_var(--shadow-sm)]">
                 <div className="flex h-8 w-full">
                     {TOKEN_ALLOCATION.map((slice) => (
                         <div
@@ -231,10 +231,10 @@ export function TokenAllocationDiagram() {
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,0.25fr)_minmax(0,1.2fr)] lg:items-start">
                             <div className="flex items-center gap-3">
                                 <div className={`h-3 w-3 border border-[rgba(232,240,227,0.18)] bg-gradient-to-r ${slice.color}`} />
-                                <div className="text-lg font-bold text-[var(--text-main)]">{slice.label}</div>
+                                <div className="text-lg font-bold text-[var(--text-primary)]">{slice.label}</div>
                             </div>
-                            <div className="text-2xl font-bold text-[var(--accent-live)]">{slice.percent}%</div>
-                            <p className="text-sm leading-7 text-[var(--text-soft)]">{slice.detail}</p>
+                            <div className="text-2xl font-bold text-[var(--accent-blue)]">{slice.percent}%</div>
+                            <p className="text-sm leading-7 text-[var(--text-secondary)]">{slice.detail}</p>
                         </div>
                     </PixelLedgerRow>
                 ))}
