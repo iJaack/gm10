@@ -51,6 +51,27 @@
     --neon-ring-outer: rgba(34, 211, 238, 0.35);
     --light-ray: rgba(34, 211, 238, 0.12);
     --case-reflection: rgba(34, 211, 238, 0.06);
+
+    /* ── v2 tokens, mapped to production visual language ── */
+    --ink: var(--bg-primary);                    /* navy-black base */
+    --paper: var(--text-primary);
+    --surface: var(--bg-secondary);
+    --surface-elevated: var(--bg-elevated);
+    --rule: var(--border);
+    --rule-strong: var(--border-strong);
+    --card-border: var(--border);
+    --accent-brass: var(--accent);               /* production gold #f0c030 */
+    --accent-muted: rgba(240, 192, 48, 0.12);
+    --data-up: var(--accent-green);
+    --data-down: var(--accent-red);
+    --ticker-glow: var(--accent);
+    --ink-muted: var(--text-secondary);
+    --ink-faint: var(--text-tertiary);
+
+    /* Typography — no Geist, no serif display, no display mono. Inter everywhere. */
+    --font-serif: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'SF Mono', Menlo, Monaco, Consolas, monospace;
     color-scheme: dark;
 }
 
@@ -99,6 +120,22 @@
     --neon-ring-outer: rgba(8, 145, 178, 0.15);
     --light-ray: rgba(8, 145, 178, 0.06);
     --case-reflection: transparent;
+
+    /* ── v2 tokens (light) — mapped to production light palette ── */
+    --ink: var(--bg-primary);
+    --paper: var(--text-primary);
+    --surface: var(--bg-secondary);
+    --surface-elevated: var(--bg-elevated);
+    --rule: var(--border);
+    --rule-strong: var(--border-strong);
+    --card-border: var(--border);
+    --accent-brass: var(--accent);
+    --accent-muted: rgba(212, 150, 10, 0.1);
+    --data-up: var(--accent-green);
+    --data-down: var(--accent-red);
+    --ticker-glow: var(--accent);
+    --ink-muted: var(--text-secondary);
+    --ink-faint: var(--text-tertiary);
     color-scheme: light;
 }
 
@@ -728,3 +765,137 @@ a {
         grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     }
 }
+
+/* ─────────────────────────────────────────────────────────── */
+/* ── v2 Bloomberg × Art Gallery typography utilities        ── */
+/* ─────────────────────────────────────────────────────────── */
+
+/* Display headline. Production voice: bold Inter, tight tracking. */
+.v2-display {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    font-style: normal;
+}
+
+/* Display accent — used for callouts. Softer weight, muted. */
+.v2-display-italic {
+    font-family: var(--font-sans);
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--ink-muted);
+}
+
+/* Tabular number. No mono — Inter with tabular-nums. */
+.v2-mono {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: 0;
+}
+
+/* Label — production label-font style: small caps, tracked, accent color. */
+.v2-label {
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+/* Caption — inline secondary text. */
+.v2-caption {
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-muted);
+}
+
+/* Gradient divider — production style */
+.v2-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    border: 0;
+    width: 100%;
+}
+.v2-rule-strong {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+    border: 0;
+    width: 100%;
+}
+
+/* Data-up / data-down colours (Bloomberg green/red) */
+.v2-up { color: var(--data-up); }
+.v2-down { color: var(--data-down); }
+
+/* Pulse dot — live indicator (respects reduced-motion via existing media query) */
+.v2-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 0 0 var(--accent-green);
+    animation: v2-pulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+@keyframes v2-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(78, 201, 138, 0.5); }
+    70%  { box-shadow: 0 0 0 6px rgba(78, 201, 138, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(78, 201, 138, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v2-pulse { animation: none; }
+}
+
+/* Price flash — briefly highlight changed numbers */
+.v2-flash-up {
+    animation: v2-flash-up 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.v2-flash-down {
+    animation: v2-flash-down 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes v2-flash-up {
+    0%   { background: rgba(16, 185, 129, 0.25); }
+    100% { background: transparent; }
+}
+@keyframes v2-flash-down {
+    0%   { background: rgba(239, 68, 68, 0.25); }
+    100% { background: transparent; }
+}
+
+/* Grain overlay — 2% SVG noise, respects reduced-motion */
+.v2-grain::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Reduced-motion kill switch for v2 motion */
+@media (prefers-reduced-motion: reduce) {
+    .v2-pulse {
+        animation: none;
+        box-shadow: none;
+    }
+    .v2-flash-up, .v2-flash-down {
+        animation: none;
+    }
+    .v2-grain::before {
+        display: none;
+    }
+}
+
