@@ -1,4 +1,5 @@
 import { buildValuationPack } from './lib/valuation.js';
+import { fetchActiveTreasuryCards } from './lib/valuation-chain.js';
 import { createValuationPackStore } from './lib/valuation-store.js';
 
 function parseBody(request) {
@@ -40,40 +41,49 @@ function respondError(response, statusCode, message) {
   response.status(statusCode).json({ error: message });
 }
 
-export default async function handler(request = {}, response) {
-  const store = createValuationPackStore({
-    localDir: process.env.GM10_VALUATION_LOCAL_DIR || process.cwd(),
-  });
+export function createValuationPackHandler({
+  buildValuationPackImpl = buildValuationPack,
+  createValuationPackStoreImpl = createValuationPackStore,
+  fetchActiveTreasuryCardsImpl = fetchActiveTreasuryCards,
+} = {}) {
+  return async function handler(request = {}, response) {
+    const store = createValuationPackStoreImpl({
+      localDir: process.env.GM10_VALUATION_LOCAL_DIR || process.cwd(),
+    });
 
-  response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('Cache-Control', 'no-store');
 
-  if (request.method === 'GET') {
-    const pack = await store.getLatestPack();
-    response.status(200).json({ pack });
-    return;
-  }
-
-  if (request.method === 'POST') {
-    const body = parseBody(request);
-    if (!body || body.action !== 'generate') {
-      respondError(response, 400, 'Unsupported valuation-pack action');
+    if (request.method === 'GET') {
+      const pack = await store.getLatestPack();
+      response.status(200).json({ pack });
       return;
     }
 
-    try {
-      const generatedAt = body.generatedAt || new Date().toISOString();
-      const packId = body.packId || weekPackId(generatedAt);
-      const cards = Array.isArray(body.cards) && body.cards.length > 0 ? body.cards : [];
-      const pack = buildValuationPack({ packId, generatedAt, cards });
+    if (request.method === 'POST') {
+      const body = parseBody(request);
+      if (!body || body.action !== 'generate') {
+        respondError(response, 400, 'Unsupported valuation-pack action');
+        return;
+      }
 
-      await store.savePack(pack);
-      response.status(200).json({ pack });
-    } catch (error) {
-      respondError(response, 400, error instanceof Error ? error.message : 'Unable to generate valuation pack');
+      try {
+        const generatedAt = body.generatedAt || new Date().toISOString();
+        const packId = body.packId || weekPackId(generatedAt);
+        const submittedCards = Array.isArray(body.cards) ? body.cards : [];
+        const cards = submittedCards.length > 0 ? submittedCards : await fetchActiveTreasuryCardsImpl();
+        const pack = buildValuationPackImpl({ packId, generatedAt, cards });
+
+        await store.savePack(pack);
+        response.status(200).json({ pack });
+      } catch (error) {
+        respondError(response, 400, error instanceof Error ? error.message : 'Unable to generate valuation pack');
+      }
+      return;
     }
-    return;
-  }
 
-  response.setHeader('Allow', 'GET, POST');
-  respondError(response, 405, 'Method not allowed');
+    response.setHeader('Allow', 'GET, POST');
+    respondError(response, 405, 'Method not allowed');
+  };
 }
+
+export default createValuationPackHandler();
