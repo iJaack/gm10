@@ -21,6 +21,19 @@ function toNumber(value) {
   return Number.isFinite(numeric) ? numeric : undefined;
 }
 
+function toToleranceBps(value) {
+  if (typeof value === 'bigint') {
+    return value;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return DEFAULT_TOLERANCE_BPS;
+  }
+
+  return BigInt(Math.trunc(numeric));
+}
+
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 }
@@ -108,6 +121,7 @@ function compareRawValues(a, b) {
 }
 
 function withinTolerance(a, b, toleranceBps = DEFAULT_TOLERANCE_BPS) {
+  const bps = toToleranceBps(toleranceBps);
   const left = toBigIntRaw(a.valueUsdc6, `${a.sourceId} valueUsdc6`);
   const right = toBigIntRaw(b.valueUsdc6, `${b.sourceId} valueUsdc6`);
   if (left === 0n || right === 0n) {
@@ -116,7 +130,7 @@ function withinTolerance(a, b, toleranceBps = DEFAULT_TOLERANCE_BPS) {
 
   const maxValue = left > right ? left : right;
   const diff = left > right ? left - right : right - left;
-  return diff * 10_000n <= maxValue * toleranceBps;
+  return diff * 10_000n <= maxValue * bps;
 }
 
 function validateObservation(observation, nowIso, index) {
@@ -149,7 +163,7 @@ function validateObservation(observation, nowIso, index) {
   };
 }
 
-function pickAgreeingPair(validObservations) {
+function pickAgreeingPair(validObservations, toleranceBps = DEFAULT_TOLERANCE_BPS) {
   let bestPair;
   let bestDiff;
 
@@ -157,7 +171,7 @@ function pickAgreeingPair(validObservations) {
     for (let j = i + 1; j < validObservations.length; j += 1) {
       const left = validObservations[i];
       const right = validObservations[j];
-      if (!withinTolerance(left, right)) continue;
+      if (!withinTolerance(left, right, toleranceBps)) continue;
 
       const diff = toBigIntRaw(left.valueUsdc6, `${left.sourceId} valueUsdc6`) > toBigIntRaw(right.valueUsdc6, `${right.sourceId} valueUsdc6`)
         ? toBigIntRaw(left.valueUsdc6, `${left.sourceId} valueUsdc6`) - toBigIntRaw(right.valueUsdc6, `${right.sourceId} valueUsdc6`)
@@ -174,6 +188,7 @@ function pickAgreeingPair(validObservations) {
 }
 
 export function evaluateConsensus({ observations = [], nowIso, toleranceBps = DEFAULT_TOLERANCE_BPS } = {}) {
+  const normalizedToleranceBps = toToleranceBps(toleranceBps);
   const warnings = [];
   const normalized = observations.map((observation, index) => validateObservation(observation, nowIso, index));
 
@@ -183,7 +198,7 @@ export function evaluateConsensus({ observations = [], nowIso, toleranceBps = DE
 
   const validObservations = normalized.filter((entry) => entry.valid).map((entry) => entry.observation);
   const validSourceCount = validObservations.length;
-  const agreeingPair = validObservations.length >= 2 ? pickAgreeingPair(validObservations) : undefined;
+  const agreeingPair = validObservations.length >= 2 ? pickAgreeingPair(validObservations, normalizedToleranceBps) : undefined;
 
   if (!agreeingPair) {
     if (validSourceCount >= 2) {

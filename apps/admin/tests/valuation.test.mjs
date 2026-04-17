@@ -97,6 +97,23 @@ test('evaluateConsensus warns when valid sources do not agree within tolerance',
   assert.match(result.warnings.join(' '), /fewer than two sources agree within tolerance/);
 });
 
+test('evaluateConsensus honors custom toleranceBps', () => {
+  const result = evaluateConsensus({
+    observations: [
+      observation('primary', '100000000'),
+      observation('benchmark', '120000000'),
+      observation('evidence', '140000000'),
+    ],
+    nowIso: now,
+    toleranceBps: 2_500,
+  });
+
+  assert.equal(result.status, 'passed');
+  assert.equal(result.proposedValueUsdc6, '120000000');
+  assert.equal(result.validSourceCount, 3);
+  assert.equal(result.agreeingSourceIds.join(','), 'primary,benchmark');
+});
+
 test('buildValuationPack hashes immutable card evidence refs', () => {
   const pack = buildValuationPack({
     packId: 'valuation-2026-W16-v1',
