@@ -21,6 +21,20 @@ function responseRecorder() {
   };
 }
 
+async function withUnauthenticatedWrites(fn) {
+  const previous = process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES;
+  process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES = 'true';
+  try {
+    return await fn();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES;
+    } else {
+      process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES = previous;
+    }
+  }
+}
+
 test('normalizeRegistryPosition maps active registry tuple to valuation card input', () => {
   const card = normalizeRegistryPosition({
     id: 1n,
@@ -82,40 +96,42 @@ test('valuation-pack POST generate uses submitted cards without discovery', asyn
     },
   });
 
-  const response = responseRecorder();
-  await handler(
-    {
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        cards: [{
-          positionId: 1,
-          cardKey: 'psa:140897946',
-          title: 'Gengar VMAX PSA 10',
-          currentValueUsdc6: '96000000',
-          observations: [{
-            sourceId: 'primary',
-            sourceName: 'Primary',
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await handler(
+      {
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [{
+            positionId: 1,
             cardKey: 'psa:140897946',
-            observedAt: '2026-04-17T09:00:00.000Z',
-            fetchedAt: '2026-04-17T09:00:00.000Z',
-            valueUsdc6: '100000000',
-            currency: 'USD',
-            confidence: 0.92,
-            rawPayloadRef: 'memory://primary',
-            sourceUrl: 'https://example.com/primary',
-            matchReason: 'exact',
+            title: 'Gengar VMAX PSA 10',
+            currentValueUsdc6: '96000000',
+            observations: [{
+              sourceId: 'primary',
+              sourceName: 'Primary',
+              cardKey: 'psa:140897946',
+              observedAt: '2026-04-17T09:00:00.000Z',
+              fetchedAt: '2026-04-17T09:00:00.000Z',
+              valueUsdc6: '100000000',
+              currency: 'USD',
+              confidence: 0.92,
+              rawPayloadRef: 'memory://primary',
+              sourceUrl: 'https://example.com/primary',
+              matchReason: 'exact',
+            }],
           }],
-        }],
+        },
       },
-    },
-    response,
-  );
+      response,
+    );
 
-  assert.equal(response.statusCode, 200);
-  assert.equal(discoveryCalls, 0);
-  assert.equal(savedPacks[0].cards.length, 1);
+    assert.equal(response.statusCode, 200);
+    assert.equal(discoveryCalls, 0);
+    assert.equal(savedPacks[0].cards.length, 1);
+  });
 });
 
 test('valuation-pack POST generate discovers cards when submitted cards are empty', async () => {
@@ -154,23 +170,25 @@ test('valuation-pack POST generate discovers cards when submitted cards are empt
     },
   });
 
-  const response = responseRecorder();
-  await handler(
-    {
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        cards: [],
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await handler(
+      {
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [],
+        },
       },
-    },
-    response,
-  );
+      response,
+    );
 
-  assert.equal(response.statusCode, 200);
-  assert.equal(discoveryCalls, 1);
-  assert.equal(response.payload.pack.cards.length, 1);
-  assert.equal(response.payload.pack.cards[0].positionId, 7);
+    assert.equal(response.statusCode, 200);
+    assert.equal(discoveryCalls, 1);
+    assert.equal(response.payload.pack.cards.length, 1);
+    assert.equal(response.payload.pack.cards[0].positionId, 7);
+  });
 });
 
 test('valuation-pack returns 500 when treasury card discovery fails', async () => {
@@ -186,19 +204,21 @@ test('valuation-pack returns 500 when treasury card discovery fails', async () =
     },
   });
 
-  const response = responseRecorder();
-  await handler(
-    {
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        cards: [],
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await handler(
+      {
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [],
+        },
       },
-    },
-    response,
-  );
+      response,
+    );
 
-  assert.equal(response.statusCode, 500);
-  assert.equal(response.payload.error, 'RPC unavailable');
+    assert.equal(response.statusCode, 500);
+    assert.equal(response.payload.error, 'RPC unavailable');
+  });
 });

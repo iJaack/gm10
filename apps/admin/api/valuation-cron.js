@@ -43,6 +43,7 @@ export function createValuationCronHandler({
     return valuationPackHandlerImpl(
       {
         method: 'POST',
+        internal: true,
         body: {
           action: 'generate',
           generatedAt: new Date().toISOString(),

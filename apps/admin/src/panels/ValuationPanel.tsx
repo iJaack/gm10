@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { formatUnits } from 'viem';
-import { useReadContract, useReadContracts, useWriteContract } from 'wagmi';
+import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
 import { TxResult } from '../components/TxButton';
@@ -226,6 +226,8 @@ export function ValuationPanel() {
     const [sourceObservationsJson, setSourceObservationsJson] = useState('');
     const [approvedCards, setApprovedCards] = useState<Record<string, true>>({});
     const [localError, setLocalError] = useState('');
+    const { address } = useAccount();
+    const { signMessageAsync, error: signError, isPending: isSigning } = useSignMessage();
     const { writeContract, data: txHash, error: txError, isPending, reset } = useWriteContract();
 
     const { data: positionCount } = useReadContract({
@@ -287,6 +289,10 @@ export function ValuationPanel() {
         reset();
 
         try {
+            if (!address) {
+                throw new Error('Connect an authorized admin wallet before generating a valuation pack.');
+            }
+
             const overrides = parseSourceOverrides(sourceObservationsJson);
             const cards = activeCards.map((card) => {
                 const override = unwrapObservationOverride(overrides[String(card.positionId)] ?? overrides[card.cardKey]);
@@ -295,7 +301,9 @@ export function ValuationPanel() {
                     observations: override ?? card.observations,
                 };
             });
-            const payload = await generateValuationPack(cards);
+            const message = `GM10 valuation pack generate:${new Date().toISOString()}`;
+            const signature = await signMessageAsync({ message });
+            const payload = await generateValuationPack(cards, { address, message, signature });
             setPack(payload.pack);
             clearApprovals();
         } catch (error) {
@@ -347,8 +355,8 @@ export function ValuationPanel() {
                 </label>
 
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" className="admin-cta" onClick={runValuationNow} disabled={activeCards.length === 0}>
-                        Run valuation now
+                    <button type="button" className="admin-cta" onClick={runValuationNow} disabled={activeCards.length === 0 || isSigning}>
+                        {isSigning ? 'Sign valuation request' : 'Run valuation now'}
                     </button>
                     <button type="button" className="admin-cta-secondary" onClick={loadLatestPack}>
                         Load latest pack
@@ -371,6 +379,11 @@ export function ValuationPanel() {
                 {localError ? (
                     <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
                         {localError}
+                    </div>
+                ) : null}
+                {signError ? (
+                    <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
+                        {signError.message}
                     </div>
                 ) : null}
             </div>

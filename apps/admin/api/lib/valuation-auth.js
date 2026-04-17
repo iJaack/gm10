@@ -1,0 +1,152 @@
+import {
+  createPublicClient,
+  getAddress,
+  http,
+  isAddress,
+  keccak256,
+  recoverMessageAddress,
+  toHex,
+  verifyMessage,
+} from 'viem';
+import { avalanche } from 'viem/chains';
+
+const DEFAULT_FUND_PROXY_ADDRESS = '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f';
+const DEFAULT_RPC_URL = 'https://api.avax.network/ext/bc/C/rpc';
+const MESSAGE_PREFIX = 'GM10 valuation pack generate:';
+const MAX_MESSAGE_AGE_MS = 5 * 60 * 1000;
+const MAX_MESSAGE_FUTURE_MS = 60 * 1000;
+
+export const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const MANAGER_ROLE = keccak256(toHex('MANAGER_ROLE'));
+export const OPERATOR_ROLE = keccak256(toHex('OPERATOR_ROLE'));
+
+const HAS_ROLE_ABI = [
+  {
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    name: 'hasRole',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+];
+
+function getHeader(headers, name) {
+  if (!headers) {
+    return '';
+  }
+
+  if (typeof headers.get === 'function') {
+    return headers.get(name) || '';
+  }
+
+  const lowerName = name.toLowerCase();
+  const value = headers[name] ?? headers[lowerName];
+  if (Array.isArray(value)) {
+    return value[0] || '';
+  }
+
+  return typeof value === 'string' ? value : '';
+}
+
+function parseAddress(value, fallback) {
+  return value && isAddress(value) ? getAddress(value) : fallback;
+}
+
+function getFundProxyAddress() {
+  return parseAddress(
+    process.env.GM10_ADMIN_FUND_PROXY_ADDRESS
+      ?? process.env.VITE_GM10_ADMIN_FUND_PROXY_ADDRESS
+      ?? process.env.VITE_GM10_FUND_PROXY_ADDRESS,
+    DEFAULT_FUND_PROXY_ADDRESS,
+  );
+}
+
+function getRpcUrl() {
+  return process.env.AVALANCHE_RPC_URL
+    ?? process.env.GM10_AVALANCHE_RPC_URL
+    ?? DEFAULT_RPC_URL;
+}
+
+function parseMessageTimestamp(message) {
+  if (!message.startsWith(MESSAGE_PREFIX)) {
+    return null;
+  }
+
+  const timestampText = message.slice(MESSAGE_PREFIX.length);
+  const timestamp = new Date(timestampText);
+  if (!timestampText || Number.isNaN(timestamp.getTime()) || timestamp.toISOString() !== timestampText) {
+    return null;
+  }
+
+  return timestamp;
+}
+
+function validateMessageWindow(message, now = Date.now()) {
+  const timestamp = parseMessageTimestamp(message);
+  if (!timestamp) {
+    return false;
+  }
+
+  const signedAt = timestamp.getTime();
+  return signedAt >= now - MAX_MESSAGE_AGE_MS && signedAt <= now + MAX_MESSAGE_FUTURE_MS;
+}
+
+async function hasAuthorizedRole(address, { client, fundProxyAddress } = {}) {
+  const publicClient = client ?? createPublicClient({
+    chain: avalanche,
+    transport: http(getRpcUrl()),
+  });
+  const targetFundProxyAddress = fundProxyAddress ?? getFundProxyAddress();
+  const roles = [DEFAULT_ADMIN_ROLE, MANAGER_ROLE, OPERATOR_ROLE];
+  const results = await Promise.all(roles.map((role) => publicClient.readContract({
+    address: targetFundProxyAddress,
+    abi: HAS_ROLE_ABI,
+    functionName: 'hasRole',
+    args: [role, address],
+  })));
+
+  return results.some(Boolean);
+}
+
+export async function authorizeValuationPackWrite(request, { client, now } = {}) {
+  if (request?.internal === true || process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES === 'true') {
+    return { ok: true, address: null };
+  }
+
+  const addressHeader = getHeader(request?.headers, 'x-gm10-admin-address');
+  const message = getHeader(request?.headers, 'x-gm10-admin-message');
+  const signature = getHeader(request?.headers, 'x-gm10-admin-signature');
+  if (!addressHeader || !message || !signature || !isAddress(addressHeader) || !validateMessageWindow(message, now)) {
+    return { ok: false, statusCode: 401, message: 'Unauthorized valuation pack request' };
+  }
+
+  const signedAddress = getAddress(addressHeader);
+  let recoveredAddress;
+  try {
+    const isValidSignature = await verifyMessage({
+      address: signedAddress,
+      message,
+      signature,
+    });
+    recoveredAddress = getAddress(await recoverMessageAddress({ message, signature }));
+    if (!isValidSignature || recoveredAddress !== signedAddress) {
+      return { ok: false, statusCode: 401, message: 'Unauthorized valuation pack request' };
+    }
+  } catch {
+    return { ok: false, statusCode: 401, message: 'Unauthorized valuation pack request' };
+  }
+
+  try {
+    const isAuthorized = await hasAuthorizedRole(recoveredAddress, { client });
+    if (!isAuthorized) {
+      return { ok: false, statusCode: 401, message: 'Unauthorized valuation pack request' };
+    }
+  } catch {
+    return { ok: false, statusCode: 500, message: 'Unable to verify valuation pack authorization' };
+  }
+
+  return { ok: true, address: recoveredAddress };
+}

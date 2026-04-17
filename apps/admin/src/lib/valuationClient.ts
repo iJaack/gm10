@@ -53,6 +53,12 @@ type GenerateValuationPackResponse = {
     error?: string;
 };
 
+export type GenerateValuationPackAuth = {
+    address: `0x${string}`;
+    message: string;
+    signature: `0x${string}`;
+};
+
 export async function fetchLatestValuationPack() {
     const response = await fetch('/api/valuation-pack', {
         headers: { Accept: 'application/json' },
@@ -65,12 +71,15 @@ export async function fetchLatestValuationPack() {
     return response.json() as Promise<ValuationPackResponse>;
 }
 
-export async function generateValuationPack(cards: ValuationPackCardInput[]) {
+export async function generateValuationPack(cards: ValuationPackCardInput[], auth: GenerateValuationPackAuth) {
     const response = await fetch('/api/valuation-pack', {
         method: 'POST',
         headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
+            'x-gm10-admin-address': auth.address,
+            'x-gm10-admin-message': auth.message,
+            'x-gm10-admin-signature': auth.signature,
         },
         body: JSON.stringify({ action: 'generate', cards }),
     });

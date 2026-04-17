@@ -37,62 +37,78 @@ function responseRecorder() {
   };
 }
 
+async function withUnauthenticatedWrites(fn) {
+  const previous = process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES;
+  process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES = 'true';
+  try {
+    return await fn();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES;
+    } else {
+      process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES = previous;
+    }
+  }
+}
+
 test('valuation-pack POST generate creates a pack from submitted cards and observations', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'gm10-valuation-api-'));
   const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
   process.env.GM10_VALUATION_LOCAL_DIR = dir;
   try {
-    const response = responseRecorder();
-    await handler({
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        cards: [{
-          positionId: 1,
-          cardKey: 'psa:140897946',
-          title: 'Gengar VMAX PSA 10',
-          currentValueUsdc6: '96000000',
-          observations: [
-            {
-              sourceId: 'primary',
-              sourceName: 'Primary',
-              cardKey: 'psa:140897946',
-              observedAt: '2026-04-17T09:00:00.000Z',
-              fetchedAt: '2026-04-17T09:00:00.000Z',
-              valueUsdc6: '100000000',
-              currency: 'USD',
-              confidence: 0.92,
-              rawPayloadRef: 'memory://primary',
-              sourceUrl: 'https://example.com/primary',
-              matchReason: 'exact',
-            },
-            {
-              sourceId: 'benchmark',
-              sourceName: 'Benchmark',
-              cardKey: 'psa:140897946',
-              observedAt: '2026-04-17T09:00:00.000Z',
-              fetchedAt: '2026-04-17T09:00:00.000Z',
-              valueUsdc6: '105000000',
-              currency: 'USD',
-              confidence: 0.92,
-              rawPayloadRef: 'memory://benchmark',
-              sourceUrl: 'https://example.com/benchmark',
-              matchReason: 'exact',
-            },
-          ],
-        }],
-      },
-    }, response);
+    await withUnauthenticatedWrites(async () => {
+      const response = responseRecorder();
+      await handler({
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [{
+            positionId: 1,
+            cardKey: 'psa:140897946',
+            title: 'Gengar VMAX PSA 10',
+            currentValueUsdc6: '96000000',
+            observations: [
+              {
+                sourceId: 'primary',
+                sourceName: 'Primary',
+                cardKey: 'psa:140897946',
+                observedAt: '2026-04-17T09:00:00.000Z',
+                fetchedAt: '2026-04-17T09:00:00.000Z',
+                valueUsdc6: '100000000',
+                currency: 'USD',
+                confidence: 0.92,
+                rawPayloadRef: 'memory://primary',
+                sourceUrl: 'https://example.com/primary',
+                matchReason: 'exact',
+              },
+              {
+                sourceId: 'benchmark',
+                sourceName: 'Benchmark',
+                cardKey: 'psa:140897946',
+                observedAt: '2026-04-17T09:00:00.000Z',
+                fetchedAt: '2026-04-17T09:00:00.000Z',
+                valueUsdc6: '105000000',
+                currency: 'USD',
+                confidence: 0.92,
+                rawPayloadRef: 'memory://benchmark',
+                sourceUrl: 'https://example.com/benchmark',
+                matchReason: 'exact',
+              },
+            ],
+          }],
+        },
+      }, response);
 
-    assert.equal(response.statusCode, 200);
-    assert.equal(response.headers['cache-control'], 'no-store');
-    assert.equal(response.payload.pack.cards[0].consensus.status, 'passed');
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.headers['cache-control'], 'no-store');
+      assert.equal(response.payload.pack.cards[0].consensus.status, 'passed');
 
-    const getResponse = responseRecorder();
-    await handler({ method: 'GET' }, getResponse);
-    assert.equal(getResponse.statusCode, 200);
-    assert.equal(getResponse.payload.pack.packId, response.payload.pack.packId);
+      const getResponse = responseRecorder();
+      await handler({ method: 'GET' }, getResponse);
+      assert.equal(getResponse.statusCode, 200);
+      assert.equal(getResponse.payload.pack.packId, response.payload.pack.packId);
+    });
   } finally {
     if (previousDir === undefined) {
       delete process.env.GM10_VALUATION_LOCAL_DIR;
@@ -120,51 +136,53 @@ test('valuation-pack returns 400 for malformed generatedAt and card payloads', a
   const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
   process.env.GM10_VALUATION_LOCAL_DIR = dir;
   try {
-    const badGeneratedAtResponse = responseRecorder();
-    await handler({
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: 'not-a-date',
-        cards: [],
-      },
-    }, badGeneratedAtResponse);
+    await withUnauthenticatedWrites(async () => {
+      const badGeneratedAtResponse = responseRecorder();
+      await handler({
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: 'not-a-date',
+          cards: [],
+        },
+      }, badGeneratedAtResponse);
 
-    assert.equal(badGeneratedAtResponse.statusCode, 400);
-    assert.match(badGeneratedAtResponse.payload.error, /Invalid generatedAt/);
+      assert.equal(badGeneratedAtResponse.statusCode, 400);
+      assert.match(badGeneratedAtResponse.payload.error, /Invalid generatedAt/);
 
-    const badCardsResponse = responseRecorder();
-    await handler({
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        cards: [{
-          positionId: 1,
-          cardKey: 'psa:140897946',
-          title: 'Gengar VMAX PSA 10',
-          currentValueUsdc6: '96000000',
-          observations: [
-            {
-              sourceId: 'primary',
-              sourceName: 'Primary',
-              cardKey: 'psa:140897946',
-              observedAt: '2026-04-17T09:00:00.000Z',
-              fetchedAt: '2026-04-17T09:00:00.000Z',
-              valueUsdc6: 'not-a-number',
-              currency: 'USD',
-              confidence: 0.92,
-              rawPayloadRef: 'memory://primary',
-              sourceUrl: 'https://example.com/primary',
-              matchReason: 'exact',
-            },
-          ],
-        }],
-      },
-    }, badCardsResponse);
+      const badCardsResponse = responseRecorder();
+      await handler({
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [{
+            positionId: 1,
+            cardKey: 'psa:140897946',
+            title: 'Gengar VMAX PSA 10',
+            currentValueUsdc6: '96000000',
+            observations: [
+              {
+                sourceId: 'primary',
+                sourceName: 'Primary',
+                cardKey: 'psa:140897946',
+                observedAt: '2026-04-17T09:00:00.000Z',
+                fetchedAt: '2026-04-17T09:00:00.000Z',
+                valueUsdc6: 'not-a-number',
+                currency: 'USD',
+                confidence: 0.92,
+                rawPayloadRef: 'memory://primary',
+                sourceUrl: 'https://example.com/primary',
+                matchReason: 'exact',
+              },
+            ],
+          }],
+        },
+      }, badCardsResponse);
 
-    assert.equal(badCardsResponse.statusCode, 400);
-    assert.match(badCardsResponse.payload.error, /Invalid .*valueUsdc6/);
+      assert.equal(badCardsResponse.statusCode, 400);
+      assert.match(badCardsResponse.payload.error, /Invalid .*valueUsdc6/);
+    });
   } finally {
     if (previousDir === undefined) {
       delete process.env.GM10_VALUATION_LOCAL_DIR;
@@ -181,26 +199,28 @@ test('valuation-pack rejects malformed cards before discovery', async () => {
   process.env.GM10_VALUATION_LOCAL_DIR = dir;
   let discoverCalls = 0;
   try {
-    const localHandler = createValuationPackHandler({
-      fetchActiveTreasuryCardsImpl: async () => {
-        discoverCalls += 1;
-        return [];
-      },
+    await withUnauthenticatedWrites(async () => {
+      const localHandler = createValuationPackHandler({
+        fetchActiveTreasuryCardsImpl: async () => {
+          discoverCalls += 1;
+          return [];
+        },
+      });
+
+      const response = responseRecorder();
+      await localHandler({
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: {},
+        },
+      }, response);
+
+      assert.equal(response.statusCode, 400);
+      assert.equal(response.payload.error, 'Invalid cards payload');
+      assert.equal(discoverCalls, 0);
     });
-
-    const response = responseRecorder();
-    await localHandler({
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        cards: {},
-      },
-    }, response);
-
-    assert.equal(response.statusCode, 400);
-    assert.equal(response.payload.error, 'Invalid cards payload');
-    assert.equal(discoverCalls, 0);
   } finally {
     if (previousDir === undefined) {
       delete process.env.GM10_VALUATION_LOCAL_DIR;
@@ -216,42 +236,44 @@ test('valuation-pack ignores caller packId and generates a safe packId from gene
   const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
   process.env.GM10_VALUATION_LOCAL_DIR = dir;
   try {
-    const response = responseRecorder();
-    await handler({
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: '2026-04-17T09:00:00.000Z',
-        packId: '../escape',
-        cards: [{
-          positionId: 1,
-          cardKey: 'psa:140897946',
-          title: 'Gengar VMAX PSA 10',
-          currentValueUsdc6: '96000000',
-          observations: [
-            {
-              sourceId: 'primary',
-              sourceName: 'Primary',
-              cardKey: 'psa:140897946',
-              observedAt: '2026-04-17T09:00:00.000Z',
-              fetchedAt: '2026-04-17T09:00:00.000Z',
-              valueUsdc6: '100000000',
-              currency: 'USD',
-              confidence: 0.92,
-              rawPayloadRef: 'memory://primary',
-              sourceUrl: 'https://example.com/primary',
-              matchReason: 'exact',
-            },
-          ],
-        }],
-      },
-    }, response);
+    await withUnauthenticatedWrites(async () => {
+      const response = responseRecorder();
+      await handler({
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          packId: '../escape',
+          cards: [{
+            positionId: 1,
+            cardKey: 'psa:140897946',
+            title: 'Gengar VMAX PSA 10',
+            currentValueUsdc6: '96000000',
+            observations: [
+              {
+                sourceId: 'primary',
+                sourceName: 'Primary',
+                cardKey: 'psa:140897946',
+                observedAt: '2026-04-17T09:00:00.000Z',
+                fetchedAt: '2026-04-17T09:00:00.000Z',
+                valueUsdc6: '100000000',
+                currency: 'USD',
+                confidence: 0.92,
+                rawPayloadRef: 'memory://primary',
+                sourceUrl: 'https://example.com/primary',
+                matchReason: 'exact',
+              },
+            ],
+          }],
+        },
+      }, response);
 
-    assert.equal(response.statusCode, 200);
-    assert.equal(response.payload.pack.packId, expectedPackId('2026-04-17T09:00:00.000Z'));
-    assert.equal(response.payload.pack.packId.includes('..'), false);
-    assert.equal(response.payload.pack.packId.includes('/'), false);
-    assert.notEqual(response.payload.pack.packId, '../escape');
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.payload.pack.packId, expectedPackId('2026-04-17T09:00:00.000Z'));
+      assert.equal(response.payload.pack.packId.includes('..'), false);
+      assert.equal(response.payload.pack.packId.includes('/'), false);
+      assert.notEqual(response.payload.pack.packId, '../escape');
+    });
   } finally {
     if (previousDir === undefined) {
       delete process.env.GM10_VALUATION_LOCAL_DIR;
@@ -260,4 +282,74 @@ test('valuation-pack ignores caller packId and generates a safe packId from gene
     }
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('valuation-pack POST generate requires auth and does not save without bypass', async () => {
+  let saveCalls = 0;
+  let discoveryCalls = 0;
+  const localHandler = createValuationPackHandler({
+    createValuationPackStoreImpl: () => ({
+      async getLatestPack() {
+        return null;
+      },
+      async savePack() {
+        saveCalls += 1;
+      },
+    }),
+    fetchActiveTreasuryCardsImpl: async () => {
+      discoveryCalls += 1;
+      return [];
+    },
+  });
+
+  const response = responseRecorder();
+  await localHandler({
+    method: 'POST',
+    body: {
+      action: 'generate',
+      generatedAt: '2026-04-17T09:00:00.000Z',
+      cards: [],
+    },
+  }, response);
+
+  assert.equal(response.statusCode, 401);
+  assert.match(response.payload.error, /Unauthorized|auth/i);
+  assert.equal(saveCalls, 0);
+  assert.equal(discoveryCalls, 0);
+});
+
+test('valuation-pack rejects malformed card array elements before save or discovery', async () => {
+  let saveCalls = 0;
+  let discoveryCalls = 0;
+  const localHandler = createValuationPackHandler({
+    createValuationPackStoreImpl: () => ({
+      async getLatestPack() {
+        return null;
+      },
+      async savePack() {
+        saveCalls += 1;
+      },
+    }),
+    fetchActiveTreasuryCardsImpl: async () => {
+      discoveryCalls += 1;
+      return [];
+    },
+  });
+
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: [{}],
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.match(response.payload.error, /Invalid cards payload/);
+    assert.equal(saveCalls, 0);
+    assert.equal(discoveryCalls, 0);
+  });
 });

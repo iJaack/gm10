@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import type { IncomingHttpHeaders } from 'http';
 
 type ApiResponse = {
     setHeader: (name: string, value: string) => void;
@@ -8,7 +9,13 @@ type ApiResponse = {
     json: (payload: unknown) => void;
 };
 
-const apiHandlers: Record<string, () => Promise<{ default: (request: { method?: string; body?: unknown }, response: ApiResponse) => Promise<void> | void }>> = {
+type ApiRequest = {
+    method?: string;
+    headers?: IncomingHttpHeaders;
+    body?: unknown;
+};
+
+const apiHandlers: Record<string, () => Promise<{ default: (request: ApiRequest, response: ApiResponse) => Promise<void> | void }>> = {
     '/api/valuation-pack': () => import('./api/valuation-pack.js'),
 };
 
@@ -58,6 +65,7 @@ function localApiPlugin(): Plugin {
 
                     await handler({
                         method: request.method,
+                        headers: request.headers,
                         body: await readRequestBody(request),
                     }, apiResponse);
                 } catch (error) {
