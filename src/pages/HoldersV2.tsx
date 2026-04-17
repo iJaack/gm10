@@ -57,8 +57,9 @@ function fallbackLiq(p: MarketPool) {
 
 /* ── 1. Market header ─────────────────────────────────── */
 
-function MarketHeader() {
-    const market = useCatchMarketData();
+type CatchMarketState = ReturnType<typeof useCatchMarketData>;
+
+function MarketHeader({ market }: { market: CatchMarketState }) {
     const holder = useHolderDashboard();
     const avaxUsd = useAvaxPrice();
     const price = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
@@ -125,9 +126,9 @@ function MarketHeader() {
                         )}
                     </div>
                     {canComparePremium ? (
-                        <div className="flex min-w-0 flex-col gap-1 pb-1 lg:justify-self-end lg:pb-3 lg:text-right">
+                        <div className="flex min-w-0 flex-col gap-1 pb-1 md:gap-2 lg:justify-self-end lg:pb-3 lg:text-right">
                             <span
-                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.82rem] font-semibold md:px-4 md:py-1.5 md:text-[0.95rem] lg:self-end xl:text-[1rem] ${
+                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.82rem] font-semibold md:gap-2.5 md:px-5 md:py-2 md:text-[1.08rem] lg:self-end lg:px-6 lg:py-2.5 lg:text-[1.16rem] xl:text-[1.24rem] ${
                                     atPar
                                         ? 'border border-[var(--border)] text-[var(--ink-muted)]'
                                         : isPremium
@@ -139,7 +140,7 @@ function MarketHeader() {
                                     ? 'vs NAV ≈ at par'
                                     : `vs NAV ${isPremium ? '▲ +' : '▼ '}${Math.abs(premiumPct).toFixed(1)}% · ${isPremium ? 'premium' : 'discount'}`}
                             </span>
-                            <DataMono className="text-[0.74rem] text-[var(--ink-faint)] md:text-[0.84rem] xl:text-[0.92rem]">
+                            <DataMono className="text-[0.74rem] text-[var(--ink-faint)] md:text-[0.95rem] lg:text-[1.04rem] xl:text-[1.1rem]">
                                 Market {formatUsd(price, 4)} · Ref NAV {formatUsd(refNavUsd, 4)}
                             </DataMono>
                         </div>
@@ -152,14 +153,13 @@ function MarketHeader() {
 
 /* ── 1b. Overview KPI cards ───────────────────────────── */
 
-function OverviewCards() {
+function OverviewCards({ market }: { market: CatchMarketState }) {
     const holder = useHolderDashboard();
-    const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
 
-    const navUsd = holder.raw.navPerToken !== undefined ? Number(formatUnits(holder.raw.navPerToken, 6)) : undefined;
     const totalSupplyNum = Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
-    const marketCapNav = navUsd !== undefined ? totalSupplyNum * navUsd : undefined;
+    const livePriceUsd = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
+    const marketCapSpot = livePriceUsd !== undefined ? totalSupplyNum * livePriceUsd : undefined;
 
     const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
@@ -172,8 +172,8 @@ function OverviewCards() {
     const cards = [
         {
             label: 'Market cap',
-            value: fmtUsd0(marketCapNav),
-            detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · NAV ${holder.labels.navPerToken}`,
+            value: fmtUsd0(marketCapSpot),
+            detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · Price ${formatUsd(livePriceUsd, 4)}`,
         },
         {
             label: 'Treasury',
@@ -512,6 +512,7 @@ function ProtocolStats() {
     const excludedSupplyNum = Math.max(0, totalSupplyNum - eligibleSupplyNum);
     const fixedSupplyNum = 100_000_000;
     const mintedAllocationPct = fixedSupplyNum > 0 ? (totalSupplyNum / fixedSupplyNum) * 100 : 0;
+    const remainingMintableNum = Math.max(0, fixedSupplyNum - totalSupplyNum);
     const fmtCatch = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH`;
     const fmtPct = (n: number, digits = n < 10 ? 2 : 1) => `${n.toFixed(digits)}%`;
     const supplyPct = eligibleRatio ?? 0;
@@ -654,14 +655,22 @@ function ProtocolStats() {
         <div>
             <SubHead
                 title="Tokenomics breakdown"
-                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. Release timing varies per bucket — nothing dumps at TGE."
+                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. The mint tracker shows current live supply against the maximum possible allocation."
             />
-            <div className="mt-4 border-y border-[var(--rule)] py-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
-                        Minted of fixed allocation
-                    </Caption>
-                    <DataMono className="text-[1.15rem] font-semibold text-[var(--text-primary)]">
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+                            Current minted allocation
+                        </Caption>
+                        <DataMono className="mt-1 block text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)] md:text-[1.4rem]">
+                            {fmtCatch(totalSupplyNum)}
+                        </DataMono>
+                        <DataMono className="mt-1 block text-[0.76rem] text-[var(--ink-faint)]">
+                            out of {fmtCatch(fixedSupplyNum)} possible
+                        </DataMono>
+                    </div>
+                    <DataMono className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent)] md:text-[2.2rem]">
                         {fmtPct(mintedAllocationPct)}
                     </DataMono>
                 </div>
@@ -675,7 +684,7 @@ function ProtocolStats() {
                     />
                 </div>
                 <DataMono className="mt-2 block text-[0.72rem] text-[var(--ink-faint)]">
-                    {fmtCatch(totalSupplyNum)} minted · {fmtCatch(fixedSupplyNum)} fixed cap
+                    {fmtCatch(remainingMintableNum)} unminted before fixed cap
                 </DataMono>
             </div>
             <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
@@ -685,10 +694,11 @@ function ProtocolStats() {
                         value: b.percent,
                         color: allocationPalette[i % allocationPalette.length],
                     }))}
-                    totalLabel="Supply"
-                    totalValue="100M"
+                    totalLabel="Minted"
+                    totalValue={fmtPct(mintedAllocationPct)}
                     size={220}
-                    ariaLabel="Token allocation donut chart"
+                    caption="Donut slices show each bucket's maximum share of the 100M cap."
+                    ariaLabel={`Token allocation donut chart. Current minted supply is ${fmtCatch(totalSupplyNum)} of ${fmtCatch(fixedSupplyNum)} possible.`}
                 />
                 <ChartLegend
                     items={TOKEN_ALLOCATION.map((b, i) => ({
@@ -1331,12 +1341,14 @@ function LiquiditySection() {
 /* ── Export ─────────────────────────────────────────────── */
 
 function HoldersContent() {
+    const market = useCatchMarketData();
+
     return (
         <main>
-            <MarketHeader />
+            <MarketHeader market={market} />
             <AccountSection />
             <ClaimRow />
-            <OverviewCards />
+            <OverviewCards market={market} />
             <CompositionDonut />
             <ProtocolStats />
             <LiquiditySection />
