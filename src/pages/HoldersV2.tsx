@@ -94,8 +94,8 @@ function MarketHeader() {
                 </div>
 
                 {/* Price headline */}
-                <div className="mt-10 flex flex-wrap items-end gap-x-10 gap-y-4">
-                    <div>
+                <div className="mt-10 grid items-end gap-x-8 gap-y-5 lg:grid-cols-[minmax(300px,max-content)_minmax(180px,240px)_minmax(260px,1fr)]">
+                    <div className="min-w-0">
                         <Label>CATCH / USD</Label>
                         <Display as="div" className="mt-2 text-[clamp(3rem,8vw,6rem)]">
                             {price !== undefined ? formatUsd(price, 4) : '—'}
@@ -107,16 +107,16 @@ function MarketHeader() {
                             </DataMono>
                         ) : null}
                     </div>
-                    <div className="flex flex-col gap-3 pb-3">
+                    <div className="flex min-w-[180px] flex-col gap-3 pb-1 lg:justify-self-center lg:pb-3">
                         <DataMono className={isUp ? 'v2-up text-[1.2rem]' : 'v2-down text-[1.2rem]'}>
                             {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
                         </DataMono>
                         <Sparkline values={spark} width={140} height={28} color={isUp ? 'var(--data-up)' : 'var(--data-down)'} />
                     </div>
                     {canComparePremium ? (
-                        <div className="flex flex-col gap-1 pb-3">
+                        <div className="flex min-w-0 flex-col gap-1 pb-1 lg:justify-self-end lg:pb-3 lg:text-right">
                             <span
-                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.78rem] font-semibold ${
+                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.78rem] font-semibold lg:self-end ${
                                     atPar
                                         ? 'border border-[var(--border)] text-[var(--ink-muted)]'
                                         : isPremium
@@ -430,8 +430,8 @@ function StatGroup({
 
     const body = layout === 'side-by-side' && chart ? (
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
-            <div>{chart}</div>
-            <div>{rightNode ?? rowsNode}</div>
+            <div className="min-w-0">{chart}</div>
+            <div className="min-w-0">{rightNode ?? rowsNode}</div>
         </div>
     ) : (
         <>
@@ -1292,21 +1292,23 @@ function LiquiditySection() {
 
                     {/* Pool table / single-pair detail */}
                     {tab === 'all' ? (
-                        <div className="mt-8 border-t border-[var(--rule)] pt-5">
-                            <div
-                                className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
-                                style={{ gridTemplateColumns: '120px 140px 1fr 160px 160px 120px 80px' }}
-                            >
-                                <span>Venue</span>
-                                <span>Pair</span>
-                                <span>Quote</span>
-                                <span className="text-right">Liquidity</span>
-                                <span className="text-right">24H Vol</span>
-                                <span className="text-right">24H</span>
-                                <span className="text-right">Link</span>
+                        <div className="mt-8 overflow-x-auto border-t border-[var(--rule)] pt-5">
+                            <div className="min-w-[920px]">
+                                <div
+                                    className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
+                                    style={{ gridTemplateColumns: '120px 140px 1fr 160px 160px 120px 80px' }}
+                                >
+                                    <span>Venue</span>
+                                    <span>Pair</span>
+                                    <span>Quote</span>
+                                    <span className="text-right">Liquidity</span>
+                                    <span className="text-right">24H Vol</span>
+                                    <span className="text-right">24H</span>
+                                    <span className="text-right">Link</span>
+                                </div>
+                                <PoolRow pool={lfj} />
+                                <PoolRow pool={pharaoh} />
                             </div>
-                            <PoolRow pool={lfj} />
-                            <PoolRow pool={pharaoh} />
                         </div>
                     ) : (
                         <div className="mt-6 flex items-center justify-between border-t border-[var(--rule)] pt-4 text-[0.82rem]">
