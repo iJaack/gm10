@@ -24,7 +24,7 @@ function FooterRoundCta() {
 export default function Footer() {
     return (
         <footer className="relative z-10 px-4 py-16">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <div className="relative pt-12 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--border-strong)] before:to-transparent">
                     <div className="grid gap-12 xl:grid-cols-[1.2fr_0.7fr_0.7fr_0.9fr] xl:gap-16">
                         <ScrollReveal>
@@ -100,9 +100,6 @@ export default function Footer() {
                                 <div className="label-font">Disclosures</div>
                                 <p className="mt-4 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
                                     GM10 is an onchain strategy wrapper around collectible exposure. It is not legal, tax, or investment advice, and card prices can move against the fund.
-                                </p>
-                                <p className="mt-4 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
-                                    Avalanche mainnet is the reporting and settlement layer for Round 2. Round 2 is live — realized sale profits fund claimable AVAX distributions, and reference NAV stays public after the round.
                                 </p>
                             </div>
                         </ScrollReveal>

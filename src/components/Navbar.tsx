@@ -68,7 +68,7 @@ export default function Navbar() {
                         : 'bg-transparent'
                 }`}
             >
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] px-4">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] px-4">
                     <div className={`flex items-center justify-between gap-3 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
                         <Link to="/" className="flex items-center gap-2 text-[var(--text-primary)]">
                             <Logo size={28} />
