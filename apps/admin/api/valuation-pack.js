@@ -60,13 +60,17 @@ export default async function handler(request = {}, response) {
       return;
     }
 
-    const generatedAt = body.generatedAt || new Date().toISOString();
-    const packId = body.packId || weekPackId(generatedAt);
-    const cards = Array.isArray(body.cards) && body.cards.length > 0 ? body.cards : [];
-    const pack = buildValuationPack({ packId, generatedAt, cards });
+    try {
+      const generatedAt = body.generatedAt || new Date().toISOString();
+      const packId = body.packId || weekPackId(generatedAt);
+      const cards = Array.isArray(body.cards) && body.cards.length > 0 ? body.cards : [];
+      const pack = buildValuationPack({ packId, generatedAt, cards });
 
-    await store.savePack(pack);
-    response.status(200).json({ pack });
+      await store.savePack(pack);
+      response.status(200).json({ pack });
+    } catch (error) {
+      respondError(response, 400, error instanceof Error ? error.message : 'Unable to generate valuation pack');
+    }
     return;
   }
 
