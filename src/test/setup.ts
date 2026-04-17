@@ -12,6 +12,23 @@ Object.defineProperty(window, 'IntersectionObserver', {
     value: IntersectionObserverStub,
 });
 
+// Lenis reads ResizeObserver during mount; JSDOM does not provide it.
+const ResizeObserverStub = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+};
+Object.defineProperty(window, 'ResizeObserver', {
+    writable: true,
+    configurable: true,
+    value: ResizeObserverStub,
+});
+Object.defineProperty(globalThis, 'ResizeObserver', {
+    writable: true,
+    configurable: true,
+    value: ResizeObserverStub,
+});
+
 Object.defineProperty(window, 'scrollTo', {
     value: () => undefined,
     writable: true,

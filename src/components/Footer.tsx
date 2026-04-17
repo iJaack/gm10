@@ -26,8 +26,8 @@ export default function Footer() {
         <footer className="relative z-10 px-4 py-16">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <div className="relative pt-12 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--border-strong)] before:to-transparent">
-                    <div className="grid gap-12 xl:grid-cols-[1.2fr_0.7fr_0.7fr_0.9fr] xl:gap-16">
-                        <ScrollReveal>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-12 xl:grid-cols-[1.2fr_0.7fr_0.7fr_0.9fr] xl:gap-16">
+                        <ScrollReveal className="col-span-2 xl:col-span-1">
                             <div className="max-w-md">
                                 <div className="text-[0.95rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">GM10</div>
                                 <h2 className="mt-4 text-2xl font-bold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
@@ -95,7 +95,7 @@ export default function Footer() {
                             </div>
                         </ScrollReveal>
 
-                        <ScrollReveal delay={3}>
+                        <ScrollReveal delay={3} className="col-span-2 xl:col-span-1">
                             <div>
                                 <div className="label-font">Disclosures</div>
                                 <p className="mt-4 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">

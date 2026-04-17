@@ -2,6 +2,7 @@ export type DexPair = {
     chainId?: string;
     dexId?: string;
     pairAddress?: string;
+    pairCreatedAt?: number;
     url?: string;
     priceUsd?: string;
     baseToken?: { symbol?: string; address?: string };
@@ -21,12 +22,14 @@ export type MarketPool = {
     liquidityUsd?: number;
     volume24hUsd?: number;
     priceChange24h?: number;
+    hasReliable24hChange?: boolean;
     fallbackAvax?: bigint;
     fallbackCatch?: bigint;
 };
 
 export type CatchMarketData = {
     spotPriceUsd?: number;
+    priceChange24h?: number;
     lfj: MarketPool;
     pharaoh: MarketPool;
     fetchedAt?: string;
@@ -75,8 +78,44 @@ function choosePair(
         .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
 }
 
-function normalizePool(venue: 'LFJ' | 'Pharaoh', pair?: DexPair, fallback?: MarketFallbackLiquidity): MarketPool {
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function hasReliable24hChange(pair: DexPair, nowMs: number) {
+    if (!pair.pairCreatedAt) return true;
+    return nowMs - pair.pairCreatedAt >= ONE_DAY_MS;
+}
+
+function weightedPriceChange(pools: readonly MarketPool[]) {
+    const available = pools.filter((pool) => pool.priceChange24h !== undefined);
+    if (!available.length) return undefined;
+
+    const totalWeight = available.reduce((sum, pool) => {
+        const weight = pool.volume24hUsd && pool.volume24hUsd > 0
+            ? pool.volume24hUsd
+            : pool.liquidityUsd && pool.liquidityUsd > 0
+                ? pool.liquidityUsd
+                : 1;
+        return sum + weight;
+    }, 0);
+
+    return available.reduce((sum, pool) => {
+        const weight = pool.volume24hUsd && pool.volume24hUsd > 0
+            ? pool.volume24hUsd
+            : pool.liquidityUsd && pool.liquidityUsd > 0
+                ? pool.liquidityUsd
+                : 1;
+        return sum + (pool.priceChange24h ?? 0) * (weight / totalWeight);
+    }, 0);
+}
+
+function normalizePool(
+    venue: 'LFJ' | 'Pharaoh',
+    pair: DexPair | undefined,
+    fallback: MarketFallbackLiquidity | undefined,
+    nowMs: number,
+): MarketPool {
     if (pair) {
+        const reliable24h = hasReliable24hChange(pair, nowMs);
         return {
             venue,
             status: 'available',
@@ -86,7 +125,8 @@ function normalizePool(venue: 'LFJ' | 'Pharaoh', pair?: DexPair, fallback?: Mark
             priceUsd: parseNumber(pair.priceUsd),
             liquidityUsd: parseNumber(pair.liquidity?.usd),
             volume24hUsd: parseNumber(pair.volume?.h24),
-            priceChange24h: parseNumber(pair.priceChange?.h24),
+            priceChange24h: reliable24h ? parseNumber(pair.priceChange?.h24) : undefined,
+            hasReliable24hChange: reliable24h,
         };
     }
 
@@ -105,16 +145,19 @@ export function normalizeCatchMarketData(
         pharaohPoolAddress?: string;
         fallback?: MarketFallbackLiquidity;
         fetchedAt?: string;
+        nowMs?: number;
     },
 ): CatchMarketData {
+    const nowMs = options.nowMs ?? Date.now();
     const lfjPair = choosePair(pairs, 'LFJ', options.lfjPairAddress);
     const pharaohPair = choosePair(pairs, 'Pharaoh', options.pharaohPoolAddress);
-    const lfj = normalizePool('LFJ', lfjPair, options.fallback);
-    const pharaoh = normalizePool('Pharaoh', pharaohPair, options.fallback);
+    const lfj = normalizePool('LFJ', lfjPair, options.fallback, nowMs);
+    const pharaoh = normalizePool('Pharaoh', pharaohPair, options.fallback, nowMs);
     const spotPriceUsd = lfj.priceUsd ?? pharaoh.priceUsd ?? pairs.map((pair) => parseNumber(pair.priceUsd)).find((price) => price !== undefined);
 
     return {
         spotPriceUsd,
+        priceChange24h: weightedPriceChange([lfj, pharaoh]),
         lfj,
         pharaoh,
         fetchedAt: options.fetchedAt,

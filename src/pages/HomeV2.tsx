@@ -171,9 +171,9 @@ function Thesis() {
                         <Display as="div" className="mt-2 text-[clamp(2.5rem,5vw,4rem)]">
                             $16.5M
                         </Display>
-                        <div className="mt-3 flex items-center gap-3">
-                            <Sparkline values={PEAK_SALE_HISTORY} width={120} height={28} color="var(--accent-brass)" />
-                            <DataMono className="text-[0.7rem] tracking-[0.04em] text-[var(--data-up)]">
+                        <div className="mt-3 flex w-full max-w-[22rem] items-end justify-between gap-4">
+                            <Sparkline values={PEAK_SALE_HISTORY} width={150} height={34} color="var(--accent-brass)" />
+                            <DataMono className="shrink-0 text-right text-[0.84rem] font-bold tracking-[0.04em] text-[var(--data-up)]">
                                 ▲ 30,000× · 15yr
                             </DataMono>
                         </div>
@@ -231,9 +231,9 @@ const CAGR_INDEX: Array<{ year: number; usd: number }> = [
 ];
 
 function CagrChart() {
-    const W = 640;
-    const H = 220;
-    const pad = { l: 4, r: 4, t: 12, b: 24 };
+    const W = 920;
+    const H = 260;
+    const pad = { l: 24, r: 40, t: 14, b: 28 };
     const plotW = W - pad.l - pad.r;
     const plotH = H - pad.t - pad.b;
     const yrs = CAGR_INDEX.map((d) => d.year);
@@ -251,7 +251,7 @@ function CagrChart() {
     const areaPath = `M ${firstX},${baseY} ${lineSegments} L ${lastX},${baseY} Z`;
 
     return (
-        <div className="relative w-full max-w-[720px]">
+        <div className="relative w-full">
             <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" aria-hidden>
                 <defs>
                     <linearGradient id="cagr-fill" x1="0" y1="0" x2="0" y2="1">
@@ -267,7 +267,7 @@ function CagrChart() {
                         y={H - 4}
                         textAnchor="middle"
                         className="fill-[var(--text-tertiary)]"
-                        style={{ fontSize: 10, fontFamily: 'var(--font-sans)' }}
+                        style={{ fontSize: 11, fontFamily: 'var(--font-sans)' }}
                     >
                         {y}
                     </text>
@@ -301,13 +301,13 @@ function StrategyChapters() {
         <section className="px-4 py-12 md:py-16 border-t border-[var(--rule)]">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <SectionLabel>The track record</SectionLabel>
-                <div className="mt-6 grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+                <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)] lg:items-start">
                     {/* Left: headline + chart */}
                     <div>
-                        <h2 className="text-[clamp(1.8rem,3.4vw,2.6rem)] font-extrabold tracking-[-0.035em] leading-[1.1] text-[var(--text-primary)] max-w-[22ch]">
+                        <h2 className="max-w-[30ch] text-[clamp(1.8rem,3.2vw,2.9rem)] font-extrabold tracking-[-0.035em] leading-[1.1] text-[var(--text-primary)]">
                             Top-grade Pokémon cards have compounded at {cagr.toFixed(0)}% a year.
                         </h2>
-                        <p className="mt-3 max-w-[52ch] text-[0.95rem] leading-[1.6] text-[var(--ink-muted)]">
+                        <p className="mt-3 max-w-[76ch] text-[0.95rem] leading-[1.6] text-[var(--ink-muted)]">
                             Illustrative public comps for PSA 10 Base Set Charizard, 2005–2025. Volatile year to year, but the ceiling keeps moving — and GM10 concentrates on the part of the market where it moves most.
                         </p>
                         <div className="mt-6">
@@ -372,14 +372,14 @@ function HoldingsMarquee() {
     const loop = [...portfolio.positions, ...portfolio.positions, ...portfolio.positions];
     return (
         <section className="overflow-hidden border-t border-[var(--rule)] py-16 md:py-20">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] px-4 mb-8 flex items-center justify-between">
+            <div className="mx-auto mb-8 flex max-w-[min(1440px,calc(100vw-48px))] flex-col items-start gap-4 px-4 sm:flex-row sm:items-end sm:justify-between lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <div className="max-w-[44rem]">
                     <SectionLabel>Current holdings</SectionLabel>
                     <p className="mt-3 text-[1rem] leading-[1.6] text-[var(--text-primary)]">
                         {lotCount} {lotWord} acquired so far. More will follow as rounds close and cards get greenlit.
                     </p>
                 </div>
-                <Link to="/portfolio" className="v2-mono text-[0.82rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors">
+                <Link to="/portfolio" className="v2-mono text-[0.82rem] tracking-[0.05em] text-[var(--accent-brass)] transition-colors hover:text-[var(--text-primary)]">
                     → View the collection
                 </Link>
             </div>

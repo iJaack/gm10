@@ -26,6 +26,7 @@ import {
     SectionLabel,
 } from '../components/v2/primitives';
 import { GM10_FUND_ABI } from '../data/contracts';
+import { PeerOnrampButton } from '../components/PeerOnrampButton';
 import {
     BUY_PAGE_DEFAULTS,
     ROUND_PROCEEDS_ALLOCATION,
@@ -351,7 +352,11 @@ function FundraisingContent() {
                                     <p className="mt-3 text-[0.92rem] leading-[1.6] text-[var(--ink-muted)]">
                                         Connect a wallet on Avalanche mainnet to buy $CATCH from Round {round.roundId}.
                                     </p>
-                                    <div className="mt-5">
+                                    <div className="mt-5 flex flex-wrap items-start gap-3">
+                                        <PeerOnrampButton
+                                            className="pixel-menu-link pixel-menu-link-active"
+                                            helperText="Add AVAX first, then connect your wallet to buy $CATCH."
+                                        />
                                         <ConnectButton.Custom>
                                             {({ openConnectModal }) => (
                                                 <button
@@ -430,20 +435,26 @@ function FundraisingContent() {
 
                                     {/* CTA */}
                                     <div className="py-4 border-t border-[var(--rule)]">
-                                        <button
-                                            type="button"
-                                            onClick={handleInvest}
-                                            disabled={buyUnavailable || isPending || isConfirming || !amount}
-                                            className="v2-mono text-[1.05rem] font-semibold tracking-[0.03em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors disabled:cursor-not-allowed disabled:text-[var(--ink-faint)]"
-                                        >
-                                            {isPending || isConfirming ? (
-                                                <><span className="v2-pulse" /> Confirm in wallet…</>
-                                            ) : isConfirmed ? (
-                                                <>✓ Confirmed</>
-                                            ) : (
-                                                <>→ Confirm invest</>
-                                            )}
-                                        </button>
+                                        <div className="flex flex-wrap items-start gap-5">
+                                            <button
+                                                type="button"
+                                                onClick={handleInvest}
+                                                disabled={buyUnavailable || isPending || isConfirming || !amount}
+                                                className="v2-mono text-[1.05rem] font-semibold tracking-[0.03em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors disabled:cursor-not-allowed disabled:text-[var(--ink-faint)]"
+                                            >
+                                                {isPending || isConfirming ? (
+                                                    <><span className="v2-pulse" /> Confirm in wallet…</>
+                                                ) : isConfirmed ? (
+                                                    <>✓ Confirmed</>
+                                                ) : (
+                                                    <>→ Confirm invest</>
+                                                )}
+                                            </button>
+                                            <PeerOnrampButton
+                                                recipientAddress={address}
+                                                helperText="Need AVAX for the round or gas? Fund this wallet with Peer."
+                                            />
+                                        </div>
 
                                         {hash ? (
                                             <a

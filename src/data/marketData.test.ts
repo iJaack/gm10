@@ -34,6 +34,7 @@ describe('market data normalization', () => {
         expect(market.lfj.pairAddress).toBe('0x1111111111111111111111111111111111111111');
         expect(market.pharaoh.status).toBe('available');
         expect(market.pharaoh.pairAddress).toBe('0x2222222222222222222222222222222222222222');
+        expect(market.priceChange24h).toBeCloseTo(0.8667, 4);
     });
 
     it('uses configured pair addresses before venue matching', () => {
@@ -57,5 +58,21 @@ describe('market data normalization', () => {
         expect(market.status).toBe('unavailable');
         expect(market.lfj.fallbackAvax).toBe(1n);
         expect(market.pharaoh.fallbackCatch).toBe(4n);
+    });
+
+    it('suppresses 24h change for pools without a full day of history', () => {
+        const market = normalizeCatchMarketData([
+            {
+                ...pairs[0],
+                pairCreatedAt: Date.UTC(2026, 3, 17, 12),
+                priceChange: { h24: 350 },
+            },
+        ], {
+            nowMs: Date.UTC(2026, 3, 17, 18),
+        });
+
+        expect(market.lfj.priceChange24h).toBeUndefined();
+        expect(market.lfj.hasReliable24hChange).toBe(false);
+        expect(market.priceChange24h).toBeUndefined();
     });
 });

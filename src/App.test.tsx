@@ -1,10 +1,29 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { BUY_PAGE_DEFAULTS, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
 
+const peerSdkMock = vi.hoisted(() => ({
+    getState: vi.fn(),
+    requestConnection: vi.fn(),
+    openInstallPage: vi.fn(),
+    onIntentFulfilled: vi.fn(),
+    onramp: vi.fn(),
+}));
+
+vi.mock('@zkp2p/sdk', () => ({
+    createPeerExtensionSdk: vi.fn(() => peerSdkMock),
+}));
+
 vi.mock('@rainbow-me/rainbowkit', () => ({
-    ConnectButton: () => <button type="button">Connect Wallet</button>,
+    ConnectButton: Object.assign(
+        () => <button type="button">Connect Wallet</button>,
+        {
+            Custom: ({ children }: { children: (args: { openConnectModal: () => void }) => any }) => children({
+                openConnectModal: () => undefined,
+            }),
+        },
+    ),
 }));
 
 vi.mock('./components/Web3Providers', () => ({
@@ -135,6 +154,8 @@ vi.mock('./hooks/useFujiProof', () => ({
                 acquisition: '$18.00',
                 currentValue: '$18.00',
                 lastNavMark: '$18.00',
+                acquisitionPriceUsdt6: 18000000n,
+                currentValueUsdt6: 18000000n,
                 chain: 'Avalanche Fuji',
                 tokenId: '1',
                 collectionAddress: '0xA2Abe7905b185949c5dBefEb86C1D0F5492E74fF',
@@ -153,6 +174,8 @@ vi.mock('./hooks/useFujiProof', () => ({
                 acquisition: '$22.00',
                 currentValue: '$22.00',
                 lastNavMark: '$22.00',
+                acquisitionPriceUsdt6: 22000000n,
+                currentValueUsdt6: 22000000n,
                 chain: 'Avalanche Fuji',
                 tokenId: '1',
                 collectionAddress: '0x05F9188eD398D7dA979861617eBA59d7B1DEeA66',
@@ -214,6 +237,14 @@ vi.mock('./hooks/useHolderDashboard', () => ({
             totalProfitDeposited: '0 AVAX',
             liquidTreasury: '$3,528.60',
             holderDistributionAccrued: '$0.00',
+            buybackAccrued: '$0.00',
+            lpAccrued: '$0.00',
+        },
+        raw: {
+            referenceNav: 20000n,
+            navPerToken: 20000n,
+            totalSupply: 183333333300000000000000n,
+            profitEligibleSupply: 174421169300000000000000n,
         },
     }),
 }));
@@ -222,6 +253,7 @@ vi.mock('./hooks/useCatchMarketData', () => ({
     useCatchMarketData: () => ({
         status: 'available',
         spotPriceUsd: 0.022,
+        priceChange24h: 1.2,
         fetchedAt: '2026-04-15T22:00:00.000Z',
         lfj: {
             venue: 'LFJ',
@@ -248,8 +280,16 @@ function renderAt(path: string) {
     return render(<App />);
 }
 
+beforeEach(() => {
+    peerSdkMock.getState.mockResolvedValue('needs_install');
+    peerSdkMock.requestConnection.mockResolvedValue(false);
+    peerSdkMock.openInstallPage.mockResolvedValue(undefined);
+    peerSdkMock.onIntentFulfilled.mockReturnValue(() => undefined);
+});
+
 afterEach(() => {
     cleanup();
+    vi.clearAllMocks();
     window.history.pushState({}, '', '/');
 });
 
@@ -287,48 +327,61 @@ describe('page compression regressions', () => {
     it('keeps the home page focused on proxy access to elite pokemon-card upside', () => {
         renderAt('/');
 
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/get exposure to trophy-grade pokemon cards/i);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/trophy-grade pokémon cards/i);
         expect(screen.getAllByText(/trophy-grade/i).length).toBeGreaterThanOrEqual(1);
-        expect(screen.getByText(/GM10 gives crypto investors the exposure/i)).toBeInTheDocument();
-        expect(document.getElementById('why-market')).not.toBeNull();
-        expect(document.getElementById('why-gm10')).not.toBeNull();
-        expect(document.getElementById('how-it-works')).not.toBeNull();
-        expect(document.getElementById('proof')).not.toBeNull();
-        expect(document.getElementById('investor-objections')).not.toBeNull();
-        expect(screen.getByText(/Move from the story to the live round and proof/i)).toBeInTheDocument();
+        expect(screen.getByText(/GM10 turns sourcing, diligence, custody/i)).toBeInTheDocument();
+        expect(screen.getByText(/^the thesis$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^the track record$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^current holdings$/i)).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /join next round|join the round/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
-        expect(screen.getByRole('heading', { name: /the strategy already has a public proof surface/i })).toBeInTheDocument();
-        expect(screen.getByText(/^already raised$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^500 AVAX$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^round 2 raise target$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^up to 5,000 AVAX$/i)).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', async () => {
         renderAt('/fundraising');
 
-        expect(await screen.findByRole('heading', { name: /take one position in the full gm10 strategy/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /round 02/i })).toBeInTheDocument();
         expect(screen.queryByText(/you're not buying one card/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^round window$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^profit share$/i)).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /every avax raised has a defined route after finalization/i })).toBeInTheDocument();
-        expect(screen.getByText(/the percentages apply to actual avax raised in round 2/i)).toBeInTheDocument();
-        expect(screen.getByText(/4,250 AVAX goes to the strategy\/card acquisition treasury/i)).toBeInTheDocument();
-        expect(screen.getByText(/250 AVAX goes to LFJ LP/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/separate from realized sale profit/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/Only 0.0004 AVAX remains/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /use exact remaining/i })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /round 1 archive/i })).toBeInTheDocument();
-        expect(screen.getByText(/round 1 is historical context only/i)).toBeInTheDocument();
+        expect(screen.getByText(/^window$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^tokens at cap$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^proceeds allocation$/i)).toBeInTheDocument();
+        expect(screen.getByText(/strategy\/card acquisition treasury/i)).toBeInTheDocument();
+        expect(screen.getByText(/liquidity/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/team wallet/i).length).toBeGreaterThan(0);
+        expect(screen.getByRole('button', { name: /fund with peer/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /round 1 closed early/i })).toBeInTheDocument();
         expect(screen.queryByText(/round 1 complete/i)).not.toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /inspect everything\./i })).toBeInTheDocument();
-        expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/^2$/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/contracts, round state, and recorded positions/i)).toBeInTheDocument();
+        expect(screen.getByText(/^proof surface$/i)).toBeInTheDocument();
+        expect(screen.getAllByRole('link', { name: /snowtrace/i }).length).toBeGreaterThan(0);
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
+    });
+
+    it('opens the Peer install page only from the install modal', async () => {
+        renderAt('/fundraising');
+
+        const fundButton = await screen.findByRole('button', { name: /fund with peer/i });
+        fireEvent.click(fundButton);
+
+        expect(await screen.findByRole('dialog', { name: /install peer/i })).toBeInTheDocument();
+        expect(screen.getByText(/funding wallet that lets you go from fiat to crypto in seconds/i)).toBeInTheDocument();
+        expect(peerSdkMock.openInstallPage).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('button', { name: /install extension/i }));
+
+        expect(peerSdkMock.openInstallPage).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not register Peer fulfillment before the extension is ready', async () => {
+        peerSdkMock.onIntentFulfilled.mockImplementation(() => {
+            throw new Error('Peer extension not available. Install or enable the Peer extension.');
+        });
+
+        renderAt('/fundraising');
+
+        expect(await screen.findByRole('button', { name: /fund with peer/i })).toBeInTheDocument();
+        expect(peerSdkMock.onIntentFulfilled).not.toHaveBeenCalled();
     });
 
     it('keeps round 2 allocation constants aligned with the full-cap example', () => {
@@ -355,13 +408,13 @@ describe('page compression regressions', () => {
     it('renders the portfolio gallery with live positions and activity', async () => {
         renderAt('/portfolio');
 
-        expect(await screen.findByRole('heading', { name: /card portfolio/i })).toBeInTheDocument();
-        expect(screen.getByText(/^2 acquired cards$/i)).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /collection/i })).toBeInTheDocument();
+        expect(screen.getByText(/lots 2/i)).toBeInTheDocument();
         expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/courtyard platform nav/i)).toBeInTheDocument();
+        expect(screen.getByText(/^holdings \(2\)$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/^activity$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^activity ledger$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^buy$/i).length).toBeGreaterThanOrEqual(1);
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
@@ -370,13 +423,12 @@ describe('page compression regressions', () => {
     it('renders the holder dashboard with gated claim and market rows', async () => {
         renderAt('/holders');
 
-        expect(await screen.findByRole('heading', { name: /holder dashboard/i })).toBeInTheDocument();
-        expect(screen.getByText(/claim gated/i)).toBeInTheDocument();
-        expect(screen.getByText(/connect a wallet to check realized profit/i)).toBeInTheDocument();
-        expect(screen.getByText(/\$catch price and liquidity/i)).toBeInTheDocument();
-        expect(screen.getByText(/^LFJ$/)).toBeInTheDocument();
-        expect(screen.getByText(/^Pharaoh$/)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /claim avax disabled/i })).toBeDisabled();
+        expect((await screen.findAllByText(/CATCH \/ USD/i)).length).toBeGreaterThan(0);
+        expect(screen.getByText(/connect a wallet to see your \$catch/i)).toBeInTheDocument();
+        expect(screen.getByText(/liquidity & venues/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/^LFJ$/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/^Pharaoh$/).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/claim status/i)).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
     });
 
@@ -387,7 +439,7 @@ describe('page compression regressions', () => {
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
         expect(screen.getByRole('button', { name: /how are round 2 proceeds used/i })).toBeInTheDocument();
 
-        const nextSection = screen.getByRole('heading', { name: /ready to get started\?/i }).closest('section');
+        const nextSection = screen.getByText(/ready to act on it\?/i).closest('section');
         expect(nextSection).not.toBeNull();
         expect(within(nextSection!).getByRole('link', { name: /join the round/i })).toBeInTheDocument();
         expect(within(nextSection!).getByRole('link', { name: /inspect the proof/i })).toBeInTheDocument();

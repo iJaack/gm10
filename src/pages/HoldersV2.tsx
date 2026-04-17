@@ -56,6 +56,8 @@ function fallbackLiq(p: MarketPool) {
     return `${avax} / ${c}`;
 }
 
+const FULLY_DILUTED_CATCH_SUPPLY = 100_000_000;
+
 /* ── 1. Market header ─────────────────────────────────── */
 
 function MarketHeader() {
@@ -64,8 +66,9 @@ function MarketHeader() {
     const avaxUsd = useAvaxPrice();
     const price = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
     const priceAvax = price !== undefined && avaxUsd > 0 ? price / avaxUsd : undefined;
-    const change = market.lfj.priceChange24h ?? market.pharaoh.priceChange24h ?? 0;
-    const isUp = change >= 0;
+    const change = market.priceChange24h ?? market.lfj.priceChange24h ?? market.pharaoh.priceChange24h;
+    const hasChange = change !== undefined;
+    const isUp = (change ?? 0) >= 0;
 
     // premium / discount vs reference NAV
     const refNavRaw = holder.raw.referenceNav;
@@ -108,10 +111,10 @@ function MarketHeader() {
                         ) : null}
                     </div>
                     <div className="flex flex-col gap-3 pb-3">
-                        <DataMono className={isUp ? 'v2-up text-[1.2rem]' : 'v2-down text-[1.2rem]'}>
-                            {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
+                        <DataMono className={hasChange ? (isUp ? 'v2-up text-[1.2rem]' : 'v2-down text-[1.2rem]') : 'text-[var(--ink-faint)] text-[1.2rem]'}>
+                            {hasChange ? `${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%` : '—'} <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
                         </DataMono>
-                        <Sparkline values={spark} width={140} height={28} color={isUp ? 'var(--data-up)' : 'var(--data-down)'} />
+                        <Sparkline values={spark} width={140} height={28} color={!hasChange ? 'var(--ink-faint)' : isUp ? 'var(--data-up)' : 'var(--data-down)'} />
                     </div>
                     {canComparePremium ? (
                         <div className="flex flex-col gap-1 pb-3">
@@ -147,7 +150,9 @@ function OverviewCards() {
     const portfolio = useFujiPortfolioPositions();
 
     const navUsd = holder.raw.navPerToken !== undefined ? Number(formatUnits(holder.raw.navPerToken, 6)) : undefined;
-    const totalSupplyNum = Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
+    const totalSupplyNum = holder.raw.totalSupply !== undefined
+        ? Number(formatUnits(holder.raw.totalSupply, 18))
+        : Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
     const marketCapNav = navUsd !== undefined ? totalSupplyNum * navUsd : undefined;
 
     const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
@@ -162,7 +167,7 @@ function OverviewCards() {
         {
             label: 'Market cap',
             value: fmtUsd0(marketCapNav),
-            detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · NAV ${holder.labels.navPerToken}`,
+            detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · NAV ${holder.labels.navPerToken} · live onchain`,
         },
         {
             label: 'Treasury',
@@ -472,8 +477,12 @@ function ProtocolStats() {
     // Raw/numeric versions for percentage math
     const navUsd = holder.raw.navPerToken !== undefined ? Number(formatUnits(holder.raw.navPerToken, 6)) : undefined;
     const refNavUsd = holder.raw.referenceNav !== undefined ? Number(formatUnits(holder.raw.referenceNav, 6)) : undefined;
-    const totalSupplyNum = Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
-    const eligibleSupplyNum = Number(holder.labels.profitEligibleSupply.replace(/[^0-9.]/g, '')) || 0;
+    const totalSupplyNum = holder.raw.totalSupply !== undefined
+        ? Number(formatUnits(holder.raw.totalSupply, 18))
+        : Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
+    const eligibleSupplyNum = holder.raw.profitEligibleSupply !== undefined
+        ? Number(formatUnits(holder.raw.profitEligibleSupply, 18))
+        : Number(holder.labels.profitEligibleSupply.replace(/[^0-9.]/g, '')) || 0;
     const eligibleRatio = totalSupplyNum > 0 ? (eligibleSupplyNum / totalSupplyNum) * 100 : undefined;
 
     const marketCapMark = navUsd !== undefined ? totalSupplyNum * navUsd : undefined;
@@ -499,8 +508,13 @@ function ProtocolStats() {
 
     // Supply is folded into a single hero bar (no row list). metricCount still reads "2".
     const excludedSupplyNum = Math.max(0, totalSupplyNum - eligibleSupplyNum);
+    const notMintedSupplyNum = Math.max(0, FULLY_DILUTED_CATCH_SUPPLY - totalSupplyNum);
     const fmtCatch = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH`;
     const supplyPct = eligibleRatio ?? 0;
+    const fmtCatchCompact = (n: number) => {
+        if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 2 })}M CATCH`;
+        return fmtCatch(n);
+    };
 
     const valuation: StatRow[] = [
         {
@@ -639,8 +653,46 @@ function ProtocolStats() {
     const supplyChart = (
         <div>
             <SubHead
+                title="Token status"
+                detail="Current release state against the fixed 100M $CATCH maximum supply."
+            />
+            <div className="mt-4 flex flex-col gap-4">
+                <SegmentedBar
+                    slices={[
+                        { label: 'Circulating', value: eligibleSupplyNum, color: 'var(--accent-green)' },
+                        { label: 'Vesting / protocol-held', value: excludedSupplyNum, color: 'var(--accent-blue)' },
+                        { label: 'Not minted yet', value: notMintedSupplyNum, color: 'var(--ink-faint)' },
+                    ]}
+                    height={18}
+                    ariaLabel="Current CATCH supply status"
+                />
+                <ChartLegend
+                    items={[
+                        {
+                            color: 'var(--accent-green)',
+                            label: 'Circulating',
+                            value: fmtCatchCompact(eligibleSupplyNum),
+                            pct: (eligibleSupplyNum / FULLY_DILUTED_CATCH_SUPPLY) * 100,
+                        },
+                        {
+                            color: 'var(--accent-blue)',
+                            label: 'Vesting / protocol-held',
+                            value: fmtCatchCompact(excludedSupplyNum),
+                            pct: (excludedSupplyNum / FULLY_DILUTED_CATCH_SUPPLY) * 100,
+                        },
+                        {
+                            color: 'var(--ink-faint)',
+                            label: 'Not minted yet',
+                            value: fmtCatchCompact(notMintedSupplyNum),
+                            pct: (notMintedSupplyNum / FULLY_DILUTED_CATCH_SUPPLY) * 100,
+                        },
+                    ]}
+                />
+            </div>
+
+            <SubHead
                 title="Tokenomics breakdown"
-                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. Release timing varies per bucket — nothing dumps at TGE."
+                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. Bucket release timing is separate from today’s minted supply."
             />
             <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
                 <DonutChart
@@ -1019,15 +1071,16 @@ function LiquiditySection() {
         liquidityUsd: (lfj.liquidityUsd ?? 0) + (pharaoh.liquidityUsd ?? 0),
         volume24hUsd: (lfj.volume24hUsd ?? 0) + (pharaoh.volume24hUsd ?? 0),
         priceUsd: lfj.priceUsd ?? pharaoh.priceUsd,
-        priceChange24h: lfj.priceChange24h ?? pharaoh.priceChange24h,
+        priceChange24h: market.priceChange24h,
     };
 
     const active = tab === 'lfj' ? lfj : tab === 'pharaoh' ? pharaoh : null;
     const viewLiq = active ? (active.liquidityUsd ?? 0) : combined.liquidityUsd;
     const viewVol = active ? (active.volume24hUsd ?? 0) : combined.volume24hUsd;
     const viewPrice = active ? active.priceUsd : combined.priceUsd;
-    const viewChange = active ? active.priceChange24h ?? 0 : combined.priceChange24h ?? 0;
-    const viewUp = viewChange >= 0;
+    const viewChange = active ? active.priceChange24h : combined.priceChange24h;
+    const hasViewChange = viewChange !== undefined;
+    const viewUp = (viewChange ?? 0) >= 0;
 
     const tabs: { id: VenueTab; label: string }[] = [
         { id: 'all', label: 'All venues' },
@@ -1108,7 +1161,7 @@ function LiquiditySection() {
                                 {formatUsd(viewLiq, 0)}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Pool TVL
+                                Live DEX reserve TVL
                             </DataMono>
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
@@ -1126,11 +1179,11 @@ function LiquiditySection() {
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                                 24h change
                             </Caption>
-                            <div className={`mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] tabular-nums ${viewUp ? 'v2-up' : 'v2-down'}`}>
-                                {viewUp ? '▲' : '▼'} {Math.abs(viewChange).toFixed(2)}%
+                            <div className={`mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] tabular-nums ${hasViewChange ? (viewUp ? 'v2-up' : 'v2-down') : 'text-[var(--ink-faint)]'}`}>
+                                {hasViewChange ? `${viewUp ? '▲' : '▼'} ${Math.abs(viewChange).toFixed(2)}%` : '—'}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Price momentum
+                                {hasViewChange ? 'Price momentum' : 'Awaiting full-day pool history'}
                             </DataMono>
                         </div>
                     </div>

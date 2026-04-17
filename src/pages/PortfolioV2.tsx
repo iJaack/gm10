@@ -25,6 +25,8 @@ import { useCourtyardProfileNav } from '../hooks/useCourtyardProfileNav';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import type { Gm10PortfolioPosition } from '../hooks/useFujiProof';
 
+const LOT_LEDGER_COLUMNS = '52px 76px minmax(360px,1fr) minmax(96px,120px) minmax(96px,120px) 92px 120px 112px';
+
 /* ── Summary strip ─────────────────────────────────────── */
 
 function SummaryStrip({
@@ -113,8 +115,9 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
     const lotNumber = String(position.positionId).padStart(2, '0');
     return (
         <LedgerRow
-            columns="48px 64px 1fr 120px 120px 90px 120px 100px"
+            columns={LOT_LEDGER_COLUMNS}
             align="center"
+            cellAlign={['left', 'center', 'left', 'right', 'right', 'left', 'left', 'right']}
             cells={[
                 <DataMono className="text-[0.7rem] text-[var(--accent-brass)] tracking-[0.1em]">
                     {lotNumber}
@@ -177,7 +180,31 @@ function ActivityLedger() {
                         No activity recorded yet.
                     </div>
                 ) : (
-                    <div>
+                    <>
+                        <div className="md:hidden">
+                            {items.map((item) => (
+                                <article key={item.id} className="border-b border-[var(--rule)] py-5">
+                                    <div className="flex items-baseline justify-between gap-4">
+                                        <span className={item.type === 'Buy' ? 'v2-up v2-mono text-[0.78rem]' : item.type === 'Sell' ? 'v2-down v2-mono text-[0.78rem]' : 'v2-mono text-[0.78rem]'}>
+                                            {item.type.toUpperCase()}
+                                        </span>
+                                        <span className="v2-mono shrink-0 text-right text-[0.9rem] text-[var(--text-primary)]">
+                                            {item.amount}
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 text-[0.82rem] text-[var(--ink-faint)]">
+                                        {item.date}
+                                    </div>
+                                    <div className="mt-3 text-[1rem] font-medium leading-[1.45] text-[var(--text-primary)]">
+                                        {item.item}
+                                    </div>
+                                    <div className="mt-1 text-[0.9rem] text-[var(--ink-faint)]">
+                                        {item.detail}
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                        <div className="hidden md:block">
                         {items.map((item) => (
                             <LedgerRow
                                 key={item.id}
@@ -195,7 +222,8 @@ function ActivityLedger() {
                                 ]}
                             />
                         ))}
-                    </div>
+                        </div>
+                    </>
                 )}
             </div>
         </section>
@@ -311,11 +339,12 @@ function PortfolioContent() {
                             ))}
                         </div>
                     ) : (
-                        <div>
+                        <div className="overflow-x-auto">
+                            <div className="min-w-[1120px]">
                             {/* Column headers */}
                             <div
-                                className="hidden md:grid gap-4 items-center py-2 border-b border-[var(--rule-strong)] text-[0.62rem] uppercase tracking-[0.1em] text-[var(--ink-faint)] v2-mono"
-                                style={{ gridTemplateColumns: '48px 64px 1fr 120px 120px 90px 120px 100px' }}
+                                className="grid gap-4 items-center py-2 border-b border-[var(--rule-strong)] text-[0.62rem] uppercase tracking-[0.1em] text-[var(--ink-faint)] v2-mono"
+                                style={{ gridTemplateColumns: LOT_LEDGER_COLUMNS }}
                             >
                                 <span>Lot</span>
                                 <span />
@@ -329,6 +358,7 @@ function PortfolioContent() {
                             {portfolio.positions.map((position) => (
                                 <LotRow key={position.positionId} position={position} />
                             ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -337,7 +367,7 @@ function PortfolioContent() {
             <ActivityLedger />
 
             {/* Closer */}
-            <section className="px-4 py-20 border-t border-[var(--rule)]">
+            <section className="px-4 py-12 border-t border-[var(--rule)] md:py-14">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                     <SectionLabel>Next window</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.5rem,3vw,2.2rem)] max-w-[32ch]">

@@ -177,6 +177,9 @@ export function useHolderDashboard() {
             investorPnl,
             referenceNav,
             navPerToken,
+            totalSupply,
+            profitEligibleSupply,
+            stableAccounting,
         },
     };
 }
