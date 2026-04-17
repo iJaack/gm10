@@ -2,7 +2,7 @@
  * HoldersV2 — Bloomberg terminal.
  *
  * Sections:
- *   1. Market header  — CATCH/USD price display, sparkline, status strip
+ *   1. Market header  — CATCH/USD price display, live 24h change, status strip
  *   2. Protocol stats — ledger rows, no cards
  *   3. Account        — connect-wallet prompt OR ledger rows (mono, signed P/L)
  *   4. Claim          — thin status row
@@ -22,7 +22,6 @@ import {
     Label,
     LedgerRow,
     SectionLabel,
-    Sparkline,
 } from '../components/v2/primitives';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import { useCatchMarketData } from '../hooks/useCatchMarketData';
@@ -75,8 +74,7 @@ function MarketHeader() {
     const atPar = Math.abs(premiumPct) < 0.5;
     const isPremium = premiumPct >= 0.5;
 
-    // synthetic sparkline — no historical series in hook
-    const spark = [1, 1.05, 0.98, 1.1, 1.2, 1.25, 1.3, 1.28, 1.32, 1.4];
+    const liveChartUrl = market.lfj.url ?? market.pharaoh.url;
 
     return (
         <section className="px-4 pt-28 md:pt-32 pb-8">
@@ -101,22 +99,35 @@ function MarketHeader() {
                             {price !== undefined ? formatUsd(price, 4) : '—'}
                         </Display>
                         {priceAvax !== undefined ? (
-                            <DataMono className="mt-2 block text-[0.82rem] tracking-[0.04em] text-[var(--ink-muted)]">
+                            <DataMono className="mt-2 block text-[0.86rem] tracking-[0.04em] text-[var(--ink-muted)] md:text-[0.96rem] xl:text-[1.08rem]">
                                 ≈ {priceAvax.toLocaleString('en-US', { maximumFractionDigits: 6 })} AVAX
                                 <span className="ml-2 text-[var(--ink-faint)]">· AVAX {formatUsd(avaxUsd, 2)}</span>
                             </DataMono>
                         ) : null}
                     </div>
-                    <div className="flex min-w-[180px] flex-col gap-3 pb-1 lg:justify-self-center lg:pb-3">
-                        <DataMono className={isUp ? 'v2-up text-[1.2rem]' : 'v2-down text-[1.2rem]'}>
+                    <div className="flex min-w-[180px] flex-col gap-1.5 pb-1 lg:justify-self-center lg:pb-3">
+                        <DataMono className={isUp ? 'v2-up text-[1.2rem] md:text-[1.35rem]' : 'v2-down text-[1.2rem] md:text-[1.35rem]'}>
                             {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
                         </DataMono>
-                        <Sparkline values={spark} width={140} height={28} color={isUp ? 'var(--data-up)' : 'var(--data-down)'} />
+                        {liveChartUrl ? (
+                            <a
+                                href={liveChartUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="v2-mono text-[0.72rem] tracking-[0.08em] uppercase text-[var(--accent-brass)] transition-colors hover:text-[var(--text-primary)] md:text-[0.78rem]"
+                            >
+                                Live DEX chart ↗
+                            </a>
+                        ) : (
+                            <DataMono className="text-[0.72rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] md:text-[0.78rem]">
+                                Live DEX change
+                            </DataMono>
+                        )}
                     </div>
                     {canComparePremium ? (
                         <div className="flex min-w-0 flex-col gap-1 pb-1 lg:justify-self-end lg:pb-3 lg:text-right">
                             <span
-                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.78rem] font-semibold lg:self-end ${
+                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.82rem] font-semibold md:px-4 md:py-1.5 md:text-[0.95rem] lg:self-end xl:text-[1rem] ${
                                     atPar
                                         ? 'border border-[var(--border)] text-[var(--ink-muted)]'
                                         : isPremium
@@ -128,7 +139,7 @@ function MarketHeader() {
                                     ? 'vs NAV ≈ at par'
                                     : `vs NAV ${isPremium ? '▲ +' : '▼ '}${Math.abs(premiumPct).toFixed(1)}% · ${isPremium ? 'premium' : 'discount'}`}
                             </span>
-                            <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
+                            <DataMono className="text-[0.74rem] text-[var(--ink-faint)] md:text-[0.84rem] xl:text-[0.92rem]">
                                 Market {formatUsd(price, 4)} · Ref NAV {formatUsd(refNavUsd, 4)}
                             </DataMono>
                         </div>
@@ -499,19 +510,22 @@ function ProtocolStats() {
 
     // Supply is folded into a single hero bar (no row list). metricCount still reads "2".
     const excludedSupplyNum = Math.max(0, totalSupplyNum - eligibleSupplyNum);
+    const fixedSupplyNum = 100_000_000;
+    const mintedAllocationPct = fixedSupplyNum > 0 ? (totalSupplyNum / fixedSupplyNum) * 100 : 0;
     const fmtCatch = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH`;
+    const fmtPct = (n: number, digits = n < 10 ? 2 : 1) => `${n.toFixed(digits)}%`;
     const supplyPct = eligibleRatio ?? 0;
 
     const valuation: StatRow[] = [
         {
             label: 'Reference NAV / token',
             detail: 'Sourced from investor accounting',
-            value: holder.labels.referenceNav,
+            value: refNavUsd !== undefined ? formatUsd(refNavUsd, 4) : holder.labels.referenceNav,
         },
         {
             label: 'Current NAV / token',
             detail: 'Latest onchain mark',
-            value: holder.labels.navPerToken,
+            value: navUsd !== undefined ? formatUsd(navUsd, 4) : holder.labels.navPerToken,
         },
         {
             label: 'Market cap (NAV)',
@@ -642,6 +656,28 @@ function ProtocolStats() {
                 title="Tokenomics breakdown"
                 detail="Fixed 100M $CATCH at full dilution, split across seven buckets. Release timing varies per bucket — nothing dumps at TGE."
             />
+            <div className="mt-4 border-y border-[var(--rule)] py-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+                        Minted of fixed allocation
+                    </Caption>
+                    <DataMono className="text-[1.15rem] font-semibold text-[var(--text-primary)]">
+                        {fmtPct(mintedAllocationPct)}
+                    </DataMono>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                    <div
+                        className="h-full rounded-full bg-[var(--accent)]"
+                        style={{
+                            width: `${Math.min(100, mintedAllocationPct)}%`,
+                            minWidth: mintedAllocationPct > 0 ? 3 : 0,
+                        }}
+                    />
+                </div>
+                <DataMono className="mt-2 block text-[0.72rem] text-[var(--ink-faint)]">
+                    {fmtCatch(totalSupplyNum)} minted · {fmtCatch(fixedSupplyNum)} fixed cap
+                </DataMono>
+            </div>
             <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
                 <DonutChart
                     slices={TOKEN_ALLOCATION.map((b, i) => ({
@@ -710,48 +746,7 @@ function ProtocolStats() {
         </div>
     );
 
-    const lotColors = ['var(--accent)', 'var(--accent-blue)', 'var(--accent-green)', 'var(--accent-red)', '#8b5cf6', '#d946ef', '#f59e0b'];
-    const lotSlices = portfolio.positions.map((p, i) => ({
-        label: p.title,
-        value: Number(formatUnits(p.currentValueUsdt6, 6)),
-        color: lotColors[i % lotColors.length],
-    }));
-    const liquidSlice = liquidTreasuryUsd > 0
-        ? [{ label: 'Liquid treasury', value: liquidTreasuryUsd, color: 'var(--ink-faint)' }]
-        : [];
-    const treasuryChart = (
-        <div>
-            <SubHead
-                title="Composition by lot"
-                detail="Each colored slice is a card lot, sized by its current mark. The gray tail is liquid AVAX treasury waiting to be deployed."
-            />
-            <div className="mt-4 flex flex-col gap-4">
-                <SegmentedBar
-                    slices={[...lotSlices, ...liquidSlice]}
-                    height={20}
-                    ariaLabel="Treasury composition by lot"
-                />
-                <ChartLegend
-                    items={[
-                        ...lotSlices.map((s) => ({
-                            color: s.color,
-                            label: s.label,
-                            value: `$${s.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-                            pct: treasurySum > 0 ? (s.value / treasurySum) * 100 : 0,
-                        })),
-                        ...liquidSlice.map((s) => ({
-                            color: s.color,
-                            label: s.label,
-                            value: `$${s.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
-                            pct: treasurySum > 0 ? (s.value / treasurySum) * 100 : 0,
-                        })),
-                    ]}
-                />
-            </div>
-        </div>
-    );
-
-    // Treasury right-column chart — small comparison bars for Liquid / Mark / Cost
+    // Treasury chart — small comparison bars for Liquid / Mark / Cost
     const treasuryCompareChart = (
         <div>
             <SubHead
@@ -828,9 +823,7 @@ function ProtocolStats() {
                     title="Treasury"
                     description="Where protocol value sits today: card lots custodied by Courtyard plus liquid AVAX waiting to be deployed."
                     rows={treasury}
-                    chart={treasuryChart}
-                    layout="side-by-side"
-                    rightNode={treasuryCompareChart}
+                    chart={treasuryCompareChart}
                 />
             </div>
         </section>

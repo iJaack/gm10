@@ -73,6 +73,33 @@ function Round1Archive() {
     const lotCount = portfolio.positions.length;
     const lotWord = lotCount === 1 ? 'lot' : 'lots';
     const lotCountLabel = lotCount > 0 ? `${lotCount} ${lotWord}` : 'lots';
+    const archiveRows = [
+        {
+            label: 'Raised',
+            detail: `${fmtAvax(raised)} / ${fmtAvax(target)} AVAX · 100%`,
+            value: `$${usdValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+        },
+        {
+            label: 'Fill time',
+            detail: '13 Apr 2026, 20:13 UTC → 15 Apr 2026, 16:48 UTC',
+            value: filledLabel,
+        },
+        {
+            label: 'Participants',
+            detail: 'Unique invest() callers',
+            value: participantsLabel,
+        },
+        {
+            label: 'Deployed',
+            detail: `Acquired ${lotCountLabel} via Courtyard custody`,
+            value: `${portfolio.proofSummary.costBasisLabel} cost basis`,
+        },
+        {
+            label: '$CATCH minted',
+            detail: 'Tokens issued to Round 1 participants',
+            value: `${(raised / Number(formatEther(archiveRound.tokenPrice))).toLocaleString('en-US', { maximumFractionDigits: 0 })} $CATCH`,
+        },
+    ];
 
     return (
         <section className="px-4 py-20 border-t border-[var(--rule)]">
@@ -87,32 +114,30 @@ function Round1Archive() {
                     The rest sits in the treasury waiting for Round 2 to close.
                 </p>
 
-                <Hairline className="mt-10" />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Raised</Caption>,
-                    <span className="text-[var(--ink-faint)]">{fmtAvax(raised)} / {fmtAvax(target)} AVAX · 100%</span>,
-                    <span className="text-right text-[var(--text-primary)]">${usdValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Fill time</Caption>,
-                    <span className="text-[var(--ink-faint)]">13 Apr 2026, 20:13 UTC → 15 Apr 2026, 16:48 UTC</span>,
-                    <span className="text-right text-[var(--text-primary)]">{filledLabel}</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Participants</Caption>,
-                    <span className="text-[var(--ink-faint)]">Unique invest() callers</span>,
-                    <span className="text-right text-[var(--text-primary)]">{participantsLabel}</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Deployed</Caption>,
-                    <span className="text-[var(--ink-faint)]">Acquired {lotCountLabel} via Courtyard custody</span>,
-                    <span className="text-right text-[var(--text-primary)]">{portfolio.proofSummary.costBasisLabel} cost basis</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">$CATCH minted</Caption>,
-                    <span className="text-[var(--ink-faint)]">Tokens issued to Round 1 participants</span>,
-                    <span className="text-right text-[var(--text-primary)]">{(raised / Number(formatEther(archiveRound.tokenPrice))).toLocaleString('en-US', { maximumFractionDigits: 0 })} $CATCH</span>,
-                ]} />
+                <div className="mt-10 border-t border-[var(--rule)]">
+                    <div className="md:hidden divide-y divide-[var(--rule)]">
+                        {archiveRows.map((row) => (
+                            <div key={row.label} className="py-5">
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>
+                                <div className="mt-2 text-[1rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">
+                                    {row.value}
+                                </div>
+                                <p className="mt-1 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">
+                                    {row.detail}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="hidden md:block">
+                        {archiveRows.map((row) => (
+                            <LedgerRow key={row.label} columns="240px 1fr 240px" cells={[
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>,
+                                <span className="text-[var(--ink-faint)]">{row.detail}</span>,
+                                <span className="text-right text-[var(--text-primary)]">{row.value}</span>,
+                            ]} />
+                        ))}
+                    </div>
+                </div>
 
                 <div className="mt-6 flex flex-wrap gap-6">
                     <a
@@ -519,26 +544,41 @@ function FundraisingContent() {
                     <p className="mt-2 text-[0.82rem] text-[var(--ink-faint)]">
                         At full cap ({fmtAvax(target)} AVAX): {fmtAvax(target * 0.85)} treasury · {fmtAvax(target * 0.10)} LP · {fmtAvax(target * 0.05)} team.
                     </p>
-                    <Hairline className="mt-8" />
+                    <div className="mt-8 border-t border-[var(--rule)]">
                     {ROUND_PROCEEDS_ALLOCATION.buckets.map((bucket) => {
                         const base = raised > 0 ? raised : target;
                         const allocated = base * (bucket.percent / 100);
                         return (
-                            <LedgerRow
-                                key={bucket.label}
-                                columns="48px 1fr 160px 140px"
-                                cells={[
-                                    <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>,
-                                    <span>
-                                        <span className="text-[var(--text-primary)]">{bucket.label}</span>
-                                        <span className="ml-3 text-[var(--ink-faint)]">{bucket.detail}</span>
-                                    </span>,
-                                    <span className="text-right text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</span>,
-                                    <span className="text-right text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,
-                                ]}
-                            />
+                            <div key={bucket.label}>
+                                <div className="md:hidden border-b border-[var(--rule)] py-5">
+                                    <div className="flex items-baseline justify-between gap-4">
+                                        <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>
+                                        <div className="text-right">
+                                            <div className="text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</div>
+                                            <div className="v2-mono mt-1 text-[0.78rem] text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 text-[var(--text-primary)]">{bucket.label}</div>
+                                    <p className="mt-1 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">{bucket.detail}</p>
+                                </div>
+                                <div className="hidden md:block">
+                                    <LedgerRow
+                                        columns="48px 1fr 160px 140px"
+                                        cells={[
+                                            <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>,
+                                            <span>
+                                                <span className="text-[var(--text-primary)]">{bucket.label}</span>
+                                                <span className="ml-3 text-[var(--ink-faint)]">{bucket.detail}</span>
+                                            </span>,
+                                            <span className="text-right text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</span>,
+                                            <span className="text-right text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,
+                                        ]}
+                                    />
+                                </div>
+                            </div>
                         );
                     })}
+                    </div>
                 </div>
             </section>
 

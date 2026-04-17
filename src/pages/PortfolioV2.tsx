@@ -178,23 +178,40 @@ function ActivityLedger() {
                     </div>
                 ) : (
                     <div>
-                        {items.map((item) => (
-                            <LedgerRow
-                                key={item.id}
-                                columns="120px 160px 1fr 200px"
-                                cells={[
-                                    <span className={item.type === 'Buy' ? 'v2-up v2-mono text-[0.8rem]' : item.type === 'Sell' ? 'v2-down v2-mono text-[0.8rem]' : 'v2-mono text-[0.8rem]'}>
-                                        {item.type.toUpperCase()}
-                                    </span>,
-                                    <span className="text-[var(--ink-faint)]">{item.date}</span>,
-                                    <span>
-                                        <span className="text-[var(--text-primary)]">{item.item}</span>
-                                        <span className="ml-3 text-[var(--ink-faint)]">{item.detail}</span>
-                                    </span>,
-                                    <span className="text-right text-[var(--text-primary)]">{item.amount}</span>,
-                                ]}
-                            />
-                        ))}
+                        <div className="md:hidden divide-y divide-[var(--rule)]">
+                            {items.map((item) => (
+                                <div key={item.id} className="py-5">
+                                    <div className="flex items-baseline justify-between gap-4">
+                                        <span className={item.type === 'Buy' ? 'v2-up v2-mono text-[0.8rem]' : item.type === 'Sell' ? 'v2-down v2-mono text-[0.8rem]' : 'v2-mono text-[0.8rem]'}>
+                                            {item.type.toUpperCase()}
+                                        </span>
+                                        <span className="shrink-0 text-[var(--text-primary)]">{item.amount}</span>
+                                    </div>
+                                    <div className="mt-2 text-[0.82rem] text-[var(--ink-faint)]">{item.date}</div>
+                                    <div className="mt-2 text-[1rem] leading-[1.45] text-[var(--text-primary)]">{item.item}</div>
+                                    <div className="mt-1 text-[0.88rem] leading-[1.5] text-[var(--ink-muted)]">{item.detail}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="hidden md:block">
+                            {items.map((item) => (
+                                <LedgerRow
+                                    key={item.id}
+                                    columns="120px 160px 1fr 200px"
+                                    cells={[
+                                        <span className={item.type === 'Buy' ? 'v2-up v2-mono text-[0.8rem]' : item.type === 'Sell' ? 'v2-down v2-mono text-[0.8rem]' : 'v2-mono text-[0.8rem]'}>
+                                            {item.type.toUpperCase()}
+                                        </span>,
+                                        <span className="text-[var(--ink-faint)]">{item.date}</span>,
+                                        <span>
+                                            <span className="text-[var(--text-primary)]">{item.item}</span>
+                                            <span className="ml-3 text-[var(--ink-faint)]">{item.detail}</span>
+                                        </span>,
+                                        <span className="text-right text-[var(--text-primary)]">{item.amount}</span>,
+                                    ]}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
@@ -247,7 +264,7 @@ function PortfolioContent() {
                         <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
                             Collection
                         </Display>
-                        <p className="mt-4 max-w-[52ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
+                        <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card custodied by Courtyard on Polygon, mirrored onchain.
                             Cost basis is the acquisition price. Current mark follows the registry.
                         </p>

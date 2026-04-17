@@ -3,9 +3,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { BUY_PAGE_DEFAULTS, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
 
-vi.mock('@rainbow-me/rainbowkit', () => ({
-    ConnectButton: () => <button type="button">Connect Wallet</button>,
-}));
+vi.mock('@rainbow-me/rainbowkit', () => {
+    const ConnectButton = Object.assign(
+        () => <button type="button">Connect Wallet</button>,
+        {
+            Custom: ({ children }: { children: any }) =>
+                children({ openConnectModal: () => undefined }),
+        },
+    );
+
+    return { ConnectButton };
+});
 
 vi.mock('./components/Web3Providers', () => ({
     Web3Providers: ({ children }: { children: any }) => <>{children}</>,
@@ -215,6 +223,10 @@ vi.mock('./hooks/useHolderDashboard', () => ({
             liquidTreasury: '$3,528.60',
             holderDistributionAccrued: '$0.00',
         },
+        raw: {
+            referenceNav: 20000n,
+            navPerToken: 20000n,
+        },
     }),
 }));
 
@@ -287,45 +299,40 @@ describe('page compression regressions', () => {
     it('keeps the home page focused on proxy access to elite pokemon-card upside', () => {
         renderAt('/');
 
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/get exposure to trophy-grade pokemon cards/i);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/trophy-grade pokémon cards/i);
         expect(screen.getAllByText(/trophy-grade/i).length).toBeGreaterThanOrEqual(1);
-        expect(screen.getByText(/GM10 gives crypto investors the exposure/i)).toBeInTheDocument();
-        expect(document.getElementById('why-market')).not.toBeNull();
-        expect(document.getElementById('why-gm10')).not.toBeNull();
-        expect(document.getElementById('how-it-works')).not.toBeNull();
-        expect(document.getElementById('proof')).not.toBeNull();
-        expect(document.getElementById('investor-objections')).not.toBeNull();
-        expect(screen.getByText(/Move from the story to the live round and proof/i)).toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /join next round|join the round/i }).length).toBeGreaterThan(0);
+        expect(screen.getByText(/GM10 turns sourcing, diligence, custody, valuation, and exits/i)).toBeInTheDocument();
+        expect(screen.getByText(/the thesis/i)).toBeInTheDocument();
+        expect(screen.getByText(/record public sale/i)).toBeInTheDocument();
+        expect(screen.getByText(/the track record/i)).toBeInTheDocument();
+        expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/round 2 .* live/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('link', { name: /join round|join the round/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
-        expect(screen.getByRole('heading', { name: /the strategy already has a public proof surface/i })).toBeInTheDocument();
-        expect(screen.getByText(/^already raised$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^500 AVAX$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^round 2 raise target$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^up to 5,000 AVAX$/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
+        expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', async () => {
         renderAt('/fundraising');
 
-        expect(await screen.findByRole('heading', { name: /take one position in the full gm10 strategy/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /round 02/i })).toBeInTheDocument();
         expect(screen.queryByText(/you're not buying one card/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^round window$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^profit share$/i)).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /every avax raised has a defined route after finalization/i })).toBeInTheDocument();
-        expect(screen.getByText(/the percentages apply to actual avax raised in round 2/i)).toBeInTheDocument();
-        expect(screen.getByText(/4,250 AVAX goes to the strategy\/card acquisition treasury/i)).toBeInTheDocument();
-        expect(screen.getByText(/250 AVAX goes to LFJ LP/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/separate from realized sale profit/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/Only 0.0004 AVAX remains/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /use exact remaining/i })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /round 1 archive/i })).toBeInTheDocument();
-        expect(screen.getByText(/round 1 is historical context only/i)).toBeInTheDocument();
+        expect(screen.getByText(/^target$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^price$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^window$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^trading terminal$/i)).toBeInTheDocument();
+        expect(screen.getByText(/wallet disconnected/i)).toBeInTheDocument();
+        expect(screen.getByText(/how the 5,000 avax raised so far will split/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/4,250 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/500 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/250 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getByRole('heading', { name: /round 1 closed early/i })).toBeInTheDocument();
         expect(screen.queryByText(/round 1 complete/i)).not.toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: /inspect everything\./i })).toBeInTheDocument();
-        expect(screen.getByText(/^positions$/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/^2$/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/contracts, round state, and recorded positions/i)).toBeInTheDocument();
+        expect(screen.getByText(/proof surface/i)).toBeInTheDocument();
+        expect(screen.getByText(/fund proxy/i)).toBeInTheDocument();
+        expect(screen.getByText(/portfolio registry/i)).toBeInTheDocument();
+        expect(screen.getByText(/wallet accounting/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
@@ -355,13 +362,12 @@ describe('page compression regressions', () => {
     it('renders the portfolio gallery with live positions and activity', async () => {
         renderAt('/portfolio');
 
-        expect(await screen.findByRole('heading', { name: /card portfolio/i })).toBeInTheDocument();
-        expect(screen.getByText(/^2 acquired cards$/i)).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /^collection$/i })).toBeInTheDocument();
+        expect(screen.getByText(/^2 recorded positions$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/courtyard platform nav/i)).toBeInTheDocument();
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/^activity$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^activity ledger$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^buy$/i).length).toBeGreaterThanOrEqual(1);
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
@@ -370,13 +376,14 @@ describe('page compression regressions', () => {
     it('renders the holder dashboard with gated claim and market rows', async () => {
         renderAt('/holders');
 
-        expect(await screen.findByRole('heading', { name: /holder dashboard/i })).toBeInTheDocument();
-        expect(screen.getByText(/claim gated/i)).toBeInTheDocument();
-        expect(screen.getByText(/connect a wallet to check realized profit/i)).toBeInTheDocument();
-        expect(screen.getByText(/\$catch price and liquidity/i)).toBeInTheDocument();
-        expect(screen.getByText(/^LFJ$/)).toBeInTheDocument();
-        expect(screen.getByText(/^Pharaoh$/)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /claim avax disabled/i })).toBeDisabled();
+        expect((await screen.findAllByText(/CATCH \/ USD/i)).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/\$0\.0220/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/connect a wallet to see your \$CATCH/i)).toBeInTheDocument();
+        expect(screen.getByText(/protocol accounting/i)).toBeInTheDocument();
+        expect(screen.getByText(/liquidity & venues/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/^LFJ$/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/^Pharaoh$/).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
     });
 
@@ -387,7 +394,7 @@ describe('page compression regressions', () => {
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
         expect(screen.getByRole('button', { name: /how are round 2 proceeds used/i })).toBeInTheDocument();
 
-        const nextSection = screen.getByRole('heading', { name: /ready to get started\?/i }).closest('section');
+        const nextSection = screen.getByText(/ready to act on it\?/i).closest('section');
         expect(nextSection).not.toBeNull();
         expect(within(nextSection!).getByRole('link', { name: /join the round/i })).toBeInTheDocument();
         expect(within(nextSection!).getByRole('link', { name: /inspect the proof/i })).toBeInTheDocument();
