@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { buildValuationPack } from './lib/valuation.js';
 import { authorizeValuationPackWrite } from './lib/valuation-auth.js';
 import { fetchActiveTreasuryCards } from './lib/valuation-chain.js';
@@ -20,7 +21,7 @@ function parseBody(request) {
   return body;
 }
 
-function weekPackId(date) {
+function formatUtcPackStamp(date) {
   const value = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(value.getTime())) {
     throw new Error('Invalid generatedAt');
@@ -34,8 +35,13 @@ function weekPackId(date) {
   const day = String(value.getUTCDate()).padStart(2, '0');
   const hours = String(value.getUTCHours()).padStart(2, '0');
   const minutes = String(value.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(value.getUTCSeconds()).padStart(2, '0');
 
-  return `valuation-${year}-W${week}-${year}-${month}-${day}-${hours}${minutes}`;
+  return `valuation-${year}-W${week}-${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+}
+
+function createValuationPackId(date) {
+  return `${formatUtcPackStamp(date)}-${randomBytes(3).toString('hex')}`;
 }
 
 function respondError(response, statusCode, message) {
@@ -96,6 +102,7 @@ export function createValuationPackHandler({
   authorizeValuationPackWriteImpl = authorizeValuationPackWrite,
   buildValuationPackImpl = buildValuationPack,
   createValuationPackStoreImpl = createValuationPackStore,
+  createPackIdImpl = createValuationPackId,
   fetchActiveTreasuryCardsImpl = fetchActiveTreasuryCards,
 } = {}) {
   return async function handler(request = {}, response) {
@@ -131,7 +138,7 @@ export function createValuationPackHandler({
           return;
         }
 
-        const packId = weekPackId(generatedAt);
+        const packId = createPackIdImpl(generatedAt);
         const submittedCards = Array.isArray(body.cards) ? body.cards : [];
         const cards = submittedCards.length > 0
           ? submittedCards

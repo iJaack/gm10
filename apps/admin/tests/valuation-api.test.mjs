@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import handler, { createValuationPackHandler } from '../api/valuation-pack.js';
 
-function expectedPackId(date) {
+function expectedPackIdPrefix(date) {
   const value = new Date(date);
   const year = value.getUTCFullYear();
   const startOfYear = Date.UTC(year, 0, 1);
@@ -15,8 +15,14 @@ function expectedPackId(date) {
   const day = String(value.getUTCDate()).padStart(2, '0');
   const hours = String(value.getUTCHours()).padStart(2, '0');
   const minutes = String(value.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(value.getUTCSeconds()).padStart(2, '0');
 
-  return `valuation-${year}-W${week}-${year}-${month}-${day}-${hours}${minutes}`;
+  return `valuation-${year}-W${week}-${year}-${month}-${day}-${hours}${minutes}${seconds}`;
+}
+
+function fixedPackIdFactory(...ids) {
+  let index = 0;
+  return () => ids[index++] ?? ids[ids.length - 1];
 }
 
 function responseRecorder() {
@@ -237,8 +243,11 @@ test('valuation-pack ignores caller packId and generates a safe packId from gene
   process.env.GM10_VALUATION_LOCAL_DIR = dir;
   try {
     await withUnauthenticatedWrites(async () => {
+      const localHandler = createValuationPackHandler({
+        createPackIdImpl: fixedPackIdFactory('valuation-2026-W16-2026-04-17-090000-deadbe'),
+      });
       const response = responseRecorder();
-      await handler({
+      await localHandler({
         method: 'POST',
         body: {
           action: 'generate',
@@ -269,10 +278,74 @@ test('valuation-pack ignores caller packId and generates a safe packId from gene
       }, response);
 
       assert.equal(response.statusCode, 200);
-      assert.equal(response.payload.pack.packId, expectedPackId('2026-04-17T09:00:00.000Z'));
+      assert.equal(response.payload.pack.packId, expectedPackIdPrefix('2026-04-17T09:00:00.000Z') + '-deadbe');
       assert.equal(response.payload.pack.packId.includes('..'), false);
       assert.equal(response.payload.pack.packId.includes('/'), false);
       assert.notEqual(response.payload.pack.packId, '../escape');
+    });
+  } finally {
+    if (previousDir === undefined) {
+      delete process.env.GM10_VALUATION_LOCAL_DIR;
+    } else {
+      process.env.GM10_VALUATION_LOCAL_DIR = previousDir;
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('valuation-pack POST generate retries safely within the same minute using distinct packIds', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gm10-valuation-api-'));
+  const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
+  process.env.GM10_VALUATION_LOCAL_DIR = dir;
+  try {
+    await withUnauthenticatedWrites(async () => {
+      const localHandler = createValuationPackHandler({
+        createPackIdImpl: fixedPackIdFactory(
+          'valuation-2026-W16-2026-04-17-090000-aa11bb',
+          'valuation-2026-W16-2026-04-17-090000-cc22dd',
+        ),
+      });
+
+      const request = {
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [{
+            positionId: 1,
+            cardKey: 'psa:140897946',
+            title: 'Gengar VMAX PSA 10',
+            currentValueUsdc6: '96000000',
+            observations: [
+              {
+                sourceId: 'primary',
+                sourceName: 'Primary',
+                cardKey: 'psa:140897946',
+                observedAt: '2026-04-17T09:00:00.000Z',
+                fetchedAt: '2026-04-17T09:00:00.000Z',
+                valueUsdc6: '100000000',
+                currency: 'USD',
+                confidence: 0.92,
+                rawPayloadRef: 'memory://primary',
+                sourceUrl: 'https://example.com/primary',
+                matchReason: 'exact',
+              },
+            ],
+          }],
+        },
+      };
+
+      const firstResponse = responseRecorder();
+      await localHandler(request, firstResponse);
+      assert.equal(firstResponse.statusCode, 200);
+
+      const secondResponse = responseRecorder();
+      await localHandler(request, secondResponse);
+      assert.equal(secondResponse.statusCode, 200);
+
+      assert.notEqual(firstResponse.payload.pack.packId, secondResponse.payload.pack.packId);
+      assert.match(firstResponse.payload.pack.packId, /^valuation-\d{4}-W\d{1,2}-\d{4}-\d{2}-\d{2}-\d{6}-[a-z0-9]+$/);
+      assert.match(secondResponse.payload.pack.packId, /^valuation-\d{4}-W\d{1,2}-\d{4}-\d{2}-\d{2}-\d{6}-[a-z0-9]+$/);
     });
   } finally {
     if (previousDir === undefined) {
