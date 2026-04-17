@@ -21,6 +21,38 @@ function responseRecorder() {
   };
 }
 
+function observation(sourceId, valueUsdc6 = '100000000') {
+  return {
+    sourceId,
+    sourceName: sourceId,
+    cardKey: 'psa:140897946',
+    observedAt: '2026-04-17T09:00:00.000Z',
+    fetchedAt: '2026-04-17T09:00:00.000Z',
+    valueUsdc6,
+    currency: 'USD',
+    confidence: 0.92,
+    rawPayloadRef: `memory://${sourceId}`,
+    sourceUrl: `https://example.com/${sourceId}`,
+    matchReason: 'exact',
+  };
+}
+
+function missingObservation(sourceId, cardKey) {
+  return {
+    sourceId,
+    sourceName: `${sourceId} source`,
+    cardKey,
+    observedAt: '2026-04-17T09:00:00.000Z',
+    fetchedAt: '2026-04-17T09:00:00.000Z',
+    valueUsdc6: '0',
+    currency: 'USD',
+    confidence: 0,
+    rawPayloadRef: `missing://${sourceId}`,
+    sourceUrl: '',
+    matchReason: 'source not configured',
+  };
+}
+
 async function withUnauthenticatedWrites(fn) {
   const previous = process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES;
   process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES = 'true';
@@ -109,19 +141,11 @@ test('valuation-pack POST generate uses submitted cards without discovery', asyn
             cardKey: 'psa:140897946',
             title: 'Gengar VMAX PSA 10',
             currentValueUsdc6: '96000000',
-            observations: [{
-              sourceId: 'primary',
-              sourceName: 'Primary',
-              cardKey: 'psa:140897946',
-              observedAt: '2026-04-17T09:00:00.000Z',
-              fetchedAt: '2026-04-17T09:00:00.000Z',
-              valueUsdc6: '100000000',
-              currency: 'USD',
-              confidence: 0.92,
-              rawPayloadRef: 'memory://primary',
-              sourceUrl: 'https://example.com/primary',
-              matchReason: 'exact',
-            }],
+            observations: [
+              observation('primary', '100000000'),
+              observation('benchmark', '105000000'),
+              observation('evidence', '140000000'),
+            ],
           }],
         },
       },
@@ -142,19 +166,9 @@ test('valuation-pack POST generate discovers cards when submitted cards are empt
     title: 'Treasury card #7',
     currentValueUsdc6: '0',
     observations: [
-      {
-        sourceId: 'primary',
-        sourceName: 'Primary source',
-        cardKey: '0xabc:7',
-        observedAt: '2026-04-17T09:00:00.000Z',
-        fetchedAt: '2026-04-17T09:00:00.000Z',
-        valueUsdc6: '0',
-        currency: 'USD',
-        confidence: 0,
-        rawPayloadRef: 'missing://primary',
-        sourceUrl: '',
-        matchReason: 'source not configured',
-      },
+      missingObservation('primary', '0xabc:7'),
+      missingObservation('benchmark', '0xabc:7'),
+      missingObservation('evidence', '0xabc:7'),
     ],
   }];
   const handler = createValuationPackHandler({

@@ -12,7 +12,10 @@ import { avalanche } from 'viem/chains';
 
 const DEFAULT_FUND_PROXY_ADDRESS = '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f';
 const DEFAULT_RPC_URL = 'https://api.avax.network/ext/bc/C/rpc';
-const MESSAGE_PREFIX = 'GM10 valuation pack generate:';
+const MESSAGE_PREFIXES = {
+  generate: 'GM10 valuation pack generate:',
+  read: 'GM10 valuation pack read:',
+};
 const MAX_MESSAGE_AGE_MS = 5 * 60 * 1000;
 const MAX_MESSAGE_FUTURE_MS = 60 * 1000;
 
@@ -70,12 +73,13 @@ function getRpcUrl() {
     ?? DEFAULT_RPC_URL;
 }
 
-function parseMessageTimestamp(message) {
-  if (!message.startsWith(MESSAGE_PREFIX)) {
+function parseMessageTimestamp(message, action = 'generate') {
+  const prefix = MESSAGE_PREFIXES[action];
+  if (!prefix || !message.startsWith(prefix)) {
     return null;
   }
 
-  const timestampText = message.slice(MESSAGE_PREFIX.length);
+  const timestampText = message.slice(prefix.length);
   const timestamp = new Date(timestampText);
   if (!timestampText || Number.isNaN(timestamp.getTime()) || timestamp.toISOString() !== timestampText) {
     return null;
@@ -84,8 +88,8 @@ function parseMessageTimestamp(message) {
   return timestamp;
 }
 
-function validateMessageWindow(message, now = Date.now()) {
-  const timestamp = parseMessageTimestamp(message);
+function validateMessageWindow(message, now = Date.now(), action = 'generate') {
+  const timestamp = parseMessageTimestamp(message, action);
   if (!timestamp) {
     return false;
   }
@@ -111,15 +115,17 @@ async function hasAuthorizedRole(address, { client, fundProxyAddress } = {}) {
   return results.some(Boolean);
 }
 
-export async function authorizeValuationPackWrite(request, { client, now } = {}) {
-  if (request?.internal === true || process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES === 'true') {
+export async function authorizeValuationPackRequest(request, { action = 'generate', client, now } = {}) {
+  const allowsUnauthenticated = process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES === 'true'
+    || (action === 'read' && process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_READS === 'true');
+  if (request?.internal === true || allowsUnauthenticated) {
     return { ok: true, address: null };
   }
 
   const addressHeader = getHeader(request?.headers, 'x-gm10-admin-address');
   const message = getHeader(request?.headers, 'x-gm10-admin-message');
   const signature = getHeader(request?.headers, 'x-gm10-admin-signature');
-  if (!addressHeader || !message || !signature || !isAddress(addressHeader) || !validateMessageWindow(message, now)) {
+  if (!addressHeader || !message || !signature || !isAddress(addressHeader) || !validateMessageWindow(message, now, action)) {
     return { ok: false, statusCode: 401, message: 'Unauthorized valuation pack request' };
   }
 
@@ -149,4 +155,12 @@ export async function authorizeValuationPackWrite(request, { client, now } = {})
   }
 
   return { ok: true, address: recoveredAddress };
+}
+
+export function authorizeValuationPackWrite(request, options = {}) {
+  return authorizeValuationPackRequest(request, { ...options, action: 'generate' });
+}
+
+export function authorizeValuationPackRead(request, options = {}) {
+  return authorizeValuationPackRequest(request, { ...options, action: 'read' });
 }

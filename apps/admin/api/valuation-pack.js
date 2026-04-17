@@ -1,8 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { buildValuationPack } from './lib/valuation.js';
-import { authorizeValuationPackWrite } from './lib/valuation-auth.js';
+import { authorizeValuationPackRead, authorizeValuationPackWrite } from './lib/valuation-auth.js';
 import { fetchActiveTreasuryCards } from './lib/valuation-chain.js';
 import { createValuationPackStore } from './lib/valuation-store.js';
+
+const REQUIRED_SOURCE_IDS = ['benchmark', 'evidence', 'primary'];
 
 function parseBody(request) {
   const body = request?.body;
@@ -74,8 +76,21 @@ function validateObservation(observation) {
     'matchReason',
   ];
 
-  return stringFields.every((field) => typeof observation[field] === 'string')
+  return isNonEmptyString(observation.sourceId)
+    && observation.sourceId === observation.sourceId.trim()
+    && stringFields.every((field) => typeof observation[field] === 'string')
     && Number.isFinite(observation.confidence);
+}
+
+function hasDistinctSourceIds(observations) {
+  const sourceIds = observations.map((observation) => observation.sourceId);
+  return new Set(sourceIds).size === observations.length;
+}
+
+function hasRequiredSourceIds(observations) {
+  const sourceIds = observations.map((observation) => observation.sourceId).sort();
+  return sourceIds.length === REQUIRED_SOURCE_IDS.length
+    && sourceIds.every((sourceId, index) => sourceId === REQUIRED_SOURCE_IDS[index]);
 }
 
 function validateCard(card) {
@@ -87,7 +102,10 @@ function validateCard(card) {
     && isNonEmptyString(card.title)
     && isNonEmptyString(card.currentValueUsdc6)
     && Array.isArray(card.observations)
-    && card.observations.every(validateObservation);
+    && card.observations.length === 3
+    && card.observations.every(validateObservation)
+    && hasDistinctSourceIds(card.observations)
+    && hasRequiredSourceIds(card.observations);
 }
 
 function validateCardsPayload(cards) {
@@ -99,6 +117,7 @@ function validateCardsPayload(cards) {
 }
 
 export function createValuationPackHandler({
+  authorizeValuationPackReadImpl = authorizeValuationPackRead,
   authorizeValuationPackWriteImpl = authorizeValuationPackWrite,
   buildValuationPackImpl = buildValuationPack,
   createValuationPackStoreImpl = createValuationPackStore,
@@ -113,6 +132,12 @@ export function createValuationPackHandler({
     response.setHeader('Cache-Control', 'no-store');
 
     if (request.method === 'GET') {
+      const authResult = await authorizeValuationPackReadImpl(request);
+      if (!authResult.ok) {
+        respondError(response, authResult.statusCode ?? 401, authResult.message ?? 'Unauthorized valuation pack request');
+        return;
+      }
+
       const pack = await store.getLatestPack();
       response.status(200).json({ pack });
       return;

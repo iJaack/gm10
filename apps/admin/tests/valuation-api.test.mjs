@@ -43,6 +43,37 @@ function responseRecorder() {
   };
 }
 
+function observation(sourceId, valueUsdc6 = '100000000') {
+  return {
+    sourceId,
+    sourceName: sourceId,
+    cardKey: 'psa:140897946',
+    observedAt: '2026-04-17T09:00:00.000Z',
+    fetchedAt: '2026-04-17T09:00:00.000Z',
+    valueUsdc6,
+    currency: 'USD',
+    confidence: 0.92,
+    rawPayloadRef: `memory://${sourceId}`,
+    sourceUrl: `https://example.com/${sourceId}`,
+    matchReason: 'exact',
+  };
+}
+
+function card(overrides = {}) {
+  return {
+    positionId: 1,
+    cardKey: 'psa:140897946',
+    title: 'Gengar VMAX PSA 10',
+    currentValueUsdc6: '96000000',
+    observations: [
+      observation('primary', '100000000'),
+      observation('benchmark', '105000000'),
+      observation('evidence', '140000000'),
+    ],
+    ...overrides,
+  };
+}
+
 async function withUnauthenticatedWrites(fn) {
   const previous = process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES;
   process.env.GM10_VALUATION_ALLOW_UNAUTHENTICATED_WRITES = 'true';
@@ -69,40 +100,7 @@ test('valuation-pack POST generate creates a pack from submitted cards and obser
         body: {
           action: 'generate',
           generatedAt: '2026-04-17T09:00:00.000Z',
-          cards: [{
-            positionId: 1,
-            cardKey: 'psa:140897946',
-            title: 'Gengar VMAX PSA 10',
-            currentValueUsdc6: '96000000',
-            observations: [
-              {
-                sourceId: 'primary',
-                sourceName: 'Primary',
-                cardKey: 'psa:140897946',
-                observedAt: '2026-04-17T09:00:00.000Z',
-                fetchedAt: '2026-04-17T09:00:00.000Z',
-                valueUsdc6: '100000000',
-                currency: 'USD',
-                confidence: 0.92,
-                rawPayloadRef: 'memory://primary',
-                sourceUrl: 'https://example.com/primary',
-                matchReason: 'exact',
-              },
-              {
-                sourceId: 'benchmark',
-                sourceName: 'Benchmark',
-                cardKey: 'psa:140897946',
-                observedAt: '2026-04-17T09:00:00.000Z',
-                fetchedAt: '2026-04-17T09:00:00.000Z',
-                valueUsdc6: '105000000',
-                currency: 'USD',
-                confidence: 0.92,
-                rawPayloadRef: 'memory://benchmark',
-                sourceUrl: 'https://example.com/benchmark',
-                matchReason: 'exact',
-              },
-            ],
-          }],
+          cards: [card()],
         },
       }, response);
 
@@ -162,27 +160,13 @@ test('valuation-pack returns 400 for malformed generatedAt and card payloads', a
         body: {
           action: 'generate',
           generatedAt: '2026-04-17T09:00:00.000Z',
-          cards: [{
-            positionId: 1,
-            cardKey: 'psa:140897946',
-            title: 'Gengar VMAX PSA 10',
-            currentValueUsdc6: '96000000',
+          cards: [card({
             observations: [
-              {
-                sourceId: 'primary',
-                sourceName: 'Primary',
-                cardKey: 'psa:140897946',
-                observedAt: '2026-04-17T09:00:00.000Z',
-                fetchedAt: '2026-04-17T09:00:00.000Z',
-                valueUsdc6: 'not-a-number',
-                currency: 'USD',
-                confidence: 0.92,
-                rawPayloadRef: 'memory://primary',
-                sourceUrl: 'https://example.com/primary',
-                matchReason: 'exact',
-              },
+              observation('primary', 'not-a-number'),
+              observation('benchmark', '105000000'),
+              observation('evidence', '140000000'),
             ],
-          }],
+          })],
         },
       }, badCardsResponse);
 
@@ -253,27 +237,7 @@ test('valuation-pack ignores caller packId and generates a safe packId from gene
           action: 'generate',
           generatedAt: '2026-04-17T09:00:00.000Z',
           packId: '../escape',
-          cards: [{
-            positionId: 1,
-            cardKey: 'psa:140897946',
-            title: 'Gengar VMAX PSA 10',
-            currentValueUsdc6: '96000000',
-            observations: [
-              {
-                sourceId: 'primary',
-                sourceName: 'Primary',
-                cardKey: 'psa:140897946',
-                observedAt: '2026-04-17T09:00:00.000Z',
-                fetchedAt: '2026-04-17T09:00:00.000Z',
-                valueUsdc6: '100000000',
-                currency: 'USD',
-                confidence: 0.92,
-                rawPayloadRef: 'memory://primary',
-                sourceUrl: 'https://example.com/primary',
-                matchReason: 'exact',
-              },
-            ],
-          }],
+          cards: [card()],
         },
       }, response);
 
@@ -311,27 +275,7 @@ test('valuation-pack POST generate retries safely within the same minute using d
         body: {
           action: 'generate',
           generatedAt: '2026-04-17T09:00:00.000Z',
-          cards: [{
-            positionId: 1,
-            cardKey: 'psa:140897946',
-            title: 'Gengar VMAX PSA 10',
-            currentValueUsdc6: '96000000',
-            observations: [
-              {
-                sourceId: 'primary',
-                sourceName: 'Primary',
-                cardKey: 'psa:140897946',
-                observedAt: '2026-04-17T09:00:00.000Z',
-                fetchedAt: '2026-04-17T09:00:00.000Z',
-                valueUsdc6: '100000000',
-                currency: 'USD',
-                confidence: 0.92,
-                rawPayloadRef: 'memory://primary',
-                sourceUrl: 'https://example.com/primary',
-                matchReason: 'exact',
-              },
-            ],
-          }],
+          cards: [card()],
         },
       };
 
@@ -355,6 +299,148 @@ test('valuation-pack POST generate retries safely within the same minute using d
     }
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('valuation-pack GET requires auth and does not read the latest pack without bypass', async () => {
+  let readCalls = 0;
+  const localHandler = createValuationPackHandler({
+    createValuationPackStoreImpl: () => ({
+      async getLatestPack() {
+        readCalls += 1;
+        return null;
+      },
+      async savePack() {},
+    }),
+  });
+
+  const response = responseRecorder();
+  await localHandler({ method: 'GET' }, response);
+
+  assert.equal(response.statusCode, 401);
+  assert.match(response.payload.error, /Unauthorized|auth/i);
+  assert.equal(readCalls, 0);
+});
+
+test('valuation-pack rejects non-3 observation sets before building a pack', async () => {
+  let buildCalls = 0;
+  const localHandler = createValuationPackHandler({
+    buildValuationPackImpl: () => {
+      buildCalls += 1;
+      throw new Error('build should not run');
+    },
+  });
+
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: [card({ observations: [observation('primary'), observation('benchmark')] })],
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.payload.error, 'Invalid cards payload');
+    assert.equal(buildCalls, 0);
+  });
+});
+
+test('valuation-pack rejects duplicate observation source IDs before building a pack', async () => {
+  let buildCalls = 0;
+  const localHandler = createValuationPackHandler({
+    buildValuationPackImpl: () => {
+      buildCalls += 1;
+      throw new Error('build should not run');
+    },
+  });
+
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: [card({
+          observations: [
+            observation('primary'),
+            observation('primary', '105000000'),
+            observation('evidence', '140000000'),
+          ],
+        })],
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.payload.error, 'Invalid cards payload');
+    assert.equal(buildCalls, 0);
+  });
+});
+
+test('valuation-pack rejects unexpected observation source IDs before building a pack', async () => {
+  let buildCalls = 0;
+  const localHandler = createValuationPackHandler({
+    buildValuationPackImpl: () => {
+      buildCalls += 1;
+      throw new Error('build should not run');
+    },
+  });
+
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: [card({
+          observations: [
+            observation('primary'),
+            observation('benchmark', '105000000'),
+            observation('third-party', '140000000'),
+          ],
+        })],
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.payload.error, 'Invalid cards payload');
+    assert.equal(buildCalls, 0);
+  });
+});
+
+test('valuation-pack rejects whitespace-padded observation source IDs before building a pack', async () => {
+  let buildCalls = 0;
+  const localHandler = createValuationPackHandler({
+    buildValuationPackImpl: () => {
+      buildCalls += 1;
+      throw new Error('build should not run');
+    },
+  });
+
+  await withUnauthenticatedWrites(async () => {
+    const response = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: [card({
+          observations: [
+            observation(' primary '),
+            observation('benchmark', '105000000'),
+            observation('evidence', '140000000'),
+          ],
+        })],
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.payload.error, 'Invalid cards payload');
+    assert.equal(buildCalls, 0);
+  });
 });
 
 test('valuation-pack POST generate requires auth and does not save without bypass', async () => {

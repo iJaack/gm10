@@ -43,28 +43,28 @@ function defaultObservations(cardKey: string): SourceObservation[] {
     const now = new Date().toISOString();
     return [
         {
-            sourceId: 'comparable-1',
-            sourceName: 'Comparable source 1',
+            sourceId: 'primary',
+            sourceName: 'Primary source',
             cardKey,
             observedAt: now,
             fetchedAt: now,
             valueUsdc6: '0',
             currency: 'USD',
             confidence: 0,
-            rawPayloadRef: 'placeholder://source-1',
+            rawPayloadRef: 'placeholder://primary',
             sourceUrl: '',
             matchReason: 'placeholder observation',
         },
         {
-            sourceId: 'comparable-2',
-            sourceName: 'Comparable source 2',
+            sourceId: 'benchmark',
+            sourceName: 'Benchmark source',
             cardKey,
             observedAt: now,
             fetchedAt: now,
             valueUsdc6: '0',
             currency: 'USD',
             confidence: 0,
-            rawPayloadRef: 'placeholder://source-2',
+            rawPayloadRef: 'placeholder://benchmark',
             sourceUrl: '',
             matchReason: 'placeholder observation',
         },
@@ -276,7 +276,13 @@ export function ValuationPanel() {
         setLocalError('');
         reset();
         try {
-            const payload = await fetchLatestValuationPack();
+            if (!address) {
+                throw new Error('Connect an authorized admin wallet before loading a valuation pack.');
+            }
+
+            const message = `GM10 valuation pack read:${new Date().toISOString()}`;
+            const signature = await signMessageAsync({ message });
+            const payload = await fetchLatestValuationPack({ address, message, signature });
             setPack(payload.pack);
             clearApprovals();
         } catch (error) {
@@ -358,8 +364,8 @@ export function ValuationPanel() {
                     <button type="button" className="admin-cta" onClick={runValuationNow} disabled={activeCards.length === 0 || isSigning}>
                         {isSigning ? 'Sign valuation request' : 'Run valuation now'}
                     </button>
-                    <button type="button" className="admin-cta-secondary" onClick={loadLatestPack}>
-                        Load latest pack
+                    <button type="button" className="admin-cta-secondary" onClick={loadLatestPack} disabled={isSigning}>
+                        {isSigning ? 'Sign valuation request' : 'Load latest pack'}
                     </button>
                 </div>
 

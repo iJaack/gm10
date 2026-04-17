@@ -53,15 +53,28 @@ type GenerateValuationPackResponse = {
     error?: string;
 };
 
-export type GenerateValuationPackAuth = {
+export type ValuationPackAuth = {
     address: `0x${string}`;
     message: string;
     signature: `0x${string}`;
 };
 
-export async function fetchLatestValuationPack() {
+export type GenerateValuationPackAuth = ValuationPackAuth;
+
+function valuationPackAuthHeaders(auth: ValuationPackAuth) {
+    return {
+        'x-gm10-admin-address': auth.address,
+        'x-gm10-admin-message': auth.message,
+        'x-gm10-admin-signature': auth.signature,
+    };
+}
+
+export async function fetchLatestValuationPack(auth: ValuationPackAuth) {
     const response = await fetch('/api/valuation-pack', {
-        headers: { Accept: 'application/json' },
+        headers: {
+            Accept: 'application/json',
+            ...valuationPackAuthHeaders(auth),
+        },
     });
 
     if (!response.ok) {
@@ -77,9 +90,7 @@ export async function generateValuationPack(cards: ValuationPackCardInput[], aut
         headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            'x-gm10-admin-address': auth.address,
-            'x-gm10-admin-message': auth.message,
-            'x-gm10-admin-signature': auth.signature,
+            ...valuationPackAuthHeaders(auth),
         },
         body: JSON.stringify({ action: 'generate', cards }),
     });
