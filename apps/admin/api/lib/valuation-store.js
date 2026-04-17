@@ -41,16 +41,16 @@ async function readJsonFile(filePath) {
   }
 }
 
-async function blobJson(pathname, body) {
+async function blobJson(pathname, body, access) {
   await blobPut(pathname, JSON.stringify(body, null, 2), {
-    access: 'public',
+    access,
     allowOverwrite: pathname.endsWith('/latest.json'),
     contentType: JSON_CONTENT_TYPE,
   });
 }
 
-async function readBlobJson(pathname) {
-  const result = await blobGet(pathname, { access: 'public' });
+async function readBlobJson(pathname, access, useCache = true) {
+  const result = await blobGet(pathname, { access, useCache });
   if (!result || result.statusCode === 304 || !result.stream) {
     return null;
   }
@@ -88,9 +88,9 @@ function createLocalStore(rootDir) {
 }
 
 function createBlobStore() {
-  const getPack = async (packId) => readBlobJson(packPath('', packId));
+  const getPack = async (packId) => readBlobJson(packPath('', packId), 'public');
   const getLatestPack = async () => {
-    const latest = await readBlobJson(latestPath(''));
+    const latest = await readBlobJson(latestPath(''), 'private', false);
     if (!latest?.packId) {
       return null;
     }
@@ -100,11 +100,11 @@ function createBlobStore() {
 
   return {
     async savePack(pack) {
-      await blobJson(packPath('', pack.packId), pack);
+      await blobJson(packPath('', pack.packId), pack, 'public');
       await blobJson(latestPath(''), {
         generatedAt: pack.generatedAt,
         packId: pack.packId,
-      });
+      }, 'private');
     },
 
     getPack,
