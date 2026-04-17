@@ -12,35 +12,45 @@ function getAuthorizationHeader(headers) {
   return headers.authorization || headers.Authorization || '';
 }
 
+function shouldRequireCronSecret() {
+  return process.env.NODE_ENV === 'production';
+}
+
 function isAuthorized(request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return true;
+    return !shouldRequireCronSecret();
   }
 
   const authorization = getAuthorizationHeader(request?.headers);
   return authorization === `Bearer ${secret}`;
 }
 
-export default async function valuationCronHandler(request, response) {
-  if (request?.method !== 'GET') {
-    response.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+export function createValuationCronHandler({
+  valuationPackHandlerImpl = valuationPackHandler,
+} = {}) {
+  return async function valuationCronHandler(request, response) {
+    if (request?.method !== 'GET') {
+      response.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
 
-  if (!isAuthorized(request)) {
-    response.status(401).json({ error: 'Unauthorized cron request' });
-    return;
-  }
+    if (!isAuthorized(request)) {
+      response.status(401).json({ error: 'Unauthorized cron request' });
+      return;
+    }
 
-  return valuationPackHandler(
-    {
-      method: 'POST',
-      body: {
-        action: 'generate',
-        generatedAt: new Date().toISOString(),
+    return valuationPackHandlerImpl(
+      {
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: new Date().toISOString(),
+        },
       },
-    },
-    response,
-  );
+      response,
+    );
+  };
 }
+
+export default createValuationCronHandler();
