@@ -548,22 +548,26 @@ function ProtocolStats() {
         },
     ];
 
-    const treasury: StatRow[] = [
+    const treasuryRows: Array<StatRow & { barValue: number; barColor: string; barHint?: string }> = [
         {
             label: 'Liquid treasury',
             detail: liquidTreasuryAvax !== undefined
                 ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · wrapped in stable accounting`
                 : 'AVAX-denominated, wrapped in stable accounting',
             value: holder.labels.liquidTreasury,
-            ratioPct: liquidPct,
             hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total protocol value` : undefined,
+            barValue: liquidTreasuryUsd,
+            barColor: 'var(--ink-faint)',
+            barHint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total` : undefined,
         },
         {
             label: 'Card portfolio (mark)',
             detail: `${portfolio.positions.length} lot${portfolio.positions.length === 1 ? '' : 's'} custodied by Courtyard on Polygon`,
             value: portfolio.proofSummary.onchainCurrentMarkLabel,
-            ratioPct: portfolioPct,
             hint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total protocol value` : undefined,
+            barValue: cardPortfolioUsd,
+            barColor: 'var(--accent-blue)',
+            barHint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total` : undefined,
         },
         {
             label: 'Card portfolio (cost)',
@@ -574,8 +578,15 @@ function ProtocolStats() {
                     ? undefined
                     : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% unrealized vs mark`,
             hintTone: portfolioPnlTone,
+            barValue: cardCostUsd,
+            barColor: 'var(--accent)',
+            barHint:
+                portfolioPnlPct === undefined
+                    ? undefined
+                    : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% vs mark`,
         },
     ];
+    const treasuryMaxValue = Math.max(1, ...treasuryRows.map((row) => row.barValue));
 
     /* ── Visuals ──────────────────────────────────────────────
      * Each group is a single card via StatGroup. Chart content is passed raw —
@@ -583,7 +594,7 @@ function ProtocolStats() {
      *
      * Supply    — big progress bar (hero) + 7-bucket tokenomics donut (chart)
      * Valuation — comparison bars (chart) + 4 precise rows (rows)
-     * Treasury  — composition segmented bar (chart, left) + 3 rows (right)
+     * Treasury  — row-integrated value bars
      * Markets   — venue share split bars (chart) + 4 rows (rows)
      */
 
@@ -756,47 +767,59 @@ function ProtocolStats() {
         </div>
     );
 
-    // Treasury chart — small comparison bars for Liquid / Mark / Cost
-    const treasuryCompareChart = (
+    const treasuryBreakdown = (
         <div>
             <SubHead
                 title="Value breakdown"
                 detail="Liquid AVAX dominates today; card lots are the productive portion. Cost vs mark shows unrealized P/L."
             />
-            <div className="mt-4">
-                <ComparisonBars
-                    height={120}
-                    bars={[
-                        {
-                            label: 'Liquid',
-                            value: liquidTreasuryUsd,
-                            display: fmtUsd(liquidTreasuryUsd),
-                            color: 'var(--ink-faint)',
-                            hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total` : undefined,
-                            hintTone: 'neutral',
-                        },
-                        {
-                            label: 'Cards · mark',
-                            value: cardPortfolioUsd,
-                            display: fmtUsd(cardPortfolioUsd),
-                            color: 'var(--accent-blue)',
-                            hint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total` : undefined,
-                            hintTone: 'neutral',
-                        },
-                        {
-                            label: 'Cards · cost',
-                            value: cardCostUsd,
-                            display: fmtUsd(cardCostUsd),
-                            color: 'var(--accent)',
-                            hint:
-                                portfolioPnlPct === undefined
-                                    ? undefined
-                                    : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% vs mark`,
-                            hintTone: portfolioPnlTone,
-                        },
-                    ]}
-                    ariaLabel="Treasury value breakdown"
-                />
+            <div className="mt-4 divide-y divide-[var(--rule)]">
+                {treasuryRows.map((row) => {
+                    const hintClass =
+                        row.hintTone === 'up' ? 'v2-up'
+                            : row.hintTone === 'down' ? 'v2-down'
+                                : 'text-[var(--ink-faint)]';
+                    const pctOfMax = (row.barValue / treasuryMaxValue) * 100;
+
+                    return (
+                        <div
+                            key={row.label}
+                            className="grid gap-4 py-5 first:pt-0 last:pb-0 md:grid-cols-[1fr_auto] md:items-center md:gap-8"
+                        >
+                            <div className="min-w-0">
+                                <div className="text-[0.82rem] font-semibold text-[var(--text-primary)]">{row.label}</div>
+                                <div className="mt-1 text-[0.78rem] leading-[1.5] text-[var(--ink-faint)]">{row.detail}</div>
+                                <div className="mt-3 flex items-center gap-3">
+                                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                                        <div
+                                            className="h-full rounded-full"
+                                            style={{
+                                                width: `${Math.min(100, Math.max(0, pctOfMax))}%`,
+                                                minWidth: row.barValue > 0 ? 4 : 0,
+                                                background: row.barColor,
+                                            }}
+                                        />
+                                    </div>
+                                    {row.barHint ? (
+                                        <DataMono className="shrink-0 text-[0.7rem] tabular-nums text-[var(--ink-muted)]">
+                                            {row.barHint}
+                                        </DataMono>
+                                    ) : null}
+                                </div>
+                            </div>
+                            <div className="text-right md:min-w-[180px]">
+                                <DataMono className="block text-[1.15rem] font-bold tracking-[-0.01em] tabular-nums text-[var(--text-primary)]">
+                                    {row.value}
+                                </DataMono>
+                                {row.hint ? (
+                                    <div className={`mt-1 text-[0.72rem] font-medium ${hintClass}`}>
+                                        {row.hint}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -807,7 +830,7 @@ function ProtocolStats() {
                 <div className="flex items-baseline justify-between">
                     <SectionLabel>Protocol accounting</SectionLabel>
                     <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
-                        {2 + valuation.length + treasury.length} metrics · 3 groups · 4 charts
+                        {2 + valuation.length + treasuryRows.length} metrics · 3 groups · 4 charts
                     </DataMono>
                 </div>
 
@@ -832,8 +855,9 @@ function ProtocolStats() {
                 <StatGroup
                     title="Treasury"
                     description="Where protocol value sits today: card lots custodied by Courtyard plus liquid AVAX waiting to be deployed."
-                    rows={treasury}
-                    chart={treasuryCompareChart}
+                    rows={[]}
+                    chart={treasuryBreakdown}
+                    metricCount={treasuryRows.length}
                 />
             </div>
         </section>
