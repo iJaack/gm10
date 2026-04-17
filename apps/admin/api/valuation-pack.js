@@ -70,13 +70,23 @@ export function createValuationPackHandler({
         const generatedAt = body.generatedAt || new Date().toISOString();
         const packId = body.packId || weekPackId(generatedAt);
         const submittedCards = Array.isArray(body.cards) ? body.cards : [];
-        const cards = submittedCards.length > 0 ? submittedCards : await fetchActiveTreasuryCardsImpl();
+        const cards = submittedCards.length > 0
+          ? submittedCards
+          : await fetchActiveTreasuryCardsImpl().catch((error) => {
+            throw Object.assign(new Error(error instanceof Error ? error.message : 'Unable to fetch treasury cards'), { statusCode: 500 });
+          });
         const pack = buildValuationPackImpl({ packId, generatedAt, cards });
 
-        await store.savePack(pack);
+        try {
+          await store.savePack(pack);
+        } catch (error) {
+          respondError(response, 500, error instanceof Error ? error.message : 'Unable to save valuation pack');
+          return;
+        }
         response.status(200).json({ pack });
       } catch (error) {
-        respondError(response, 400, error instanceof Error ? error.message : 'Unable to generate valuation pack');
+        const statusCode = error?.statusCode === 500 ? 500 : 400;
+        respondError(response, statusCode, error instanceof Error ? error.message : 'Unable to generate valuation pack');
       }
       return;
     }

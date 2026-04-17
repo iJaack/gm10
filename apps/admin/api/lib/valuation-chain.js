@@ -73,8 +73,20 @@ function missingSourceObservation(sourceId, cardKey) {
   };
 }
 
+function isPlaceholderPosition(position) {
+  const evmCollection = String(position?.evmCollection ?? '').toLowerCase();
+  const tokenId = position?.tokenId?.toString?.() ?? String(position?.tokenId ?? '');
+  const currentValueUsdt6 = position?.currentValueUsdt6?.toString?.() ?? String(position?.currentValueUsdt6 ?? '');
+
+  return (
+    evmCollection === '0x0000000000000000000000000000000000000000'
+    || tokenId === '0'
+    || currentValueUsdt6 === '0'
+  );
+}
+
 export function normalizeRegistryPosition(position) {
-  if (!position || Number(position.status) !== 1) {
+  if (!position || Number(position.status) !== 1 || isPlaceholderPosition(position)) {
     return null;
   }
 

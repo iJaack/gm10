@@ -51,6 +51,19 @@ test('normalizeRegistryPosition returns null for sold or empty positions', () =>
   );
 });
 
+test('normalizeRegistryPosition returns null for active placeholder positions', () => {
+  assert.equal(
+    normalizeRegistryPosition({
+      id: 3n,
+      evmCollection: '0x0000000000000000000000000000000000000000',
+      tokenId: 0n,
+      currentValueUsdt6: 0n,
+      status: 1,
+    }),
+    null,
+  );
+});
+
 test('valuation-pack POST generate uses submitted cards without discovery', async () => {
   let discoveryCalls = 0;
   const savedPacks = [];
@@ -158,4 +171,34 @@ test('valuation-pack POST generate discovers cards when submitted cards are empt
   assert.equal(discoveryCalls, 1);
   assert.equal(response.payload.pack.cards.length, 1);
   assert.equal(response.payload.pack.cards[0].positionId, 7);
+});
+
+test('valuation-pack returns 500 when treasury card discovery fails', async () => {
+  const handler = createValuationPackHandler({
+    createValuationPackStoreImpl: () => ({
+      async getLatestPack() {
+        return null;
+      },
+      async savePack() {},
+    }),
+    fetchActiveTreasuryCardsImpl: async () => {
+      throw new Error('RPC unavailable');
+    },
+  });
+
+  const response = responseRecorder();
+  await handler(
+    {
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: [],
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 500);
+  assert.equal(response.payload.error, 'RPC unavailable');
 });
