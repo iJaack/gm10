@@ -9,6 +9,7 @@ import {
     GM10_PRIMARY_DEPLOYMENT,
     ROUND_2_END_AT,
     ROUND_2_START_AT,
+    collectionExplorerUrl,
     type Gm10ContractLink,
 } from '../data/gm10Config';
 import { BUY_PAGE_DEFAULTS } from '../data/protocol';
@@ -142,7 +143,7 @@ function normalizePosition(raw: CollectiblePositionTuple, liveMetadata?: CardMet
         chain: chainLabel(Number(raw.chainEid)),
         collectionAddress: raw.evmCollection,
         collectionLabel: formatAddress(raw.evmCollection),
-        snowtraceUrl: explorerUrl(raw.evmCollection),
+        snowtraceUrl: collectionExplorerUrl(Number(raw.chainEid), raw.evmCollection, raw.tokenId),
         tokenId: raw.tokenId.toString(),
         acquisition: formatUsdt6(raw.acquisitionPriceUsdt6),
         currentValue: formatUsdt6(raw.currentValueUsdt6),

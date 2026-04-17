@@ -1,15 +1,16 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import NavbarV2 from './components/v2/NavbarV2';
+import FooterV2 from './components/v2/FooterV2';
+import SmoothScroll from './components/v2/SmoothScroll';
 import ScrollToTop from './components/ScrollToTop';
-import Home from './pages/Home';
-import Footer from './components/Footer';
+import Home from './pages/HomeV2';
 import { ThemeContext, useThemeProvider } from './hooks/useTheme';
 
-const Fundraising = lazy(() => import('./pages/Fundraising'));
+const Fundraising = lazy(() => import('./pages/FundraisingV2'));
 const FAQ = lazy(() => import('./pages/FAQ'));
-const Portfolio = lazy(() => import('./pages/Portfolio'));
-const Holders = lazy(() => import('./pages/Holders'));
+const Portfolio = lazy(() => import('./pages/PortfolioV2'));
+const Holders = lazy(() => import('./pages/HoldersV2'));
 const Catch = lazy(() => import('./pages/Catch'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -19,9 +20,10 @@ function App() {
     return (
         <ThemeContext.Provider value={themeValue}>
             <Router>
+                <SmoothScroll />
                 <ScrollToTop />
                 <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
-                    <Navbar />
+                    <NavbarV2 />
                     <div className="flex-grow">
                         <Suspense fallback={<main className="px-4 py-24" />}>
                             <Routes>
@@ -43,7 +45,7 @@ function App() {
                             </Routes>
                         </Suspense>
                     </div>
-                    <Footer />
+                    <FooterV2 />
                 </div>
             </Router>
         </ThemeContext.Provider>

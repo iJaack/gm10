@@ -12,6 +12,29 @@ export const GM10_CHAIN_ID = Number(import.meta.env.VITE_GM10_CHAIN_ID || 43114)
 export const GM10_CHAIN_NAME = import.meta.env.VITE_GM10_CHAIN_NAME || 'Avalanche';
 export const GM10_NETWORK_LABEL = import.meta.env.VITE_GM10_NETWORK_LABEL || 'Avalanche Mainnet';
 export const GM10_EXPLORER_BASE_URL = import.meta.env.VITE_GM10_EXPLORER_BASE_URL || 'https://snowtrace.io/address';
+export const POLYGONSCAN_BASE_URL = 'https://polygonscan.com';
+
+// LayerZero endpoint IDs
+export const LZ_EID_AVALANCHE = 30106;
+export const LZ_EID_POLYGON = 30109;
+
+/**
+ * Resolves a chain-appropriate explorer URL for an NFT collection position.
+ * Polygon positions link to the specific token instance on polygonscan.
+ * Avalanche positions (and fallback) link to the address on snowtrace.
+ */
+export function collectionExplorerUrl(
+    chainEid: number | undefined,
+    address: `0x${string}` | undefined,
+    tokenId?: string | bigint,
+): string {
+    if (!address) return GM10_EXPLORER_BASE_URL;
+    if (chainEid === LZ_EID_POLYGON) {
+        const tokenParam = tokenId !== undefined ? `?a=${tokenId.toString()}` : '';
+        return `${POLYGONSCAN_BASE_URL}/token/${address}${tokenParam}`;
+    }
+    return `${GM10_EXPLORER_BASE_URL}/${address}`;
+}
 
 export const ROUND_1_START_AT = Math.floor(new Date('2026-04-13T20:00:00Z').getTime() / 1000);
 export const ROUND_1_END_AT = Math.floor(new Date('2026-04-24T20:00:00Z').getTime() / 1000);

@@ -108,15 +108,15 @@ export const RECENT_CARD_COMPS = [
 export const THESIS_PILLARS: readonly ThesisPillar[] = [
     {
         title: '🏆 The grails are out of reach',
-        body: 'A single trophy-tier slab can cost more than most people will spend on cards in a lifetime. Building a diversified position at the top is even harder.',
+        body: 'A single trophy-tier slab can cost more than most people will spend on cards in a lifetime. Building a diversified position at that tier is harder.',
     },
     {
         title: '💎 Scarcity drives the premium',
-        body: 'The highest-graded copies of iconic cards trade in a different band entirely. Fewer exist, more collectors want them, and comps keep climbing.',
+        body: 'Top-grade copies of iconic cards trade in a different band than raw copies. Fewer exist, more collectors want them, and comps keep moving.',
     },
     {
         title: '🚪 GM10 opens the door',
-        body: 'One fund, one token, one strategy. No solo card-picking, no storage logistics, no exit negotiations. Just shared exposure to the top of the market.',
+        body: 'One fund, one token, one strategy. No solo card-picking, storage or exit negotiations — just shared exposure to the top of the market.',
     },
 ] as const;
 
@@ -392,7 +392,7 @@ export const HOME_PROOF_STRIP = [
     {
         label: 'Asset thesis',
         value: '$16.5M peak sale',
-        detail: 'Trophy-tier Pokemon cards already trade like a serious alternative asset class.',
+        detail: 'Pikachu Illustrator PSA 10 · Goldin Auctions, Feb 2026 — the most expensive Pokemon card ever sold, and proof the ceiling keeps moving.',
     },
     {
         label: 'Public mechanics',
@@ -480,7 +480,7 @@ export const SUPPORT_PAGE_COPY = {
     faq: {
         eyebrow: 'FAQ',
         title: 'The investor questions that need short answers.',
-        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how Round 2 operates on mainnet.',
+        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how the rounds operate on mainnet.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',
     },

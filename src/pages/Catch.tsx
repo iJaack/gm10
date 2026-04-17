@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import Page from '../components/Page';
+import { Link } from 'react-router-dom';
 import { ScrollReveal } from '../components/ScrollReveal';
-import { PixelLabel, PixelMenuLink } from '../components/PixelUI';
+import { PixelLabel } from '../components/PixelUI';
 import { Web3Providers } from '../components/Web3Providers';
+import { Display, SectionLabel } from '../components/v2/primitives';
 import {
     GOVERNANCE_PHASES,
     SUPPORT_PAGE_COPY,
@@ -308,32 +309,39 @@ const SYSTEM_FLOW_STEPS = [
 
 function CatchContent() {
     const roundState = useFujiRoundState();
-    const roundTone = roundState.isRoundOpen ? 'live' : 'warning';
     const pageCopy = SUPPORT_PAGE_COPY.catch;
 
     return (
-        <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+        <main>
+            <div className="px-4 pt-28 md:pt-32 pb-4">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
 
             {/* ── HEADER ── */}
             <section>
                 <ScrollReveal>
-                    <div className="label-font">{pageCopy.eyebrow}</div>
-                    <h1 className="mt-4 text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] md:text-[3.4rem]">
+                    <div className="flex flex-wrap items-center gap-3 text-[0.7rem] v2-mono tracking-[0.08em] uppercase text-[var(--ink-faint)]">
+                        <Link to="/" className="hover:text-[var(--text-primary)]">Gm10</Link>
+                        <span>·</span>
+                        <span className="text-[var(--text-primary)]">How it works</span>
+                        <span>·</span>
+                        <span>Round {roundState.roundId} {roundState.isRoundOpen ? 'live' : roundState.status.toLowerCase()}</span>
+                    </div>
+                    <div className="mt-10">
+                        <SectionLabel>{pageCopy.eyebrow}</SectionLabel>
+                    </div>
+                    <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
                         {pageCopy.title}
-                    </h1>
-                    <p className="mt-4 text-[1.05rem] leading-[1.7] text-[var(--text-secondary)]">
+                    </Display>
+                    <p className="mt-4 max-w-[52ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                         {pageCopy.body}
                     </p>
-                    <div className="mt-6 flex flex-wrap gap-3">
-                        <PixelMenuLink to={pageCopy.primaryCtaTo} active>
-                            {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
-                        </PixelMenuLink>
-                        <PixelMenuLink to={pageCopy.secondaryCtaTo}>Inspect the Proof</PixelMenuLink>
-                    </div>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                        <PixelLabel tone="live">ERC-20 on Avalanche</PixelLabel>
-                        <PixelLabel tone={roundTone}>{roundState.isRoundOpen ? `Round ${roundState.roundId} live` : roundState.isUpcoming ? `Round ${roundState.roundId} upcoming` : `Round ${roundState.roundId} closed`}</PixelLabel>
-                        <PixelLabel tone={roundTone}>{roundState.status}</PixelLabel>
+                    <div className="mt-6 flex flex-wrap gap-6">
+                        <Link to={pageCopy.primaryCtaTo} className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
+                            → {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
+                        </Link>
+                        <Link to={pageCopy.secondaryCtaTo} className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--ink-muted)] hover:text-[var(--text-primary)]">
+                            → Inspect the proof
+                        </Link>
                     </div>
                 </ScrollReveal>
 
@@ -361,10 +369,10 @@ function CatchContent() {
 
             <section className="mt-16">
                 <ScrollReveal>
-                    <div className="label-font">System flow</div>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                    <SectionLabel>System flow</SectionLabel>
+                    <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
                         How GM10 turns one token into portfolio exposure.
-                    </h2>
+                    </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
                         Read this page as a sequence: contribution, portfolio construction, valuation discipline, and realized exit handling.
                     </p>
@@ -386,10 +394,10 @@ function CatchContent() {
             {/* ── TOKEN ALLOCATION + RELEASE SCHEDULE (unified) ── */}
             <section className="mt-16">
                 <ScrollReveal>
-                    <div className="label-font">Token allocation</div>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                    <SectionLabel>Token allocation</SectionLabel>
+                    <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
                         Where the supply goes.
-                    </h2>
+                    </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
                         100,000,000 CATCH. Fixed supply, no inflation. Each bucket has a locked release schedule — nothing dumps at TGE.
                     </p>
@@ -405,10 +413,10 @@ function CatchContent() {
             {/* ── NAV MECHANICS ── */}
             <section className="mt-16">
                 <ScrollReveal>
-                    <div className="label-font">NAV mechanics</div>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                    <SectionLabel>NAV mechanics</SectionLabel>
+                    <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
                         How the token gets priced.
-                    </h2>
+                    </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
                         NAV per token reflects the marked portfolio value divided by circulating supply. The marking system follows a strict priority cascade.
                     </p>
@@ -446,10 +454,10 @@ function CatchContent() {
             {/* ── PROFIT WATERFALL ── */}
             <section className="mt-16">
                 <ScrollReveal>
-                    <div className="label-font">Profit waterfall</div>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                    <SectionLabel>Profit waterfall</SectionLabel>
+                    <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
                         What happens when a card sells.
-                    </h2>
+                    </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
                         Sale proceeds return onchain first. Principal is restored, then realized profit splits into four buckets — automatically, with no discretion.
                     </p>
@@ -505,10 +513,10 @@ function CatchContent() {
             {/* ── INVESTOR P&L ── */}
             <section className="mt-16">
                 <ScrollReveal>
-                    <div className="label-font">Investor P&L</div>
-                    <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+                    <SectionLabel>Investor P&amp;L</SectionLabel>
+                    <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
                         Your position, always visible.
-                    </h2>
+                    </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
                         The wallet view shows what GM10 can prove: contributed basis, current holdings, and the latest marked value. No fabricated numbers.
                     </p>
@@ -541,7 +549,7 @@ function CatchContent() {
             {/* ── GOVERNANCE ── */}
             <section className="mt-16">
                 <ScrollReveal>
-                    <div className="label-font">Governance roadmap</div>
+                    <SectionLabel>Governance roadmap</SectionLabel>
                     <h3 className="mt-3 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">
                         Progressive decentralization.
                     </h3>
@@ -593,27 +601,9 @@ function CatchContent() {
                 </div>
             </section>
 
-            {/* ── BOTTOM CTA ── */}
-            <section className="mt-16">
-                <ScrollReveal>
-                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-6 py-12 text-center transition-colors">
-                        <div className="label-font">Next step</div>
-                        <h2 className="mx-auto mt-3 text-3xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
-                            {roundState.isRoundOpen ? 'Use the round page to act on the strategy.' : 'Use the round page to inspect the module and wait for the next public round.'}
-                        </h2>
-                        <p className="mx-auto mt-3 max-w-xl text-[0.95rem] leading-[1.7] text-[var(--text-secondary)]">
-                            {roundState.isRoundOpen
-                                ? 'The round page combines contribution flow, what the position represents, and the live proof stack in one decision surface.'
-                                : `The round page still exposes the live proof and module behavior even while Round ${roundState.roundId} is upcoming or closed.`}
-                        </p>
-                        <div className="mt-8 flex flex-wrap justify-center gap-3">
-                            <PixelMenuLink to="/fundraising" active>{getRoundPrimaryCtaLabel(roundState.isRoundOpen)}</PixelMenuLink>
-                            <PixelMenuLink to="/fundraising#proof">Inspect the Proof</PixelMenuLink>
-                        </div>
-                    </div>
-                </ScrollReveal>
-            </section>
-        </Page>
+                </div>
+            </div>
+        </main>
     );
 }
 
