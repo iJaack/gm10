@@ -164,6 +164,10 @@ export function useHolderDashboard() {
             remainingCostBasis: isConnected ? formatUsdt6(investorPnl?.remainingCostBasisUsdt6) : 'Connect wallet',
             liquidTreasury: stableAccounting ? formatUsdt6(stableAccounting[2]) : 'Unavailable',
             holderDistributionAccrued: stableAccounting ? formatUsdt6(stableAccounting[6]) : 'Unavailable',
+            // stableAccounting[4] = buybackAccrued — AVAX set aside to buy back $CATCH from sale proceeds
+            buybackAccrued: stableAccounting ? formatUsdt6(stableAccounting[4]) : 'Unavailable',
+            // stableAccounting[5] = lpAccrued — AVAX set aside to add to LP positions
+            lpAccrued: stableAccounting ? formatUsdt6(stableAccounting[5]) : 'Unavailable',
         },
         raw: {
             profitDistributor: distributorAddress,
@@ -171,6 +175,8 @@ export function useHolderDashboard() {
             claimableProfit,
             catchBalance,
             investorPnl,
+            referenceNav,
+            navPerToken,
         },
     };
 }
