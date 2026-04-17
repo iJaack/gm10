@@ -263,7 +263,7 @@ export function ChartLegend({
             {items.map((it) => (
                 <li
                     key={it.label}
-                    className="flex items-baseline justify-between gap-4 border-b border-[var(--rule)] py-2 last:border-b-0"
+                    className="flex items-baseline justify-between gap-4 border-b border-[var(--rule)] py-2 last:border-b-0 min-w-0"
                 >
                     <div className="flex items-center gap-2.5 min-w-0">
                         <span

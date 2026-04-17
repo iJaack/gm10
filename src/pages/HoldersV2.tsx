@@ -430,8 +430,8 @@ function StatGroup({
 
     const body = layout === 'side-by-side' && chart ? (
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
-            <div>{chart}</div>
-            <div>{rightNode ?? rowsNode}</div>
+            <div className="min-w-0">{chart}</div>
+            <div className="min-w-0">{rightNode ?? rowsNode}</div>
         </div>
     ) : (
         <>
