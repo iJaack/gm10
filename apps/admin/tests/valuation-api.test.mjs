@@ -3,7 +3,21 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import handler from '../api/valuation-pack.js';
+import handler, { createValuationPackHandler } from '../api/valuation-pack.js';
+
+function expectedPackId(date) {
+  const value = new Date(date);
+  const year = value.getUTCFullYear();
+  const startOfYear = Date.UTC(year, 0, 1);
+  const dayOfYear = Math.floor((Date.UTC(year, value.getUTCMonth(), value.getUTCDate()) - startOfYear) / 86_400_000) + 1;
+  const week = Math.floor((dayOfYear - 1) / 7) + 1;
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(value.getUTCDate()).padStart(2, '0');
+  const hours = String(value.getUTCHours()).padStart(2, '0');
+  const minutes = String(value.getUTCMinutes()).padStart(2, '0');
+
+  return `valuation-${year}-W${week}-${year}-${month}-${day}-${hours}${minutes}`;
+}
 
 function responseRecorder() {
   return {
@@ -151,6 +165,93 @@ test('valuation-pack returns 400 for malformed generatedAt and card payloads', a
 
     assert.equal(badCardsResponse.statusCode, 400);
     assert.match(badCardsResponse.payload.error, /Invalid .*valueUsdc6/);
+  } finally {
+    if (previousDir === undefined) {
+      delete process.env.GM10_VALUATION_LOCAL_DIR;
+    } else {
+      process.env.GM10_VALUATION_LOCAL_DIR = previousDir;
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('valuation-pack rejects malformed cards before discovery', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gm10-valuation-api-'));
+  const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
+  process.env.GM10_VALUATION_LOCAL_DIR = dir;
+  let discoverCalls = 0;
+  try {
+    const localHandler = createValuationPackHandler({
+      fetchActiveTreasuryCardsImpl: async () => {
+        discoverCalls += 1;
+        return [];
+      },
+    });
+
+    const response = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        cards: {},
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.payload.error, 'Invalid cards payload');
+    assert.equal(discoverCalls, 0);
+  } finally {
+    if (previousDir === undefined) {
+      delete process.env.GM10_VALUATION_LOCAL_DIR;
+    } else {
+      process.env.GM10_VALUATION_LOCAL_DIR = previousDir;
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('valuation-pack ignores caller packId and generates a safe packId from generatedAt', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gm10-valuation-api-'));
+  const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
+  process.env.GM10_VALUATION_LOCAL_DIR = dir;
+  try {
+    const response = responseRecorder();
+    await handler({
+      method: 'POST',
+      body: {
+        action: 'generate',
+        generatedAt: '2026-04-17T09:00:00.000Z',
+        packId: '../escape',
+        cards: [{
+          positionId: 1,
+          cardKey: 'psa:140897946',
+          title: 'Gengar VMAX PSA 10',
+          currentValueUsdc6: '96000000',
+          observations: [
+            {
+              sourceId: 'primary',
+              sourceName: 'Primary',
+              cardKey: 'psa:140897946',
+              observedAt: '2026-04-17T09:00:00.000Z',
+              fetchedAt: '2026-04-17T09:00:00.000Z',
+              valueUsdc6: '100000000',
+              currency: 'USD',
+              confidence: 0.92,
+              rawPayloadRef: 'memory://primary',
+              sourceUrl: 'https://example.com/primary',
+              matchReason: 'exact',
+            },
+          ],
+        }],
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.payload.pack.packId, expectedPackId('2026-04-17T09:00:00.000Z'));
+    assert.equal(response.payload.pack.packId.includes('..'), false);
+    assert.equal(response.payload.pack.packId.includes('/'), false);
+    assert.notEqual(response.payload.pack.packId, '../escape');
   } finally {
     if (previousDir === undefined) {
       delete process.env.GM10_VALUATION_LOCAL_DIR;

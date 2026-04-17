@@ -68,7 +68,12 @@ export function createValuationPackHandler({
 
       try {
         const generatedAt = body.generatedAt || new Date().toISOString();
-        const packId = body.packId || weekPackId(generatedAt);
+        if (body.cards !== undefined && !Array.isArray(body.cards)) {
+          respondError(response, 400, 'Invalid cards payload');
+          return;
+        }
+
+        const packId = weekPackId(generatedAt);
         const submittedCards = Array.isArray(body.cards) ? body.cards : [];
         const cards = submittedCards.length > 0
           ? submittedCards
