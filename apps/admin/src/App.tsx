@@ -10,13 +10,14 @@ import { DashboardPanel } from './panels/DashboardPanel';
 import { OperationsPanel } from './panels/OperationsPanel';
 import { RoundsPanel } from './panels/RoundsPanel';
 import { CourtyardWizardPanel } from './panels/CourtyardWizardPanel';
+import { ValuationPanel } from './panels/ValuationPanel';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from './hooks/useAdminRole';
 import { SafeAppBootstrap } from './components/SafeAppBootstrap';
 
 const queryClient = new QueryClient();
 
-const TABS = ['Dashboard', 'Rounds', 'Operations', 'Courtyard Wizard'] as const;
+const TABS = ['Dashboard', 'Rounds', 'Operations', 'Courtyard Wizard', 'Valuation'] as const;
 type Tab = typeof TABS[number];
 
 function AdminApp() {
@@ -71,6 +72,7 @@ function AdminApp() {
                 {tab === 'Rounds' && <RoundsPanel />}
                 {tab === 'Operations' && <OperationsPanel />}
                 {tab === 'Courtyard Wizard' && <CourtyardWizardPanel />}
+                {tab === 'Valuation' && <ValuationPanel />}
             </main>
         </div>
     );
