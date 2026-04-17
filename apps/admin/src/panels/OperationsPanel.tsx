@@ -1032,7 +1032,7 @@ export function OperationsPanel() {
                                 <div>COURTYARD marketplace ID: {COURTYARD_MARKETPLACE_ID}</div>
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                                Configure the Polygon custody Safe on-chain. The Hot Wallet is an off-chain operator wallet used
+                                Configure the Polygon custody Safe onchain. The Hot Wallet is an off-chain operator wallet used
                                 only because Courtyard does not support Safe execution.
                             </div>
                             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">

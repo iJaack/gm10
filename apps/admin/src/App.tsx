@@ -24,20 +24,20 @@ function AdminApp() {
     const { address, isAdmin, isManager } = useAdminRole();
 
     return (
-        <div className="min-h-screen bg-[#0b0a14] text-white">
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
             {/* Header */}
-            <header className="border-b border-white/10 bg-[#0d0c1a]">
+            <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg-primary)]/85 backdrop-blur-xl">
                 <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-                    <div>
-                        <span className="text-sm font-bold tracking-widest text-[#4fa8e0]">GM10</span>
-                        <span className="ml-2 text-xs text-gray-500">Admin</span>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-base font-extrabold tracking-[-0.01em] text-[var(--accent-blue)]">GM10</span>
+                        <span className="label-font text-[0.62rem]" style={{ color: 'var(--text-tertiary)' }}>Admin</span>
                     </div>
                     <div className="flex items-center gap-3">
                         {address && (
-                            <span className="hidden rounded-full bg-white/5 px-3 py-1 font-mono text-[0.7rem] text-gray-400 sm:block">
-                                {address.slice(0, 6)}…{address.slice(-4)}
-                                {isAdmin && <span className="ml-2 text-[#f0c030]">admin</span>}
-                                {!isAdmin && isManager && <span className="ml-2 text-[#4fa8e0]">manager</span>}
+                            <span className="hidden items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1 text-[0.72rem] text-[var(--text-secondary)] sm:inline-flex">
+                                <code className="font-mono">{address.slice(0, 6)}…{address.slice(-4)}</code>
+                                {isAdmin && <span className="label-font" style={{ fontSize: '0.6rem' }}>admin</span>}
+                                {!isAdmin && isManager && <span className="label-font" style={{ fontSize: '0.6rem', color: 'var(--accent-blue)' }}>manager</span>}
                             </span>
                         )}
                         <ConnectButton showBalance={false} chainStatus="none" />
@@ -46,17 +46,17 @@ function AdminApp() {
             </header>
 
             {/* Nav tabs */}
-            <div className="border-b border-white/10">
+            <div className="border-b border-[var(--border)]">
                 <div className="mx-auto flex max-w-5xl gap-1 px-6">
                     {TABS.map(t => (
                         <button
                             key={t}
                             type="button"
                             onClick={() => setTab(t)}
-                            className={`px-4 py-3 text-sm transition-colors ${
+                            className={`px-4 py-3 text-sm font-medium tracking-[-0.01em] transition-colors ${
                                 tab === t
-                                    ? 'border-b-2 border-[#4fa8e0] text-white'
-                                    : 'text-gray-500 hover:text-gray-300'
+                                    ? 'border-b-2 border-[var(--accent)] text-[var(--text-primary)]'
+                                    : 'border-b-2 border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                             }`}
                         >
                             {t}
@@ -66,7 +66,7 @@ function AdminApp() {
             </div>
 
             {/* Content */}
-            <main className="mx-auto max-w-5xl px-6 py-8">
+            <main className="mx-auto max-w-5xl px-6 py-10">
                 {tab === 'Dashboard' && <DashboardPanel />}
                 {tab === 'Rounds' && <RoundsPanel />}
                 {tab === 'Operations' && <OperationsPanel />}
@@ -80,7 +80,7 @@ export default function App() {
     return (
         <WagmiProvider config={config as Config}>
             <QueryClientProvider client={queryClient}>
-                <RainbowKitProvider theme={darkTheme({ accentColor: '#4fa8e0' })}>
+                <RainbowKitProvider theme={darkTheme({ accentColor: '#f0c030', accentColorForeground: '#0b0a14', borderRadius: 'large' })}>
                     <SafeAppBootstrap />
                     <RoleGate>
                         <AdminApp />

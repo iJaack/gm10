@@ -7,8 +7,11 @@ export default {
     theme: {
         extend: {
             colors: {
-                accent: '#4fa8e0',
-                'accent-gold': '#f0c030',
+                accent: 'var(--accent)',
+                'accent-gold': 'var(--accent)',
+                'accent-blue': 'var(--accent-blue)',
+                'accent-green': 'var(--accent-green)',
+                'accent-red': 'var(--accent-red)',
             },
         },
     },
