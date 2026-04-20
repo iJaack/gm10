@@ -1,7 +1,17 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { BUY_PAGE_DEFAULTS, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
+
+const wagmiMocks = vi.hoisted(() => ({
+    account: {
+        address: undefined as `0x${string}` | undefined,
+        isConnected: false,
+    },
+    balanceValue: undefined as bigint | undefined,
+    reset: vi.fn(),
+    writeContract: vi.fn(),
+}));
 
 vi.mock('@rainbow-me/rainbowkit', () => {
     const ConnectButton = Object.assign(
@@ -20,15 +30,17 @@ vi.mock('./components/Web3Providers', () => ({
 }));
 
 vi.mock('wagmi', () => ({
-    useAccount: () => ({ isConnected: false }),
-    useBalance: () => ({ data: undefined }),
+    useAccount: () => wagmiMocks.account,
+    useBalance: () => ({
+        data: wagmiMocks.balanceValue === undefined ? undefined : { value: wagmiMocks.balanceValue },
+    }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
     useWriteContract: () => ({
         data: undefined,
         error: undefined,
         isPending: false,
-        reset: () => undefined,
-        writeContract: () => undefined,
+        reset: wagmiMocks.reset,
+        writeContract: wagmiMocks.writeContract,
     }),
 }));
 
@@ -262,6 +274,10 @@ function renderAt(path: string) {
 
 afterEach(() => {
     cleanup();
+    wagmiMocks.account = { address: undefined, isConnected: false };
+    wagmiMocks.balanceValue = undefined;
+    wagmiMocks.reset.mockClear();
+    wagmiMocks.writeContract.mockClear();
     window.history.pushState({}, '', '/');
 });
 
@@ -336,6 +352,62 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
+    });
+
+    it('preflights round 2 buys against the exact remaining cap before submitting', async () => {
+        wagmiMocks.account = {
+            address: '0x1234567890123456789012345678901234567890',
+            isConnected: true,
+        };
+        wagmiMocks.balanceValue = 10n * 10n ** 18n;
+        renderAt('/fundraising');
+
+        const amountInput = await screen.findByPlaceholderText('0.00');
+        fireEvent.change(amountInput, { target: { value: '0.1' } });
+        fireEvent.click(screen.getByRole('button', { name: /confirm invest/i }));
+
+        expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
+        expect(screen.getByText(/only 0\.0004 AVAX remains/i)).toBeInTheDocument();
+    });
+
+    it('submits the round 2 buy when the amount exactly closes the remaining cap', async () => {
+        wagmiMocks.account = {
+            address: '0x1234567890123456789012345678901234567890',
+            isConnected: true,
+        };
+        wagmiMocks.balanceValue = 10n * 10n ** 18n;
+        renderAt('/fundraising');
+
+        const amountInput = await screen.findByPlaceholderText('0.00');
+        fireEvent.change(amountInput, { target: { value: '0.0004' } });
+        fireEvent.click(screen.getByRole('button', { name: /confirm invest/i }));
+
+        expect(wagmiMocks.writeContract).toHaveBeenCalledTimes(1);
+        expect(wagmiMocks.writeContract).toHaveBeenCalledWith(expect.objectContaining({
+            functionName: 'invest',
+            args: [2n],
+            value: 400000000000000n,
+        }));
+    });
+
+    it('normalizes the validated round 2 amount before submitting', async () => {
+        wagmiMocks.account = {
+            address: '0x1234567890123456789012345678901234567890',
+            isConnected: true,
+        };
+        wagmiMocks.balanceValue = 10n * 10n ** 18n;
+        renderAt('/fundraising');
+
+        const amountInput = await screen.findByPlaceholderText('0.00');
+        fireEvent.change(amountInput, { target: { value: '4e-4' } });
+        fireEvent.click(screen.getByRole('button', { name: /confirm invest/i }));
+
+        expect(wagmiMocks.writeContract).toHaveBeenCalledTimes(1);
+        expect(wagmiMocks.writeContract).toHaveBeenCalledWith(expect.objectContaining({
+            functionName: 'invest',
+            args: [2n],
+            value: 400000000000000n,
+        }));
     });
 
     it('keeps round 2 allocation constants aligned with the full-cap example', () => {

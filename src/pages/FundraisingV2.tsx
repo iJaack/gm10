@@ -14,7 +14,7 @@
 import { useMemo, useState } from 'react';
 import { useAccount, useBalance, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { formatEther, parseEther } from 'viem';
+import { formatEther } from 'viem';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import {
     Caption,
@@ -39,9 +39,143 @@ import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiPr
 import { Web3Providers } from '../components/Web3Providers';
 
 const GAS_RESERVE = 0.05;
+const WEI_PER_AVAX = 10n ** 18n;
+const MAX_AVAX_DECIMALS = 18;
 
 function fmtAvax(n: number, digits = n < 1 ? 4 : 2) {
     return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: digits });
+}
+
+type NormalizedInvestmentAmount =
+    | {
+        ok: true;
+        amountNumber: number;
+        amountWei: bigint;
+        normalizedAmount: string;
+    }
+    | {
+        ok: false;
+        error: string;
+    };
+
+function normalizeInvestmentAmount(rawAmount: string): NormalizedInvestmentAmount {
+    const raw = rawAmount.trim();
+    const amountNumber = Number(raw);
+    if (!raw || !Number.isFinite(amountNumber) || amountNumber <= 0) {
+        return { ok: false, error: 'Enter a valid AVAX amount.' };
+    }
+
+    const match = raw.match(/^\+?(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:e([+-]?\d+))?$/i);
+    if (!match) {
+        return { ok: false, error: 'Enter a valid AVAX amount.' };
+    }
+
+    const integerPart = match[1] ?? '0';
+    const fractionPart = match[2] ?? match[3] ?? '';
+    const exponent = Number(match[4] ?? '0');
+    const digits = `${integerPart}${fractionPart}` || '0';
+    const decimalIndex = integerPart.length + exponent;
+
+    let normalizedInteger: string;
+    let normalizedFraction: string;
+    if (decimalIndex <= 0) {
+        normalizedInteger = '0';
+        normalizedFraction = `${'0'.repeat(Math.abs(decimalIndex))}${digits}`;
+    } else if (decimalIndex >= digits.length) {
+        normalizedInteger = `${digits}${'0'.repeat(decimalIndex - digits.length)}`;
+        normalizedFraction = '';
+    } else {
+        normalizedInteger = digits.slice(0, decimalIndex);
+        normalizedFraction = digits.slice(decimalIndex);
+    }
+
+    normalizedInteger = normalizedInteger.replace(/^0+(?=\d)/, '') || '0';
+    normalizedFraction = normalizedFraction.replace(/0+$/, '');
+
+    if (normalizedFraction.length > MAX_AVAX_DECIMALS) {
+        const extraDecimals = normalizedFraction.slice(MAX_AVAX_DECIMALS);
+        if (!/^0+$/.test(extraDecimals)) {
+            return { ok: false, error: 'AVAX amount supports up to 18 decimal places.' };
+        }
+        normalizedFraction = normalizedFraction.slice(0, MAX_AVAX_DECIMALS).replace(/0+$/, '');
+    }
+
+    const fractionWei = (normalizedFraction || '0').padEnd(MAX_AVAX_DECIMALS, '0');
+    const amountWei = (BigInt(normalizedInteger) * WEI_PER_AVAX) + BigInt(fractionWei);
+    if (amountWei <= 0n) {
+        return { ok: false, error: 'Enter an AVAX amount of at least 0.000000000000000001.' };
+    }
+
+    return {
+        ok: true,
+        amountNumber,
+        amountWei,
+        normalizedAmount: normalizedFraction ? `${normalizedInteger}.${normalizedFraction}` : normalizedInteger,
+    };
+}
+
+type InvestmentValidationInput = {
+    rawAmount: string;
+    minInvestmentWei: bigint;
+    maxInvestmentWei: bigint;
+    remainingWei: bigint;
+    exactDustCloseAmount: string | null;
+    roundId: number;
+    minInvestmentLabel: number;
+    maxInvestmentLabel: number;
+    remainingLabel: number;
+    hasBalanceData: boolean;
+    spendableAvax: number;
+};
+
+type InvestmentValidationResult =
+    | {
+        ok: true;
+        normalizedAmount: string;
+        amountWei: bigint;
+    }
+    | {
+        ok: false;
+        error: string;
+    };
+
+function validateInvestmentAmount(input: InvestmentValidationInput): InvestmentValidationResult {
+    const normalized = normalizeInvestmentAmount(input.rawAmount);
+    if (!normalized.ok) return normalized;
+
+    if (input.remainingWei > 0n && normalized.amountWei > input.remainingWei) {
+        return {
+            ok: false,
+            error: input.exactDustCloseAmount
+                ? `Only ${input.exactDustCloseAmount} AVAX remains. Use that exact amount to close Round ${input.roundId}; overpaying the remaining cap reverts.`
+                : `Only ${fmtAvax(input.remainingLabel)} AVAX remains in Round ${input.roundId}.`,
+        };
+    }
+
+    if (input.exactDustCloseAmount && normalized.amountWei !== input.remainingWei) {
+        return {
+            ok: false,
+            error: `Round ${input.roundId} has only ${input.exactDustCloseAmount} AVAX left. Use the exact final amount to close and auto-finalize the round.`,
+        };
+    }
+
+    if (!input.exactDustCloseAmount && normalized.amountWei < input.minInvestmentWei) {
+        return { ok: false, error: `Minimum buy is ${input.minInvestmentLabel} AVAX.` };
+    }
+
+    if (normalized.amountWei > input.maxInvestmentWei) {
+        return { ok: false, error: `Maximum buy is ${input.maxInvestmentLabel} AVAX.` };
+    }
+
+    if (input.hasBalanceData && normalized.amountNumber > input.spendableAvax) {
+        return { ok: false, error: `Insufficient spendable balance. Keep ${GAS_RESERVE} AVAX for gas.` };
+    }
+
+    return {
+        ok: true,
+        amountWei: normalized.amountWei,
+        normalizedAmount: normalized.normalizedAmount,
+    };
 }
 
 function fmtUtc(ts: number) {
@@ -208,7 +342,14 @@ function FundraisingContent() {
     const tokenPrice = round.round ? Number(formatEther(round.round.tokenPrice)) : BUY_PAGE_DEFAULTS.priceAvax;
     const minInvestment = round.round ? Number(formatEther(round.round.minInvestment)) : BUY_PAGE_DEFAULTS.minAvax;
     const maxInvestment = round.round ? Number(formatEther(round.round.maxInvestment)) : BUY_PAGE_DEFAULTS.maxAvax;
-    const remaining = Math.max(0, target - raised);
+    const remainingWei = round.round && round.round.targetAmount > round.round.raisedAmount
+        ? round.round.targetAmount - round.round.raisedAmount
+        : 0n;
+    const remaining = round.round ? Number(formatEther(remainingWei)) : Math.max(0, target - raised);
+    const exactDustCloseAmount = round.round && remainingWei > 0n && remainingWei < round.round.minInvestment
+        ? formatEther(remainingWei)
+        : null;
+    const maxContribution = remaining > 0 ? Math.min(maxInvestment, remaining) : maxInvestment;
     const progress = target > 0 ? Math.min((raised / target) * 100, 100) : 0;
     const isPlanned = round.isPlanned;
     const isRoundActive = round.isRoundOpen;
@@ -247,13 +388,30 @@ function FundraisingContent() {
             setTxError(isUpcoming ? `Round ${roundId} has not opened yet.` : `Round ${roundId} is closed for new buys.`);
             return;
         }
+        const validation = validateInvestmentAmount({
+            rawAmount: amount,
+            minInvestmentWei: round.round.minInvestment,
+            maxInvestmentWei: round.round.maxInvestment,
+            remainingWei,
+            exactDustCloseAmount,
+            roundId,
+            minInvestmentLabel: minInvestment,
+            maxInvestmentLabel: maxInvestment,
+            remainingLabel: remaining,
+            hasBalanceData: Boolean(balanceData),
+            spendableAvax,
+        });
+        if (!validation.ok) {
+            setTxError(validation.error);
+            return;
+        }
         try {
             writeContract({
                 address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
                 abi: GM10_FUND_ABI,
                 functionName: 'invest',
                 args: [BigInt(roundId)],
-                value: parseEther(amount),
+                value: validation.amountWei,
             });
         } catch (error) {
             setTxError(error instanceof Error ? error.message : 'Transaction failed');
@@ -261,7 +419,11 @@ function FundraisingContent() {
     }
 
     function setQuick(frac: number) {
-        const v = Math.max(0, Math.min(maxInvestment, spendableAvax * frac));
+        if (exactDustCloseAmount) {
+            setAmount(exactDustCloseAmount);
+            return;
+        }
+        const v = Math.max(0, Math.min(maxContribution, spendableAvax * frac));
         setAmount(Number(v.toFixed(4)).toString());
     }
 
