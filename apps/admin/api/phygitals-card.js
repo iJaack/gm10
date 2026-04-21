@@ -29,7 +29,7 @@ export async function GET(request) {
 }
 
 export default async function handler(request, response) {
-  if (!response) return GET(request);
+  if (typeof response?.status !== 'function') return GET(request);
 
   try {
     const url = request.query?.url ?? request.query?.slug;
