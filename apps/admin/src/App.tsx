@@ -11,13 +11,14 @@ import { OperationsPanel } from './panels/OperationsPanel';
 import { RoundsPanel } from './panels/RoundsPanel';
 import { CourtyardWizardPanel } from './panels/CourtyardWizardPanel';
 import { ValuationPanel } from './panels/ValuationPanel';
+import { RoadmapPanel } from './panels/RoadmapPanel';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from './hooks/useAdminRole';
 import { SafeAppBootstrap } from './components/SafeAppBootstrap';
 
 const queryClient = new QueryClient();
 
-const TABS = ['Dashboard', 'Rounds', 'Operations', 'Courtyard Wizard', 'Valuation'] as const;
+const TABS = ['Dashboard', 'Rounds', 'Operations', 'Courtyard Wizard', 'Valuation', 'Roadmap'] as const;
 type Tab = typeof TABS[number];
 
 function AdminApp() {
@@ -73,6 +74,7 @@ function AdminApp() {
                 {tab === 'Operations' && <OperationsPanel />}
                 {tab === 'Courtyard Wizard' && <CourtyardWizardPanel />}
                 {tab === 'Valuation' && <ValuationPanel />}
+                {tab === 'Roadmap' && <RoadmapPanel />}
             </main>
         </div>
     );
