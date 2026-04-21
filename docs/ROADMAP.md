@@ -17,7 +17,8 @@ GM10 is moving from founder-led collectible execution toward transparent, gauge-
   Done: public valuation marks now use available market data such as Courtyard when PokemonPriceTracker data is unavailable.
 - [x] Publish public card marks on the website from the latest valuation projection.
   Done: `gm10.xyz` consumes public valuation marks from `admin.gm10.xyz/api/valuation-public`.
-- [ ] Standardize one marketplace checklist for every new venue: approval, custody reference, fees, settlement proof, valuation source, and fallback handling.
+- [x] Standardize one marketplace checklist for every new venue: approval, custody reference, fees, settlement proof, valuation source, and fallback handling.
+  Done: the six-gate checklist now lives in `docs/marketplace-checklist.md`, shared app data, and the admin Operations marketplace tab with Courtyard as the regression fixture.
 - [ ] Expand beyond the first supported workflows into additional collector and marketplace rails.
 
 ## 2. veCATCH Staking and Gauges

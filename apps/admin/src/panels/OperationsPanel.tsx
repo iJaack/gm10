@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useReadContract, useWriteContract } from 'wagmi';
+import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '@protocol/marketplaceChecklist';
 import { COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { TxButton, TxResult } from '../components/TxButton';
@@ -12,6 +13,7 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const COURTYARD_MARKETPLACE_ID = keccak256(stringToHex('COURTYARD'));
 const PURCHASE_STATUS = ['None', 'Approved', 'Funds released', 'Executed', 'Position recorded', 'Cancelled'] as const;
 const SALE_STATUS = ['None', 'Approved', 'Executed', 'Proceeds received', 'Finalized', 'Cancelled'] as const;
+const COURTYARD_CHECKLIST_SUMMARY = summarizeMarketplaceChecklist(MARKETPLACE_CHECKLIST_ITEMS.map((item) => item.id));
 const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
 const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
@@ -855,6 +857,46 @@ export function OperationsPanel() {
                         <p className="text-xs leading-5 text-gray-400">
                             Approve supported marketplaces in the portfolio registry. `COURTYARD` stays the default label for the first operator-assisted workflow.
                         </p>
+                        <Section title="Reusable marketplace checklist">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+                                <div>
+                                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4fa8e0]">Canonical venue gates</div>
+                                    <p className="mt-1 text-xs leading-5 text-gray-400">
+                                        Every new marketplace adapter must clear these gates before execution work starts.
+                                    </p>
+                                </div>
+                                <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+                                    {COURTYARD_CHECKLIST_SUMMARY.completed} / {COURTYARD_CHECKLIST_SUMMARY.total} covered by Courtyard
+                                </div>
+                            </div>
+                            <div className="divide-y divide-white/10">
+                                {MARKETPLACE_CHECKLIST_ITEMS.map((item, index) => (
+                                    <div key={item.id} className="grid gap-2 py-3 md:grid-cols-[2.25rem_1fr] md:gap-3">
+                                        <div className="font-mono text-xs text-gray-500">{String(index + 1).padStart(2, '0')}</div>
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                                <h4 className="text-sm font-semibold text-white">{item.title}</h4>
+                                                <span className="text-[0.66rem] uppercase tracking-[0.14em] text-emerald-200">Required</span>
+                                            </div>
+                                            <p className="mt-1 text-xs leading-5 text-gray-400">{item.gate}</p>
+                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                {item.requiredEvidence.map((evidence) => (
+                                                    <span key={evidence} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[0.68rem] leading-none text-gray-300">
+                                                        {evidence}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <div className="mt-2 text-[0.72rem] leading-5 text-gray-500">
+                                                Courtyard fixture: {item.courtyardFixture}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs leading-5 text-emerald-100">
+                                Acceptance: all required evidence has a durable reference or an explicit unavailable fallback before the next venue is implemented.
+                            </div>
+                        </Section>
                         <label className="flex flex-col gap-1">
                             <span className="text-xs text-gray-400">Marketplace label</span>
                             <input

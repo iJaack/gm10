@@ -1,3 +1,5 @@
+import { MARKETPLACE_CHECKLIST_ITEMS } from '@protocol/marketplaceChecklist';
+
 type RoadmapStatus = 'Done' | 'In progress' | 'Blocked' | 'Planned';
 
 type RoadmapStageId =
@@ -102,11 +104,11 @@ const ROADMAP_NODES: RoadmapNode[] = [
     {
         id: 'marketplace-checklist',
         title: 'Reusable marketplace checklist',
-        status: 'In progress',
+        status: 'Done',
         area: 'Marketplace ops',
         stage: 'marketplaces',
-        notes: 'Canonical checklist covering approval, fee model, custody ref, settlement proof, valuation source, and failure handling.',
-        blockedBy: ['public-proof'],
+        notes: 'Canonical checklist covering approval, fee model, custody ref, settlement proof, valuation source, and failure handling is live in Operations.',
+        detail: `The checklist has ${MARKETPLACE_CHECKLIST_ITEMS.length} required gates and uses Courtyard as the regression fixture for the next venue.`,
     },
     {
         id: 'second-adapter',
