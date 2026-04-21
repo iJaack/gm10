@@ -1,4 +1,4 @@
-import { MARKETPLACE_CHECKLIST_ITEMS } from '@protocol/marketplaceChecklist';
+import { MARKETPLACE_CHECKLIST_ITEMS } from '../data/marketplaceChecklist';
 
 type RoadmapStatus = 'Done' | 'In progress' | 'Blocked' | 'Planned';
 

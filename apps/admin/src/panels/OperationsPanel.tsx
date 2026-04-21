@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
-import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '@protocol/marketplaceChecklist';
+import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
 import { COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { TxButton, TxResult } from '../components/TxButton';
