@@ -45,6 +45,8 @@ GM10 is moving from founder-led collectible execution toward transparent, gauge-
 
 - [x] Make proof surfaces public for rounds, holdings, marks, treasury accounting, and holder dashboards.
   Done: public proof, portfolio, and holder pages are live on `gm10.xyz`.
+- [x] Add living roadmap tracking for public and internal work.
+  Done: the public roadmap lives in this document, and the private admin roadmap is a horizontal blocker diagram in `admin.gm10.xyz`.
 - [ ] Move sensitive controls behind clearer Safe, timelock, and governance processes.
 - [ ] Shift from ops-led execution to community-guided decisions, then to onchain-enforced treasury controls.
 - [ ] Decentralize as fast as the tools, checks, marketplace workflows, and safety limits can support.
