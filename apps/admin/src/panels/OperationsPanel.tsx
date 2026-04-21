@@ -1,25 +1,39 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
-import { useReadContract, useWriteContract } from 'wagmi';
+import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '@protocol/marketplaceChecklist';
 import { COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { TxButton, TxResult } from '../components/TxButton';
+import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
 const BYTES32_RE = /^0x[a-fA-F0-9]{64}$/;
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const COURTYARD_MARKETPLACE_ID = keccak256(stringToHex('COURTYARD'));
+const PHYGITALS_MARKETPLACE_ID = keccak256(stringToHex('PHYGITALS'));
 const PURCHASE_STATUS = ['None', 'Approved', 'Funds released', 'Executed', 'Position recorded', 'Cancelled'] as const;
 const SALE_STATUS = ['None', 'Approved', 'Executed', 'Proceeds received', 'Finalized', 'Cancelled'] as const;
 const COURTYARD_CHECKLIST_SUMMARY = summarizeMarketplaceChecklist(MARKETPLACE_CHECKLIST_ITEMS.map((item) => item.id));
 const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
 const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
+const DEFAULT_SOLANA_MULTISIG = 'GWE93fpg5M4vsfYnpW21pD3t1pQx4XktcAzwhPqYRaTG';
 const LiFiWidget = lazy(() => import('@lifi/widget').then((mod) => ({ default: mod.LiFiWidget })));
 
 type Bytes32 = `0x${string}`;
+
+type LifiTransactionRequest = {
+    to?: `0x${string}`;
+    data?: `0x${string}`;
+    value?: string;
+    chainId?: number;
+    gasLimit?: string;
+    gasPrice?: string;
+    maxFeePerGas?: string;
+    maxPriorityFeePerGas?: string;
+};
 
 type CourtyardAsset = {
     assetId: string;
@@ -60,15 +74,59 @@ type CourtyardAsset = {
     };
 };
 
+type PhygitalsCard = {
+    slug: string;
+    sourceUrl: string;
+    title: string;
+    image: string;
+    assetAddress: string;
+    collectionAddress: string;
+    tokenStandard: string;
+    owner: string;
+    vault: string;
+    marketplace: string;
+    listed: boolean;
+    altFmv?: string;
+    altFmvSource?: string;
+    listing: {
+        priceDecimal: string;
+        priceRaw: string;
+        currency: { symbol: string; mint: string; decimals: number };
+        marketplace: string;
+    } | null;
+    prefill: {
+        purchaseKey: string;
+        assetRef: string;
+        maxSpendUsdt: string;
+        releaseAmountUsdt: string;
+        mandateRef: string;
+        custodyMode: string;
+        tokenStandard: string;
+        evmCollection: string;
+        tokenId: string;
+        nonEvmCollection: string;
+        nonEvmTokenId: string;
+        externalAssetId: string;
+        categoryId: string;
+        marketplaceProvenanceRef: string;
+        acquisitionPriceUsdt: string;
+        metadataRef: string;
+        proofRef: string;
+    };
+};
+
 type FundingQuote = {
     kind: string;
     tool: string;
     fromAmountAvax: string;
     sourceGasAvax: string;
     totalInputAvax: string;
+    toAmountRaw: string;
+    toAmountMinRaw: string;
     toAmountUsd: string;
     executionDuration: number;
     enoughOutput: boolean;
+    transactionRequest: LifiTransactionRequest | null;
 };
 
 type FundingQuotes = {
@@ -78,6 +136,10 @@ type FundingQuotes = {
         bufferedAvax: string;
         bufferBps: number;
     };
+};
+
+type SolanaFundingQuote = {
+    sol: FundingQuote;
 };
 
 type PurchaseForm = {
@@ -128,8 +190,36 @@ function bytes32FromInput(value: string, emptyValue: Bytes32 = zeroHash): Bytes3
     return keccak256(stringToHex(trimmed));
 }
 
+function bytes32FromAssetInput(value: string, emptyValue: Bytes32 = zeroHash): Bytes32 {
+    const trimmed = value.trim();
+    if (!trimmed) return emptyValue;
+    if (BYTES32_RE.test(trimmed)) return trimmed as Bytes32;
+    try {
+        return nonEvmSafeInputToBytes32(trimmed) as Bytes32;
+    } catch {
+        return bytes32FromInput(trimmed, emptyValue);
+    }
+}
+
 function labelBytes32(value: string): Bytes32 {
     return padHex(stringToHex(value.trim().slice(0, 31) || 'POLYGON'), { size: 32, dir: 'right' });
+}
+
+function formatNonEvmSafe(value: `0x${string}` | undefined) {
+    if (!value || value === zeroHash) return 'Unavailable';
+    try {
+        return bytes32ToSolanaAddress(value);
+    } catch {
+        return value;
+    }
+}
+
+function formatRawUnits(value: string | undefined, decimals: number) {
+    try {
+        return formatUnits(BigInt(value ?? '0'), decimals);
+    } catch {
+        return '0';
+    }
 }
 
 function parseUsdt6Input(value: string): bigint {
@@ -188,6 +278,18 @@ export function OperationsPanel() {
     const [excluded, setExcluded] = useState(true);
     const [marketplaceLabel, setMarketplaceLabel] = useState('COURTYARD');
     const [marketplaceApproved, setMarketplaceApproved] = useState(true);
+    const [solanaSafe, setSolanaSafe] = useState(DEFAULT_SOLANA_MULTISIG);
+    const [solanaSafeError, setSolanaSafeError] = useState('');
+    const [solanaFundingDestination, setSolanaFundingDestination] = useState(DEFAULT_SOLANA_MULTISIG);
+    const [solanaFundingAmountAvax, setSolanaFundingAmountAvax] = useState('4');
+    const [solanaFundingQuote, setSolanaFundingQuote] = useState<SolanaFundingQuote | null>(null);
+    const [solanaFundingError, setSolanaFundingError] = useState('');
+    const [solanaFundingLoading, setSolanaFundingLoading] = useState(false);
+    const [solanaFundingTxHash, setSolanaFundingTxHash] = useState<`0x${string}` | undefined>();
+    const [phygitalsUrl, setPhygitalsUrl] = useState('https://www.phygitals.com/card/2021-pokemon-japanese-s-promo-po-wbtuqn');
+    const [phygitalsCard, setPhygitalsCard] = useState<PhygitalsCard | null>(null);
+    const [phygitalsError, setPhygitalsError] = useState('');
+    const [phygitalsLoading, setPhygitalsLoading] = useState(false);
     const [polygonSafe, setPolygonSafe] = useState<string>(MAINNET.polygonCourtyardSafe ?? '');
     const [polygonHotWallet, setPolygonHotWallet] = useState<string>(MAINNET.polygonCourtyardHotWallet ?? '');
     const [treasuryWithdrawalAvax, setTreasuryWithdrawalAvax] = useState('');
@@ -239,6 +341,9 @@ export function OperationsPanel() {
     const [mode, setMode] = useState<'round' | 'profit' | 'marketplace' | 'courtyard' | 'lp'>('round');
 
     const { writeContract, data: txHash, isPending, error, reset } = useWriteContract();
+    const { sendTransactionAsync, isPending: isSolanaFundingPending, error: solanaFundingSendError } = useSendTransaction();
+    const { chainId } = useAccount();
+    const { switchChainAsync } = useSwitchChain();
 
     const { data: stableAccounting } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -366,11 +471,27 @@ export function OperationsPanel() {
         query: { enabled: Boolean(MAINNET.portfolioRegistry) },
     });
 
+    const { data: solanaChainSafe } = useReadContract({
+        address: MAINNET.portfolioRegistry as `0x${string}`,
+        abi: REGISTRY_ABI,
+        functionName: 'getChainSafe',
+        args: [LZ_EID.SOLANA_MAINNET],
+        query: { enabled: Boolean(MAINNET.portfolioRegistry) },
+    });
+
     const { data: courtyardMarketplaceApproved } = useReadContract({
         address: MAINNET.portfolioRegistry as `0x${string}`,
         abi: REGISTRY_ABI,
         functionName: 'isMarketplaceApproved',
         args: [COURTYARD_MARKETPLACE_ID],
+        query: { enabled: Boolean(MAINNET.portfolioRegistry) },
+    });
+
+    const { data: phygitalsMarketplaceApproved } = useReadContract({
+        address: MAINNET.portfolioRegistry as `0x${string}`,
+        abi: REGISTRY_ABI,
+        functionName: 'isMarketplaceApproved',
+        args: [PHYGITALS_MARKETPLACE_ID],
         query: { enabled: Boolean(MAINNET.portfolioRegistry) },
     });
 
@@ -476,6 +597,33 @@ export function OperationsPanel() {
             abi: REGISTRY_ABI,
             functionName: 'setMarketplaceApproval',
             args: [marketplaceId, marketplaceApproved],
+        });
+    }
+
+    function submitPhygitalsSolanaSafe() {
+        if (!MAINNET.portfolioRegistry || !solanaSafe.trim()) return;
+
+        let nonEvmSafe: Bytes32;
+        try {
+            nonEvmSafe = nonEvmSafeInputToBytes32(solanaSafe) as Bytes32;
+        } catch (error) {
+            setSolanaSafeError(error instanceof Error ? error.message : 'Invalid Solana multisig address');
+            return;
+        }
+
+        setSolanaSafeError('');
+        reset();
+        writeContract({
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'setChainSafe',
+            args: [
+                LZ_EID.SOLANA_MAINNET,
+                ADDRESS_ZERO,
+                nonEvmSafe,
+                labelBytes32('SOLANA'),
+                true,
+            ],
         });
     }
 
@@ -586,6 +734,104 @@ export function OperationsPanel() {
         }
     }
 
+    async function quoteSolanaFunding() {
+        setSolanaFundingError('');
+        setSolanaFundingLoading(true);
+        try {
+            if (!effectiveTreasuryAddress) throw new Error('Avalanche treasury Safe is unavailable.');
+            const params = new URLSearchParams({
+                fromAmountAvax: solanaFundingAmountAvax.trim(),
+                fromAddress: effectiveTreasuryAddress,
+                toAddress: solanaFundingDestination.trim(),
+            });
+            const response = await fetch(`/api/lifi-solana-quote?${params.toString()}`);
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Unable to quote LI.FI Solana route');
+            const quote = payload as SolanaFundingQuote;
+            if (!quote.sol.transactionRequest?.to) throw new Error('LI.FI did not return an executable Solana funding route.');
+            setSolanaFundingQuote(quote);
+            return quote;
+        } catch (caught) {
+            setSolanaFundingQuote(null);
+            setSolanaFundingError(caught instanceof Error ? caught.message : 'Unable to prepare Solana funding');
+            return null;
+        } finally {
+            setSolanaFundingLoading(false);
+        }
+    }
+
+    async function ensureAvalanche() {
+        if (chainId !== AVALANCHE_CHAIN_ID && switchChainAsync) {
+            await switchChainAsync({ chainId: AVALANCHE_CHAIN_ID });
+        }
+    }
+
+    async function submitSolanaFunding() {
+        setSolanaFundingError('');
+        setSolanaFundingTxHash(undefined);
+        try {
+            const quote = await quoteSolanaFunding();
+            const tx = quote?.sol.transactionRequest;
+            if (!tx?.to) throw new Error('LI.FI route is missing a transaction request. Refresh the quote.');
+            await ensureAvalanche();
+            const hash = await sendTransactionAsync({
+                to: tx.to,
+                data: tx.data,
+                value: BigInt(tx.value ?? '0'),
+                gas: tx.gasLimit ? BigInt(tx.gasLimit) : undefined,
+                gasPrice: tx.gasPrice ? BigInt(tx.gasPrice) : undefined,
+                maxFeePerGas: tx.maxFeePerGas ? BigInt(tx.maxFeePerGas) : undefined,
+                maxPriorityFeePerGas: tx.maxPriorityFeePerGas ? BigInt(tx.maxPriorityFeePerGas) : undefined,
+            });
+            setSolanaFundingTxHash(hash);
+        } catch (caught) {
+            setSolanaFundingError(caught instanceof Error ? caught.message : 'LI.FI Solana transaction was not submitted');
+        }
+    }
+
+    async function resolvePhygitalsCard() {
+        setPhygitalsError('');
+        setPhygitalsLoading(true);
+        setPhygitalsCard(null);
+        try {
+            const response = await fetch(`/api/phygitals-card?url=${encodeURIComponent(phygitalsUrl.trim())}`);
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Unable to resolve Phygitals card');
+            const card = payload as PhygitalsCard;
+            setPhygitalsCard(card);
+            setPurchase({
+                key: card.prefill.purchaseKey,
+                assetRef: card.prefill.assetRef,
+                maxSpendUsdt: card.prefill.maxSpendUsdt,
+                releaseAmountUsdt: card.prefill.releaseAmountUsdt,
+                mandateRef: card.prefill.mandateRef,
+                executionRef: `phygitals:execution:${card.slug}:${card.assetAddress}`,
+                settlementRef: `phygitals:settlement:${card.slug}:${card.assetAddress}`,
+                proofRef: card.prefill.proofRef,
+            });
+            setPosition({
+                custodyMode: card.prefill.custodyMode,
+                tokenStandard: card.prefill.tokenStandard,
+                evmCollection: card.prefill.evmCollection,
+                tokenId: card.prefill.tokenId,
+                nonEvmCollection: card.prefill.nonEvmCollection,
+                nonEvmTokenId: card.prefill.nonEvmTokenId,
+                externalAssetId: card.prefill.externalAssetId,
+                categoryId: card.prefill.categoryId,
+                marketplaceProvenanceRef: card.prefill.marketplaceProvenanceRef,
+                acquisitionPriceUsdt: card.prefill.acquisitionPriceUsdt,
+                metadataRef: card.prefill.metadataRef,
+                proofRef: card.prefill.proofRef,
+            });
+            setMarketplaceLabel('PHYGITALS');
+            setMarketplaceApproved(true);
+        } catch (caught) {
+            setPhygitalsError(caught instanceof Error ? caught.message : 'Unable to prepare Phygitals card');
+        } finally {
+            setPhygitalsLoading(false);
+        }
+    }
+
     function submitAuthorizePurchase() {
         if (!MAINNET.courtyardWorkflow) return;
         reset();
@@ -599,6 +845,78 @@ export function OperationsPanel() {
                 bytes32FromInput(purchase.assetRef),
                 parseUsdt6Input(purchase.maxSpendUsdt),
                 bytes32FromInput(purchase.mandateRef),
+            ],
+        });
+    }
+
+    function submitAuthorizePhygitalsPurchase() {
+        if (!MAINNET.portfolioRegistry || !purchase.key.trim()) return;
+        reset();
+        writeContract({
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'authorizePurchase',
+            args: [
+                purchaseKey,
+                LZ_EID.SOLANA_MAINNET,
+                PHYGITALS_MARKETPLACE_ID,
+                bytes32FromInput(purchase.assetRef),
+                parseUsdt6Input(purchase.maxSpendUsdt),
+                bytes32FromInput(purchase.mandateRef),
+            ],
+        });
+    }
+
+    function submitReleasePhygitalsFunds() {
+        if (!MAINNET.fundProxy || !purchase.key.trim()) return;
+        reset();
+        writeContract({
+            address: MAINNET.fundProxy,
+            abi: FUND_ADMIN_ABI,
+            functionName: 'releasePurchaseFunds',
+            args: [purchaseKey, parseUsdt6Input(purchase.releaseAmountUsdt)],
+        });
+    }
+
+    function submitRecordPhygitalsExecution() {
+        if (!MAINNET.portfolioRegistry || !purchase.key.trim()) return;
+        reset();
+        writeContract({
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'recordPurchaseExecution',
+            args: [
+                purchaseKey,
+                bytes32FromInput(purchase.executionRef),
+                bytes32FromInput(purchase.settlementRef),
+                bytes32FromInput(purchase.proofRef),
+            ],
+        });
+    }
+
+    function submitRecordPhygitalsPosition() {
+        if (!MAINNET.fundProxy || !purchase.key.trim()) return;
+        reset();
+        writeContract({
+            address: MAINNET.fundProxy,
+            abi: FUND_ADMIN_ABI,
+            functionName: 'recordCollectiblePosition',
+            args: [
+                purchaseKey,
+                {
+                    custodyMode: Number(position.custodyMode),
+                    tokenStandard: bytes32FromInput(position.tokenStandard),
+                    evmCollection: isAddress(position.evmCollection) ? position.evmCollection : ADDRESS_ZERO,
+                    nonEvmCollection: bytes32FromAssetInput(position.nonEvmCollection),
+                    tokenId: parseUintInput(position.tokenId),
+                    nonEvmTokenId: bytes32FromAssetInput(position.nonEvmTokenId),
+                    externalAssetId: bytes32FromAssetInput(position.externalAssetId),
+                    categoryId: bytes32FromInput(position.categoryId),
+                    marketplaceProvenanceRef: bytes32FromInput(position.marketplaceProvenanceRef),
+                    acquisitionPriceUsdt6: parseUsdt6Input(position.acquisitionPriceUsdt),
+                    metadataHash: bytes32FromInput(position.metadataRef),
+                    proofHash: bytes32FromInput(position.proofRef),
+                },
             ],
         });
     }
@@ -646,7 +964,7 @@ export function OperationsPanel() {
                     nonEvmCollection: bytes32FromInput(position.nonEvmCollection),
                     tokenId: parseUintInput(position.tokenId),
                     nonEvmTokenId: bytes32FromInput(position.nonEvmTokenId),
-                    externalAssetId: bytes32FromInput(position.externalAssetId),
+                    externalAssetId: bytes32FromAssetInput(position.externalAssetId),
                     categoryId: bytes32FromInput(position.categoryId),
                     marketplaceProvenanceRef: bytes32FromInput(position.marketplaceProvenanceRef),
                     acquisitionPriceUsdt6: parseUsdt6Input(position.acquisitionPriceUsdt),
@@ -921,6 +1239,209 @@ export function OperationsPanel() {
                                 Save marketplace approval
                             </TxButton>
                         </div>
+
+                        <Section title="Phygitals Solana custody">
+                            <div className="grid gap-1 text-xs text-gray-400">
+                                <div>Solana EID: {LZ_EID.SOLANA_MAINNET}</div>
+                                <div className="break-all">Solana multisig: {formatNonEvmSafe(solanaChainSafe?.nonEvmSafe)}</div>
+                                <div>Solana custody enabled: {solanaChainSafe ? String(solanaChainSafe.enabled) : 'Unavailable'}</div>
+                                <div>PHYGITALS marketplace approved: {phygitalsMarketplaceApproved === undefined ? 'Unavailable' : String(phygitalsMarketplaceApproved)}</div>
+                                <div>PHYGITALS marketplace ID: {PHYGITALS_MARKETPLACE_ID}</div>
+                            </div>
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                Phygitals positions are Solana Metaplex Core assets. Configure the Squads multisig as the
+                                non-EVM custody Safe; the EVM Safe slot is stored as zero address.
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                                <Field
+                                    label="Solana Squads multisig"
+                                    value={solanaSafe}
+                                    onChange={(value) => {
+                                        setSolanaSafe(value);
+                                        setSolanaSafeError('');
+                                    }}
+                                    placeholder="Base58 Solana address"
+                                    mono
+                                />
+                                <TxButton
+                                    onClick={submitPhygitalsSolanaSafe}
+                                    txHash={txHash}
+                                    isPending={isPending}
+                                    disabled={!MAINNET.portfolioRegistry || !solanaSafe.trim()}
+                                >
+                                    Configure Solana Safe
+                                </TxButton>
+                            </div>
+                            {solanaSafeError ? (
+                                <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                    {solanaSafeError}
+                                </div>
+                            ) : null}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMarketplaceLabel('PHYGITALS');
+                                    setMarketplaceApproved(true);
+                                }}
+                                className="w-fit rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-white/10"
+                            >
+                                Prepare PHYGITALS approval
+                            </button>
+
+                            <div className="border-t border-white/10 pt-3">
+                                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                                    <Field
+                                        label="Phygitals card URL"
+                                        value={phygitalsUrl}
+                                        onChange={(value) => {
+                                            setPhygitalsUrl(value);
+                                            setPhygitalsCard(null);
+                                            setPhygitalsError('');
+                                        }}
+                                        placeholder="https://www.phygitals.com/card/..."
+                                        mono
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => void resolvePhygitalsCard()}
+                                        disabled={phygitalsLoading || !phygitalsUrl.trim()}
+                                        className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {phygitalsLoading ? 'Resolving...' : 'Resolve Phygitals card'}
+                                    </button>
+                                </div>
+                                {phygitalsError ? (
+                                    <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {phygitalsError}
+                                    </div>
+                                ) : null}
+                                {phygitalsCard ? (
+                                    <div className="mt-3 grid gap-4 md:grid-cols-[120px_1fr]">
+                                        {phygitalsCard.image ? (
+                                            <img
+                                                src={phygitalsCard.image}
+                                                alt={phygitalsCard.title}
+                                                className="aspect-[3/4] w-full max-w-[120px] rounded-lg object-cover"
+                                            />
+                                        ) : null}
+                                        <div className="grid gap-1 text-xs text-gray-400">
+                                            <div className="text-sm font-semibold text-white">{phygitalsCard.title}</div>
+                                            <div>Price: {phygitalsCard.listing ? `${phygitalsCard.listing.priceDecimal} ${phygitalsCard.listing.currency.symbol}` : `${phygitalsCard.altFmv ?? '0'} ALT FMV`}</div>
+                                            <div>Marketplace: {phygitalsCard.marketplace}</div>
+                                            <div>Vault: {phygitalsCard.vault || 'Unavailable'}</div>
+                                            <div className="break-all">Asset: {phygitalsCard.assetAddress}</div>
+                                            <div className="break-all">Collection: {phygitalsCard.collectionAddress}</div>
+                                            <div className="break-all">Prepared purchase key: {purchase.key}</div>
+                                            <div>Authorization status: {purchaseAuthorization ? statusLabel(PURCHASE_STATUS, purchaseAuthorization.status) : 'Unavailable'}</div>
+                                        </div>
+                                    </div>
+                                ) : null}
+                                <div className="mt-3 grid gap-2 text-xs text-gray-400">
+                                    <div>PHYGITALS purchase chain: Solana mainnet EID {LZ_EID.SOLANA_MAINNET}</div>
+                                    <div>Destination Safe: {formatNonEvmSafe(solanaChainSafe?.nonEvmSafe)}</div>
+                                    <div>Position token standard: {position.tokenStandard}</div>
+                                    <div className="break-all">Position asset: {position.nonEvmTokenId || 'Resolve a Phygitals card'}</div>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    <TxButton
+                                        onClick={submitAuthorizePhygitalsPurchase}
+                                        txHash={txHash}
+                                        isPending={isPending}
+                                        disabled={!MAINNET.portfolioRegistry || !purchase.key.trim() || !phygitalsCard}
+                                    >
+                                        Authorize Phygitals purchase
+                                    </TxButton>
+                                    <TxButton
+                                        onClick={submitReleasePhygitalsFunds}
+                                        txHash={txHash}
+                                        isPending={isPending}
+                                        disabled={!MAINNET.fundProxy || !purchase.key.trim() || !purchase.releaseAmountUsdt || !phygitalsCard}
+                                    >
+                                        Release funds
+                                    </TxButton>
+                                    <TxButton
+                                        onClick={submitRecordPhygitalsExecution}
+                                        txHash={txHash}
+                                        isPending={isPending}
+                                        disabled={!MAINNET.portfolioRegistry || !purchase.key.trim() || !purchase.executionRef || !phygitalsCard}
+                                    >
+                                        Record execution
+                                    </TxButton>
+                                    <TxButton
+                                        onClick={submitRecordPhygitalsPosition}
+                                        txHash={txHash}
+                                        isPending={isPending}
+                                        disabled={!MAINNET.fundProxy || !purchase.key.trim() || !position.nonEvmTokenId || !phygitalsCard}
+                                    >
+                                        Record Solana position
+                                    </TxButton>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-white/10 pt-3">
+                                <div className="mb-3 grid gap-1 text-xs text-gray-400">
+                                    <div>Avalanche treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}</div>
+                                    <div>Source asset: AVAX on Avalanche</div>
+                                    <div>Destination asset: SOL on Solana</div>
+                                </div>
+                                <div className="grid gap-3 md:grid-cols-[minmax(9rem,12rem)_1fr]">
+                                    <Field
+                                        label="Source amount (AVAX)"
+                                        value={solanaFundingAmountAvax}
+                                        onChange={(value) => {
+                                            setSolanaFundingAmountAvax(value);
+                                            setSolanaFundingQuote(null);
+                                            setSolanaFundingError('');
+                                        }}
+                                        placeholder="4"
+                                        type="number"
+                                    />
+                                    <Field
+                                        label="Solana recipient"
+                                        value={solanaFundingDestination}
+                                        onChange={(value) => {
+                                            setSolanaFundingDestination(value);
+                                            setSolanaFundingQuote(null);
+                                            setSolanaFundingError('');
+                                        }}
+                                        placeholder="Base58 Solana address"
+                                        mono
+                                    />
+                                </div>
+                                {solanaFundingQuote ? (
+                                    <div className="mt-3 grid gap-1 text-xs text-gray-400">
+                                        <div>Route: {solanaFundingQuote.sol.tool || 'LI.FI'}</div>
+                                        <div>Estimated receive: {formatRawUnits(solanaFundingQuote.sol.toAmountRaw, 9)} SOL</div>
+                                        <div>Minimum receive: {formatRawUnits(solanaFundingQuote.sol.toAmountMinRaw, 9)} SOL</div>
+                                        <div>Estimated source gas: {solanaFundingQuote.sol.sourceGasAvax} AVAX</div>
+                                    </div>
+                                ) : null}
+                                {solanaFundingError ? (
+                                    <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {solanaFundingError}
+                                    </div>
+                                ) : null}
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => void quoteSolanaFunding()}
+                                        disabled={solanaFundingLoading || !effectiveTreasuryAddress || !solanaFundingAmountAvax.trim() || !solanaFundingDestination.trim()}
+                                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-white/10 disabled:opacity-50"
+                                    >
+                                        {solanaFundingLoading ? 'Quoting...' : 'Refresh LI.FI SOL quote'}
+                                    </button>
+                                    <TxButton
+                                        onClick={() => void submitSolanaFunding()}
+                                        txHash={solanaFundingTxHash}
+                                        isPending={isSolanaFundingPending || solanaFundingLoading}
+                                        disabled={!effectiveTreasuryAddress || !solanaFundingAmountAvax.trim() || !solanaFundingDestination.trim()}
+                                    >
+                                        Submit LI.FI SOL route
+                                    </TxButton>
+                                </div>
+                                <TxResult hash={solanaFundingTxHash} error={solanaFundingSendError} />
+                            </div>
+                        </Section>
                     </div>
                 ) : mode === 'courtyard' ? (
                     <div className="grid gap-4">

@@ -150,6 +150,40 @@ export const FUND_ADMIN_ABI = [
         type: 'function',
     },
     {
+        inputs: [{ name: '_purchaseKey', type: 'bytes32' }, { name: '_amountUsdt6', type: 'uint256' }],
+        name: 'releasePurchaseFunds',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: '_purchaseKey', type: 'bytes32' },
+            {
+                components: [
+                    { name: 'custodyMode', type: 'uint8' },
+                    { name: 'tokenStandard', type: 'bytes32' },
+                    { name: 'evmCollection', type: 'address' },
+                    { name: 'nonEvmCollection', type: 'bytes32' },
+                    { name: 'tokenId', type: 'uint256' },
+                    { name: 'nonEvmTokenId', type: 'bytes32' },
+                    { name: 'externalAssetId', type: 'bytes32' },
+                    { name: 'categoryId', type: 'bytes32' },
+                    { name: 'marketplaceProvenanceRef', type: 'bytes32' },
+                    { name: 'acquisitionPriceUsdt6', type: 'uint256' },
+                    { name: 'metadataHash', type: 'bytes32' },
+                    { name: 'proofHash', type: 'bytes32' },
+                ],
+                name: '_input',
+                type: 'tuple',
+            },
+        ],
+        name: 'recordCollectiblePosition',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
         inputs: [],
         name: 'stableAccounting',
         outputs: [
@@ -404,6 +438,32 @@ export const REGISTRY_ABI = [
     {
         inputs: [{ name: 'marketplaceId', type: 'bytes32' }, { name: 'approved', type: 'bool' }],
         name: 'setMarketplaceApproval',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'purchaseKey', type: 'bytes32' },
+            { name: 'chainEid', type: 'uint32' },
+            { name: 'marketplaceId', type: 'bytes32' },
+            { name: 'assetRef', type: 'bytes32' },
+            { name: 'maxSpendUsdt6', type: 'uint256' },
+            { name: 'mandateHash', type: 'bytes32' },
+        ],
+        name: 'authorizePurchase',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'purchaseKey', type: 'bytes32' },
+            { name: 'executionRef', type: 'bytes32' },
+            { name: 'settlementRef', type: 'bytes32' },
+            { name: 'proofHash', type: 'bytes32' },
+        ],
+        name: 'recordPurchaseExecution',
         outputs: [],
         stateMutability: 'nonpayable',
         type: 'function',

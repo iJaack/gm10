@@ -74,6 +74,24 @@ export function extractCourtyardAssetId(value) {
   return input;
 }
 
+export function extractPhygitalsCardSlug(value) {
+  const input = cleanString(value);
+  if (!input) return undefined;
+
+  try {
+    const url = new URL(input);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const cardIndex = parts.indexOf('card');
+    if (cardIndex >= 0 && parts[cardIndex + 1]) {
+      return parts[cardIndex + 1];
+    }
+  } catch {
+    // Raw slugs are accepted below.
+  }
+
+  return /^[a-zA-Z0-9-]+$/.test(input) ? input : undefined;
+}
+
 function normalizeIdentity(raw) {
   if (!isPlainObject(raw)) return undefined;
 
@@ -83,8 +101,10 @@ function normalizeIdentity(raw) {
   const grade = normalizeGrade(raw.grade ?? subtitle ?? title);
   const courtyardAssetId = cleanString(raw.courtyardAssetId)
     ?? extractCourtyardAssetId(raw.courtyardUrl ?? raw.sourceUrl);
+  const phygitalsSlug = cleanString(raw.phygitalsSlug)
+    ?? extractPhygitalsCardSlug(raw.phygitalsUrl ?? raw.sourceUrl);
 
-  if (!title && !search && !raw.tcgPlayerId && !courtyardAssetId) {
+  if (!title && !search && !raw.tcgPlayerId && !courtyardAssetId && !phygitalsSlug && !raw.phygitalsAssetAddress) {
     return undefined;
   }
 
@@ -96,6 +116,9 @@ function normalizeIdentity(raw) {
     grade,
     tcgPlayerId: cleanString(raw.tcgPlayerId),
     courtyardAssetId,
+    phygitalsSlug,
+    phygitalsUrl: cleanString(raw.phygitalsUrl),
+    phygitalsAssetAddress: cleanString(raw.phygitalsAssetAddress),
   };
 }
 
@@ -125,6 +148,9 @@ export function resolveCardIdentity({
       grade: card?.grade,
       courtyardAssetId: card?.courtyardAssetId,
       courtyardUrl: card?.courtyardUrl,
+      phygitalsSlug: card?.phygitalsSlug,
+      phygitalsUrl: card?.phygitalsUrl,
+      phygitalsAssetAddress: card?.phygitalsAssetAddress,
       tcgPlayerId: card?.tcgPlayerId,
       search: card?.search,
     });

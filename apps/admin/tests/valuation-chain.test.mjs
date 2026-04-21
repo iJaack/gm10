@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { normalizeRegistryPosition } from '../server/lib/valuation-chain.js';
 import { createValuationPackHandler } from '../api/valuation-pack.js';
+import { solanaAddressToBytes32 } from '../src/lib/solanaAddress.js';
 
 function responseRecorder() {
   return {
@@ -91,6 +92,30 @@ test('normalizeRegistryPosition maps active registry tuple to valuation card inp
   assert.equal(card.observations[1].confidence, 0.8);
   assert.equal(card.observations[1].observedAt, '2026-04-17T09:00:00.000Z');
   assert.match(card.observations[1].matchReason, /continuity benchmark/);
+});
+
+test('normalizeRegistryPosition maps active Solana registry tuple to valuation card input', () => {
+  const card = normalizeRegistryPosition(
+    {
+      id: 9n,
+      chainEid: 30168,
+      evmCollection: '0x0000000000000000000000000000000000000000',
+      tokenId: 0n,
+      nonEvmCollection: solanaAddressToBytes32('phygZDQZJZVHvJGYPGoKPYUtXw7mstSYtTtcuh8LJcC'),
+      nonEvmTokenId: solanaAddressToBytes32('9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP'),
+      currentValueUsdt6: 725000000n,
+      status: 1,
+    },
+    { fetchedAt: '2026-04-21T14:00:00.000Z' },
+  );
+
+  assert.equal(card.positionId, 9);
+  assert.equal(card.cardKey, 'solana:phygZDQZJZVHvJGYPGoKPYUtXw7mstSYtTtcuh8LJcC:9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  assert.equal(card.chainEid, 30168);
+  assert.equal(card.nonEvmCollection, 'phygZDQZJZVHvJGYPGoKPYUtXw7mstSYtTtcuh8LJcC');
+  assert.equal(card.nonEvmTokenId, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  assert.equal(card.phygitalsAssetAddress, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  assert.equal(card.currentValueUsdc6, '725000000');
 });
 
 test('normalizeRegistryPosition returns null for sold or empty positions', () => {
@@ -491,6 +516,73 @@ test('fetchActiveTreasuryCards resolves unknown cards from Courtyard token metad
   assert.equal(evidence.sourceName, 'Courtyard');
   assert.equal(evidence.valueUsdc6, '335000000');
   assert.equal(evidence.rawPayloadRef, 'courtyard://asset/dc7a18f55ca39d20e4e6493dbb0d3227d2891f9955b62918aa9c1a7ff8c13b75/fmv_estimate_usd');
+});
+
+test('fetchActiveTreasuryCards enriches Solana positions with Phygitals evidence', async () => {
+  const slug = '2021-pokemon-japanese-s-promo-po-wbtuqn';
+  const reads = {
+    collectiblePositionCount: 1n,
+    getCollectiblePosition: {
+      id: 9n,
+      chainEid: 30168,
+      evmCollection: '0x0000000000000000000000000000000000000000',
+      tokenId: 0n,
+      nonEvmCollection: solanaAddressToBytes32('phygZDQZJZVHvJGYPGoKPYUtXw7mstSYtTtcuh8LJcC'),
+      nonEvmTokenId: solanaAddressToBytes32('9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP'),
+      currentValueUsdt6: 725000000n,
+      status: 1,
+    },
+  };
+  const client = {
+    async readContract({ functionName }) {
+      return reads[functionName];
+    },
+  };
+  const { fetchActiveTreasuryCards } = await import('../server/lib/valuation-chain.js');
+  const cards = await fetchActiveTreasuryCards({
+    client,
+    phygitalsCardMap: { 9: `https://www.phygitals.com/card/${slug}` },
+    pokemonPriceTrackerApiKey: '',
+    fetchImpl: async (url) => {
+      const requestUrl = String(url);
+      if (requestUrl.includes('api.courtyard.io')) {
+        return { ok: false, status: 404, json: async () => ({}) };
+      }
+      assert.equal(requestUrl, `https://www.phygitals.com/card/${slug}`);
+      return {
+        ok: true,
+        text: async () => `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+          props: {
+            pageProps: {
+              card1: {
+                address: '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP',
+                collection_address: 'phygZDQZJZVHvJGYPGoKPYUtXw7mstSYtTtcuh8LJcC',
+                token_standard: 'CORE_NFT',
+                currency: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                price: '725000000',
+                listed: true,
+                marketplace: 'TENSOR',
+                slug,
+                metadata: [
+                  { key: 'Title', value: '2021 Pokemon Japanese S Promo Pokemon Stamp Box Cramorant #226 PSA 10 GEM MINT' },
+                  { key: 'Grade', value: 'PSA 10.0' },
+                ],
+              },
+            },
+          },
+        })}</script>`,
+      };
+    },
+    nowMs: Date.parse('2026-04-21T14:00:00Z'),
+    fetchedAt: '2026-04-21T14:00:00.000Z',
+  });
+
+  assert.equal(cards.length, 1);
+  assert.equal(cards[0].cardKey, 'solana:phygZDQZJZVHvJGYPGoKPYUtXw7mstSYtTtcuh8LJcC:9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  const evidence = cards[0].observations.find((entry) => entry.sourceId === 'evidence');
+  assert.equal(evidence.sourceName, 'Phygitals');
+  assert.equal(evidence.valueUsdc6, '725000000');
+  assert.equal(evidence.rawPayloadRef, `phygitals://card/${slug}/listing/TENSOR/9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP`);
 });
 
 test('fetchActiveTreasuryCards enriches primary source from runtime PokemonPriceTracker identity override', async () => {

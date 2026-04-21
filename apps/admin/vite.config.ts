@@ -12,10 +12,13 @@ type ApiResponse = {
 type ApiRequest = {
     method?: string;
     headers?: IncomingHttpHeaders;
+    query?: Record<string, string>;
     body?: unknown;
 };
 
 const apiHandlers: Record<string, () => Promise<{ default: (request: ApiRequest, response: ApiResponse) => Promise<void> | void }>> = {
+    '/api/lifi-solana-quote': () => import('./api/lifi-solana-quote.js'),
+    '/api/phygitals-card': () => import('./api/phygitals-card.js'),
     '/api/valuation-pack': () => import('./api/valuation-pack.js'),
     '/api/valuation-public': () => import('./api/valuation-public.js'),
 };
@@ -41,8 +44,8 @@ function localApiPlugin(): Plugin {
         name: 'gm10-admin-local-api',
         configureServer(server) {
             server.middlewares.use(async (request, response, next) => {
-                const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
-                const loadHandler = apiHandlers[pathname];
+                const url = new URL(request.url ?? '/', 'http://localhost');
+                const loadHandler = apiHandlers[url.pathname];
                 if (!loadHandler) {
                     next();
                     return;
@@ -67,6 +70,7 @@ function localApiPlugin(): Plugin {
                     await handler({
                         method: request.method,
                         headers: request.headers,
+                        query: Object.fromEntries(url.searchParams.entries()),
                         body: await readRequestBody(request),
                     }, apiResponse);
                 } catch (error) {

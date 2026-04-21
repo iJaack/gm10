@@ -47,6 +47,8 @@ export const LZ_EID = {
     AVALANCHE_FUJI: 43113,
     POLYGON_MAINNET: 30109,
     POLYGON_AMOY: 40267,
+    SOLANA_MAINNET: 30168,
+    SOLANA_DEVNET: 40168,
 } as const;
 
 export const KNOWN_CHAIN_NAMES: Record<number, string> = {
@@ -54,4 +56,6 @@ export const KNOWN_CHAIN_NAMES: Record<number, string> = {
     [LZ_EID.AVALANCHE_FUJI]: 'Fuji',
     [LZ_EID.POLYGON_MAINNET]: 'Polygon',
     [LZ_EID.POLYGON_AMOY]: 'Amoy',
+    [LZ_EID.SOLANA_MAINNET]: 'Solana',
+    [LZ_EID.SOLANA_DEVNET]: 'Solana Devnet',
 };

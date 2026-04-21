@@ -6,10 +6,14 @@ import {
   fetchCourtyardTokenMetadataIdentity,
 } from './courtyard.js';
 import { fetchPokemonPriceTrackerObservation } from './pokemon-price-tracker.js';
+import { fetchPhygitalsEvidenceObservation } from './phygitals.js';
+import { bytes32ToSolanaAddress } from '../../src/lib/solanaAddress.js';
 
 const DEFAULT_REGISTRY_ADDRESS = '0x02962F73AdFAA792636c62d3D2a76d922c6B052c';
 const DEFAULT_RPC_URL = 'https://api.avax.network/ext/bc/C/rpc';
 const MAX_DEFAULT_POSITIONS = 40;
+const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
+const ZERO_BYTES32_RE = /^0x0{64}$/i;
 
 const REGISTRY_ABI = [
   {
@@ -96,15 +100,34 @@ function currentMarkBenchmarkObservation(cardKey, currentValueUsdc6, fetchedAt) 
 }
 
 function isPlaceholderPosition(position) {
+  const currentValueUsdt6 = position?.currentValueUsdt6?.toString?.() ?? String(position?.currentValueUsdt6 ?? '');
+  const hasEvmAsset = hasEvmPositionAsset(position);
+  const hasNonEvmAsset = hasNonEvmPositionAsset(position);
+
+  return currentValueUsdt6 === '0' || (!hasEvmAsset && !hasNonEvmAsset);
+}
+
+function hasEvmPositionAsset(position) {
   const evmCollection = String(position?.evmCollection ?? '').toLowerCase();
   const tokenId = position?.tokenId?.toString?.() ?? String(position?.tokenId ?? '');
-  const currentValueUsdt6 = position?.currentValueUsdt6?.toString?.() ?? String(position?.currentValueUsdt6 ?? '');
+  return evmCollection !== ADDRESS_ZERO && tokenId !== '0';
+}
 
-  return (
-    evmCollection === '0x0000000000000000000000000000000000000000'
-    || tokenId === '0'
-    || currentValueUsdt6 === '0'
-  );
+function hasNonEvmPositionAsset(position) {
+  return !isZeroBytes32(position?.nonEvmCollection) && !isZeroBytes32(position?.nonEvmTokenId);
+}
+
+function isZeroBytes32(value) {
+  return !value || ZERO_BYTES32_RE.test(String(value));
+}
+
+function formatNonEvmBytes32(value) {
+  const input = String(value ?? '');
+  try {
+    return bytes32ToSolanaAddress(input);
+  } catch {
+    return input;
+  }
 }
 
 function parseCourtyardAssetMap(value) {
@@ -124,6 +147,13 @@ function parseCourtyardAssetMap(value) {
 
 function lookupOverride(overrides, card) {
   return overrides[String(card.positionId)] ?? overrides[card.cardKey];
+}
+
+function phygitalsRefFor(value) {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value;
+  if (typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return value.phygitalsSlug ?? value.phygitalsUrl ?? value.slug ?? value.url;
 }
 
 function replaceObservation(observations, replacement) {
@@ -151,15 +181,26 @@ export function normalizeRegistryPosition(position, { fetchedAt = new Date().toI
   }
 
   const positionId = Number(position.id);
+  const currentValueUsdc6 = position.currentValueUsdt6.toString();
   const tokenId = position.tokenId?.toString?.() ?? String(position.tokenId ?? '');
   const evmCollection = String(position.evmCollection ?? '').toLowerCase();
-  const cardKey = `${evmCollection}:${tokenId}`;
-  const currentValueUsdc6 = position.currentValueUsdt6.toString();
+  const nonEvmCollection = formatNonEvmBytes32(position.nonEvmCollection);
+  const nonEvmTokenId = formatNonEvmBytes32(position.nonEvmTokenId);
+  const hasNonEvmAsset = hasNonEvmPositionAsset(position);
+  const cardKey = hasNonEvmAsset
+    ? `solana:${nonEvmCollection}:${nonEvmTokenId}`
+    : `${evmCollection}:${tokenId}`;
 
   return {
     positionId,
     cardKey,
     title: `Treasury card #${positionId}`,
+    chainEid: Number(position.chainEid ?? 0),
+    evmCollection: hasEvmPositionAsset(position) ? evmCollection : undefined,
+    tokenId: hasEvmPositionAsset(position) ? tokenId : undefined,
+    nonEvmCollection: hasNonEvmAsset ? nonEvmCollection : undefined,
+    nonEvmTokenId: hasNonEvmAsset ? nonEvmTokenId : undefined,
+    phygitalsAssetAddress: hasNonEvmAsset ? nonEvmTokenId : undefined,
     currentValueUsdc6,
     observations: [
       missingSourceObservation('primary', cardKey),
@@ -176,6 +217,7 @@ export async function fetchActiveTreasuryCards({
   client,
   fetchImpl = fetch,
   courtyardAssetMap,
+  phygitalsCardMap,
   cardIdentityOverrides,
   pokemonPriceTrackerCardMap,
   pokemonPriceTrackerApiKey = process.env.POKEMON_PRICE_TRACKER_API_KEY,
@@ -198,6 +240,7 @@ export async function fetchActiveTreasuryCards({
     transport: http(resolvedRpcUrl),
   });
   const resolvedCourtyardAssetMap = parseCourtyardAssetMap(courtyardAssetMap);
+  const resolvedPhygitalsCardMap = parseCourtyardAssetMap(phygitalsCardMap);
   const resolvedCardIdentityOverrides = parseCourtyardAssetMap(
     cardIdentityOverrides ?? pokemonPriceTrackerCardMap,
   );
@@ -240,6 +283,18 @@ export async function fetchActiveTreasuryCards({
           cardKey: card.cardKey,
           fetchImpl,
           nowMs,
+          fetchedAt,
+        });
+        card.observations = replaceObservation(card.observations, evidence);
+      }
+      const phygitalsRef = phygitalsRefFor(lookupOverride(resolvedPhygitalsCardMap, card))
+        ?? cardIdentity?.phygitalsSlug
+        ?? cardIdentity?.phygitalsUrl;
+      if (phygitalsRef) {
+        const evidence = await fetchPhygitalsEvidenceObservation({
+          slug: String(phygitalsRef),
+          cardKey: card.cardKey,
+          fetchImpl,
           fetchedAt,
         });
         card.observations = replaceObservation(card.observations, evidence);

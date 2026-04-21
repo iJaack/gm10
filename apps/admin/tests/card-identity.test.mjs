@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   extractCourtyardAssetId,
+  extractPhygitalsCardSlug,
   resolveCardIdentity,
 } from '../server/lib/card-identity.js';
 
@@ -46,6 +47,27 @@ test('resolveCardIdentity prefers runtime overrides over curated metadata', () =
   assert.equal(identity.courtyardAssetId, 'runtime-courtyard-id');
 });
 
+test('resolveCardIdentity keeps Phygitals runtime hints', () => {
+  const identity = resolveCardIdentity({
+    position: { id: 9n },
+    card: {
+      positionId: 9,
+      title: 'Treasury card #9',
+      cardKey: 'solana:collection:asset',
+    },
+    overrides: {
+      9: {
+        title: '2021 Pokemon Japanese S Promo Pokemon Stamp Box Cramorant #226 PSA 10 GEM MINT',
+        phygitalsUrl: 'https://www.phygitals.com/card/2021-pokemon-japanese-s-promo-po-wbtuqn',
+        phygitalsAssetAddress: '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP',
+      },
+    },
+  });
+
+  assert.equal(identity.phygitalsSlug, '2021-pokemon-japanese-s-promo-po-wbtuqn');
+  assert.equal(identity.phygitalsAssetAddress, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+});
+
 test('resolveCardIdentity returns undefined for unknown generic registry cards', () => {
   const identity = resolveCardIdentity({
     position: { id: 99n },
@@ -66,4 +88,13 @@ test('extractCourtyardAssetId parses Courtyard asset URLs and raw ids', () => {
   );
   assert.equal(extractCourtyardAssetId('courtyard-asset-1'), 'courtyard-asset-1');
   assert.equal(extractCourtyardAssetId(''), undefined);
+});
+
+test('extractPhygitalsCardSlug parses Phygitals card URLs and raw slugs', () => {
+  assert.equal(
+    extractPhygitalsCardSlug('https://www.phygitals.com/card/2021-pokemon-japanese-s-promo-po-wbtuqn'),
+    '2021-pokemon-japanese-s-promo-po-wbtuqn',
+  );
+  assert.equal(extractPhygitalsCardSlug('2021-pokemon-japanese-s-promo-po-wbtuqn'), '2021-pokemon-japanese-s-promo-po-wbtuqn');
+  assert.equal(extractPhygitalsCardSlug(''), undefined);
 });
