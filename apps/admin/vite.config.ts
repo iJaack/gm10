@@ -16,7 +16,12 @@ type ApiRequest = {
     body?: unknown;
 };
 
-const apiHandlers: Record<string, () => Promise<{ default: (request: ApiRequest, response: ApiResponse) => Promise<void> | void }>> = {
+type ApiHandlerModule = {
+    default?: (request: ApiRequest, response: ApiResponse) => Promise<void> | void;
+    GET?: (request: Request) => Promise<Response> | Response;
+};
+
+const apiHandlers: Record<string, () => Promise<ApiHandlerModule>> = {
     '/api/lifi-solana-quote': () => import('./api/lifi-solana-quote.js'),
     '/api/phygitals-card': () => import('./api/phygitals-card.js'),
     '/api/valuation-pack': () => import('./api/valuation-pack.js'),
@@ -52,7 +57,7 @@ function localApiPlugin(): Plugin {
                 }
 
                 try {
-                    const { default: handler } = await loadHandler();
+                    const handlerModule = await loadHandler();
                     const apiResponse: ApiResponse = {
                         setHeader: (name, value) => response.setHeader(name, value),
                         status: (code) => {
@@ -67,12 +72,30 @@ function localApiPlugin(): Plugin {
                         },
                     };
 
-                    await handler({
-                        method: request.method,
-                        headers: request.headers,
-                        query: Object.fromEntries(url.searchParams.entries()),
-                        body: await readRequestBody(request),
-                    }, apiResponse);
+                    if (handlerModule.default) {
+                        await handlerModule.default({
+                            method: request.method,
+                            headers: request.headers,
+                            query: Object.fromEntries(url.searchParams.entries()),
+                            body: await readRequestBody(request),
+                        }, apiResponse);
+                        return;
+                    }
+
+                    if (request.method === 'GET' && handlerModule.GET) {
+                        const apiResult = await handlerModule.GET(new Request(url.toString(), {
+                            method: 'GET',
+                            headers: request.headers as HeadersInit,
+                        }));
+                        response.statusCode = apiResult.status;
+                        apiResult.headers.forEach((value, name) => response.setHeader(name, value));
+                        response.end(await apiResult.text());
+                        return;
+                    }
+
+                    response.statusCode = 405;
+                    response.setHeader('content-type', 'application/json');
+                    response.end(JSON.stringify({ error: 'Unsupported local API handler' }));
                 } catch (error) {
                     response.statusCode = 500;
                     response.setHeader('content-type', 'application/json');
