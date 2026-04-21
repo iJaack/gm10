@@ -1,3 +1,5 @@
+import { buildValuationPack } from '../server/lib/valuation.js';
+import { fetchActiveTreasuryCards } from '../server/lib/valuation-chain.js';
 import { createValuationPackStore } from '../server/lib/valuation-store.js';
 
 function respondError(response, statusCode, message) {
@@ -10,13 +12,14 @@ function setCorsHeaders(response) {
   response.setHeader('Access-Control-Allow-Headers', 'accept, content-type');
 }
 
-function publicCardMark(card, pack) {
+function publicCardMark(card, pack, { requireSubmitted = true } = {}) {
   if (
-    card?.decision !== 'approved'
-    || !card?.submittedTxHash
-    || card?.consensus?.status !== 'passed'
+    card?.consensus?.status !== 'passed'
     || !card?.consensus?.proposedValueUsdc6
   ) {
+    return null;
+  }
+  if (requireSubmitted && (card?.decision !== 'approved' || !card?.submittedTxHash)) {
     return null;
   }
 
@@ -31,8 +34,20 @@ function publicCardMark(card, pack) {
   };
 }
 
+async function buildLivePublicPack({ buildValuationPackImpl, fetchActiveTreasuryCardsImpl }) {
+  const generatedAt = new Date().toISOString();
+  const cards = await fetchActiveTreasuryCardsImpl();
+  return buildValuationPackImpl({
+    packId: `public-live-${generatedAt.replace(/[^0-9A-Za-z]/g, '')}`,
+    generatedAt,
+    cards,
+  });
+}
+
 export function createValuationPublicHandler({
+  buildValuationPackImpl = buildValuationPack,
   createValuationPackStoreImpl = createValuationPackStore,
+  fetchActiveTreasuryCardsImpl = fetchActiveTreasuryCards,
 } = {}) {
   return async function handler(request = {}, response) {
     setCorsHeaders(response);
@@ -55,12 +70,27 @@ export function createValuationPublicHandler({
       });
       const pack = await store.getLatestPack();
       const marks = (pack?.cards ?? [])
-        .map((card) => publicCardMark(card, pack))
+        .map((card) => publicCardMark(card, pack, { requireSubmitted: true }))
         .filter(Boolean);
+      if (marks.length === 0) {
+        const livePack = await buildLivePublicPack({ buildValuationPackImpl, fetchActiveTreasuryCardsImpl });
+        const liveMarks = (livePack.cards ?? [])
+          .map((card) => publicCardMark(card, livePack, { requireSubmitted: false }))
+          .filter(Boolean);
+
+        response.status(200).json({
+          packId: livePack.packId,
+          generatedAt: livePack.generatedAt,
+          source: 'live',
+          marks: liveMarks,
+        });
+        return;
+      }
 
       response.status(200).json({
         packId: pack?.packId ?? null,
         generatedAt: pack?.generatedAt ?? null,
+        source: 'submitted',
         marks,
       });
     } catch (error) {

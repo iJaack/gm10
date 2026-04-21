@@ -77,6 +77,7 @@ test('valuation-public exposes only approved submitted consensus marks', async (
   assert.deepEqual(response.payload, {
     packId: 'valuation-public-test',
     generatedAt: '2026-04-21T10:00:00.000Z',
+    source: 'submitted',
     marks: [
       {
         positionId: 7,
@@ -103,4 +104,70 @@ test('valuation-public handles preflight and rejects unsupported methods', async
   assert.equal(postResponse.statusCode, 405);
   assert.equal(postResponse.headers.allow, 'GET, OPTIONS');
   assert.deepEqual(postResponse.payload, { error: 'Method not allowed' });
+});
+
+test('valuation-public falls back to live consensus marks when no submitted marks exist', async () => {
+  const handler = createValuationPublicHandler({
+    createValuationPackStoreImpl: () => ({
+      getLatestPack: async () => null,
+    }),
+    fetchActiveTreasuryCardsImpl: async () => [
+      {
+        positionId: 7,
+        cardKey: 'psa:11029260',
+        title: 'Pikachu & Zekrom GX PSA 10',
+        currentValueUsdc6: '999000000',
+        observations: [
+          {
+            sourceId: 'primary',
+            sourceName: 'PokemonPriceTracker',
+            cardKey: 'psa:11029260',
+            observedAt: '2026-04-21T10:00:00.000Z',
+            fetchedAt: '2026-04-21T10:00:00.000Z',
+            valueUsdc6: '0',
+            currency: 'USD',
+            confidence: 0,
+            rawPayloadRef: 'primary://unavailable',
+            sourceUrl: 'https://example.com/primary',
+            matchReason: 'unavailable',
+          },
+          {
+            sourceId: 'benchmark',
+            sourceName: 'Current registry mark',
+            cardKey: 'psa:11029260',
+            observedAt: '2026-04-21T10:00:00.000Z',
+            fetchedAt: '2026-04-21T10:00:00.000Z',
+            valueUsdc6: '999000000',
+            currency: 'USD',
+            confidence: 0.85,
+            rawPayloadRef: 'registry://current-mark',
+            sourceUrl: 'https://example.com/registry',
+            matchReason: 'continuity benchmark',
+          },
+          {
+            sourceId: 'evidence',
+            sourceName: 'Courtyard',
+            cardKey: 'psa:11029260',
+            observedAt: '2026-04-21T10:00:00.000Z',
+            fetchedAt: '2026-04-21T10:00:00.000Z',
+            valueUsdc6: '1100000000',
+            currency: 'USD',
+            confidence: 0.8,
+            rawPayloadRef: 'courtyard://asset/7',
+            sourceUrl: 'https://courtyard.io/asset/7',
+            matchReason: 'vaulted asset estimate',
+          },
+        ],
+      },
+    ],
+  });
+  const response = responseRecorder();
+
+  await handler({ method: 'GET' }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.source, 'live');
+  assert.equal(response.payload.marks.length, 1);
+  assert.equal(response.payload.marks[0].positionId, 7);
+  assert.equal(response.payload.marks[0].valueUsdc6, '1100000000');
 });
