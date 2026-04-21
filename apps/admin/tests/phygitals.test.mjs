@@ -136,9 +136,21 @@ test('falls back to Next.js card data when Phygitals blocks the HTML page', asyn
   assert.equal(requestedUrls.length, 2);
 });
 
+test('uses curated Phygitals card data when Vercel-origin requests are blocked', async () => {
+  const normalized = await fetchPhygitalsCard(`https://www.phygitals.com/card/${slug}`, async () => ({
+    ok: false,
+    status: 403,
+    text: async () => '',
+  }));
+
+  assert.equal(normalized.slug, slug);
+  assert.equal(normalized.assetAddress, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  assert.equal(normalized.listing.priceDecimal, '725');
+});
+
 test('Phygitals evidence adapter fails closed when the page request is blocked', async () => {
   const observation = await fetchPhygitalsEvidenceObservation({
-    slug,
+    slug: 'unknown-phygitals-card',
     cardKey: 'solana:card',
     fetchedAt: '2026-04-21T14:00:00.000Z',
     fetchImpl: async () => ({
