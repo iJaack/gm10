@@ -7,6 +7,7 @@ export const SOLANA_CHAIN_ID = 1151111081099710;
 export const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
 export const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
 export const SOLANA_NATIVE_SOL = '11111111111111111111111111111111';
+export const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 export const ROUTE_BUFFER_BPS = 200;
 const MIN_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('0.005', 18));
 const MAX_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('100', 18));
@@ -234,5 +235,33 @@ export async function buildSolanaFundingQuote({ fromAmountRaw, fromAddress, toAd
 
   return {
     sol: normalizeQuote('solanaSol', quote, 0),
+  };
+}
+
+export async function buildSolanaUsdcFundingQuote({ usdcRaw, fromAddress, toAddress }, fetchImpl = fetch) {
+  if (!/^\d+$/.test(String(usdcRaw ?? ''))) throw new Error('Missing Solana USDC raw target amount');
+  assertAvaxAddress(fromAddress);
+  assertSolanaAddress(toAddress);
+
+  const quote = await fetchLiFiTargetQuote(
+    'solanaUsdc',
+    {
+      fromChain: AVALANCHE_CHAIN_ID,
+      toChain: SOLANA_CHAIN_ID,
+      fromToken: NATIVE_TOKEN,
+      toToken: SOLANA_USDC,
+      fromAddress,
+      toAddress,
+      slippage: 0.005,
+      integrator: 'gm10-admin',
+      order: 'CHEAPEST',
+    },
+    usdcRaw,
+    usdcPreferredFromAmountRaw(usdcRaw),
+    fetchImpl,
+  );
+
+  return {
+    usdc: normalizeQuote('solanaUsdc', quote, usdcRaw),
   };
 }

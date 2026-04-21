@@ -1,9 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { formatUnits, isAddress, keccak256, padHex, parseUnits, stringToHex, zeroHash } from 'viem';
-import { useReadContract, useWriteContract } from 'wagmi';
+import SafeAppsSDK from '@safe-global/safe-apps-sdk';
+import { encodeFunctionData, formatUnits, isAddress, keccak256, padHex, parseUnits, stringToHex, zeroHash } from 'viem';
+import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { TxButton, TxResult } from '../components/TxButton';
+import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -12,6 +14,7 @@ const DEFAULT_SOLANA_MULTISIG = 'GWE93fpg5M4vsfYnpW21pD3t1pQx4XktcAzwhPqYRaTG';
 const DEFAULT_CARD_URL = 'https://www.phygitals.com/card/2021-pokemon-japanese-s-promo-po-wbtuqn';
 const PHYGITALS_MARKETPLACE_ID = keccak256(stringToHex('PHYGITALS'));
 const PURCHASE_STATUS = ['None', 'Approved', 'Funds released', 'Executed', 'Position recorded', 'Cancelled'] as const;
+const AVALANCHE_CHAIN_ID = 43114;
 
 type Bytes32 = `0x${string}`;
 
@@ -65,6 +68,30 @@ type PurchaseState = PurchaseForm & {
     executionRef: string;
     settlementRef: string;
     proofRef: string;
+};
+
+type LifiTransactionRequest = {
+    to?: `0x${string}`;
+    data?: `0x${string}`;
+    value?: string;
+    chainId?: number;
+};
+
+type FundingQuote = {
+    kind: string;
+    tool: string;
+    fromAmountAvax: string;
+    sourceGasAvax: string;
+    totalInputAvax: string;
+    toAmountRaw: string;
+    toAmountMinRaw: string;
+    toAmountUsd: string;
+    enoughOutput: boolean;
+    transactionRequest: LifiTransactionRequest | null;
+};
+
+type SolanaUsdcFundingQuote = {
+    usdc: FundingQuote;
 };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -149,6 +176,14 @@ function formatNonEvmSafe(value: `0x${string}` | undefined) {
     }
 }
 
+function formatRawUnits(value: string | undefined, decimals: number) {
+    try {
+        return formatUnits(BigInt(value ?? '0'), decimals);
+    } catch {
+        return '0';
+    }
+}
+
 function emptyPurchase(): PurchaseState {
     return {
         purchaseKey: '',
@@ -180,6 +215,8 @@ function emptyPosition(): PositionPrefill {
 }
 
 export function PhygitalsPanel() {
+    const { chainId } = useAccount();
+    const safeAppInfo = useSafeAppInfo();
     const [solanaSafe, setSolanaSafe] = useState(DEFAULT_SOLANA_MULTISIG);
     const [solanaSafeError, setSolanaSafeError] = useState('');
     const [phygitalsUrl, setPhygitalsUrl] = useState(DEFAULT_CARD_URL);
@@ -188,9 +225,22 @@ export function PhygitalsPanel() {
     const [isResolving, setIsResolving] = useState(false);
     const [purchase, setPurchase] = useState<PurchaseState>(emptyPurchase);
     const [position, setPosition] = useState<PositionPrefill>(emptyPosition);
+    const [fundingQuote, setFundingQuote] = useState<SolanaUsdcFundingQuote | null>(null);
+    const [fundingError, setFundingError] = useState('');
+    const [isFundingLoading, setIsFundingLoading] = useState(false);
+    const [safeBatchHash, setSafeBatchHash] = useState<`0x${string}` | undefined>();
+    const [safeBatchError, setSafeBatchError] = useState('');
+    const [isBatchSubmitting, setIsBatchSubmitting] = useState(false);
 
     const purchaseKey = useMemo(() => bytes32FromInput(purchase.purchaseKey), [purchase.purchaseKey]);
     const { writeContract, data: txHash, isPending, error, reset } = useWriteContract();
+    const {
+        sendTransactionAsync,
+        data: fundingTxHash,
+        isPending: isFundingPending,
+        error: fundingSendError,
+    } = useSendTransaction();
+    const { switchChainAsync } = useSwitchChain();
 
     const { data: solanaChainSafe } = useReadContract({
         address: MAINNET.portfolioRegistry,
@@ -216,10 +266,21 @@ export function PhygitalsPanel() {
         query: { enabled: Boolean(MAINNET.portfolioRegistry) && Boolean(purchase.purchaseKey.trim()) },
     });
 
+    const effectiveTreasuryAddress = (safeAppInfo.safeAddress ?? MAINNET.treasurySafe) as `0x${string}` | undefined;
+    const configuredSolanaDestination = solanaChainSafe?.enabled
+        ? formatNonEvmSafe(solanaChainSafe.nonEvmSafe)
+        : solanaSafe.trim();
+    const solanaFundingDestination = configuredSolanaDestination === 'Unavailable' ? solanaSafe.trim() : configuredSolanaDestination;
+    const fundingTargetRaw = card?.listing?.priceRaw ?? (purchase.releaseAmountUsdt ? parseUsdt6Input(purchase.releaseAmountUsdt).toString() : '');
+
     async function resolveCard() {
         setResolveError('');
         setIsResolving(true);
         setCard(null);
+        setFundingQuote(null);
+        setFundingError('');
+        setSafeBatchHash(undefined);
+        setSafeBatchError('');
         try {
             const response = await fetch(`/api/phygitals-card?url=${encodeURIComponent(phygitalsUrl.trim())}`);
             const payload = await response.json();
@@ -305,6 +366,109 @@ export function PhygitalsPanel() {
         });
     }
 
+    function authorizePurchaseData() {
+        return encodeFunctionData({
+            abi: REGISTRY_ABI,
+            functionName: 'authorizePurchase',
+            args: [
+                purchaseKey,
+                LZ_EID.SOLANA_MAINNET,
+                PHYGITALS_MARKETPLACE_ID,
+                bytes32FromInput(purchase.assetRef),
+                parseUsdt6Input(purchase.maxSpendUsdt),
+                bytes32FromInput(purchase.mandateRef),
+            ],
+        });
+    }
+
+    async function quoteSolanaUsdcFunding() {
+        setFundingError('');
+        setIsFundingLoading(true);
+        try {
+            if (!effectiveTreasuryAddress) throw new Error('Avalanche treasury Safe is unavailable.');
+            if (!solanaFundingDestination) throw new Error('Solana multisig destination is unavailable.');
+            if (!fundingTargetRaw || BigInt(fundingTargetRaw) <= 0n) throw new Error('Resolve a listed Phygitals card before quoting funding.');
+            const params = new URLSearchParams({
+                toToken: 'USDC',
+                toAmountRaw: fundingTargetRaw,
+                fromAddress: effectiveTreasuryAddress,
+                toAddress: solanaFundingDestination,
+            });
+            const response = await fetch(`/api/lifi-solana-quote?${params.toString()}`);
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Unable to quote LI.FI Solana USDC route');
+            const quote = payload as SolanaUsdcFundingQuote;
+            if (!quote.usdc.transactionRequest?.to) throw new Error('LI.FI did not return an executable Solana USDC route.');
+            if (!quote.usdc.enoughOutput) throw new Error('LI.FI route does not meet the requested Solana USDC output.');
+            setFundingQuote(quote);
+            return quote;
+        } catch (caught) {
+            setFundingQuote(null);
+            setFundingError(caught instanceof Error ? caught.message : 'Unable to prepare Solana USDC funding');
+            return null;
+        } finally {
+            setIsFundingLoading(false);
+        }
+    }
+
+    async function ensureAvalanche() {
+        if (chainId !== AVALANCHE_CHAIN_ID && switchChainAsync) {
+            await switchChainAsync({ chainId: AVALANCHE_CHAIN_ID });
+        }
+    }
+
+    async function submitSolanaUsdcFunding() {
+        setFundingError('');
+        try {
+            const quote = fundingQuote ?? (await quoteSolanaUsdcFunding());
+            const tx = quote?.usdc.transactionRequest;
+            if (!tx?.to) throw new Error('LI.FI route is missing a transaction request. Refresh the quote.');
+            await ensureAvalanche();
+            await sendTransactionAsync({
+                to: tx.to,
+                data: tx.data,
+                value: BigInt(tx.value ?? '0'),
+            });
+        } catch (caught) {
+            setFundingError(caught instanceof Error ? caught.message : 'LI.FI Solana USDC transaction was not submitted');
+        }
+    }
+
+    async function submitAuthorizeAndFundBatch() {
+        setSafeBatchError('');
+        setSafeBatchHash(undefined);
+        setIsBatchSubmitting(true);
+        try {
+            if (!safeAppInfo.isSafeApp) throw new Error('Open admin.gm10.xyz inside the Avalanche Treasury Safe to submit a Safe batch.');
+            if (safeAppInfo.chainId !== AVALANCHE_CHAIN_ID) throw new Error('Open the Treasury Safe on Avalanche before submitting the batch.');
+            if (!MAINNET.portfolioRegistry || !purchase.purchaseKey.trim()) throw new Error('Resolve a card before authorizing the purchase.');
+            const quote = fundingQuote ?? (await quoteSolanaUsdcFunding());
+            const lifiTx = quote?.usdc.transactionRequest;
+            if (!lifiTx?.to) throw new Error('LI.FI route is missing a transaction request. Refresh the quote.');
+
+            const sdk = new SafeAppsSDK({ debug: false });
+            const result = await sdk.txs.send({
+                txs: [
+                    {
+                        to: MAINNET.portfolioRegistry,
+                        value: '0',
+                        data: authorizePurchaseData(),
+                    },
+                    {
+                        to: lifiTx.to,
+                        value: lifiTx.value ?? '0',
+                        data: lifiTx.data ?? '0x',
+                    },
+                ],
+            });
+            setSafeBatchHash(result.safeTxHash as `0x${string}`);
+        } catch (caught) {
+            setSafeBatchError(caught instanceof Error ? caught.message : 'Safe batch was not submitted');
+        } finally {
+            setIsBatchSubmitting(false);
+        }
+    }
+
     function submitReleaseFunds() {
         if (!MAINNET.fundProxy || !purchase.purchaseKey.trim()) return;
         reset();
@@ -380,6 +544,8 @@ export function PhygitalsPanel() {
                         onChange={(value) => {
                             setSolanaSafe(value);
                             setSolanaSafeError('');
+                            setFundingQuote(null);
+                            setFundingError('');
                         }}
                         placeholder="Base58 Solana address"
                         mono
@@ -441,6 +607,76 @@ export function PhygitalsPanel() {
                         </div>
                     </div>
                 ) : null}
+            </Section>
+
+            <Section title="Funding transaction">
+                <div className="grid gap-1 text-xs text-gray-400">
+                    <div className="break-all">Avalanche treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}</div>
+                    <div className="break-all">Solana recipient: {solanaFundingDestination || 'Unavailable'}</div>
+                    <div>Source asset: AVAX on Avalanche</div>
+                    <div>Destination asset: USDC on Solana</div>
+                    <div>Target receive: {fundingTargetRaw ? `${formatRawUnits(fundingTargetRaw, 6)} USDC` : 'Resolve a listed card'}</div>
+                </div>
+                {fundingQuote ? (
+                    <div className="grid gap-1 text-xs text-gray-400">
+                        <div>Route: {fundingQuote.usdc.tool || 'LI.FI'}</div>
+                        <div>AVAX input: {fundingQuote.usdc.fromAmountAvax}</div>
+                        <div>Estimated receive: {formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC</div>
+                        <div>Minimum receive: {formatRawUnits(fundingQuote.usdc.toAmountMinRaw, 6)} USDC</div>
+                        <div>Estimated source gas: {fundingQuote.usdc.sourceGasAvax} AVAX</div>
+                    </div>
+                ) : null}
+                {fundingError ? (
+                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                        {fundingError}
+                    </div>
+                ) : null}
+                {safeBatchError ? (
+                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                        {safeBatchError}
+                    </div>
+                ) : null}
+                {safeBatchHash ? (
+                    <div className="break-all rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs leading-5 text-emerald-100">
+                        Safe batch submitted: {safeBatchHash}
+                    </div>
+                ) : null}
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        onClick={() => void quoteSolanaUsdcFunding()}
+                        disabled={isFundingLoading || !card || !effectiveTreasuryAddress || !solanaFundingDestination}
+                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-white/10 disabled:opacity-50"
+                    >
+                        {isFundingLoading ? 'Quoting...' : 'Refresh LI.FI USDC quote'}
+                    </button>
+                    <TxButton
+                        onClick={() => void submitSolanaUsdcFunding()}
+                        txHash={fundingTxHash}
+                        isPending={isFundingPending || isFundingLoading}
+                        disabled={!card || !effectiveTreasuryAddress || !solanaFundingDestination}
+                    >
+                        Submit LI.FI funding
+                    </TxButton>
+                    <button
+                        type="button"
+                        onClick={() => void submitAuthorizeAndFundBatch()}
+                        disabled={
+                            isBatchSubmitting ||
+                            isFundingLoading ||
+                            !safeAppInfo.isSafeApp ||
+                            safeAppInfo.chainId !== AVALANCHE_CHAIN_ID ||
+                            !MAINNET.portfolioRegistry ||
+                            !card ||
+                            phygitalsApproved !== true ||
+                            !solanaChainSafe?.enabled
+                        }
+                        className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] hover:bg-[#70bce8] disabled:opacity-50"
+                    >
+                        {isBatchSubmitting ? 'Submitting...' : 'Batch authorize + fund'}
+                    </button>
+                </div>
+                <TxResult hash={fundingTxHash} error={fundingSendError} />
             </Section>
 
             <Section title="Purchase workflow">

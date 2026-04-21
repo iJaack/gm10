@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildFundingQuotes, buildSolanaFundingQuote, normalizeQuote } from '../server/lib/lifi.js';
+import { buildFundingQuotes, buildSolanaFundingQuote, buildSolanaUsdcFundingQuote, normalizeQuote } from '../server/lib/lifi.js';
 
 function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', tool = 'stargateV2Bus' }) {
   return {
@@ -148,6 +148,41 @@ test('builds exact-source SOL route for a Solana recipient', async () => {
   assert.equal(calls[0].pathname, '/v1/quote');
   assert.equal(calls[0].searchParams.get('toChain'), '1151111081099710');
   assert.equal(calls[0].searchParams.get('toToken'), '11111111111111111111111111111111');
+});
+
+test('builds exact-target Solana USDC route for a Solana recipient', async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    calls.push(parsed);
+    return {
+      ok: true,
+      async json() {
+        return quote({
+          fromAmount: '78324849873298818795',
+          toAmount: '732322780',
+          toAmountMin: '725017861',
+          gasAmount: '113133225538368',
+          tool: 'mayan',
+        });
+      },
+    };
+  };
+
+  const result = await buildSolanaUsdcFundingQuote({
+    usdcRaw: '725000000',
+    fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    toAddress: 'GWE93fpg5M4vsfYnpW21pD3t1pQx4XktcAzwhPqYRaTG',
+  }, fetchImpl);
+
+  assert.equal(result.usdc.kind, 'solanaUsdc');
+  assert.equal(result.usdc.fromAmountAvax, '78.32484987');
+  assert.equal(result.usdc.toAmountRaw, '732322780');
+  assert.equal(result.usdc.toAmountMinRaw, '725017861');
+  assert.equal(result.usdc.enoughOutput, true);
+  assert.equal(calls[0].pathname, '/v1/quote/toAmount');
+  assert.equal(calls[0].searchParams.get('toToken'), 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+  assert.equal(calls[0].searchParams.get('toAmount'), '725000000');
 });
 
 test('blocks malformed SOL route inputs', async () => {
