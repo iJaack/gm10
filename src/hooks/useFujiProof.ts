@@ -5,7 +5,14 @@ import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
 import { GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
 import {
+    normalizePublicValuationOverrides,
+    publicValuationUrl,
+    type PublicValuationOverride,
+    type PublicValuationResponse,
+} from '../data/publicValuation';
+import {
     GM10_EXPLORER_BASE_URL,
+    GM10_EXPLORER_TX_BASE_URL,
     GM10_PRIMARY_DEPLOYMENT,
     ROUND_2_END_AT,
     ROUND_2_START_AT,
@@ -77,6 +84,13 @@ function formatDate(timestamp: bigint) {
     }).format(new Date(Number(timestamp) * 1000));
 }
 
+function formatOptionalIsoDate(value?: string) {
+    if (!value) return undefined;
+    const timestamp = Date.parse(value);
+    if (!Number.isFinite(timestamp)) return undefined;
+    return formatDate(BigInt(Math.floor(timestamp / 1000)));
+}
+
 type CollectiblePositionTuple = {
     id: bigint;
     chainEid: number;
@@ -129,9 +143,15 @@ function positionMetadataKey(raw: CollectiblePositionTuple) {
     return `${Number(raw.chainEid)}:${raw.evmCollection.toLowerCase()}:${raw.tokenId.toString()}`;
 }
 
-function normalizePosition(raw: CollectiblePositionTuple, liveMetadata?: CardMetadata): Gm10PortfolioPosition {
+function normalizePosition(
+    raw: CollectiblePositionTuple,
+    liveMetadata?: CardMetadata,
+    valuationOverride?: PublicValuationOverride,
+): Gm10PortfolioPosition {
     const positionId = Number(raw.id);
     const metadata = metadataForPosition(positionId, liveMetadata);
+    const currentValueUsdt6 = valuationOverride?.valueUsdt6 ?? raw.currentValueUsdt6;
+    const lastValuationLabel = formatOptionalIsoDate(valuationOverride?.generatedAt) ?? formatDate(raw.lastValuationAt);
 
     return {
         positionId,
@@ -146,15 +166,17 @@ function normalizePosition(raw: CollectiblePositionTuple, liveMetadata?: CardMet
         snowtraceUrl: collectionExplorerUrl(Number(raw.chainEid), raw.evmCollection, raw.tokenId),
         tokenId: raw.tokenId.toString(),
         acquisition: formatUsdt6(raw.acquisitionPriceUsdt6),
-        currentValue: formatUsdt6(raw.currentValueUsdt6),
+        currentValue: formatUsdt6(currentValueUsdt6),
         lastNavMark: formatUsdt6(raw.lastNavMarkUsdt6),
         acquisitionDateLabel: formatDate(raw.acquisitionDate),
-        lastValuationLabel: formatDate(raw.lastValuationAt),
+        lastValuationLabel,
         statusLabel: positionStatusLabel(Number(raw.status)),
         acquisitionPriceUsdt6: raw.acquisitionPriceUsdt6,
-        currentValueUsdt6: raw.currentValueUsdt6,
+        currentValueUsdt6,
         courtyardUrl: metadata.courtyardUrl,
-        proofUrl: metadata.proofUrl,
+        proofUrl: valuationOverride?.submittedTxHash
+            ? `${GM10_EXPLORER_TX_BASE_URL}/${valuationOverride.submittedTxHash}`
+            : metadata.proofUrl,
     };
 }
 
@@ -282,6 +304,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     const contractState = useFujiContracts(GM10_PRIMARY_DEPLOYMENT);
     const { address } = useAccount();
     const [liveMetadataByKey, setLiveMetadataByKey] = useState<Record<string, CardMetadata>>({});
+    const [publicValuationOverrides, setPublicValuationOverrides] = useState<Record<number, PublicValuationOverride>>({});
 
     const { data: collectiblePositionCount } = useReadContract({
         address: contractState.portfolioRegistryAddress ?? ZERO_ADDRESS,
@@ -406,14 +429,39 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         return () => controller.abort();
     }, [liveMetadataRequestKey, rawPositions]);
 
+    useEffect(() => {
+        const controller = new AbortController();
+        async function loadPublicValuations() {
+            try {
+                const response = await fetch(publicValuationUrl(), {
+                    signal: controller.signal,
+                    headers: { accept: 'application/json' },
+                });
+                if (!response.ok) throw new Error(`Public valuation marks returned ${response.status}`);
+                const payload = await response.json() as PublicValuationResponse;
+                setPublicValuationOverrides(normalizePublicValuationOverrides(payload));
+            } catch {
+                if (!controller.signal.aborted) setPublicValuationOverrides({});
+            }
+        }
+
+        void loadPublicValuations();
+        return () => controller.abort();
+    }, []);
+
     const positions = useMemo(() => rawPositions
-        .map((raw) => normalizePosition(raw, liveMetadataByKey[positionMetadataKey(raw)]))
-        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, rawPositions]);
+        .map((raw) => normalizePosition(
+            raw,
+            liveMetadataByKey[positionMetadataKey(raw)],
+            publicValuationOverrides[Number(raw.id)],
+        ))
+        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, publicValuationOverrides, rawPositions]);
 
     const valueSummary = useMemo(
         () => calculatePortfolioValueSummary(positions, platformNav),
         [platformNav, positions],
     );
+    const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
 
     const activity = useMemo<Gm10PortfolioActivity[]>(() => positions
         .map((position) => ({
@@ -445,8 +493,12 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             onchainCurrentMarkLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
             platformNavLabel: valueSummary.platformNavUsdt6 !== undefined ? formatUsdt6(valueSummary.platformNavUsdt6) : 'Unavailable',
             unrealizedPnlLabel: formatUsdt6(valueSummary.unrealizedPnlUsdt6),
-            unrealizedSourceLabel: valueSummary.unrealizedSource === 'courtyard' ? 'Courtyard profile NAV' : 'Onchain registry mark',
-            portfolioValueLabel: stableAccounting ? formatUsdt6(stableAccounting[0]) : '$0.00',
+            unrealizedSourceLabel: valueSummary.unrealizedSource === 'courtyard'
+                ? 'Courtyard profile NAV'
+                : hasPublicValuationOverrides
+                    ? 'Submitted FMV marks'
+                    : 'Onchain registry mark',
+            portfolioValueLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
             liquidTreasuryLabel: stableAccounting ? formatUsdt6(stableAccounting[2]) : '$0.00',
             referenceNavLabel: referenceNav !== undefined ? formatUsdt6(referenceNav) : '$0.00',
             navPerTokenLabel: navPerToken !== undefined ? formatUsdt6(navPerToken) : '$0.00',

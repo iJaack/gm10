@@ -12,6 +12,7 @@ export const GM10_CHAIN_ID = Number(import.meta.env.VITE_GM10_CHAIN_ID || 43114)
 export const GM10_CHAIN_NAME = import.meta.env.VITE_GM10_CHAIN_NAME || 'Avalanche';
 export const GM10_NETWORK_LABEL = import.meta.env.VITE_GM10_NETWORK_LABEL || 'Avalanche Mainnet';
 export const GM10_EXPLORER_BASE_URL = import.meta.env.VITE_GM10_EXPLORER_BASE_URL || 'https://snowtrace.io/address';
+export const GM10_EXPLORER_TX_BASE_URL = import.meta.env.VITE_GM10_EXPLORER_TX_BASE_URL || 'https://snowtrace.io/tx';
 export const POLYGONSCAN_BASE_URL = 'https://polygonscan.com';
 
 // LayerZero endpoint IDs

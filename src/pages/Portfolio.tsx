@@ -82,7 +82,7 @@ function PortfolioContent() {
 
     const stats = [
         { label: 'Cost basis', value: proofState.proofSummary.costBasisLabel, detail: 'Recorded acquisition price', primary: true },
-        { label: 'Onchain current mark', value: proofState.proofSummary.onchainCurrentMarkLabel, detail: 'Registry currentValue', primary: true },
+        { label: 'Current mark', value: proofState.proofSummary.onchainCurrentMarkLabel, detail: 'Submitted FMV or registry currentValue', primary: true },
         {
             label: 'Courtyard platform NAV',
             value: platformNav.isLoading ? 'Checking...' : proofState.proofSummary.platformNavLabel,

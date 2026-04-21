@@ -17,6 +17,7 @@ type ApiRequest = {
 
 const apiHandlers: Record<string, () => Promise<{ default: (request: ApiRequest, response: ApiResponse) => Promise<void> | void }>> = {
     '/api/valuation-pack': () => import('./api/valuation-pack.js'),
+    '/api/valuation-public': () => import('./api/valuation-public.js'),
 };
 
 async function readRequestBody(request: NodeJS.ReadableStream) {
