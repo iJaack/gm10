@@ -6,6 +6,13 @@ const PHYGITALS_CARD_RE = /phygitals\.com\/card\/([a-zA-Z0-9-]+)/;
 const NEXT_DATA_RE = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
 export const PHYGITALS_SOURCE_NAME = 'Phygitals';
 export const SOLANA_USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const PHYGITALS_REQUEST_HEADERS = {
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'accept-language': 'en-US,en;q=0.9',
+  'cache-control': 'no-cache',
+  pragma: 'no-cache',
+  'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+};
 
 function cleanString(value) {
   const stringValue = String(value ?? '').trim();
@@ -253,10 +260,7 @@ export function normalizePhygitalsEvidenceObservation({
 async function fetchPhygitalsPayload(input, fetchImpl = fetch) {
   const slug = parsePhygitalsCardSlug(input);
   const response = await fetchImpl(`https://www.phygitals.com/card/${slug}`, {
-    headers: {
-      accept: 'text/html,application/xhtml+xml',
-      'user-agent': 'GM10ValuationBot/1.0 (+https://gm10.xyz)',
-    },
+    headers: PHYGITALS_REQUEST_HEADERS,
   });
   if (!response.ok) {
     throw new Error(`Phygitals page returned ${response.status}`);

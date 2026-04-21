@@ -96,8 +96,10 @@ test('falls back to Phygitals ALT FMV when the card is not listed', () => {
 
 test('fetches and normalizes a Phygitals card page', async () => {
   const html = `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { card1: card() } } })}</script>`;
-  const normalized = await fetchPhygitalsCard(`https://www.phygitals.com/card/${slug}`, async (url) => {
+  const normalized = await fetchPhygitalsCard(`https://www.phygitals.com/card/${slug}`, async (url, options) => {
     assert.equal(String(url), `https://www.phygitals.com/card/${slug}`);
+    assert.match(options.headers['user-agent'], /Mozilla\/5\.0/);
+    assert.match(options.headers.accept, /text\/html/);
     return {
       ok: true,
       text: async () => html,
