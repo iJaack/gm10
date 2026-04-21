@@ -11,7 +11,7 @@ import {
 
 const now = '2026-04-17T09:00:00.000Z';
 
-function observation(sourceId, valueUsdc6, observedAt = now, confidence = 0.92) {
+function observation(sourceId, valueUsdc6, observedAt = now, confidence = 0.92, overrides = {}) {
   return {
     sourceId,
     sourceName: sourceId,
@@ -24,6 +24,7 @@ function observation(sourceId, valueUsdc6, observedAt = now, confidence = 0.92) 
     rawPayloadRef: `memory://${sourceId}`,
     sourceUrl: `https://example.com/${sourceId}`,
     matchReason: 'cert number exact match',
+    ...overrides,
   };
 }
 
@@ -64,6 +65,29 @@ test('evaluateConsensus uses lower value when exactly two valid sources agree', 
   assert.equal(result.status, 'passed');
   assert.equal(result.proposedValueUsdc6, '100000000');
   assert.equal(result.validSourceCount, 2);
+});
+
+test('evaluateConsensus prefers external market value over current registry continuity benchmark', () => {
+  const result = evaluateConsensus({
+    observations: [
+      observation('primary', '0', now, 0),
+      observation('benchmark', '645000000', now, 0.8, {
+        sourceName: 'Current registry mark',
+        rawPayloadRef: 'registry://current-mark',
+      }),
+      observation('evidence', '711100000', now, 0.8, {
+        sourceName: 'Courtyard',
+        rawPayloadRef: 'courtyard://asset/umbreon/fmv_estimate_usd',
+      }),
+    ],
+    nowIso: now,
+  });
+
+  assert.equal(result.status, 'passed');
+  assert.equal(result.proposedValueUsdc6, '711100000');
+  assert.equal(result.validSourceCount, 2);
+  assert.deepEqual(result.agreeingSourceIds, ['benchmark', 'evidence']);
+  assert.match(result.warnings.join(' '), /used instead of current registry continuity benchmark/);
 });
 
 test('evaluateConsensus uses a single available external market source when other providers are unavailable', () => {

@@ -22,7 +22,7 @@ If a change is unrelated to FMV consensus, do not update this document.
 
 The consensus engine exists and is covered by admin tests. It can build valuation packs from normalized source observations, evaluate 2-of-3 source agreement, store immutable pack artifacts, persist mutable review decisions as sidecar state, expose pack generation/read/update APIs, render an admin review workflow, and submit approved marks onchain.
 
-The system has a constrained Courtyard evidence adapter, a PokemonPriceTracker primary-source adapter, a current-registry-mark benchmark, and a card identity resolver. Live registry discovery can replace the placeholder `primary` observation when `POKEMON_PRICE_TRACKER_API_KEY` is configured and the card identity resolver can identify the card by request-time `cardIdentityOverrides`, curated bootstrap portfolio metadata, or Courtyard token metadata. It can replace the placeholder `evidence` observation when the resolved identity includes a Courtyard asset id, or when an explicit runtime Courtyard asset override is injected. Courtyard evidence prefers active sell listings and falls back to Courtyard `fmv_estimate_usd` when no active listing exists. The `benchmark` slot is filled by the current onchain registry mark as a continuity benchmark until a separate benchmark vendor is connected. Packs prefer two valid agreeing sources, but can now produce a proposed mark from one valid external market source such as Courtyard when the other provider is unavailable. A lone current-registry benchmark still stays review-only.
+The system has a constrained Courtyard evidence adapter, a PokemonPriceTracker primary-source adapter, a current-registry-mark benchmark, and a card identity resolver. Live registry discovery can replace the placeholder `primary` observation when `POKEMON_PRICE_TRACKER_API_KEY` is configured and the card identity resolver can identify the card by request-time `cardIdentityOverrides`, curated bootstrap portfolio metadata, or Courtyard token metadata. It can replace the placeholder `evidence` observation when the resolved identity includes a Courtyard asset id, or when an explicit runtime Courtyard asset override is injected. Courtyard evidence prefers active sell listings and falls back to Courtyard `fmv_estimate_usd` when no active listing exists. The `benchmark` slot is filled by the current onchain registry mark as a continuity benchmark until a separate benchmark vendor is connected. Packs prefer two valid agreeing sources, but can produce a proposed mark from one valid external market source such as Courtyard when the other provider is unavailable. When the current-registry continuity benchmark agrees with exactly one external market source, the proposed mark uses the external market value, not the old registry mark. A lone current-registry benchmark still stays review-only.
 
 PokemonPriceTracker responses are cached in-memory per warm admin server process. Successful card observations are reused for a bounded TTL, and provider `429` responses produce a zero-confidence primary observation that is also cached for a shorter cooldown period to avoid repeated quota hits during retries.
 
@@ -73,7 +73,8 @@ Consensus rules:
 - A normal pass requires at least two valid observations that agree within tolerance.
 - If no pair agrees, exactly one valid external market source (`primary` or `evidence`) can still produce a passing proposed mark with a warning.
 - A lone current-registry benchmark cannot produce a passing proposed mark by itself.
-- With exactly two valid agreeing sources, the proposed value is the lower value.
+- With exactly two valid agreeing external sources, the proposed value is the lower value.
+- With exactly one valid external source agreeing with the current-registry continuity benchmark, the proposed value is the external market source value.
 - With three valid sources, the proposed value is the median valid value.
 - Failed cards return `needs_review` and no proposed onchain mark.
 
@@ -156,7 +157,7 @@ The required source ids are:
 - `benchmark`
 - `evidence`
 
-Provider errors should become failed observations or warnings for that card, not whole-pack failures. A pack can be generated with partial source availability. A card normally passes with two valid agreeing observations, but can fall back to one valid external market observation when the remaining sources are missing or disagree only because the benchmark is stale/out of range.
+Provider errors should become failed observations or warnings for that card, not whole-pack failures. A pack can be generated with partial source availability. A card normally passes with two valid agreeing observations. When the agreeing pair is the current-registry continuity benchmark plus one external market source, the proposed mark uses the external value. A card can also fall back to one valid external market observation when the remaining sources are missing or disagree only because the benchmark is stale/out of range.
 
 Provider research as of 2026-04-20:
 
@@ -602,3 +603,4 @@ The following gaps must be addressed before the FMV system is production-complet
 - Updated the admin valuation panel to persist card approval and submitted transaction hash state through the API.
 - Added regression coverage for review sidecar merging, API update persistence, malformed update rejection, and update-message authorization.
 - Updated consensus fallback behavior so a valid external market observation, such as Courtyard evidence, can produce a proposed mark when PokemonPriceTracker is unavailable, while a lone current-registry benchmark remains review-only.
+- Fixed continuity-benchmark pair selection so a card like `$645` current registry mark plus `$711.10` Courtyard evidence proposes `$711.10` instead of the older registry mark.

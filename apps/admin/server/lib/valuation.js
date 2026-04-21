@@ -191,6 +191,21 @@ function isExternalMarketObservation(observation) {
   return ['primary', 'evidence'].includes(String(observation?.sourceId));
 }
 
+function isContinuityBenchmarkObservation(observation) {
+  return String(observation?.sourceId) === 'benchmark'
+    && String(observation?.rawPayloadRef ?? '') === 'registry://current-mark';
+}
+
+function pickExternalMarketAgainstContinuityBenchmark(observations) {
+  const externalMarketObservations = observations.filter(isExternalMarketObservation);
+  const continuityBenchmarkObservations = observations.filter(isContinuityBenchmarkObservation);
+  if (externalMarketObservations.length !== 1 || continuityBenchmarkObservations.length !== 1) {
+    return undefined;
+  }
+
+  return externalMarketObservations[0];
+}
+
 function pickSingleExternalMarketFallback(validObservations) {
   const externalMarketObservations = validObservations.filter(isExternalMarketObservation);
   if (externalMarketObservations.length !== 1) {
@@ -245,7 +260,14 @@ export function evaluateConsensus({ observations = [], nowIso, toleranceBps = DE
   const sortedValid = [...validObservations].sort(compareRawValues);
 
   let proposedValueUsdc6;
-  if (validSourceCount === 2) {
+  const continuityBenchmarkMarketSource = pickExternalMarketAgainstContinuityBenchmark(agreeingPair);
+  if (continuityBenchmarkMarketSource) {
+    proposedValueUsdc6 = toBigIntRaw(
+      continuityBenchmarkMarketSource.valueUsdc6,
+      `${continuityBenchmarkMarketSource.sourceId} valueUsdc6`,
+    ).toString();
+    warnings.push(`${continuityBenchmarkMarketSource.sourceId}: used instead of current registry continuity benchmark`);
+  } else if (validSourceCount === 2) {
     const lower = compareRawValues(sortedValid[0], sortedValid[1]) <= 0 ? sortedValid[0] : sortedValid[1];
     proposedValueUsdc6 = toBigIntRaw(lower.valueUsdc6, `${lower.sourceId} valueUsdc6`).toString();
   } else {
