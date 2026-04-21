@@ -1,5 +1,4 @@
-import { formatDecimalUnits } from './units.js';
-import { parseUsdc6 } from './valuation.js';
+import { formatDecimalUnits, parseDecimalUnits } from './units.js';
 import { solanaAddressToBytes32 } from '../../src/lib/solanaAddress.js';
 
 const PHYGITALS_CARD_RE = /phygitals\.com\/card\/([a-zA-Z0-9-]+)/;
@@ -250,7 +249,7 @@ export function normalizePhygitalsEvidenceObservation({
       cardKey,
       observedAt: fetchedAt,
       fetchedAt,
-      valueUsdc6: parseUsdc6(normalized.altFmv),
+      valueUsdc6: parseDecimalUnits(normalized.altFmv, 6),
       currency: 'USD',
       confidence: 0.8,
       rawPayloadRef: `phygitals://card/${normalized.slug}/alt-fmv`,
