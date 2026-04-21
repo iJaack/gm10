@@ -1,4 +1,4 @@
-import { buildFundingQuotes } from './lib/lifi.js';
+import { buildFundingQuotes } from '../server/lib/lifi.js';
 
 export default async function handler(request, response) {
   try {

@@ -44,6 +44,22 @@ type ValuationPackCardInput = Pick<
     'positionId' | 'cardKey' | 'title' | 'currentValueUsdc6' | 'observations'
 >;
 
+type CardIdentityOverrides = Record<string, {
+    title?: string;
+    subtitle?: string;
+    search?: string;
+    grade?: string;
+    tcgPlayerId?: string;
+    courtyardAssetId?: string;
+    courtyardUrl?: string;
+    days?: number;
+}>;
+
+type GenerateValuationPackInput = {
+    cards?: ValuationPackCardInput[];
+    cardIdentityOverrides?: CardIdentityOverrides;
+};
+
 type ValuationPackResponse = {
     pack: ValuationPack | null;
 };
@@ -60,6 +76,13 @@ export type ValuationPackAuth = {
 };
 
 export type GenerateValuationPackAuth = ValuationPackAuth;
+
+type UpdateValuationPackCardInput = {
+    packId: string;
+    positionId: number;
+    decision: ValuationPackCard['decision'];
+    submittedTxHash?: string;
+};
 
 function valuationPackAuthHeaders(auth: ValuationPackAuth) {
     return {
@@ -84,7 +107,7 @@ export async function fetchLatestValuationPack(auth: ValuationPackAuth) {
     return response.json() as Promise<ValuationPackResponse>;
 }
 
-export async function generateValuationPack(cards: ValuationPackCardInput[], auth: GenerateValuationPackAuth) {
+export async function generateValuationPack(input: GenerateValuationPackInput, auth: GenerateValuationPackAuth) {
     const response = await fetch('/api/valuation-pack', {
         method: 'POST',
         headers: {
@@ -92,7 +115,36 @@ export async function generateValuationPack(cards: ValuationPackCardInput[], aut
             'Content-Type': 'application/json',
             ...valuationPackAuthHeaders(auth),
         },
-        body: JSON.stringify({ action: 'generate', cards }),
+        body: JSON.stringify({
+            action: 'generate',
+            cards: input.cards ?? [],
+            cardIdentityOverrides: input.cardIdentityOverrides,
+        }),
+    });
+    const payload = (await response.json()) as GenerateValuationPackResponse;
+
+    if (!response.ok) {
+        throw new Error(payload.error || `Valuation pack returned ${response.status}`);
+    }
+
+    return payload as { pack: ValuationPack };
+}
+
+export async function updateValuationPackCard(input: UpdateValuationPackCardInput, auth: ValuationPackAuth) {
+    const response = await fetch('/api/valuation-pack', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...valuationPackAuthHeaders(auth),
+        },
+        body: JSON.stringify({
+            action: 'update-card',
+            packId: input.packId,
+            positionId: input.positionId,
+            decision: input.decision,
+            submittedTxHash: input.submittedTxHash,
+        }),
     });
     const payload = (await response.json()) as GenerateValuationPackResponse;
 

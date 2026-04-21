@@ -4,12 +4,15 @@ import { useAccount, useReadContract, useReadContracts, useSignMessage, useWrite
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
 import { TxResult } from '../components/TxButton';
+import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
+import { resolveSafeAwareAdminAddress } from '../lib/safeContext.js';
 import {
     fetchLatestValuationPack,
     generateValuationPack,
     type SourceObservation,
     type ValuationPack,
     type ValuationPackCard,
+    updateValuationPackCard,
 } from '../lib/valuationClient';
 
 const COMPARABLE_SALES = 2 as const;
@@ -24,6 +27,16 @@ type RegistryPosition = {
 };
 
 type SourceOverrideMap = Record<string, SourceObservation[] | { observations?: SourceObservation[] }>;
+type CardIdentityOverrideMap = Record<string, {
+    title?: string;
+    subtitle?: string;
+    search?: string;
+    grade?: string;
+    tcgPlayerId?: string;
+    courtyardAssetId?: string;
+    courtyardUrl?: string;
+    days?: number;
+}>;
 
 function formatUsdc6(value?: string | bigint | number) {
     if (value === undefined) return 'Unavailable';
@@ -116,6 +129,16 @@ function parseSourceOverrides(json: string) {
     return parsed as SourceOverrideMap;
 }
 
+function parseCardIdentityOverrides(json: string) {
+    const trimmed = json.trim();
+    if (!trimmed) return {} as CardIdentityOverrideMap;
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Card identity JSON must be an object keyed by position id or cardKey.');
+    }
+    return parsed as CardIdentityOverrideMap;
+}
+
 function PackCardView({
     card,
     approved,
@@ -134,6 +157,7 @@ function PackCardView({
     const passed = card.consensus.status === 'passed';
     const currentMark = formatUsdc6(card.currentValueUsdc6);
     const proposedMark = card.consensus.proposedValueUsdc6 ? formatUsdc6(card.consensus.proposedValueUsdc6) : 'Unavailable';
+    const submittedTxHash = card.submittedTxHash || '';
 
     return (
         <div className="admin-card grid gap-4 p-5">
@@ -164,7 +188,9 @@ function PackCardView({
                 </div>
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/45 p-3">
                     <div className="text-[0.7rem] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Approval</div>
-                    <div className="mt-2 text-base font-semibold text-[var(--text-primary)]">{approved ? 'Approved' : 'Not approved'}</div>
+                    <div className="mt-2 text-base font-semibold text-[var(--text-primary)]">
+                        {submittedTxHash ? 'Submitted' : approved ? 'Approved' : 'Not approved'}
+                    </div>
                 </div>
             </div>
 
@@ -197,13 +223,14 @@ function PackCardView({
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="text-xs text-[var(--text-tertiary)]">
                     Source ref {card.sourceRef} · Proof hash {card.proofHash}
+                    {submittedTxHash ? <> · Tx {submittedTxHash}</> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <button
                         type="button"
                         className="admin-cta-secondary"
                         onClick={onApprove}
-                        disabled={!passed}
+                        disabled={!passed || approved || isSubmitting}
                     >
                         Approve mark
                     </button>
@@ -224,11 +251,22 @@ function PackCardView({
 export function ValuationPanel() {
     const [pack, setPack] = useState<ValuationPack | null>(null);
     const [sourceObservationsJson, setSourceObservationsJson] = useState('');
+    const [cardIdentityJson, setCardIdentityJson] = useState('');
     const [approvedCards, setApprovedCards] = useState<Record<string, true>>({});
+    const [persistingCards, setPersistingCards] = useState<Record<string, true>>({});
     const [localError, setLocalError] = useState('');
     const { address } = useAccount();
+    const safeAppInfo = useSafeAppInfo();
+    const authAddress = resolveSafeAwareAdminAddress({
+        safeAddress: safeAppInfo.safeAddress,
+        connectedAddress: address,
+        safeContextTimedOut: safeAppInfo.timedOut || safeAppInfo.isLoading,
+        fallbackSafeAddress: MAINNET.treasurySafe,
+        fallbackSignerAddress: MAINNET.teamWallet,
+    }) as `0x${string}` | undefined;
+    const isAuthLoading = false;
     const { signMessageAsync, error: signError, isPending: isSigning } = useSignMessage();
-    const { writeContract, data: txHash, error: txError, isPending, reset } = useWriteContract();
+    const { writeContractAsync, data: txHash, error: txError, isPending, reset } = useWriteContract();
 
     const { data: positionCount } = useReadContract({
         address: MAINNET.portfolioRegistry,
@@ -270,19 +308,54 @@ export function ValuationPanel() {
 
     function clearApprovals() {
         setApprovedCards({});
+        setPersistingCards({});
+    }
+
+    async function signUpdateRequest() {
+        if (isAuthLoading) {
+            throw new Error('Safe app context is still loading. Wait a moment and try again.');
+        }
+        if (!authAddress) {
+            throw new Error('Connect an authorized admin wallet before updating a valuation pack.');
+        }
+
+        const message = `GM10 valuation pack update:${new Date().toISOString()}`;
+        const signature = await signMessageAsync({ message });
+        return { address: authAddress, message, signature };
+    }
+
+    async function persistCardReviewState(input: {
+        positionId: number;
+        decision: ValuationPackCard['decision'];
+        submittedTxHash?: string;
+    }) {
+        if (!pack) {
+            throw new Error('Load or generate a valuation pack before updating card review state.');
+        }
+
+        const auth = await signUpdateRequest();
+        const payload = await updateValuationPackCard({
+            packId: pack.packId,
+            ...input,
+        }, auth);
+        setPack(payload.pack);
+        return payload.pack;
     }
 
     async function loadLatestPack() {
         setLocalError('');
         reset();
         try {
-            if (!address) {
+            if (isAuthLoading) {
+                throw new Error('Safe app context is still loading. Wait a moment and try again.');
+            }
+            if (!authAddress) {
                 throw new Error('Connect an authorized admin wallet before loading a valuation pack.');
             }
 
             const message = `GM10 valuation pack read:${new Date().toISOString()}`;
             const signature = await signMessageAsync({ message });
-            const payload = await fetchLatestValuationPack({ address, message, signature });
+            const payload = await fetchLatestValuationPack({ address: authAddress, message, signature });
             setPack(payload.pack);
             clearApprovals();
         } catch (error) {
@@ -295,21 +368,29 @@ export function ValuationPanel() {
         reset();
 
         try {
-            if (!address) {
+            if (isAuthLoading) {
+                throw new Error('Safe app context is still loading. Wait a moment and try again.');
+            }
+            if (!authAddress) {
                 throw new Error('Connect an authorized admin wallet before generating a valuation pack.');
             }
 
-            const overrides = parseSourceOverrides(sourceObservationsJson);
-            const cards = activeCards.map((card) => {
-                const override = unwrapObservationOverride(overrides[String(card.positionId)] ?? overrides[card.cardKey]);
+            const sourceOverrides = parseSourceOverrides(sourceObservationsJson);
+            const cardIdentityOverrides = parseCardIdentityOverrides(cardIdentityJson);
+            const hasSourceOverrides = Object.keys(sourceOverrides).length > 0;
+            const cards = hasSourceOverrides ? activeCards.map((card) => {
+                const override = unwrapObservationOverride(sourceOverrides[String(card.positionId)] ?? sourceOverrides[card.cardKey]);
                 return {
                     ...card,
                     observations: override ?? card.observations,
                 };
-            });
+            }) : [];
             const message = `GM10 valuation pack generate:${new Date().toISOString()}`;
             const signature = await signMessageAsync({ message });
-            const payload = await generateValuationPack(cards, { address, message, signature });
+            const payload = await generateValuationPack({
+                cards,
+                cardIdentityOverrides,
+            }, { address: authAddress, message, signature });
             setPack(payload.pack);
             clearApprovals();
         } catch (error) {
@@ -317,26 +398,69 @@ export function ValuationPanel() {
         }
     }
 
-    function approveCard(positionId: number) {
-        setApprovedCards((current) => ({ ...current, [String(positionId)]: true }));
+    async function approveCard(card: ValuationPackCard) {
+        const positionKey = String(card.positionId);
+        setLocalError('');
+        setApprovedCards((current) => ({ ...current, [positionKey]: true }));
+        setPersistingCards((current) => ({ ...current, [positionKey]: true }));
+
+        try {
+            await persistCardReviewState({
+                positionId: card.positionId,
+                decision: 'approved',
+            });
+        } catch (error) {
+            setApprovedCards((current) => {
+                const next = { ...current };
+                delete next[positionKey];
+                return next;
+            });
+            setLocalError(error instanceof Error ? error.message : 'Unable to approve valuation card.');
+        } finally {
+            setPersistingCards((current) => {
+                const next = { ...current };
+                delete next[positionKey];
+                return next;
+            });
+        }
     }
 
-    function submitOnchainMark(card: ValuationPackCard) {
+    async function submitOnchainMark(card: ValuationPackCard) {
         if (card.consensus.status !== 'passed') return;
-        if (!card.consensus.proposedValueUsdc6 || !approvedCards[String(card.positionId)] || isPending) return;
+        const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
+        if (!card.consensus.proposedValueUsdc6 || !approved || isPending) return;
+        const positionKey = String(card.positionId);
+        setLocalError('');
+        setPersistingCards((current) => ({ ...current, [positionKey]: true }));
 
-        writeContract({
-            address: MAINNET.fundProxy,
-            abi: FUND_ADMIN_ABI,
-            functionName: 'submitValuationObservation',
-            args: [
-                BigInt(card.positionId),
-                COMPARABLE_SALES,
-                card.sourceRef,
-                BigInt(card.consensus.proposedValueUsdc6),
-                card.proofHash,
-            ],
-        });
+        try {
+            const submittedTxHash = await writeContractAsync({
+                address: MAINNET.fundProxy,
+                abi: FUND_ADMIN_ABI,
+                functionName: 'submitValuationObservation',
+                args: [
+                    BigInt(card.positionId),
+                    COMPARABLE_SALES,
+                    card.sourceRef,
+                    BigInt(card.consensus.proposedValueUsdc6),
+                    card.proofHash,
+                ],
+            });
+
+            await persistCardReviewState({
+                positionId: card.positionId,
+                decision: 'approved',
+                submittedTxHash,
+            });
+        } catch (error) {
+            setLocalError(error instanceof Error ? error.message : 'Unable to submit valuation mark.');
+        } finally {
+            setPersistingCards((current) => {
+                const next = { ...current };
+                delete next[positionKey];
+                return next;
+            });
+        }
     }
 
     return (
@@ -344,11 +468,24 @@ export function ValuationPanel() {
             <div className="grid gap-3">
                 <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">Valuation workflow</h1>
                 <p className="max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
-                    Weekly Friday FMV marks use 2-of-3 consensus. Source observations are evidence. An approved onchain submission creates the official mark.
+                    Weekly Friday FMV marks use 2-of-3 consensus. Run valuation with the JSON boxes empty to use server-side provider discovery. An approved onchain submission creates the official mark.
                 </p>
             </div>
 
             <div className="admin-card grid gap-4 p-5">
+                <label className="grid gap-2">
+                    <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Card identity overrides JSON</span>
+                    <textarea
+                        value={cardIdentityJson}
+                        onChange={(event) => setCardIdentityJson(event.target.value)}
+                        className="min-h-24 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/50 px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--border-strong)]"
+                        placeholder='{"4":{"title":"Pokemon card title","grade":"psa10","courtyardUrl":"https://courtyard.io/asset/..."}}'
+                        aria-label="Card identity overrides JSON"
+                    />
+                    <span className="text-xs text-[var(--text-tertiary)]">
+                        Optional. Use this only when a new card is not in custody metadata yet.
+                    </span>
+                </label>
                 <label className="grid gap-2">
                     <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Source observations JSON</span>
                     <textarea
@@ -358,14 +495,17 @@ export function ValuationPanel() {
                         placeholder='{"1":[...]}'
                         aria-label="Source observations JSON"
                     />
+                    <span className="text-xs text-[var(--text-tertiary)]">
+                        Optional. Leave empty for PokemonPriceTracker and Courtyard provider discovery.
+                    </span>
                 </label>
 
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" className="admin-cta" onClick={runValuationNow} disabled={activeCards.length === 0 || isSigning}>
-                        {isSigning ? 'Sign valuation request' : 'Run valuation now'}
+                    <button type="button" className="admin-cta" onClick={runValuationNow} disabled={isSigning || isAuthLoading}>
+                        {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Run valuation now'}
                     </button>
-                    <button type="button" className="admin-cta-secondary" onClick={loadLatestPack} disabled={isSigning}>
-                        {isSigning ? 'Sign valuation request' : 'Load latest pack'}
+                    <button type="button" className="admin-cta-secondary" onClick={loadLatestPack} disabled={isSigning || isAuthLoading}>
+                        {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Load latest pack'}
                     </button>
                 </div>
 
@@ -397,11 +537,14 @@ export function ValuationPanel() {
             {pack ? (
                 <div className="grid gap-4">
                     {pack.cards.map((card) => {
-                        const approved = Boolean(approvedCards[String(card.positionId)]);
+                        const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
+                        const isCardPersisting = Boolean(persistingCards[String(card.positionId)]);
                         const canSubmit =
                             approved &&
                             card.consensus.status === 'passed' &&
                             Boolean(card.consensus.proposedValueUsdc6) &&
+                            !card.submittedTxHash &&
+                            !isCardPersisting &&
                             !isPending;
 
                         return (
@@ -409,10 +552,10 @@ export function ValuationPanel() {
                                 key={card.positionId}
                                 card={card}
                                 approved={approved}
-                                onApprove={() => approveCard(card.positionId)}
+                                onApprove={() => approveCard(card)}
                                 onSubmit={() => submitOnchainMark(card)}
                                 canSubmit={canSubmit}
-                                isSubmitting={isPending}
+                                isSubmitting={isPending || isCardPersisting || isSigning}
                             />
                         );
                     })}

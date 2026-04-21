@@ -123,6 +123,105 @@ test('valuation-pack POST generate creates a pack from submitted cards and obser
   }
 });
 
+test('valuation-pack POST update-card persists review decisions and submitted tx hashes', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gm10-valuation-api-'));
+  const previousDir = process.env.GM10_VALUATION_LOCAL_DIR;
+  process.env.GM10_VALUATION_LOCAL_DIR = dir;
+  try {
+    await withUnauthenticatedWrites(async () => {
+      const localHandler = createValuationPackHandler({
+        createPackIdImpl: fixedPackIdFactory('valuation-2026-W16-2026-04-17-090000-a1b2c3'),
+      });
+      const generateResponse = responseRecorder();
+      await localHandler({
+        method: 'POST',
+        body: {
+          action: 'generate',
+          generatedAt: '2026-04-17T09:00:00.000Z',
+          cards: [card()],
+        },
+      }, generateResponse);
+
+      assert.equal(generateResponse.statusCode, 200);
+      assert.equal(generateResponse.payload.pack.cards[0].decision, 'pending');
+
+      const updateResponse = responseRecorder();
+      await localHandler({
+        method: 'POST',
+        body: {
+          action: 'update-card',
+          packId: generateResponse.payload.pack.packId,
+          positionId: 1,
+          decision: 'approved',
+          submittedTxHash: '0x2222222222222222222222222222222222222222222222222222222222222222',
+        },
+      }, updateResponse);
+
+      assert.equal(updateResponse.statusCode, 200);
+      assert.equal(updateResponse.payload.pack.cards[0].decision, 'approved');
+      assert.equal(updateResponse.payload.pack.cards[0].submittedTxHash, '0x2222222222222222222222222222222222222222222222222222222222222222');
+
+      const getResponse = responseRecorder();
+      await localHandler({ method: 'GET' }, getResponse);
+      assert.equal(getResponse.statusCode, 200);
+      assert.equal(getResponse.payload.pack.cards[0].decision, 'approved');
+      assert.equal(getResponse.payload.pack.cards[0].submittedTxHash, '0x2222222222222222222222222222222222222222222222222222222222222222');
+    });
+  } finally {
+    if (previousDir === undefined) {
+      delete process.env.GM10_VALUATION_LOCAL_DIR;
+    } else {
+      process.env.GM10_VALUATION_LOCAL_DIR = previousDir;
+    }
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('valuation-pack POST update-card rejects malformed review updates before storage', async () => {
+  let updateCalls = 0;
+  const localHandler = createValuationPackHandler({
+    createValuationPackStoreImpl: () => ({
+      async getLatestPack() {
+        return null;
+      },
+      async savePack() {},
+      async updateCardDecision() {
+        updateCalls += 1;
+        return null;
+      },
+    }),
+  });
+
+  await withUnauthenticatedWrites(async () => {
+    const badPackResponse = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'update-card',
+        packId: '../valuation-pack',
+        positionId: 1,
+        decision: 'approved',
+      },
+    }, badPackResponse);
+
+    const badTxResponse = responseRecorder();
+    await localHandler({
+      method: 'POST',
+      body: {
+        action: 'update-card',
+        packId: 'valuation-2026-W16-2026-04-17-090000-a1b2c3',
+        positionId: 1,
+        decision: 'approved',
+        submittedTxHash: '0x1234',
+      },
+    }, badTxResponse);
+
+    assert.equal(badPackResponse.statusCode, 400);
+    assert.equal(badTxResponse.statusCode, 400);
+    assert.equal(updateCalls, 0);
+  });
+});
+
 test('valuation-pack rejects unsupported methods and actions', async () => {
   const response = responseRecorder();
   await handler({ method: 'PUT' }, response);

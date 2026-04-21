@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildFundingQuotes, normalizeQuote } from '../api/lib/lifi.js';
+import { buildFundingQuotes, normalizeQuote } from '../server/lib/lifi.js';
 
 function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', tool = 'stargateV2Bus' }) {
   return {

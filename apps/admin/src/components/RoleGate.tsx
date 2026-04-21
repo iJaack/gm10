@@ -13,7 +13,16 @@ function GateShell({ children }: { children: React.ReactNode }) {
 }
 
 export function RoleGate({ children }: { children: React.ReactNode }) {
-    const { isConnected, isAuthorized, isLoading } = useAdminRole();
+    const {
+        address,
+        assumedTreasurySafeRoles,
+        isConnected,
+        isAuthorized,
+        isLoading,
+        loadingDetail,
+        roleCheckError,
+        safeContextTimedOut,
+    } = useAdminRole();
     const safeAppInfo = useSafeAppInfo();
     const wrongSafeChain = safeAppInfo.isSafeApp && safeAppInfo.chainId !== 43114;
 
@@ -36,11 +45,34 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
         );
     }
 
-    if (isLoading || safeAppInfo.isLoading) {
+    if (isLoading) {
         return (
             <GateShell>
                 <div className="label-font">Checking role…</div>
-                <p className="mt-4 text-sm text-[var(--text-tertiary)]">Verifying onchain permissions.</p>
+                <p className="mt-4 text-sm text-[var(--text-tertiary)]">
+                    {loadingDetail ?? 'Verifying onchain permissions.'}
+                </p>
+                {safeContextTimedOut && !assumedTreasurySafeRoles && (
+                    <p className="mt-3 text-xs text-[var(--text-tertiary)]">
+                        Safe context timed out; using the configured Treasury Safe fallback.
+                    </p>
+                )}
+            </GateShell>
+        );
+    }
+
+    if (roleCheckError) {
+        return (
+            <GateShell>
+                <div className="label-font" style={{ color: 'var(--accent-red)' }}>Role check failed</div>
+                <p className="mt-4 text-[0.92rem] leading-[1.6] text-[var(--text-secondary)]">
+                    Could not verify onchain permissions for{' '}
+                    <code className="font-mono text-[var(--text-primary)]">{address ?? 'the connected wallet'}</code>.
+                </p>
+                <p className="mt-3 text-sm text-[var(--text-tertiary)]">{roleCheckError}</p>
+                <div className="mt-8 flex justify-center">
+                    <ConnectButton />
+                </div>
             </GateShell>
         );
     }
@@ -78,6 +110,11 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
                     This wallet does not hold MANAGER_ROLE, OPERATOR_ROLE, or DEFAULT_ADMIN_ROLE on the fund contract.
                     Use the Treasury Safe app connection for production operations.
                 </p>
+                {assumedTreasurySafeRoles && (
+                    <p className="mt-3 text-xs text-[var(--text-tertiary)]">
+                        Treasury Safe fallback is active, but the UI did not resolve an authorized role.
+                    </p>
+                )}
                 <div className="mt-8 flex justify-center">
                     <ConnectButton />
                 </div>

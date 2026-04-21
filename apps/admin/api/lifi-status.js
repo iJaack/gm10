@@ -1,4 +1,4 @@
-import { AVALANCHE_CHAIN_ID, POLYGON_CHAIN_ID } from './lib/lifi.js';
+import { AVALANCHE_CHAIN_ID, POLYGON_CHAIN_ID } from '../server/lib/lifi.js';
 
 export default async function handler(request, response) {
   try {

@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import { buildValuationPack } from './lib/valuation.js';
-import { authorizeValuationPackRead, authorizeValuationPackWrite } from './lib/valuation-auth.js';
-import { fetchActiveTreasuryCards } from './lib/valuation-chain.js';
-import { createValuationPackStore } from './lib/valuation-store.js';
+import { buildValuationPack } from '../server/lib/valuation.js';
+import { authorizeValuationPackRead, authorizeValuationPackWrite } from '../server/lib/valuation-auth.js';
+import { fetchActiveTreasuryCards } from '../server/lib/valuation-chain.js';
+import { createValuationPackStore } from '../server/lib/valuation-store.js';
 
 const REQUIRED_SOURCE_IDS = ['benchmark', 'evidence', 'primary'];
+const DECISIONS = new Set(['pending', 'approved', 'rejected']);
 
 function parseBody(request) {
   const body = request?.body;
@@ -56,6 +57,38 @@ function isNonEmptyString(value) {
 
 function isPositiveInteger(value) {
   return Number.isInteger(value) && Number.isFinite(value) && value > 0;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateCardIdentityOverridesPayload(overrides) {
+  if (overrides === undefined) {
+    return true;
+  }
+
+  return isPlainObject(overrides)
+    && Object.values(overrides).every((entry) => isPlainObject(entry));
+}
+
+function isSafePackId(value) {
+  return typeof value === 'string'
+    && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)
+    && !value.includes('..');
+}
+
+function validateSubmittedTxHash(value) {
+  return value === undefined
+    || value === ''
+    || (typeof value === 'string' && /^0x[0-9a-fA-F]{64}$/.test(value));
+}
+
+function validateUpdateCardPayload(body) {
+  return isSafePackId(body?.packId)
+    && isPositiveInteger(body.positionId)
+    && DECISIONS.has(body.decision)
+    && validateSubmittedTxHash(body.submittedTxHash);
 }
 
 function validateObservation(observation) {
@@ -145,14 +178,42 @@ export function createValuationPackHandler({
 
     if (request.method === 'POST') {
       const body = parseBody(request);
-      if (!body || body.action !== 'generate') {
+      if (!body || !['generate', 'update-card'].includes(body.action)) {
         respondError(response, 400, 'Unsupported valuation-pack action');
         return;
       }
 
-      const authResult = await authorizeValuationPackWriteImpl(request);
+      const authResult = await authorizeValuationPackWriteImpl(request, {
+        action: body.action === 'update-card' ? 'update' : 'generate',
+      });
       if (!authResult.ok) {
         respondError(response, authResult.statusCode ?? 401, authResult.message ?? 'Unauthorized valuation pack request');
+        return;
+      }
+
+      if (body.action === 'update-card') {
+        if (!validateUpdateCardPayload(body)) {
+          respondError(response, 400, 'Invalid valuation card update payload');
+          return;
+        }
+
+        try {
+          const pack = await store.updateCardDecision({
+            packId: body.packId,
+            positionId: body.positionId,
+            decision: body.decision,
+            submittedTxHash: body.submittedTxHash,
+            updatedAt: new Date().toISOString(),
+          });
+          if (!pack) {
+            respondError(response, 404, 'Valuation pack card not found');
+            return;
+          }
+
+          response.status(200).json({ pack });
+        } catch (error) {
+          respondError(response, 500, error instanceof Error ? error.message : 'Unable to update valuation pack card');
+        }
         return;
       }
 
@@ -162,12 +223,18 @@ export function createValuationPackHandler({
           respondError(response, 400, 'Invalid cards payload');
           return;
         }
+        if (!validateCardIdentityOverridesPayload(body.cardIdentityOverrides)) {
+          respondError(response, 400, 'Invalid cardIdentityOverrides payload');
+          return;
+        }
 
         const packId = createPackIdImpl(generatedAt);
         const submittedCards = Array.isArray(body.cards) ? body.cards : [];
         const cards = submittedCards.length > 0
           ? submittedCards
-          : await fetchActiveTreasuryCardsImpl().catch((error) => {
+          : await fetchActiveTreasuryCardsImpl({
+            cardIdentityOverrides: body.cardIdentityOverrides,
+          }).catch((error) => {
             throw Object.assign(new Error(error instanceof Error ? error.message : 'Unable to fetch treasury cards'), { statusCode: 500 });
           });
         const pack = buildValuationPackImpl({ packId, generatedAt, cards });

@@ -6,40 +6,106 @@ type SafeAppInfo = {
     safeAddress?: string;
     isSafeApp: boolean;
     isLoading: boolean;
+    timedOut?: boolean;
+    error?: string;
 };
 
-export function useSafeAppInfo(): SafeAppInfo {
-    const [info, setInfo] = useState<SafeAppInfo>({
+const listeners = new Set<(info: SafeAppInfo) => void>();
+let sharedInfo: SafeAppInfo | undefined;
+let loadPromise: Promise<void> | undefined;
+const SAFE_APP_INFO_TIMEOUT_MS = 4_000;
+
+function defaultInfo(): SafeAppInfo {
+    return {
         isSafeApp: false,
         isLoading: typeof window !== 'undefined' && window.parent !== window,
+    };
+}
+
+function setSharedInfo(info: SafeAppInfo) {
+    sharedInfo = info;
+    listeners.forEach((listener) => listener(info));
+}
+
+function loadSafeAppInfo() {
+    if (typeof window === 'undefined') {
+        setSharedInfo({ isSafeApp: false, isLoading: false });
+        return;
+    }
+
+    if (window.parent === window) {
+        setSharedInfo({ isSafeApp: false, isLoading: false });
+        return;
+    }
+
+    if (sharedInfo?.timedOut) {
+        return;
+    }
+
+    if (loadPromise) return;
+
+    if (!sharedInfo || !sharedInfo.isLoading) {
+        setSharedInfo({
+            chainId: sharedInfo?.chainId,
+            safeAddress: sharedInfo?.safeAddress,
+            isSafeApp: sharedInfo?.isSafeApp ?? false,
+            isLoading: true,
+            timedOut: false,
+        });
+    }
+
+    const sdk = new SafeAppsSDK({ debug: false });
+    const safeInfoPromise = sdk.safe
+        .getInfo()
+        .then((safeInfo) => {
+            setSharedInfo({
+                chainId: Number(safeInfo.chainId),
+                safeAddress: safeInfo.safeAddress,
+                isSafeApp: true,
+                isLoading: false,
+                timedOut: false,
+            });
+            return 'resolved' as const;
+        })
+        .catch(() => {
+            if (sharedInfo?.isLoading) {
+                setSharedInfo({ isSafeApp: false, isLoading: false });
+            }
+            return 'failed' as const;
+        });
+
+    const timeoutPromise = new Promise<'timeout'>((resolve) => {
+        window.setTimeout(() => resolve('timeout'), SAFE_APP_INFO_TIMEOUT_MS);
     });
 
-    useEffect(() => {
-        if (window.parent === window) {
-            setInfo({ isSafeApp: false, isLoading: false });
-            return;
-        }
-
-        let cancelled = false;
-        const sdk = new SafeAppsSDK({ debug: false });
-        sdk.safe
-            .getInfo()
-            .then((safeInfo) => {
-                if (cancelled) return;
-                setInfo({
-                    chainId: Number(safeInfo.chainId),
-                    safeAddress: safeInfo.safeAddress,
-                    isSafeApp: true,
+    loadPromise = Promise.race([safeInfoPromise, timeoutPromise])
+        .then((result) => {
+            if (result === 'timeout' && sharedInfo?.isLoading) {
+                setSharedInfo({
+                    isSafeApp: false,
                     isLoading: false,
+                    timedOut: true,
+                    error: 'Safe app context timed out.',
                 });
-            })
-            .catch(() => {
-                if (cancelled) return;
-                setInfo({ isSafeApp: false, isLoading: false });
-            });
+            }
+        })
+        .finally(() => {
+            loadPromise = undefined;
+        });
+}
+
+export function useSafeAppInfo(): SafeAppInfo {
+    const [info, setInfo] = useState<SafeAppInfo>(() => sharedInfo ?? defaultInfo());
+
+    useEffect(() => {
+        listeners.add(setInfo);
+        if (sharedInfo) {
+            setInfo(sharedInfo);
+        }
+        loadSafeAppInfo();
 
         return () => {
-            cancelled = true;
+            listeners.delete(setInfo);
         };
     }, []);
 

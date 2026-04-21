@@ -187,6 +187,19 @@ function pickAgreeingPair(validObservations, toleranceBps = DEFAULT_TOLERANCE_BP
   return bestPair;
 }
 
+function isExternalMarketObservation(observation) {
+  return ['primary', 'evidence'].includes(String(observation?.sourceId));
+}
+
+function pickSingleExternalMarketFallback(validObservations) {
+  const externalMarketObservations = validObservations.filter(isExternalMarketObservation);
+  if (externalMarketObservations.length !== 1) {
+    return undefined;
+  }
+
+  return externalMarketObservations[0];
+}
+
 export function evaluateConsensus({ observations = [], nowIso, toleranceBps = DEFAULT_TOLERANCE_BPS } = {}) {
   const normalizedToleranceBps = toToleranceBps(toleranceBps);
   const warnings = [];
@@ -201,6 +214,22 @@ export function evaluateConsensus({ observations = [], nowIso, toleranceBps = DE
   const agreeingPair = validObservations.length >= 2 ? pickAgreeingPair(validObservations, normalizedToleranceBps) : undefined;
 
   if (!agreeingPair) {
+    const marketFallback = pickSingleExternalMarketFallback(validObservations);
+    if (marketFallback) {
+      warnings.push(`${marketFallback.sourceId}: used as single available external market source`);
+      if (validSourceCount >= 2) {
+        warnings.push('fewer than two sources agree within tolerance');
+      }
+
+      return {
+        status: 'passed',
+        proposedValueUsdc6: toBigIntRaw(marketFallback.valueUsdc6, `${marketFallback.sourceId} valueUsdc6`).toString(),
+        validSourceCount,
+        agreeingSourceIds: [marketFallback.sourceId],
+        warnings,
+      };
+    }
+
     if (validSourceCount >= 2) {
       warnings.push('fewer than two sources agree within tolerance');
     }

@@ -1,4 +1,4 @@
-import { fetchCourtyardAsset, parseCourtyardAssetId } from './lib/courtyard.js';
+import { fetchCourtyardAsset, parseCourtyardAssetId } from '../server/lib/courtyard.js';
 
 export default async function handler(request, response) {
   try {

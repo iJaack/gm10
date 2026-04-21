@@ -7,7 +7,7 @@ import {
   hashBytes32,
   parseUsdc6,
   sourceRefForCard,
-} from '../api/lib/valuation.js';
+} from '../server/lib/valuation.js';
 
 const now = '2026-04-17T09:00:00.000Z';
 
@@ -66,12 +66,29 @@ test('evaluateConsensus uses lower value when exactly two valid sources agree', 
   assert.equal(result.validSourceCount, 2);
 });
 
-test('evaluateConsensus excludes stale observations and fails without two valid sources', () => {
+test('evaluateConsensus uses a single available external market source when other providers are unavailable', () => {
   const result = evaluateConsensus({
     observations: [
-      observation('primary', '100000000'),
-      observation('benchmark', '101000000', '2026-04-01T00:00:00.000Z'),
-      observation('evidence', '0'),
+      observation('primary', '0', now, 0),
+      observation('benchmark', '96000000'),
+      observation('evidence', '140000000'),
+    ],
+    nowIso: now,
+  });
+
+  assert.equal(result.status, 'passed');
+  assert.equal(result.proposedValueUsdc6, '140000000');
+  assert.equal(result.validSourceCount, 2);
+  assert.deepEqual(result.agreeingSourceIds, ['evidence']);
+  assert.match(result.warnings.join(' '), /single available external market source/);
+});
+
+test('evaluateConsensus keeps a lone registry benchmark review-only', () => {
+  const result = evaluateConsensus({
+    observations: [
+      observation('primary', '0', now, 0),
+      observation('benchmark', '96000000'),
+      observation('evidence', '0', now, 0),
     ],
     nowIso: now,
   });
@@ -79,6 +96,21 @@ test('evaluateConsensus excludes stale observations and fails without two valid 
   assert.equal(result.status, 'needs_review');
   assert.equal(result.proposedValueUsdc6, undefined);
   assert.equal(result.validSourceCount, 1);
+});
+
+test('evaluateConsensus excludes stale observations and fails without any external market source', () => {
+  const result = evaluateConsensus({
+    observations: [
+      observation('primary', '100000000', '2026-04-01T00:00:00.000Z'),
+      observation('benchmark', '0'),
+      observation('evidence', '0'),
+    ],
+    nowIso: now,
+  });
+
+  assert.equal(result.status, 'needs_review');
+  assert.equal(result.proposedValueUsdc6, undefined);
+  assert.equal(result.validSourceCount, 0);
   assert.match(result.warnings.join(' '), /stale/);
 });
 
