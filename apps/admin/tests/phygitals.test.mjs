@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   extractPhygitalsNextData,
+  extractPhygitalsPageProps,
   fetchPhygitalsCard,
   fetchPhygitalsEvidenceObservation,
   normalizePhygitalsCard,
@@ -48,6 +49,7 @@ test('parses Phygitals card URLs and slugs', () => {
 test('extracts card payload from Next.js page data', () => {
   const html = `<html><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { card1: card() } } })}</script></html>`;
   assert.equal(extractPhygitalsNextData(html).address, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  assert.equal(extractPhygitalsPageProps({ props: { pageProps: { card1: card() } } }).address, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
 });
 
 test('normalizes live Phygitals listing into Solana position prefill', () => {
@@ -108,6 +110,30 @@ test('fetches and normalizes a Phygitals card page', async () => {
 
   assert.equal(normalized.slug, slug);
   assert.equal(normalized.listing.priceDecimal, '725');
+});
+
+test('falls back to Next.js card data when Phygitals blocks the HTML page', async () => {
+  const requestedUrls = [];
+  const normalized = await fetchPhygitalsCard(`https://www.phygitals.com/card/${slug}`, async (url, options) => {
+    requestedUrls.push(String(url));
+    if (requestedUrls.length === 1) {
+      assert.match(options.headers.accept, /text\/html/);
+      return {
+        ok: false,
+        status: 403,
+        text: async () => '',
+      };
+    }
+    assert.match(String(url), new RegExp(`/_next/data/.+/card/${slug}\\.json$`));
+    assert.match(options.headers.accept, /application\/json/);
+    return {
+      ok: true,
+      json: async () => ({ props: { pageProps: { card1: card() } } }),
+    };
+  });
+
+  assert.equal(normalized.assetAddress, '9pZVFyRLBUV13HSpBES29RphRvsB5V52vXwdAsCituAP');
+  assert.equal(requestedUrls.length, 2);
 });
 
 test('Phygitals evidence adapter fails closed when the page request is blocked', async () => {

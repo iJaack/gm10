@@ -6,6 +6,7 @@ const PHYGITALS_CARD_RE = /phygitals\.com\/card\/([a-zA-Z0-9-]+)/;
 const NEXT_DATA_RE = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
 export const PHYGITALS_SOURCE_NAME = 'Phygitals';
 export const SOLANA_USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const PHYGITALS_NEXT_BUILD_ID = process.env.PHYGITALS_NEXT_BUILD_ID ?? 'tWcY3Qt6NRXkKU5vvpTtB';
 const PHYGITALS_REQUEST_HEADERS = {
   accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
   'accept-language': 'en-US,en;q=0.9',
@@ -106,6 +107,10 @@ export function extractPhygitalsNextData(html) {
   const match = String(html ?? '').match(NEXT_DATA_RE);
   if (!match?.[1]) throw new Error('Phygitals page is missing Next.js card data');
   const data = JSON.parse(match[1]);
+  return extractPhygitalsPageProps(data);
+}
+
+export function extractPhygitalsPageProps(data) {
   const card = data?.props?.pageProps?.card1;
   if (!card) throw new Error('Phygitals page payload is missing card data');
   return card;
@@ -259,15 +264,29 @@ export function normalizePhygitalsEvidenceObservation({
 
 async function fetchPhygitalsPayload(input, fetchImpl = fetch) {
   const slug = parsePhygitalsCardSlug(input);
-  const response = await fetchImpl(`https://www.phygitals.com/card/${slug}`, {
+  const pageResponse = await fetchImpl(`https://www.phygitals.com/card/${slug}`, {
     headers: PHYGITALS_REQUEST_HEADERS,
   });
-  if (!response.ok) {
-    throw new Error(`Phygitals page returned ${response.status}`);
+  if (pageResponse.ok) {
+    return {
+      slug,
+      payload: extractPhygitalsNextData(await pageResponse.text()),
+    };
+  }
+
+  const dataResponse = await fetchImpl(`https://www.phygitals.com/_next/data/${PHYGITALS_NEXT_BUILD_ID}/card/${slug}.json`, {
+    headers: {
+      accept: 'application/json,text/plain,*/*',
+      'accept-language': PHYGITALS_REQUEST_HEADERS['accept-language'],
+      'user-agent': PHYGITALS_REQUEST_HEADERS['user-agent'],
+    },
+  });
+  if (!dataResponse.ok) {
+    throw new Error(`Phygitals page returned ${pageResponse.status}; Next.js data fallback returned ${dataResponse.status}`);
   }
   return {
     slug,
-    payload: extractPhygitalsNextData(await response.text()),
+    payload: extractPhygitalsPageProps(await dataResponse.json()),
   };
 }
 
