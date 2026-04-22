@@ -554,8 +554,8 @@ function FundraisingContent() {
                                     </div>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="flex items-baseline justify-between py-3 border-b border-[var(--rule)]">
+                                <div className="mt-4 border border-[var(--rule-strong)] bg-[var(--bg-secondary)] px-4 shadow-[0_0_0_1px_var(--accent-muted)]">
+                                    <div className="flex items-baseline justify-between border-b border-[var(--rule)] py-3">
                                         <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
                                             WALLET · <span className="text-[var(--text-primary)]">{shortAddr(address)}</span>
                                         </DataMono>
@@ -594,41 +594,41 @@ function FundraisingContent() {
                                     </div>
 
                                     {/* Preview */}
-                                    <div className="grid grid-cols-2 gap-4 border-t border-[var(--rule)] py-4">
+                                    <div className="grid grid-cols-2 gap-4 border-y border-[var(--rule-strong)] bg-[var(--accent-muted)] px-4 py-4">
                                         <div>
-                                            <Caption className="block text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">You pay</Caption>
-                                            <DataMono className="mt-1.5 block text-[1.15rem] font-bold text-[var(--text-primary)]">
-                                                {amount || '0.00'} <span className="text-[0.85rem] font-semibold text-[var(--ink-muted)]">AVAX</span>
+                                            <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">You pay</Caption>
+                                            <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--text-primary)]">
+                                                {amount || '0.00'} <span className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">AVAX</span>
                                             </DataMono>
-                                            <DataMono className="text-[0.75rem] font-medium text-[var(--ink-faint)]">
+                                            <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
                                                 ~${amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                             </DataMono>
                                         </div>
                                         <div className="text-right">
-                                            <Caption className="block text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">You receive</Caption>
-                                            <DataMono className="mt-1.5 block text-[1.15rem] font-bold text-[var(--accent-brass)]">
-                                                {estimatedTokens} <span className="text-[0.85rem] font-semibold">$CATCH</span>
+                                            <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">You receive</Caption>
+                                            <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--accent-brass)]">
+                                                {estimatedTokens} <span className="text-[0.9rem] font-semibold">$CATCH</span>
                                             </DataMono>
-                                            <DataMono className="text-[0.75rem] font-medium text-[var(--ink-faint)]">
+                                            <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
                                                 @ {tokenPrice} AVAX each
                                             </DataMono>
                                         </div>
                                     </div>
 
                                     {/* CTA */}
-                                    <div className="py-4 border-t border-[var(--rule)]">
+                                    <div className="py-4">
                                         <button
                                             type="button"
                                             onClick={handleInvest}
                                             disabled={buyUnavailable || isPending || isConfirming || !amount}
-                                            className="v2-mono text-[1.05rem] font-semibold tracking-[0.03em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors disabled:cursor-not-allowed disabled:text-[var(--ink-faint)]"
+                                            className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                         >
                                             {isPending || isConfirming ? (
                                                 <><span className="v2-pulse" /> Confirm in wallet…</>
                                             ) : isConfirmed ? (
                                                 <>✓ Confirmed</>
                                             ) : (
-                                                <>→ Confirm invest</>
+                                                <>Commit now</>
                                             )}
                                         </button>
 
@@ -637,7 +637,7 @@ function FundraisingContent() {
                                                 href={`https://snowtrace.io/tx/${hash}`}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="ml-6 v2-mono text-[0.78rem] font-medium text-[var(--ink-muted)] hover:text-[var(--text-primary)]"
+                                                className="mt-3 inline-block v2-mono text-[0.78rem] font-medium text-[var(--ink-muted)] hover:text-[var(--text-primary)]"
                                             >
                                                 → Snowtrace
                                             </a>
@@ -649,7 +649,7 @@ function FundraisingContent() {
                                             ⚠ {displayError}
                                         </div>
                                     ) : null}
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>

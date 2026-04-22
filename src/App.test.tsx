@@ -364,7 +364,7 @@ describe('page compression regressions', () => {
 
         const amountInput = await screen.findByPlaceholderText('0.00');
         fireEvent.change(amountInput, { target: { value: '0.1' } });
-        fireEvent.click(screen.getByRole('button', { name: /confirm invest/i }));
+        fireEvent.click(screen.getByRole('button', { name: /commit now/i }));
 
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
         expect(screen.getByText(/only 0\.0004 AVAX remains/i)).toBeInTheDocument();
@@ -380,7 +380,7 @@ describe('page compression regressions', () => {
 
         const amountInput = await screen.findByPlaceholderText('0.00');
         fireEvent.change(amountInput, { target: { value: '0.0004' } });
-        fireEvent.click(screen.getByRole('button', { name: /confirm invest/i }));
+        fireEvent.click(screen.getByRole('button', { name: /commit now/i }));
 
         expect(wagmiMocks.writeContract).toHaveBeenCalledTimes(1);
         expect(wagmiMocks.writeContract).toHaveBeenCalledWith(expect.objectContaining({
@@ -400,7 +400,7 @@ describe('page compression regressions', () => {
 
         const amountInput = await screen.findByPlaceholderText('0.00');
         fireEvent.change(amountInput, { target: { value: '4e-4' } });
-        fireEvent.click(screen.getByRole('button', { name: /confirm invest/i }));
+        fireEvent.click(screen.getByRole('button', { name: /commit now/i }));
 
         expect(wagmiMocks.writeContract).toHaveBeenCalledTimes(1);
         expect(wagmiMocks.writeContract).toHaveBeenCalledWith(expect.objectContaining({
