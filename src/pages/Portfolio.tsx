@@ -96,7 +96,7 @@ function PortfolioContent() {
         },
         { label: 'Unrealized P/L', value: proofState.proofSummary.unrealizedPnlLabel, detail: proofState.proofSummary.unrealizedSourceLabel, primary: false },
         { label: 'Reference NAV/token', value: proofState.proofSummary.referenceNavLabel, detail: 'Onchain accounting', primary: false },
-        { label: 'Liquid treasury', value: proofState.proofSummary.liquidTreasuryLabel, detail: 'Stable accounting', primary: false },
+        { label: 'Liquid treasury', value: proofState.proofSummary.liquidTreasuryLabel, detail: 'Treasury wallet balances', primary: false },
     ];
 
     return (

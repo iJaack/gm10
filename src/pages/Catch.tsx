@@ -438,7 +438,7 @@ function CatchContent() {
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {[
                             { label: 'Portfolio value', desc: 'Sum of all marked positions' },
-                            { label: 'Liquid treasury', desc: 'Cash held in fund contracts' },
+                            { label: 'Liquid treasury', desc: 'Cash held across treasury wallets' },
                             { label: 'Weekly NAV cap', desc: 'Max inferred move per week' },
                             { label: 'Onchain reporting', desc: 'All values verifiable on Snowtrace' },
                         ].map((item) => (

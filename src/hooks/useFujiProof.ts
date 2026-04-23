@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatEther, formatUnits } from 'viem';
-import { useAccount, useReadContract, useReadContracts } from 'wagmi';
+import { useAccount, useBalance, useReadContract, useReadContracts } from 'wagmi';
 import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
-import { GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
+import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
 import {
     normalizePublicValuationOverrides,
@@ -13,13 +13,17 @@ import {
 import {
     GM10_EXPLORER_BASE_URL,
     GM10_EXPLORER_TX_BASE_URL,
+    GM10_MARKET_CONFIG,
     GM10_PRIMARY_DEPLOYMENT,
+    GM10_TREASURY_WALLETS,
     ROUND_2_END_AT,
     ROUND_2_START_AT,
     collectionExplorerUrl,
     type Gm10ContractLink,
 } from '../data/gm10Config';
 import { BUY_PAGE_DEFAULTS } from '../data/protocol';
+import { resolveLiquidTreasuryUsdt6 } from '../data/treasuryMath';
+import { useAvaxPrice } from './useAvaxPrice';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 const MAX_PUBLIC_POSITIONS = 40;
@@ -303,6 +307,7 @@ export function useFujiRoundState() {
 export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAULT_PLATFORM_NAV) {
     const contractState = useFujiContracts(GM10_PRIMARY_DEPLOYMENT);
     const { address } = useAccount();
+    const fallbackAvaxUsd = useAvaxPrice();
     const [liveMetadataByKey, setLiveMetadataByKey] = useState<Record<string, CardMetadata>>({});
     const [publicValuationOverrides, setPublicValuationOverrides] = useState<Record<number, PublicValuationOverride>>({});
 
@@ -335,6 +340,38 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         abi: GM10_FUND_ABI,
         functionName: 'stableAccounting',
         query: { enabled: Boolean(contractState.proxyAddress) },
+    });
+
+    const { data: avaxUsdRoundData } = useReadContract({
+        address: GM10_MARKET_CONFIG.avaxUsdFeedAddress ?? ZERO_ADDRESS,
+        abi: CHAINLINK_AGGREGATOR_V3_ABI,
+        functionName: 'latestRoundData',
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.avaxUsdFeedAddress) },
+    });
+
+    const { data: fundTreasuryBalance } = useBalance({
+        address: contractState.proxyAddress ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(contractState.proxyAddress) },
+    });
+
+    const { data: treasurySafeBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.treasurySafe.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.treasurySafe.address) },
+    });
+
+    const { data: liquidityCoordinatorBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.liquidityCoordinator.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.liquidityCoordinator.address) },
+    });
+
+    const { data: courtyardWorkflowBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.courtyardWorkflow.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.courtyardWorkflow.address) },
+    });
+
+    const { data: teamWalletBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.teamWallet.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.teamWallet.address) },
     });
 
     const { data: navPerToken } = useReadContract({
@@ -462,6 +499,28 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         [platformNav, positions],
     );
     const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
+    const avaxUsd = avaxUsdRoundData && avaxUsdRoundData[1] > 0n
+        ? Number(formatUnits(avaxUsdRoundData[1], 8))
+        : fallbackAvaxUsd;
+    const liquidTreasuryUsdt6 = useMemo(() => resolveLiquidTreasuryUsdt6({
+        walletBalancesWei: [
+            fundTreasuryBalance?.value,
+            treasurySafeBalance?.value,
+            liquidityCoordinatorBalance?.value,
+            courtyardWorkflowBalance?.value,
+            teamWalletBalance?.value,
+        ],
+        avaxUsd,
+        stableAccountingLiquidTreasury: stableAccounting?.[2],
+    }), [
+        avaxUsd,
+        courtyardWorkflowBalance?.value,
+        fundTreasuryBalance?.value,
+        liquidityCoordinatorBalance?.value,
+        stableAccounting,
+        teamWalletBalance?.value,
+        treasurySafeBalance?.value,
+    ]);
 
     const activity = useMemo<Gm10PortfolioActivity[]>(() => positions
         .map((position) => ({
@@ -499,7 +558,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                     ? 'Submitted FMV marks'
                     : 'Onchain registry mark',
             portfolioValueLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
-            liquidTreasuryLabel: stableAccounting ? formatUsdt6(stableAccounting[2]) : '$0.00',
+            liquidTreasuryLabel: formatUsdt6(liquidTreasuryUsdt6),
             referenceNavLabel: referenceNav !== undefined ? formatUsdt6(referenceNav) : '$0.00',
             navPerTokenLabel: navPerToken !== undefined ? formatUsdt6(navPerToken) : '$0.00',
             circulatingSupplyLabel: circulatingSupply !== undefined ? `${Number(formatUnits(circulatingSupply, 18)).toLocaleString('en-US')} CATCH` : '0 CATCH',

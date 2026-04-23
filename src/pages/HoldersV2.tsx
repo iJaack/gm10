@@ -552,7 +552,7 @@ function ProtocolStats() {
         {
             label: 'Liquid treasury',
             detail: liquidTreasuryAvax !== undefined
-                ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · wrapped in stable accounting`
+                ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · treasury wallet balances`
                 : 'AVAX-denominated, wrapped in stable accounting',
             value: holder.labels.liquidTreasury,
             hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total protocol value` : undefined,
