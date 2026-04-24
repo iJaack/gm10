@@ -332,7 +332,7 @@ function CatchContent() {
                     <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
                         {pageCopy.title}
                     </Display>
-                    <p className="mt-4 max-w-[52ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
+                    <p className="mt-4 w-full max-w-none text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                         {pageCopy.body}
                     </p>
                     <div className="mt-6 flex flex-wrap gap-6">

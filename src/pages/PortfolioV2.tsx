@@ -115,6 +115,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
         <LedgerRow
             columns="48px 64px 1fr 120px 120px 90px 120px 100px"
             align="center"
+            cellAlign={['center', 'center', 'left', 'right', 'right', 'left', 'left', 'right']}
             cells={[
                 <DataMono className="text-[0.7rem] text-[var(--accent-brass)] tracking-[0.1em]">
                     {lotNumber}
@@ -122,7 +123,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
                 <img
                     src={position.imageSrc}
                     alt=""
-                    className="h-16 w-auto object-contain"
+                    className="h-16 w-16 object-contain"
                     loading="lazy"
                 />,
                 <div>
@@ -271,22 +272,6 @@ function PortfolioContent() {
                     </div>
 
                     <SummaryStrip stats={summaryStats} />
-
-                    {platformNav.status === 'unavailable' && !platformNav.isLoading ? (
-                        <div className="mt-4 flex items-center gap-3 text-[0.78rem]">
-                            <Caption className="text-[var(--ink-faint)]">
-                                COURTYARD PLATFORM NAV UNAVAILABLE · USING ONCHAIN MARKS
-                            </Caption>
-                            <a
-                                href="https://courtyard.io/user/gm10xyz/collection"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="v2-mono text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors"
-                            >
-                                → View on Courtyard
-                            </a>
-                        </div>
-                    ) : null}
                 </div>
             </section>
 
@@ -354,7 +339,7 @@ function PortfolioContent() {
             <ActivityLedger />
 
             {/* Closer */}
-            <section className="px-4 py-20 border-t border-[var(--rule)]">
+            <section className="px-4 py-12 md:py-14 border-t border-[var(--rule)]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                     <SectionLabel>Next window</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.5rem,3vw,2.2rem)] max-w-[32ch]">

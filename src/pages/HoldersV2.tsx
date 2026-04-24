@@ -55,23 +55,52 @@ function fallbackLiq(p: MarketPool) {
     return `${avax} / ${c}`;
 }
 
+function parseDisplayNumber(label: string) {
+    const value = Number(label.replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(value) ? value : 0;
+}
+
+function deriveLivePortfolioNavUsd({
+    liquidTreasuryLabel,
+    cardPortfolioLabel,
+    totalSupplyLabel,
+}: {
+    liquidTreasuryLabel: string;
+    cardPortfolioLabel: string;
+    totalSupplyLabel: string;
+}) {
+    const liquidTreasuryUsd = parseDisplayNumber(liquidTreasuryLabel);
+    const cardPortfolioUsd = parseDisplayNumber(cardPortfolioLabel);
+    const totalSupply = parseDisplayNumber(totalSupplyLabel);
+    const livePortfolioValueUsd = liquidTreasuryUsd + cardPortfolioUsd;
+
+    return {
+        totalSupply,
+        livePortfolioValueUsd,
+        liveNavUsd: totalSupply > 0 ? livePortfolioValueUsd / totalSupply : undefined,
+    };
+}
+
 /* ── 1. Market header ─────────────────────────────────── */
 
 type CatchMarketState = ReturnType<typeof useCatchMarketData>;
 
 function MarketHeader({ market }: { market: CatchMarketState }) {
     const holder = useHolderDashboard();
+    const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
     const price = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
     const priceAvax = price !== undefined && avaxUsd > 0 ? price / avaxUsd : undefined;
     const change = market.lfj.priceChange24h ?? market.pharaoh.priceChange24h ?? 0;
     const isUp = change >= 0;
 
-    // premium / discount vs reference NAV
-    const refNavRaw = holder.raw.referenceNav;
-    const refNavUsd = refNavRaw !== undefined ? Number(formatUnits(refNavRaw, 6)) : undefined;
-    const canComparePremium = price !== undefined && refNavUsd !== undefined && refNavUsd > 0;
-    const premiumPct = canComparePremium ? ((price! - refNavUsd!) / refNavUsd!) * 100 : 0;
+    const { liveNavUsd } = deriveLivePortfolioNavUsd({
+        liquidTreasuryLabel: portfolio.proofSummary.liquidTreasuryLabel,
+        cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
+        totalSupplyLabel: holder.labels.totalSupply,
+    });
+    const canComparePremium = price !== undefined && liveNavUsd !== undefined && liveNavUsd > 0;
+    const premiumPct = canComparePremium ? ((price! - liveNavUsd!) / liveNavUsd!) * 100 : 0;
     const atPar = Math.abs(premiumPct) < 0.5;
     const isPremium = premiumPct >= 0.5;
 
@@ -141,7 +170,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                                     : `vs NAV ${isPremium ? '▲ +' : '▼ '}${Math.abs(premiumPct).toFixed(1)}% · ${isPremium ? 'premium' : 'discount'}`}
                             </span>
                             <DataMono className="text-[0.74rem] text-[var(--ink-faint)] md:text-[0.95rem] lg:text-[1.04rem] xl:text-[1.1rem]">
-                                Market {formatUsd(price, 4)} · Ref NAV {formatUsd(refNavUsd, 4)}
+                                Market {formatUsd(price, 4)} · Live NAV {formatUsd(liveNavUsd, 4)}
                             </DataMono>
                         </div>
                     ) : null}
@@ -484,23 +513,29 @@ function ProtocolStats() {
     // Raw/numeric versions for percentage math
     const navUsd = holder.raw.navPerToken !== undefined ? Number(formatUnits(holder.raw.navPerToken, 6)) : undefined;
     const refNavUsd = holder.raw.referenceNav !== undefined ? Number(formatUnits(holder.raw.referenceNav, 6)) : undefined;
-    const totalSupplyNum = Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
-    const eligibleSupplyNum = Number(holder.labels.profitEligibleSupply.replace(/[^0-9.]/g, '')) || 0;
+    const totalSupplyNum = parseDisplayNumber(holder.labels.totalSupply);
+    const eligibleSupplyNum = parseDisplayNumber(holder.labels.profitEligibleSupply);
     const eligibleRatio = totalSupplyNum > 0 ? (eligibleSupplyNum / totalSupplyNum) * 100 : undefined;
 
-    const marketCapMark = navUsd !== undefined ? totalSupplyNum * navUsd : undefined;
+    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const livePortfolioNav = deriveLivePortfolioNavUsd({
+        liquidTreasuryLabel,
+        cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
+        totalSupplyLabel: holder.labels.totalSupply,
+    });
+    const liquidTreasuryUsd = parseDisplayNumber(liquidTreasuryLabel);
+    const liquidTreasuryAvax = avaxUsd > 0 ? liquidTreasuryUsd / avaxUsd : undefined;
+    const cardPortfolioUsd = parseDisplayNumber(portfolio.proofSummary.onchainCurrentMarkLabel);
+    const cardCostUsd = parseDisplayNumber(portfolio.proofSummary.costBasisLabel);
+    const treasurySum = livePortfolioNav.livePortfolioValueUsd;
+    const liveNavUsd = livePortfolioNav.liveNavUsd ?? navUsd;
+    const referenceMarketCap = refNavUsd !== undefined ? totalSupplyNum * refNavUsd : undefined;
+    const marketCapMark = liveNavUsd !== undefined ? totalSupplyNum * liveNavUsd : undefined;
     const spotCap = market.spotPriceUsd !== undefined ? totalSupplyNum * market.spotPriceUsd : undefined;
     const spotPremiumPct =
-        marketCapMark !== undefined && marketCapMark > 0 && spotCap !== undefined
-            ? ((spotCap - marketCapMark) / marketCapMark) * 100
+        liveNavUsd !== undefined && liveNavUsd > 0 && market.spotPriceUsd !== undefined
+            ? ((market.spotPriceUsd - liveNavUsd) / liveNavUsd) * 100
             : undefined;
-
-    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
-    const liquidTreasuryUsd = Number(liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
-    const liquidTreasuryAvax = avaxUsd > 0 ? liquidTreasuryUsd / avaxUsd : undefined;
-    const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
-    const cardCostUsd = Number(portfolio.proofSummary.costBasisLabel.replace(/[^0-9.]/g, '')) || 0;
-    const treasurySum = liquidTreasuryUsd + cardPortfolioUsd;
     const liquidPct = treasurySum > 0 ? (liquidTreasuryUsd / treasurySum) * 100 : undefined;
     const portfolioPct = treasurySum > 0 ? (cardPortfolioUsd / treasurySum) * 100 : undefined;
     const portfolioPnlPct =
@@ -521,18 +556,18 @@ function ProtocolStats() {
 
     const valuation: StatRow[] = [
         {
-            label: 'Reference NAV / token',
-            detail: 'Sourced from investor accounting',
+            label: 'Onchain reference / token',
+            detail: 'Stored accounting baseline',
             value: refNavUsd !== undefined ? formatUsd(refNavUsd, 4) : holder.labels.referenceNav,
         },
         {
-            label: 'Current NAV / token',
-            detail: 'Latest onchain mark',
-            value: navUsd !== undefined ? formatUsd(navUsd, 4) : holder.labels.navPerToken,
+            label: 'Live NAV / token',
+            detail: 'Treasury wallets + card marks',
+            value: liveNavUsd !== undefined ? formatUsd(liveNavUsd, 4) : holder.labels.navPerToken,
         },
         {
             label: 'Market cap (NAV)',
-            detail: 'Total supply × current NAV per token',
+            detail: 'Total supply × live NAV per token',
             value: fmtUsd(marketCapMark),
         },
         {
@@ -736,12 +771,12 @@ function ProtocolStats() {
                     bars={[
                         {
                             label: 'Reference NAV',
-                            value: refNavUsd !== undefined ? totalSupplyNum * refNavUsd : 0,
-                            display: refNavUsd !== undefined ? fmtUsd(totalSupplyNum * refNavUsd) : '—',
+                            value: referenceMarketCap ?? 0,
+                            display: fmtUsd(referenceMarketCap),
                             color: 'var(--accent)',
                         },
                         {
-                            label: 'Current NAV',
+                            label: 'Live NAV',
                             value: marketCapMark ?? 0,
                             display: fmtUsd(marketCapMark),
                             color: 'var(--accent-blue)',
@@ -848,7 +883,7 @@ function ProtocolStats() {
                     />
                     <StatGroup
                         title="Valuation"
-                        description="Reference NAV is the accounting baseline. Current NAV is the live registry mark. Spot is the DEX-implied market cap. Wide gaps signal premium or discount."
+                        description="Reference NAV is the stored accounting baseline. Live NAV uses treasury wallet balances plus card marks. Spot is the DEX-implied market cap. Wide gaps signal premium or discount."
                         rows={valuation}
                         chart={valuationChart}
                     />
