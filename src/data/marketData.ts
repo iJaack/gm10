@@ -21,6 +21,8 @@ export type MarketPool = {
     liquidityUsd?: number;
     volume24hUsd?: number;
     priceChange24h?: number;
+    protocolAvax?: bigint;
+    protocolCatch?: bigint;
     fallbackAvax?: bigint;
     fallbackCatch?: bigint;
 };
@@ -87,14 +89,21 @@ function normalizePool(venue: 'LFJ' | 'Pharaoh', pair?: DexPair, fallback?: Mark
             liquidityUsd: parseNumber(pair.liquidity?.usd),
             volume24hUsd: parseNumber(pair.volume?.h24),
             priceChange24h: parseNumber(pair.priceChange?.h24),
+            protocolAvax: venue === 'LFJ' ? fallback?.traderJoeAvaxWei : fallback?.pharaohAvaxWei,
+            protocolCatch: venue === 'LFJ' ? fallback?.traderJoeCatch18 : fallback?.pharaohCatch18,
         };
     }
+
+    const protocolAvax = venue === 'LFJ' ? fallback?.traderJoeAvaxWei : fallback?.pharaohAvaxWei;
+    const protocolCatch = venue === 'LFJ' ? fallback?.traderJoeCatch18 : fallback?.pharaohCatch18;
 
     return {
         venue,
         status: 'unavailable',
-        fallbackAvax: venue === 'LFJ' ? fallback?.traderJoeAvaxWei : fallback?.pharaohAvaxWei,
-        fallbackCatch: venue === 'LFJ' ? fallback?.traderJoeCatch18 : fallback?.pharaohCatch18,
+        protocolAvax,
+        protocolCatch,
+        fallbackAvax: protocolAvax,
+        fallbackCatch: protocolCatch,
     };
 }
 

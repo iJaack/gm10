@@ -36,6 +36,21 @@ describe('market data normalization', () => {
         expect(market.pharaoh.pairAddress).toBe('0x2222222222222222222222222222222222222222');
     });
 
+    it('keeps protocol LP counters alongside available DEX pool data', () => {
+        const market = normalizeCatchMarketData(pairs, {
+            fallback: {
+                traderJoeAvaxWei: 1n,
+                traderJoeCatch18: 2n,
+                pharaohAvaxWei: 3n,
+                pharaohCatch18: 4n,
+            },
+        });
+
+        expect(market.lfj.liquidityUsd).toBe(10_000);
+        expect(market.lfj.protocolAvax).toBe(1n);
+        expect(market.pharaoh.protocolCatch).toBe(4n);
+    });
+
     it('uses configured pair addresses before venue matching', () => {
         const market = normalizeCatchMarketData(pairs, {
             lfjPairAddress: '0x2222222222222222222222222222222222222222',

@@ -81,6 +81,24 @@ function deriveLivePortfolioNavUsd({
     };
 }
 
+function protocolLpValue(pool: MarketPool, avaxUsd: number) {
+    const avaxWei = pool.protocolAvax ?? pool.fallbackAvax;
+    const catchWei = pool.protocolCatch ?? pool.fallbackCatch;
+    const hasAvax = avaxWei !== undefined;
+    const hasCatch = catchWei !== undefined;
+    const avax = hasAvax ? Number(formatEther(avaxWei)) : 0;
+    const catchAmount = hasCatch ? Number(formatUnits(catchWei, 18)) : 0;
+    const avaxUsdValue = avaxUsd > 0 ? avax * avaxUsd : 0;
+    const catchUsdValue = pool.priceUsd !== undefined ? catchAmount * pool.priceUsd : 0;
+
+    return {
+        hasData: hasAvax || hasCatch,
+        avax,
+        catchAmount,
+        usd: avaxUsdValue + catchUsdValue,
+    };
+}
+
 /* ── 1. Market header ─────────────────────────────────── */
 
 type CatchMarketState = ReturnType<typeof useCatchMarketData>;
@@ -249,15 +267,16 @@ function CompositionDonut() {
     const holder = useHolderDashboard();
     const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
+    const avaxUsd = useAvaxPrice();
 
     const liquidTreasuryUsd = Number(portfolio.proofSummary.liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
-    const dexLiquidity = (market.lfj.liquidityUsd ?? 0) + (market.pharaoh.liquidityUsd ?? 0);
+    const protocolLpUsd = protocolLpValue(market.lfj, avaxUsd).usd + protocolLpValue(market.pharaoh, avaxUsd).usd;
 
     const slices = [
         { label: 'Liquid treasury', value: liquidTreasuryUsd, color: 'var(--accent)' },
         { label: 'Card portfolio', value: cardPortfolioUsd, color: 'var(--accent-blue)' },
-        { label: 'DEX liquidity', value: dexLiquidity, color: 'var(--accent-green)' },
+        { label: 'Protocol LP', value: protocolLpUsd, color: 'var(--accent-green)' },
     ];
 
     const total = slices.reduce((s, x) => s + x.value, 0) || 1;
@@ -1036,18 +1055,22 @@ function ClaimRow() {
 
 /* ── 5. Liquidity table ────────────────────────────────── */
 
-function PoolRow({ pool }: { pool: MarketPool }) {
+function PoolRow({ pool, avaxUsd }: { pool: MarketPool; avaxUsd: number }) {
     const isUp = (pool.priceChange24h ?? 0) >= 0;
+    const protocol = protocolLpValue(pool, avaxUsd);
     return (
         <LedgerRow
-            columns="120px 140px 1fr 160px 160px 120px 80px"
-            cellAlign={['left', 'left', 'left', 'right', 'right', 'right', 'right']}
+            columns="120px 140px 1fr 150px 150px 140px 110px 80px"
+            cellAlign={['left', 'left', 'left', 'right', 'right', 'right', 'right', 'right']}
             cells={[
                 <span className="text-[var(--text-primary)]">{pool.venue}</span>,
                 <DataMono className="text-[var(--ink-faint)]">{shortAddr(pool.pairAddress)}</DataMono>,
                 <span className="text-[var(--ink-faint)]">{pool.quoteToken ?? '—'}</span>,
                 <span className="text-[var(--text-primary)]">
                     {pool.status === 'available' ? formatUsd(pool.liquidityUsd) : (fallbackLiq(pool) ?? '—')}
+                </span>,
+                <span className="text-[var(--text-primary)]">
+                    {protocol.hasData ? formatUsd(protocol.usd) : '—'}
                 </span>,
                 <span className="text-[var(--text-primary)]">
                     {pool.volume24hUsd !== undefined ? formatUsd(pool.volume24hUsd) : '—'}
@@ -1073,14 +1096,19 @@ function LiquiditySection() {
     const market = useCatchMarketData();
     const holder = useHolderDashboard();
     const round = useFujiRoundState();
+    const avaxUsd = useAvaxPrice();
     const [tab, setTab] = useState<VenueTab>('all');
 
     const lfj = market.lfj;
     const pharaoh = market.pharaoh;
+    const lfjProtocol = protocolLpValue(lfj, avaxUsd);
+    const pharaohProtocol = protocolLpValue(pharaoh, avaxUsd);
+    const protocolLpSum = lfjProtocol.usd + pharaohProtocol.usd;
 
     // Aggregate view for "All"
     const combined = {
         liquidityUsd: (lfj.liquidityUsd ?? 0) + (pharaoh.liquidityUsd ?? 0),
+        protocolLpUsd: protocolLpSum,
         volume24hUsd: (lfj.volume24hUsd ?? 0) + (pharaoh.volume24hUsd ?? 0),
         priceUsd: lfj.priceUsd ?? pharaoh.priceUsd,
         priceChange24h: lfj.priceChange24h ?? pharaoh.priceChange24h,
@@ -1088,6 +1116,7 @@ function LiquiditySection() {
 
     const active = tab === 'lfj' ? lfj : tab === 'pharaoh' ? pharaoh : null;
     const viewLiq = active ? (active.liquidityUsd ?? 0) : combined.liquidityUsd;
+    const viewProtocolLp = active ? protocolLpValue(active, avaxUsd).usd : combined.protocolLpUsd;
     const viewVol = active ? (active.volume24hUsd ?? 0) : combined.volume24hUsd;
     const viewPrice = active ? active.priceUsd : combined.priceUsd;
     const viewChange = active ? active.priceChange24h ?? 0 : combined.priceChange24h ?? 0;
@@ -1102,9 +1131,12 @@ function LiquiditySection() {
     // Shares for the venue-split chart
     const lfjLiq = lfj.liquidityUsd ?? 0;
     const pharaohLiq = pharaoh.liquidityUsd ?? 0;
+    const lfjProtocolLiq = lfjProtocol.usd;
+    const pharaohProtocolLiq = pharaohProtocol.usd;
     const lfjVol = lfj.volume24hUsd ?? 0;
     const pharaohVol = pharaoh.volume24hUsd ?? 0;
     const liquiditySum = lfjLiq + pharaohLiq;
+    const protocolLiquiditySum = lfjProtocolLiq + pharaohProtocolLiq;
     const volumeSum = lfjVol + pharaohVol;
     const fmtUsd0 = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
@@ -1129,7 +1161,7 @@ function LiquiditySection() {
                             </p>
                         </div>
                         <DataMono className="shrink-0 text-[0.68rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
-                            9 metrics
+                            10 metrics
                         </DataMono>
                     </header>
 
@@ -1152,7 +1184,7 @@ function LiquiditySection() {
                     </div>
 
                     {/* KPI cards — reflect selected venue or aggregate */}
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                                 Spot price
@@ -1166,13 +1198,24 @@ function LiquiditySection() {
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                                Liquidity
+                                Pool liquidity
                             </Caption>
                             <div className="mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)] tabular-nums">
                                 {formatUsd(viewLiq, 0)}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Pool TVL
+                                Full Dexscreener depth
+                            </DataMono>
+                        </div>
+                        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
+                            <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+                                Protocol LP
+                            </Caption>
+                            <div className="mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)] tabular-nums">
+                                {formatUsd(viewProtocolLp, 0)}
+                            </div>
+                            <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
+                                Coordinator deployed
                             </DataMono>
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
@@ -1249,9 +1292,9 @@ function LiquiditySection() {
                         </div>
                     </div>
 
-                    {/* Capital deployment — big bar showing LP split + buyback rows */}
+                    {/* Capital deployment — protocol-owned LP split + buyback rows */}
                     {(() => {
-                        const lfjPct = liquiditySum > 0 ? (lfjLiq / liquiditySum) * 100 : 0;
+                        const lfjPct = protocolLiquiditySum > 0 ? (lfjProtocolLiq / protocolLiquiditySum) * 100 : 0;
                         const pharaohPct = 100 - lfjPct;
                         // Round 2 LP allocation: 10% of raised → LP, half of that will be used to market-buy $CATCH
                         // Executes only after the round closes; until then, nothing has been bought.
@@ -1263,7 +1306,7 @@ function LiquiditySection() {
                             <div className="mt-8 border-t border-[var(--rule)] pt-5">
                                 <h4 className="text-[0.78rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">Capital deployment</h4>
                                 <p className="mt-1 text-[0.72rem] leading-[1.5] text-[var(--ink-faint)]">
-                                    LP deployed across venues and AVAX earmarked for $CATCH buybacks. LP and buyback reserves accrue onchain and are deployed opportunistically as markets allow.
+                                    Protocol-owned LP deployed through the coordinator. Full pool depth is shown separately in the venue table because it can include third-party liquidity.
                                 </p>
 
                                 {/* Big progress bar — LFJ vs Pharaoh LP split */}
@@ -1295,7 +1338,7 @@ function LiquiditySection() {
                                                     className="mt-1 inline-block self-start rounded-md border border-[var(--border)] px-2 py-0.5 text-[1.45rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] whitespace-nowrap"
                                                     style={{ background: 'var(--bg-primary)' }}
                                                 >
-                                                    {fmtUsd0(lfjLiq)}
+                                                    {fmtUsd0(lfjProtocolLiq)}
                                                 </div>
                                             </div>
                                         ) : null}
@@ -1315,7 +1358,7 @@ function LiquiditySection() {
                                                     className="mt-1 inline-block self-end rounded-md border border-[var(--border)] px-2 py-0.5 text-[1.45rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] whitespace-nowrap"
                                                     style={{ background: 'var(--bg-primary)' }}
                                                 >
-                                                    {fmtUsd0(pharaohLiq)}
+                                                    {fmtUsd0(pharaohProtocolLiq)}
                                                 </div>
                                             </div>
                                         ) : null}
@@ -1323,12 +1366,12 @@ function LiquiditySection() {
                                     <div className="mt-3 flex items-baseline justify-between text-[0.78rem] text-[var(--ink-faint)] tabular-nums">
                                         <span>LFJ {lfjPct.toFixed(1)}%</span>
                                         <span className="text-[1.05rem] font-bold text-[var(--text-primary)]">
-                                            {fmtUsd0(liquiditySum)} <span className="text-[0.78rem] font-medium text-[var(--ink-faint)]">LP deployed</span>
+                                            {fmtUsd0(protocolLiquiditySum)} <span className="text-[0.78rem] font-medium text-[var(--ink-faint)]">protocol LP</span>
                                         </span>
                                         <span>Pharaoh {pharaohPct.toFixed(1)}%</span>
                                     </div>
                                     <div className="mt-1 text-center text-[0.72rem] text-[var(--ink-faint)]">
-                                        + {holder.labels.lpAccrued} AVAX reserve awaiting deployment
+                                        + {holder.labels.lpAccrued} LP reserve awaiting deployment
                                     </div>
                                 </div>
 
@@ -1360,18 +1403,19 @@ function LiquiditySection() {
                             <div className="min-w-[920px]">
                                 <div
                                     className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
-                                    style={{ gridTemplateColumns: '120px 140px 1fr 160px 160px 120px 80px' }}
+                                    style={{ gridTemplateColumns: '120px 140px 1fr 150px 150px 140px 110px 80px' }}
                                 >
                                     <span>Venue</span>
                                     <span>Pair</span>
                                     <span>Quote</span>
-                                    <span className="text-right">Liquidity</span>
+                                    <span className="text-right">Pool liquidity</span>
+                                    <span className="text-right">Protocol LP</span>
                                     <span className="text-right">24H Vol</span>
                                     <span className="text-right">24H</span>
                                     <span className="text-right">Link</span>
                                 </div>
-                                <PoolRow pool={lfj} />
-                                <PoolRow pool={pharaoh} />
+                                <PoolRow pool={lfj} avaxUsd={avaxUsd} />
+                                <PoolRow pool={pharaoh} avaxUsd={avaxUsd} />
                             </div>
                         </div>
                     ) : (
