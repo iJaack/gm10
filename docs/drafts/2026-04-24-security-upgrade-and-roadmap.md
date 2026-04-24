@@ -35,8 +35,19 @@ The upgrade shipped several important fixes:
 7. External proceeds on another chain or in another token can be recorded as provenance, but remain pending until normalized into verified fund custody.
 8. Legacy fundraising state and stable accounting were copied into the current storage layout so future upgrades preserve round integrity.
 9. Registry V2 now starts from the existing portfolio state instead of an empty fresh deployment.
+10. Holder dashboards now derive upgrade-safe accounting from the V6 surface instead of assuming old helper getters still exist.
 
 The admin console was updated around the same lifecycle. Normal purchase execution now follows the real sequence: authorize the purchase, move or bridge funds, confirm funding, buy, detect custody, record execution, and record the position. Sale finalization remains disabled until proceeds are confirmed.
+
+The public holder dashboard was updated after the repair as well. V6 does not expose the old separate `profitDistributor()`, `referenceNavPerTokenUsdt6()`, or `profitEligibleSupply18()` helpers, so the dashboard now uses the available V6 accounting surface directly:
+
+- Reference NAV uses `navPerTokenUsdt6()` as the current onchain accounting baseline.
+- Live NAV is recomputed from liquid treasury plus card marks divided by minted supply.
+- Profit-eligible supply is derived from total minted CATCH minus protocol-owned and LP balances.
+- Holder profit is shown in USD as claimable plus claimed/distributed value, with APR shown only after realized holder profit exists.
+- LFJ and Pharaoh liquidity views are pinned to the live pool addresses so DEX pool depth is not confused with protocol-owned LP.
+
+This keeps the holder page honest while the profit distribution surface is still being completed. There are no realized sale profits in the holder bucket yet, so the public claimable/claimed holder-profit value remains `$0.00` and APR is intentionally unavailable.
 
 ## Why This Matters
 
