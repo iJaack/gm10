@@ -161,7 +161,8 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
     const livePriceUsd = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
     const marketCapSpot = livePriceUsd !== undefined ? totalSupplyNum * livePriceUsd : undefined;
 
-    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const liquidTreasuryUsd = Number(liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const totalTreasury = liquidTreasuryUsd + cardPortfolioUsd;
 
@@ -178,7 +179,7 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
         {
             label: 'Treasury',
             value: fmtUsd0(totalTreasury),
-            detail: `Liquid ${holder.labels.liquidTreasury} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
+            detail: `Liquid ${liquidTreasuryLabel} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
         },
         {
             label: '24h volume',
@@ -220,7 +221,7 @@ function CompositionDonut() {
     const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
 
-    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryUsd = Number(portfolio.proofSummary.liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const dexLiquidity = (market.lfj.liquidityUsd ?? 0) + (market.pharaoh.liquidityUsd ?? 0);
 
@@ -494,7 +495,8 @@ function ProtocolStats() {
             ? ((spotCap - marketCapMark) / marketCapMark) * 100
             : undefined;
 
-    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const liquidTreasuryUsd = Number(liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const liquidTreasuryAvax = avaxUsd > 0 ? liquidTreasuryUsd / avaxUsd : undefined;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardCostUsd = Number(portfolio.proofSummary.costBasisLabel.replace(/[^0-9.]/g, '')) || 0;
@@ -554,7 +556,7 @@ function ProtocolStats() {
             detail: liquidTreasuryAvax !== undefined
                 ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · treasury wallet balances`
                 : 'AVAX-denominated, wrapped in stable accounting',
-            value: holder.labels.liquidTreasury,
+            value: liquidTreasuryLabel,
             hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total protocol value` : undefined,
             barValue: liquidTreasuryUsd,
             barColor: 'var(--ink-faint)',
