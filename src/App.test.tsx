@@ -233,6 +233,8 @@ vi.mock('./hooks/useHolderDashboard', () => ({
             claimableProfit: 'Connect wallet',
             claimedProfit: 'Connect wallet',
             totalProfitDeposited: '0 AVAX',
+            holderProfitsClaimableClaimed: '$0.00',
+            holderProfitApr: 'APR unavailable',
             liquidTreasury: '$3,528.60',
             holderDistributionAccrued: '$0.00',
             liquidityCatchBuyAccrued: '$0.00',

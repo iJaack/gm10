@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeCatchMarketData, type DexPair } from './marketData';
+import { normalizeCatchMarketData, resolveProtocolLpValue, type DexPair } from './marketData';
 
 const pairs: DexPair[] = [
     {
@@ -72,5 +72,20 @@ describe('market data normalization', () => {
         expect(market.status).toBe('unavailable');
         expect(market.lfj.fallbackAvax).toBe(1n);
         expect(market.pharaoh.fallbackCatch).toBe(4n);
+    });
+
+    it('values protocol LP from both the deployed AVAX side and deployed CATCH side', () => {
+        const protocol = resolveProtocolLpValue({
+            venue: 'Pharaoh',
+            status: 'available',
+            priceUsd: 0.03,
+            protocolAvax: 25_000000000000000000n,
+            protocolCatch: 8_333_333333333333333333n,
+        }, 19.4);
+
+        expect(protocol.hasData).toBe(true);
+        expect(protocol.avax).toBe(25);
+        expect(protocol.catchAmount).toBeCloseTo(8_333.333333333334);
+        expect(protocol.usd).toBeCloseTo(735, 6);
     });
 });

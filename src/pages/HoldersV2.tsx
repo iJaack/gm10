@@ -27,7 +27,7 @@ import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import { useCatchMarketData } from '../hooks/useCatchMarketData';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useHolderDashboard } from '../hooks/useHolderDashboard';
-import type { MarketPool } from '../data/marketData';
+import { resolveProtocolLpValue, type MarketPool } from '../data/marketData';
 import { TOKEN_ALLOCATION } from '../data/protocol';
 import { ChartLegend, ComparisonBars, DonutChart, SegmentedBar } from '../components/v2/MiniCharts';
 
@@ -78,24 +78,6 @@ function deriveLivePortfolioNavUsd({
         totalSupply,
         livePortfolioValueUsd,
         liveNavUsd: totalSupply > 0 ? livePortfolioValueUsd / totalSupply : undefined,
-    };
-}
-
-function protocolLpValue(pool: MarketPool, avaxUsd: number) {
-    const avaxWei = pool.protocolAvax ?? pool.fallbackAvax;
-    const catchWei = pool.protocolCatch ?? pool.fallbackCatch;
-    const hasAvax = avaxWei !== undefined;
-    const hasCatch = catchWei !== undefined;
-    const avax = hasAvax ? Number(formatEther(avaxWei)) : 0;
-    const catchAmount = hasCatch ? Number(formatUnits(catchWei, 18)) : 0;
-    const avaxUsdValue = avaxUsd > 0 ? avax * avaxUsd : 0;
-    const catchUsdValue = pool.priceUsd !== undefined ? catchAmount * pool.priceUsd : 0;
-
-    return {
-        hasData: hasAvax || hasCatch,
-        avax,
-        catchAmount,
-        usd: avaxUsdValue + catchUsdValue,
     };
 }
 
@@ -224,7 +206,7 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
             detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · Price ${formatUsd(livePriceUsd, 4)}`,
         },
         {
-            label: 'Treasury',
+            label: 'Treasury NAV',
             value: fmtUsd0(totalTreasury),
             detail: `Liquid ${liquidTreasuryLabel} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
         },
@@ -271,7 +253,7 @@ function CompositionDonut() {
 
     const liquidTreasuryUsd = Number(portfolio.proofSummary.liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
-    const protocolLpUsd = protocolLpValue(market.lfj, avaxUsd).usd + protocolLpValue(market.pharaoh, avaxUsd).usd;
+    const protocolLpUsd = resolveProtocolLpValue(market.lfj, avaxUsd).usd + resolveProtocolLpValue(market.pharaoh, avaxUsd).usd;
 
     const slices = [
         { label: 'Liquid treasury', value: liquidTreasuryUsd, color: 'var(--accent)' },
@@ -318,14 +300,10 @@ function CompositionDonut() {
     // Flow-to-holders metrics — live alongside the composition donut
     const flowRows = [
         {
-            label: 'Lifetime profit deposited',
-            detail: 'AVAX sent to the holder distributor since launch',
-            value: holder.labels.totalProfitDeposited,
-        },
-        {
-            label: 'Holder claim bucket',
-            detail: '40% of realized sale profit reserved for eligible holders',
-            value: holder.labels.holderDistributionAccrued,
+            label: 'Holder profits claimable / claimed',
+            detail: 'USD reserved for holder claims plus paid distributions; APR appears once realized profit exists',
+            value: holder.labels.holderProfitsClaimableClaimed,
+            hint: holder.labels.holderProfitApr,
         },
     ];
 
@@ -527,7 +505,6 @@ function ProtocolStats() {
     const holder = useHolderDashboard();
     const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
-    const avaxUsd = useAvaxPrice();
 
     // Raw/numeric versions for percentage math
     const navUsd = holder.raw.navPerToken !== undefined ? Number(formatUnits(holder.raw.navPerToken, 6)) : undefined;
@@ -542,11 +519,6 @@ function ProtocolStats() {
         cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
         totalSupplyLabel: holder.labels.totalSupply,
     });
-    const liquidTreasuryUsd = parseDisplayNumber(liquidTreasuryLabel);
-    const liquidTreasuryAvax = avaxUsd > 0 ? liquidTreasuryUsd / avaxUsd : undefined;
-    const cardPortfolioUsd = parseDisplayNumber(portfolio.proofSummary.onchainCurrentMarkLabel);
-    const cardCostUsd = parseDisplayNumber(portfolio.proofSummary.costBasisLabel);
-    const treasurySum = livePortfolioNav.livePortfolioValueUsd;
     const liveNavUsd = livePortfolioNav.liveNavUsd ?? navUsd;
     const referenceMarketCap = refNavUsd !== undefined ? totalSupplyNum * refNavUsd : undefined;
     const marketCapMark = liveNavUsd !== undefined ? totalSupplyNum * liveNavUsd : undefined;
@@ -555,12 +527,6 @@ function ProtocolStats() {
         liveNavUsd !== undefined && liveNavUsd > 0 && market.spotPriceUsd !== undefined
             ? ((market.spotPriceUsd - liveNavUsd) / liveNavUsd) * 100
             : undefined;
-    const liquidPct = treasurySum > 0 ? (liquidTreasuryUsd / treasurySum) * 100 : undefined;
-    const portfolioPct = treasurySum > 0 ? (cardPortfolioUsd / treasurySum) * 100 : undefined;
-    const portfolioPnlPct =
-        cardCostUsd > 0 ? ((cardPortfolioUsd - cardCostUsd) / cardCostUsd) * 100 : undefined;
-    const portfolioPnlTone =
-        portfolioPnlPct === undefined ? 'neutral' : portfolioPnlPct > 0 ? 'up' : portfolioPnlPct < 0 ? 'down' : 'neutral';
 
     const fmtUsd = (n?: number) => n !== undefined ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—';
 
@@ -576,12 +542,12 @@ function ProtocolStats() {
     const valuation: StatRow[] = [
         {
             label: 'Onchain reference / token',
-            detail: 'Stored accounting baseline',
+            detail: 'Fund navPerTokenUsdt6 ÷ 1e6; used as the current V6 reference baseline',
             value: refNavUsd !== undefined ? formatUsd(refNavUsd, 4) : holder.labels.referenceNav,
         },
         {
             label: 'Live NAV / token',
-            detail: 'Treasury wallets + card marks',
+            detail: `(${liquidTreasuryLabel} liquid + ${portfolio.proofSummary.onchainCurrentMarkLabel} cards) ÷ ${fmtCatch(totalSupplyNum)}`,
             value: liveNavUsd !== undefined ? formatUsd(liveNavUsd, 4) : holder.labels.navPerToken,
         },
         {
@@ -604,53 +570,12 @@ function ProtocolStats() {
         },
     ];
 
-    const treasuryRows: Array<StatRow & { barValue: number; barColor: string; barHint?: string }> = [
-        {
-            label: 'Liquid treasury',
-            detail: liquidTreasuryAvax !== undefined
-                ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · treasury wallet balances`
-                : 'AVAX-denominated, wrapped in stable accounting',
-            value: liquidTreasuryLabel,
-            hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total protocol value` : undefined,
-            barValue: liquidTreasuryUsd,
-            barColor: 'var(--ink-faint)',
-            barHint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total` : undefined,
-        },
-        {
-            label: 'Card portfolio (mark)',
-            detail: `${portfolio.positions.length} lot${portfolio.positions.length === 1 ? '' : 's'} custodied by Courtyard on Polygon`,
-            value: portfolio.proofSummary.onchainCurrentMarkLabel,
-            hint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total protocol value` : undefined,
-            barValue: cardPortfolioUsd,
-            barColor: 'var(--accent-blue)',
-            barHint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total` : undefined,
-        },
-        {
-            label: 'Card portfolio (cost)',
-            detail: 'Sum of acquisition prices recorded onchain',
-            value: portfolio.proofSummary.costBasisLabel,
-            hint:
-                portfolioPnlPct === undefined
-                    ? undefined
-                    : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% unrealized vs mark`,
-            hintTone: portfolioPnlTone,
-            barValue: cardCostUsd,
-            barColor: 'var(--accent)',
-            barHint:
-                portfolioPnlPct === undefined
-                    ? undefined
-                    : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% vs mark`,
-        },
-    ];
-    const treasuryMaxValue = Math.max(1, ...treasuryRows.map((row) => row.barValue));
-
     /* ── Visuals ──────────────────────────────────────────────
      * Each group is a single card via StatGroup. Chart content is passed raw —
      * the outer card chrome + title + description live on the group itself.
      *
      * Supply    — big progress bar (hero) + 7-bucket tokenomics donut (chart)
      * Valuation — comparison bars (chart) + 4 precise rows (rows)
-     * Treasury  — row-integrated value bars
      * Markets   — venue share split bars (chart) + 4 rows (rows)
      */
 
@@ -823,70 +748,13 @@ function ProtocolStats() {
         </div>
     );
 
-    const treasuryBreakdown = (
-        <div>
-            <SubHead
-                title="Value breakdown"
-                detail="Liquid AVAX dominates today; card lots are the productive portion. Cost vs mark shows unrealized P/L."
-            />
-            <div className="mt-4 divide-y divide-[var(--rule)]">
-                {treasuryRows.map((row) => {
-                    const hintClass =
-                        row.hintTone === 'up' ? 'v2-up'
-                            : row.hintTone === 'down' ? 'v2-down'
-                                : 'text-[var(--ink-faint)]';
-                    const pctOfMax = (row.barValue / treasuryMaxValue) * 100;
-
-                    return (
-                        <div
-                            key={row.label}
-                            className="grid gap-4 py-5 first:pt-0 last:pb-0 md:grid-cols-[1fr_auto] md:items-center md:gap-8"
-                        >
-                            <div className="min-w-0">
-                                <div className="text-[0.82rem] font-semibold text-[var(--text-primary)]">{row.label}</div>
-                                <div className="mt-1 text-[0.78rem] leading-[1.5] text-[var(--ink-faint)]">{row.detail}</div>
-                                <div className="mt-3 flex items-center gap-3">
-                                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                                        <div
-                                            className="h-full rounded-full"
-                                            style={{
-                                                width: `${Math.min(100, Math.max(0, pctOfMax))}%`,
-                                                minWidth: row.barValue > 0 ? 4 : 0,
-                                                background: row.barColor,
-                                            }}
-                                        />
-                                    </div>
-                                    {row.barHint ? (
-                                        <DataMono className="shrink-0 text-[0.7rem] tabular-nums text-[var(--ink-muted)]">
-                                            {row.barHint}
-                                        </DataMono>
-                                    ) : null}
-                                </div>
-                            </div>
-                            <div className="text-right md:min-w-[180px]">
-                                <DataMono className="block text-[1.15rem] font-bold tracking-[-0.01em] tabular-nums text-[var(--text-primary)]">
-                                    {row.value}
-                                </DataMono>
-                                {row.hint ? (
-                                    <div className={`mt-1 text-[0.72rem] font-medium ${hintClass}`}>
-                                        {row.hint}
-                                    </div>
-                                ) : null}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-
     return (
         <section className="px-4 pt-4 pb-12">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <div className="flex items-baseline justify-between">
                     <SectionLabel>Protocol accounting</SectionLabel>
                     <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
-                        {2 + valuation.length + treasuryRows.length} metrics · 3 groups · 4 charts
+                        {2 + valuation.length} metrics · 2 groups · 3 charts
                     </DataMono>
                 </div>
 
@@ -902,19 +770,11 @@ function ProtocolStats() {
                     />
                     <StatGroup
                         title="Valuation"
-                        description="Reference NAV is the stored accounting baseline. Live NAV uses treasury wallet balances plus card marks. Spot is the DEX-implied market cap. Wide gaps signal premium or discount."
+                        description="Reference NAV is the fund's onchain accounting baseline. Live NAV divides liquid treasury plus card marks by total minted supply. Spot is the DEX-implied market cap."
                         rows={valuation}
                         chart={valuationChart}
                     />
                 </div>
-
-                <StatGroup
-                    title="Treasury"
-                    description="Where protocol value sits today: card lots custodied by Courtyard plus liquid AVAX waiting to be deployed."
-                    rows={[]}
-                    chart={treasuryBreakdown}
-                    metricCount={treasuryRows.length}
-                />
             </div>
         </section>
     );
@@ -1057,7 +917,7 @@ function ClaimRow() {
 
 function PoolRow({ pool, avaxUsd }: { pool: MarketPool; avaxUsd: number }) {
     const isUp = (pool.priceChange24h ?? 0) >= 0;
-    const protocol = protocolLpValue(pool, avaxUsd);
+    const protocol = resolveProtocolLpValue(pool, avaxUsd);
     return (
         <LedgerRow
             columns="120px 140px 1fr 150px 150px 140px 110px 80px"
@@ -1101,8 +961,8 @@ function LiquiditySection() {
 
     const lfj = market.lfj;
     const pharaoh = market.pharaoh;
-    const lfjProtocol = protocolLpValue(lfj, avaxUsd);
-    const pharaohProtocol = protocolLpValue(pharaoh, avaxUsd);
+    const lfjProtocol = resolveProtocolLpValue(lfj, avaxUsd);
+    const pharaohProtocol = resolveProtocolLpValue(pharaoh, avaxUsd);
     const protocolLpSum = lfjProtocol.usd + pharaohProtocol.usd;
 
     // Aggregate view for "All"
@@ -1116,7 +976,7 @@ function LiquiditySection() {
 
     const active = tab === 'lfj' ? lfj : tab === 'pharaoh' ? pharaoh : null;
     const viewLiq = active ? (active.liquidityUsd ?? 0) : combined.liquidityUsd;
-    const viewProtocolLp = active ? protocolLpValue(active, avaxUsd).usd : combined.protocolLpUsd;
+    const viewProtocolLp = active ? resolveProtocolLpValue(active, avaxUsd).usd : combined.protocolLpUsd;
     const viewVol = active ? (active.volume24hUsd ?? 0) : combined.volume24hUsd;
     const viewPrice = active ? active.priceUsd : combined.priceUsd;
     const viewChange = active ? active.priceChange24h ?? 0 : combined.priceChange24h ?? 0;
@@ -1198,13 +1058,13 @@ function LiquiditySection() {
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                                Pool liquidity
+                                DEX liquidity
                             </Caption>
                             <div className="mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)] tabular-nums">
                                 {formatUsd(viewLiq, 0)}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Full Dexscreener depth
+                                Dexscreener active pool depth
                             </DataMono>
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
@@ -1242,7 +1102,7 @@ function LiquiditySection() {
                         </div>
                     </div>
 
-                    {/* Venue share — pool liquidity + 24h volume split */}
+                    {/* Venue share — DEX liquidity + 24h volume split */}
                     <div className="mt-8 border-t border-[var(--rule)] pt-5">
                         <h4 className="text-[0.78rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">Venue share</h4>
                         <p className="mt-1 text-[0.72rem] leading-[1.5] text-[var(--ink-faint)]">
@@ -1251,7 +1111,7 @@ function LiquiditySection() {
                         <div className="mt-4 grid gap-6 md:grid-cols-2">
                             <div>
                                 <div className="text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                                    Pool liquidity
+                                    DEX liquidity
                                 </div>
                                 <div className="mt-3 flex flex-col gap-3">
                                     <SegmentedBar
@@ -1259,7 +1119,7 @@ function LiquiditySection() {
                                             { label: 'LFJ', value: lfjLiq, color: 'var(--accent)' },
                                             { label: 'Pharaoh', value: pharaohLiq, color: 'var(--accent-blue)' },
                                         ]}
-                                        ariaLabel="Pool liquidity split"
+                                        ariaLabel="DEX liquidity split"
                                     />
                                     <ChartLegend
                                         items={[
@@ -1408,7 +1268,7 @@ function LiquiditySection() {
                                     <span>Venue</span>
                                     <span>Pair</span>
                                     <span>Quote</span>
-                                    <span className="text-right">Pool liquidity</span>
+                                    <span className="text-right">DEX liquidity</span>
                                     <span className="text-right">Protocol LP</span>
                                     <span className="text-right">24H Vol</span>
                                     <span className="text-right">24H</span>

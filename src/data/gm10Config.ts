@@ -46,7 +46,7 @@ const fundProxyAddress = parseAddress(
     import.meta.env.VITE_GM10_FUND_PROXY_ADDRESS || '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
 );
 const portfolioRegistryAddress = parseAddress(
-    import.meta.env.VITE_GM10_PORTFOLIO_REGISTRY_ADDRESS || '0x1b7341C74cfA0C098431197aE5b697A73036CDFC',
+    import.meta.env.VITE_GM10_PORTFOLIO_REGISTRY_ADDRESS || '0x0fCbce2341E3682AB92f1cAabDF976E17D91436A',
 );
 const investorAccountingAddress = parseAddress(
     import.meta.env.VITE_GM10_INVESTOR_ACCOUNTING_ADDRESS || '0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963',
@@ -75,8 +75,12 @@ const courtyardWorkflowAddress = parseAddress(
     || import.meta.env.VITE_GM10_ADMIN_COURTYARD_WORKFLOW_ADDRESS
     || '0x5448884263E8C27c87CCE6279faE8175271D131c',
 );
-const lfjPairAddress = parseAddress(import.meta.env.VITE_GM10_LFJ_PAIR_ADDRESS);
-const pharaohPoolAddress = parseAddress(import.meta.env.VITE_GM10_PHARAOH_POOL_ADDRESS);
+const lfjPairAddress = parseAddress(
+    import.meta.env.VITE_GM10_LFJ_PAIR_ADDRESS || '0xDc6523f6275bc91cEA2dE1C8e178B65da1F2ee53',
+);
+const pharaohPoolAddress = parseAddress(
+    import.meta.env.VITE_GM10_PHARAOH_POOL_ADDRESS || '0x1D4Cf678129cdDF63fBc31ca58cB24048955651f',
+);
 
 export const GM10_PRIMARY_DEPLOYMENT = {
     proxy: {

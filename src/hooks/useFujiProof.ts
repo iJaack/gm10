@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatEther, formatUnits } from 'viem';
 import { useAccount, useBalance, useReadContract, useReadContracts } from 'wagmi';
 import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
-import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
+import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_ERC20_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
 import {
     normalizePublicValuationOverrides,
@@ -21,6 +21,7 @@ import {
     collectionExplorerUrl,
     type Gm10ContractLink,
 } from '../data/gm10Config';
+import { resolveHolderAccounting } from '../data/holderAccounting';
 import { BUY_PAGE_DEFAULTS } from '../data/protocol';
 import { resolveLiquidTreasuryUsdt6 } from '../data/treasuryMath';
 import { useAvaxPrice } from './useAvaxPrice';
@@ -443,6 +444,37 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         functionName: 'profitEligibleSupply18',
         query: { enabled: Boolean(contractState.proxyAddress) },
     });
+    const excludedSupplyAddresses = useMemo(() => {
+        const addresses = [
+            contractState.proxyAddress,
+            GM10_TREASURY_WALLETS.treasurySafe.address,
+            GM10_TREASURY_WALLETS.liquidityCoordinator.address,
+            GM10_TREASURY_WALLETS.courtyardWorkflow.address,
+            GM10_TREASURY_WALLETS.teamWallet.address,
+            GM10_MARKET_CONFIG.lfjPairAddress,
+            GM10_MARKET_CONFIG.pharaohPoolAddress,
+        ].filter((value): value is `0x${string}` => Boolean(value && value !== ZERO_ADDRESS));
+        const seen = new Set<string>();
+
+        return addresses.filter((value) => {
+            const key = value.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [contractState.proxyAddress]);
+    const { data: excludedSupplyReads } = useReadContracts({
+        contracts: excludedSupplyAddresses.map((excludedAddress) => ({
+            address: GM10_MARKET_CONFIG.catchTokenAddress ?? ZERO_ADDRESS,
+            abi: GM10_ERC20_ABI,
+            functionName: 'balanceOf',
+            args: [excludedAddress],
+        })),
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.catchTokenAddress && excludedSupplyAddresses.length > 0) },
+    });
+    const excludedSupplyBalances = useMemo(() => (excludedSupplyReads ?? []).map((read) => (
+        read.status === 'success' ? read.result as bigint : undefined
+    )), [excludedSupplyReads]);
 
     const { data: claimableProfit } = useReadContract({
         address: contractState.proxyAddress ?? ZERO_ADDRESS,
@@ -574,6 +606,19 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             detail: `${position.chain} position #${position.positionId}`,
         }))
         .sort((a, b) => b.id.localeCompare(a.id)), [positions]);
+    const holderAccounting = useMemo(() => resolveHolderAccounting({
+        totalSupply: circulatingSupply,
+        profitEligibleSupply,
+        excludedBalances: excludedSupplyBalances,
+        referenceNav,
+        navPerToken,
+    }), [
+        circulatingSupply,
+        excludedSupplyBalances,
+        navPerToken,
+        profitEligibleSupply,
+        referenceNav,
+    ]);
 
     return {
         ...contractState,
@@ -582,9 +627,9 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         valueSummary,
         stableAccounting,
         navPerToken,
-        referenceNav,
+        referenceNav: holderAccounting.referenceNav,
         circulatingSupply,
-        profitEligibleSupply,
+        profitEligibleSupply: holderAccounting.profitEligibleSupply,
         claimableProfit,
         collectiblePositionCount: collectiblePositionCount ? Number(collectiblePositionCount) : positions.length,
         proofSummary: {
@@ -601,10 +646,10 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                     : 'Onchain registry mark',
             portfolioValueLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
             liquidTreasuryLabel: formatUsdt6(liquidTreasuryUsdt6),
-            referenceNavLabel: referenceNav !== undefined ? formatUsdt6(referenceNav) : '$0.00',
+            referenceNavLabel: holderAccounting.referenceNav !== undefined ? formatUsdt6(holderAccounting.referenceNav) : '$0.00',
             navPerTokenLabel: navPerToken !== undefined ? formatUsdt6(navPerToken) : '$0.00',
             circulatingSupplyLabel: circulatingSupply !== undefined ? `${Number(formatUnits(circulatingSupply, 18)).toLocaleString('en-US')} CATCH` : '0 CATCH',
-            profitEligibleSupplyLabel: profitEligibleSupply !== undefined ? `${Number(formatUnits(profitEligibleSupply, 18)).toLocaleString('en-US')} CATCH` : '0 CATCH',
+            profitEligibleSupplyLabel: holderAccounting.profitEligibleSupply !== undefined ? `${Number(formatUnits(holderAccounting.profitEligibleSupply, 18)).toLocaleString('en-US')} CATCH` : '0 CATCH',
             claimableProfitLabel: claimableProfit !== undefined ? `${Number(formatEther(claimableProfit)).toLocaleString('en-US')} AVAX` : 'Connect wallet',
         },
     };

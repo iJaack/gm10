@@ -6,13 +6,23 @@ This was not a cosmetic release. It changed how purchase funding is confirmed, h
 
 ## What Changed
 
-The upgraded system now runs through `GemMintStrategyFundV6` on Avalanche mainnet, backed by `Gm10PortfolioRegistryV2`.
+The upgraded system now runs through `GemMintStrategyFundV6` on Avalanche mainnet, backed by a migrated V2-compatible portfolio registry.
 
 Live contracts:
 
 - Fund proxy: `0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f`
 - Current implementation: `0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3`
-- Portfolio Registry V2: `0x1b7341C74cfA0C098431197aE5b697A73036CDFC`
+- Portfolio Registry V2, migrated with existing positions: `0x0fCbce2341E3682AB92f1cAabDF976E17D91436A`
+- Legacy registry, retained for audit history: `0x02962F73AdFAA792636c62d3D2a76d922c6B052c`
+
+There were two follow-up repair transactions after the security upgrade:
+
+- Legacy fund storage repair: `0x3dc7f816b3a01fbaa143d8fb0ba011f08f41536108d3bea5a449b0e276277023`
+- Registry V2 migration and pointer update: `0x389f558b1c9049c4d70d26acb8a0303ac40b4943928fc6c4155793ae6ae04ad2`
+
+The storage repair restored the live fundraising state after the upgrade exposed an old layout mismatch. Round 2 is active again through the current V6 getters, with `1,347.9836 AVAX` raised toward the `5,000 AVAX` cap at the time of repair. The repair did not replace the fund implementation; the proxy returned to the same V6 implementation after the storage copy completed.
+
+The registry migration moved the existing 8 portfolio positions from the legacy registry into a V2-compatible registry, verified each position, and then switched the fund's registry pointer to the migrated registry. That keeps the new V2 workflow surface active without losing the existing portfolio history.
 
 The upgrade shipped several important fixes:
 
@@ -23,6 +33,8 @@ The upgrade shipped several important fixes:
 5. AVAX sale settlement now depends on a fresher, bounded oracle quote.
 6. USDC settlement is explicitly allowlisted and balance checked.
 7. External proceeds on another chain or in another token can be recorded as provenance, but remain pending until normalized into verified fund custody.
+8. Legacy fundraising state and stable accounting were copied into the current storage layout so future upgrades preserve round integrity.
+9. Registry V2 now starts from the existing portfolio state instead of an empty fresh deployment.
 
 The admin console was updated around the same lifecycle. Normal purchase execution now follows the real sequence: authorize the purchase, move or bridge funds, confirm funding, buy, detect custody, record execution, and record the position. Sale finalization remains disabled until proceeds are confirmed.
 

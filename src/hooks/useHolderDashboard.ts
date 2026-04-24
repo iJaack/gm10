@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { formatEther, formatUnits } from 'viem';
-import { useAccount, useBalance, useReadContract } from 'wagmi';
+import { useAccount, useBalance, useReadContract, useReadContracts } from 'wagmi';
 import { getClaimEligibilityState } from '../data/claimState';
 import {
     CHAINLINK_AGGREGATOR_V3_ABI,
@@ -9,7 +9,8 @@ import {
     GM10_INVESTOR_ACCOUNTING_ABI,
     GM10_PROFIT_DISTRIBUTOR_ABI,
 } from '../data/contracts';
-import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS } from '../data/gm10Config';
+import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS, ROUND_1_START_AT } from '../data/gm10Config';
+import { resolveHolderAccounting } from '../data/holderAccounting';
 import { resolveLiquidTreasuryUsdt6 } from '../data/treasuryMath';
 import { useFujiContracts } from './useFujiProof';
 
@@ -40,6 +41,34 @@ function formatCatch(value?: bigint) {
 function formatAvax(value?: bigint) {
     if (value === undefined) return 'Unavailable';
     return `${Number(formatEther(value)).toLocaleString('en-US', { maximumFractionDigits: 6 })} AVAX`;
+}
+
+function weiToUsdt6(value: bigint, avaxUsd: number) {
+    if (avaxUsd <= 0) return 0n;
+    return value * BigInt(Math.round(avaxUsd * 1_000_000)) / 10n ** 18n;
+}
+
+function formatApr(value?: number) {
+    if (value === undefined || !Number.isFinite(value)) return 'APR unavailable';
+    return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}% APR`;
+}
+
+function resolveHolderProfitAprPct({
+    holderProfitsUsdt6,
+    profitEligibleSupply,
+    navPerToken,
+}: {
+    holderProfitsUsdt6?: bigint;
+    profitEligibleSupply?: bigint;
+    navPerToken?: bigint;
+}) {
+    if (!holderProfitsUsdt6 || holderProfitsUsdt6 <= 0n) return undefined;
+    if (!profitEligibleSupply || profitEligibleSupply <= 0n || !navPerToken || navPerToken <= 0n) return undefined;
+    const eligibleValueUsdt6 = Number(profitEligibleSupply * navPerToken / 10n ** 18n);
+    if (eligibleValueUsdt6 <= 0) return undefined;
+    const elapsedSeconds = Math.max(1, Math.floor(Date.now() / 1000) - ROUND_1_START_AT);
+    const annualization = (365 * 24 * 60 * 60) / elapsedSeconds;
+    return (Number(holderProfitsUsdt6) / eligibleValueUsdt6) * annualization * 100;
 }
 
 export function useHolderDashboard() {
@@ -114,6 +143,37 @@ export function useHolderDashboard() {
         address: GM10_TREASURY_WALLETS.teamWallet.address ?? ZERO_ADDRESS,
         query: { enabled: Boolean(GM10_TREASURY_WALLETS.teamWallet.address) },
     });
+    const excludedSupplyAddresses = useMemo(() => {
+        const addresses = [
+            contracts.proxyAddress,
+            GM10_TREASURY_WALLETS.treasurySafe.address,
+            GM10_TREASURY_WALLETS.liquidityCoordinator.address,
+            GM10_TREASURY_WALLETS.courtyardWorkflow.address,
+            GM10_TREASURY_WALLETS.teamWallet.address,
+            GM10_MARKET_CONFIG.lfjPairAddress,
+            GM10_MARKET_CONFIG.pharaohPoolAddress,
+        ].filter((value): value is `0x${string}` => Boolean(value && value !== ZERO_ADDRESS));
+        const seen = new Set<string>();
+
+        return addresses.filter((value) => {
+            const key = value.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [contracts.proxyAddress]);
+    const { data: excludedSupplyReads } = useReadContracts({
+        contracts: excludedSupplyAddresses.map((excludedAddress) => ({
+            address: GM10_MARKET_CONFIG.catchTokenAddress ?? ZERO_ADDRESS,
+            abi: GM10_ERC20_ABI,
+            functionName: 'balanceOf',
+            args: [excludedAddress],
+        })),
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.catchTokenAddress && excludedSupplyAddresses.length > 0) },
+    });
+    const excludedSupplyBalances = useMemo(() => (excludedSupplyReads ?? []).map((read) => (
+        read.status === 'success' ? read.result as bigint : undefined
+    )), [excludedSupplyReads]);
 
     const { data: catchBalance } = useReadContract({
         address: GM10_MARKET_CONFIG.catchTokenAddress ?? ZERO_ADDRESS,
@@ -165,6 +225,23 @@ export function useHolderDashboard() {
         args: [account, navPerToken ?? 0n],
         query: { enabled: Boolean(contracts.investorAccountingAddress && isConnected && navPerToken !== undefined) },
     });
+    const holderAccounting = useMemo(() => resolveHolderAccounting({
+        totalSupply,
+        profitEligibleSupply,
+        excludedBalances: excludedSupplyBalances,
+        referenceNav,
+        navPerToken,
+        totalProfitDeposited,
+        hasProfitDistributor: Boolean(distributorAddress),
+    }), [
+        distributorAddress,
+        excludedSupplyBalances,
+        navPerToken,
+        profitEligibleSupply,
+        referenceNav,
+        totalProfitDeposited,
+        totalSupply,
+    ]);
 
     const claimableProfit = distributorClaimableProfit ?? fundClaimableProfit;
     const claimState = useMemo(() => getClaimEligibilityState({
@@ -195,6 +272,17 @@ export function useHolderDashboard() {
         teamWalletBalance?.value,
         treasurySafeBalance?.value,
     ]);
+    const totalProfitDepositedUsdt6 = holderAccounting.totalProfitDeposited !== undefined
+        ? weiToUsdt6(holderAccounting.totalProfitDeposited, avaxUsd)
+        : undefined;
+    const holderProfitsUsdt6 = stableAccounting && totalProfitDepositedUsdt6 !== undefined
+        ? stableAccounting[6] + totalProfitDepositedUsdt6
+        : stableAccounting?.[6] ?? totalProfitDepositedUsdt6;
+    const holderProfitAprPct = resolveHolderProfitAprPct({
+        holderProfitsUsdt6,
+        profitEligibleSupply: holderAccounting.profitEligibleSupply,
+        navPerToken,
+    });
 
     return {
         account: address,
@@ -202,13 +290,15 @@ export function useHolderDashboard() {
         claimState,
         labels: {
             totalSupply: formatCatch(totalSupply),
-            profitEligibleSupply: formatCatch(profitEligibleSupply),
-            referenceNav: formatUsdt6(referenceNav),
+            profitEligibleSupply: formatCatch(holderAccounting.profitEligibleSupply),
+            referenceNav: formatUsdt6(holderAccounting.referenceNav),
             navPerToken: formatUsdt6(navPerToken),
             catchBalance: isConnected ? formatCatch(catchBalance) : 'Connect wallet',
             claimableProfit: isConnected ? formatAvax(claimableProfit) : 'Connect wallet',
             claimedProfit: isConnected ? formatAvax(investorPnl?.claimedProfitWei) : 'Connect wallet',
-            totalProfitDeposited: formatAvax(totalProfitDeposited),
+            totalProfitDeposited: formatAvax(holderAccounting.totalProfitDeposited),
+            holderProfitsClaimableClaimed: formatUsdt6(holderProfitsUsdt6),
+            holderProfitApr: formatApr(holderProfitAprPct),
             currentReferenceValue: isConnected ? formatUsdt6(investorPnl?.currentReferenceValueUsdt6) : 'Connect wallet',
             unrealizedReferencePnl: isConnected ? formatSignedUsdt6(investorPnl?.unrealizedReferencePnlUsdt6) : 'Connect wallet',
             remainingCostBasis: isConnected ? formatUsdt6(investorPnl?.remainingCostBasisUsdt6) : 'Connect wallet',
@@ -225,8 +315,11 @@ export function useHolderDashboard() {
             claimableProfit,
             catchBalance,
             investorPnl,
-            referenceNav,
+            referenceNav: holderAccounting.referenceNav,
             navPerToken,
+            excludedSupply: holderAccounting.excludedSupply,
+            holderProfitsUsdt6,
+            holderProfitAprPct,
         },
     };
 }

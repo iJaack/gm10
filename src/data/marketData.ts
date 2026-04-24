@@ -1,3 +1,5 @@
+import { formatEther, formatUnits } from 'viem';
+
 export type DexPair = {
     chainId?: string;
     dexId?: string;
@@ -40,6 +42,13 @@ export type MarketFallbackLiquidity = {
     traderJoeCatch18?: bigint;
     pharaohAvaxWei?: bigint;
     pharaohCatch18?: bigint;
+};
+
+export type ProtocolLpValue = {
+    hasData: boolean;
+    avax: number;
+    catchAmount: number;
+    usd: number;
 };
 
 function parseNumber(value?: string | number) {
@@ -128,5 +137,23 @@ export function normalizeCatchMarketData(
         pharaoh,
         fetchedAt: options.fetchedAt,
         status: spotPriceUsd !== undefined || lfj.status === 'available' || pharaoh.status === 'available' ? 'available' : 'unavailable',
+    };
+}
+
+export function resolveProtocolLpValue(pool: MarketPool, avaxUsd: number): ProtocolLpValue {
+    const avaxWei = pool.protocolAvax ?? pool.fallbackAvax;
+    const catchWei = pool.protocolCatch ?? pool.fallbackCatch;
+    const hasAvax = avaxWei !== undefined;
+    const hasCatch = catchWei !== undefined;
+    const avax = hasAvax ? Number(formatEther(avaxWei)) : 0;
+    const catchAmount = hasCatch ? Number(formatUnits(catchWei, 18)) : 0;
+    const avaxUsdValue = avaxUsd > 0 ? avax * avaxUsd : 0;
+    const catchUsdValue = pool.priceUsd !== undefined ? catchAmount * pool.priceUsd : 0;
+
+    return {
+        hasData: hasAvax || hasCatch,
+        avax,
+        catchAmount,
+        usd: avaxUsdValue + catchUsdValue,
     };
 }
