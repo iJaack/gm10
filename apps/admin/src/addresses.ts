@@ -5,7 +5,7 @@ function parseAddress(value: string | undefined) {
 
 export const MAINNET = {
     fundProxy: parseAddress(import.meta.env.VITE_GM10_ADMIN_FUND_PROXY_ADDRESS ?? import.meta.env.VITE_GM10_FUND_PROXY_ADDRESS) ?? '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
-    portfolioRegistry: parseAddress(import.meta.env.VITE_GM10_ADMIN_PORTFOLIO_REGISTRY_ADDRESS ?? import.meta.env.VITE_GM10_PORTFOLIO_REGISTRY_ADDRESS) ?? '0x02962F73AdFAA792636c62d3D2a76d922c6B052c',
+    portfolioRegistry: parseAddress(import.meta.env.VITE_GM10_ADMIN_PORTFOLIO_REGISTRY_ADDRESS ?? import.meta.env.VITE_GM10_PORTFOLIO_REGISTRY_ADDRESS) ?? '0x1b7341C74cfA0C098431197aE5b697A73036CDFC',
     liquidityCoordinator: parseAddress(import.meta.env.VITE_GM10_ADMIN_LIQUIDITY_COORDINATOR_ADDRESS) ?? '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
     courtyardWorkflow: parseAddress(import.meta.env.VITE_GM10_ADMIN_COURTYARD_WORKFLOW_ADDRESS) ?? '0x5448884263E8C27c87CCE6279faE8175271D131c',
     treasurySafe: parseAddress(import.meta.env.VITE_GM10_ADMIN_TREASURY_SAFE_ADDRESS) ?? '0x39971795266a794a8156271729A07994952a6FAD',

@@ -58,6 +58,10 @@ module.exports = {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
+    avalancheFork: {
+      url: "http://127.0.0.1:8545",
+      chainId: 43114,
+    },
     hardhat: {
       chainId: 31337,
       hardfork: "cancun",

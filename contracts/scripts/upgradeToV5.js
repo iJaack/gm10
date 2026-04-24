@@ -10,6 +10,7 @@
  *   MAX_PRICE_FEED_STALENESS    - seconds; defaults to 86400
  *   SETTLEMENT_TOKEN_ADDRESS    - USDC/USDT token to approve for sale settlement
  *   SETTLEMENT_TOKEN_DECIMALS   - settlement token decimals; defaults to 6
+ *   PORTFOLIO_REGISTRY_V2_ADDRESS - reuse an already deployed V2 registry after an interrupted run
  */
 const hre = require("hardhat");
 const { ethers, upgrades } = hre;
@@ -56,14 +57,24 @@ async function main() {
 
   await assertDeployableSize("GemMintStrategyFundV5");
 
-  const RegistryV2 = await ethers.getContractFactory("Gm10PortfolioRegistryV2");
-  const registryV2 = await RegistryV2.deploy(proxyAddress);
-  await registryV2.waitForDeployment();
-  const registryV2Address = await registryV2.getAddress();
+  let registryV2Address = process.env.PORTFOLIO_REGISTRY_V2_ADDRESS || "";
+  if (!registryV2Address) {
+    const RegistryV2 = await ethers.getContractFactory("Gm10PortfolioRegistryV2");
+    const registryV2 = await RegistryV2.deploy(proxyAddress);
+    await registryV2.waitForDeployment();
+    registryV2Address = await registryV2.getAddress();
+  }
   console.log("  Registry V2   :", registryV2Address);
 
   const FundV5 = await ethers.getContractFactory("GemMintStrategyFundV5");
-  await upgrades.validateUpgrade(proxyAddress, FundV5, { kind: "uups" });
+  try {
+    await upgrades.validateUpgrade(proxyAddress, FundV5, { kind: "uups" });
+  } catch (error) {
+    console.log("  Existing proxy is not in the local OpenZeppelin manifest; importing it first.");
+    const CurrentFund = await ethers.getContractFactory(process.env.CURRENT_CONTRACT_NAME || "GemMintStrategyFundV3");
+    await upgrades.forceImport(proxyAddress, CurrentFund, { kind: "uups" });
+    await upgrades.validateUpgrade(proxyAddress, FundV5, { kind: "uups" });
+  }
 
   const fund = await upgrades.upgradeProxy(proxyAddress, FundV5, {
     kind: "uups",

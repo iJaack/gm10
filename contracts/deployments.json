@@ -37,6 +37,36 @@
       "blockNumber": 51925198
     }
   },
+  "avalanche": {
+    "key": "avalanche",
+    "network": "avalanche",
+    "chainId": "43114",
+    "proxy": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
+    "implementation": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
+    "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
+    "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
+    "portfolioRegistry": "0x1b7341C74cfA0C098431197aE5b697A73036CDFC",
+    "investorAccounting": "0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963",
+    "canonicalUsdt": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+    "avaxUsdFeed": "0x0A77230d17318075983913bC2145DB16C7366156",
+    "treasury": "0x39971795266a794a8156271729A07994952a6FAD",
+    "settlementToken": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    "settlementTokenDecimals": 6,
+    "maxPriceFeedStaleness": "86400",
+    "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+    "deployedAt": "2026-04-24T17:51:24.000Z",
+    "blockNumber": 83782669,
+    "lastUpgrade": {
+      "from": "0xC7696142559b1E7678bBBb040b4C880d585D0cFF",
+      "to": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
+      "timestamp": "2026-04-24T17:51:24.000Z",
+      "blockNumber": 83782669,
+      "portfolioRegistry": "0x1b7341C74cfA0C098431197aE5b697A73036CDFC",
+      "settlementToken": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "upgradeTx": "0xb30ec6bdd5002178a4d74c646a2e81aa6df4af9ede40927fddc2529128039914",
+      "settlementTokenTx": "0x3c81bf59db50efc96d09514a7805b488ef1ad3ed9b0ec930367435cf167d77db"
+    }
+  },
   "fujiPurchaseTest": {
     "key": "fujiPurchaseTest",
     "network": "fuji",
