@@ -56,7 +56,9 @@ export function BridgePanel() {
         });
     }
 
-    const KNOWN_EIDS = Object.entries(LZ_EID).map(([name, eid]) => ({ name, eid }));
+    const KNOWN_EIDS = Object.entries(LZ_EID)
+        .filter(([, eid]) => eid !== LZ_EID.SOLANA_MAINNET && eid !== LZ_EID.SOLANA_DEVNET)
+        .map(([name, eid]) => ({ name, eid }));
 
     return (
         <div className="rounded-xl border border-white/10 bg-white/5 p-6">

@@ -2,7 +2,7 @@
  * HoldersV2 — Bloomberg terminal.
  *
  * Sections:
- *   1. Market header  — CATCH/USD price display, sparkline, status strip
+ *   1. Market header  — CATCH/USD price display, live 24h change, status strip
  *   2. Protocol stats — ledger rows, no cards
  *   3. Account        — connect-wallet prompt OR ledger rows (mono, signed P/L)
  *   4. Claim          — thin status row
@@ -22,7 +22,6 @@ import {
     Label,
     LedgerRow,
     SectionLabel,
-    Sparkline,
 } from '../components/v2/primitives';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import { useCatchMarketData } from '../hooks/useCatchMarketData';
@@ -58,8 +57,9 @@ function fallbackLiq(p: MarketPool) {
 
 /* ── 1. Market header ─────────────────────────────────── */
 
-function MarketHeader() {
-    const market = useCatchMarketData();
+type CatchMarketState = ReturnType<typeof useCatchMarketData>;
+
+function MarketHeader({ market }: { market: CatchMarketState }) {
     const holder = useHolderDashboard();
     const avaxUsd = useAvaxPrice();
     const price = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
@@ -75,8 +75,7 @@ function MarketHeader() {
     const atPar = Math.abs(premiumPct) < 0.5;
     const isPremium = premiumPct >= 0.5;
 
-    // synthetic sparkline — no historical series in hook
-    const spark = [1, 1.05, 0.98, 1.1, 1.2, 1.25, 1.3, 1.28, 1.32, 1.4];
+    const liveChartUrl = market.lfj.url ?? market.pharaoh.url;
 
     return (
         <section className="px-4 pt-28 md:pt-32 pb-8">
@@ -94,29 +93,42 @@ function MarketHeader() {
                 </div>
 
                 {/* Price headline */}
-                <div className="mt-10 flex flex-wrap items-end gap-x-10 gap-y-4">
-                    <div>
+                <div className="mt-10 grid items-end gap-x-8 gap-y-5 lg:grid-cols-[minmax(300px,max-content)_minmax(180px,240px)_minmax(260px,1fr)]">
+                    <div className="min-w-0">
                         <Label>CATCH / USD</Label>
                         <Display as="div" className="mt-2 text-[clamp(3rem,8vw,6rem)]">
                             {price !== undefined ? formatUsd(price, 4) : '—'}
                         </Display>
                         {priceAvax !== undefined ? (
-                            <DataMono className="mt-2 block text-[0.82rem] tracking-[0.04em] text-[var(--ink-muted)]">
+                            <DataMono className="mt-2 block text-[0.86rem] tracking-[0.04em] text-[var(--ink-muted)] md:text-[0.96rem] xl:text-[1.08rem]">
                                 ≈ {priceAvax.toLocaleString('en-US', { maximumFractionDigits: 6 })} AVAX
                                 <span className="ml-2 text-[var(--ink-faint)]">· AVAX {formatUsd(avaxUsd, 2)}</span>
                             </DataMono>
                         ) : null}
                     </div>
-                    <div className="flex flex-col gap-3 pb-3">
-                        <DataMono className={isUp ? 'v2-up text-[1.2rem]' : 'v2-down text-[1.2rem]'}>
+                    <div className="flex min-w-[180px] flex-col gap-1.5 pb-1 lg:justify-self-center lg:pb-3">
+                        <DataMono className={isUp ? 'v2-up text-[1.2rem] md:text-[1.35rem]' : 'v2-down text-[1.2rem] md:text-[1.35rem]'}>
                             {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
                         </DataMono>
-                        <Sparkline values={spark} width={140} height={28} color={isUp ? 'var(--data-up)' : 'var(--data-down)'} />
+                        {liveChartUrl ? (
+                            <a
+                                href={liveChartUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="v2-mono text-[0.72rem] tracking-[0.08em] uppercase text-[var(--accent-brass)] transition-colors hover:text-[var(--text-primary)] md:text-[0.78rem]"
+                            >
+                                Live DEX chart ↗
+                            </a>
+                        ) : (
+                            <DataMono className="text-[0.72rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] md:text-[0.78rem]">
+                                Live DEX change
+                            </DataMono>
+                        )}
                     </div>
                     {canComparePremium ? (
-                        <div className="flex flex-col gap-1 pb-3">
+                        <div className="flex min-w-0 flex-col gap-1 pb-1 md:gap-2 lg:justify-self-end lg:pb-3 lg:text-right">
                             <span
-                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.78rem] font-semibold ${
+                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.82rem] font-semibold md:gap-2.5 md:px-5 md:py-2 md:text-[1.08rem] lg:self-end lg:px-6 lg:py-2.5 lg:text-[1.16rem] xl:text-[1.24rem] ${
                                     atPar
                                         ? 'border border-[var(--border)] text-[var(--ink-muted)]'
                                         : isPremium
@@ -128,7 +140,7 @@ function MarketHeader() {
                                     ? 'vs NAV ≈ at par'
                                     : `vs NAV ${isPremium ? '▲ +' : '▼ '}${Math.abs(premiumPct).toFixed(1)}% · ${isPremium ? 'premium' : 'discount'}`}
                             </span>
-                            <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
+                            <DataMono className="text-[0.74rem] text-[var(--ink-faint)] md:text-[0.95rem] lg:text-[1.04rem] xl:text-[1.1rem]">
                                 Market {formatUsd(price, 4)} · Ref NAV {formatUsd(refNavUsd, 4)}
                             </DataMono>
                         </div>
@@ -141,16 +153,16 @@ function MarketHeader() {
 
 /* ── 1b. Overview KPI cards ───────────────────────────── */
 
-function OverviewCards() {
+function OverviewCards({ market }: { market: CatchMarketState }) {
     const holder = useHolderDashboard();
-    const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
 
-    const navUsd = holder.raw.navPerToken !== undefined ? Number(formatUnits(holder.raw.navPerToken, 6)) : undefined;
     const totalSupplyNum = Number(holder.labels.totalSupply.replace(/[^0-9.]/g, '')) || 0;
-    const marketCapNav = navUsd !== undefined ? totalSupplyNum * navUsd : undefined;
+    const livePriceUsd = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
+    const marketCapSpot = livePriceUsd !== undefined ? totalSupplyNum * livePriceUsd : undefined;
 
-    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const liquidTreasuryUsd = Number(liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const totalTreasury = liquidTreasuryUsd + cardPortfolioUsd;
 
@@ -161,13 +173,13 @@ function OverviewCards() {
     const cards = [
         {
             label: 'Market cap',
-            value: fmtUsd0(marketCapNav),
-            detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · NAV ${holder.labels.navPerToken}`,
+            value: fmtUsd0(marketCapSpot),
+            detail: `${totalSupplyNum.toLocaleString('en-US', { maximumFractionDigits: 0 })} CATCH · Price ${formatUsd(livePriceUsd, 4)}`,
         },
         {
             label: 'Treasury',
             value: fmtUsd0(totalTreasury),
-            detail: `Liquid ${holder.labels.liquidTreasury} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
+            detail: `Liquid ${liquidTreasuryLabel} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
         },
         {
             label: '24h volume',
@@ -209,7 +221,7 @@ function CompositionDonut() {
     const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
 
-    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryUsd = Number(portfolio.proofSummary.liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const dexLiquidity = (market.lfj.liquidityUsd ?? 0) + (market.pharaoh.liquidityUsd ?? 0);
 
@@ -430,8 +442,8 @@ function StatGroup({
 
     const body = layout === 'side-by-side' && chart ? (
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
-            <div>{chart}</div>
-            <div>{rightNode ?? rowsNode}</div>
+            <div className="min-w-0">{chart}</div>
+            <div className="min-w-0">{rightNode ?? rowsNode}</div>
         </div>
     ) : (
         <>
@@ -483,7 +495,8 @@ function ProtocolStats() {
             ? ((spotCap - marketCapMark) / marketCapMark) * 100
             : undefined;
 
-    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const liquidTreasuryUsd = Number(liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const liquidTreasuryAvax = avaxUsd > 0 ? liquidTreasuryUsd / avaxUsd : undefined;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardCostUsd = Number(portfolio.proofSummary.costBasisLabel.replace(/[^0-9.]/g, '')) || 0;
@@ -499,19 +512,23 @@ function ProtocolStats() {
 
     // Supply is folded into a single hero bar (no row list). metricCount still reads "2".
     const excludedSupplyNum = Math.max(0, totalSupplyNum - eligibleSupplyNum);
+    const fixedSupplyNum = 100_000_000;
+    const mintedAllocationPct = fixedSupplyNum > 0 ? (totalSupplyNum / fixedSupplyNum) * 100 : 0;
+    const remainingMintableNum = Math.max(0, fixedSupplyNum - totalSupplyNum);
     const fmtCatch = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH`;
+    const fmtPct = (n: number, digits = n < 10 ? 2 : 1) => `${n.toFixed(digits)}%`;
     const supplyPct = eligibleRatio ?? 0;
 
     const valuation: StatRow[] = [
         {
             label: 'Reference NAV / token',
             detail: 'Sourced from investor accounting',
-            value: holder.labels.referenceNav,
+            value: refNavUsd !== undefined ? formatUsd(refNavUsd, 4) : holder.labels.referenceNav,
         },
         {
             label: 'Current NAV / token',
             detail: 'Latest onchain mark',
-            value: holder.labels.navPerToken,
+            value: navUsd !== undefined ? formatUsd(navUsd, 4) : holder.labels.navPerToken,
         },
         {
             label: 'Market cap (NAV)',
@@ -533,22 +550,26 @@ function ProtocolStats() {
         },
     ];
 
-    const treasury: StatRow[] = [
+    const treasuryRows: Array<StatRow & { barValue: number; barColor: string; barHint?: string }> = [
         {
             label: 'Liquid treasury',
             detail: liquidTreasuryAvax !== undefined
-                ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · wrapped in stable accounting`
+                ? `${liquidTreasuryAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX @ ${formatUsd(avaxUsd, 2)} · treasury wallet balances`
                 : 'AVAX-denominated, wrapped in stable accounting',
-            value: holder.labels.liquidTreasury,
-            ratioPct: liquidPct,
+            value: liquidTreasuryLabel,
             hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total protocol value` : undefined,
+            barValue: liquidTreasuryUsd,
+            barColor: 'var(--ink-faint)',
+            barHint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total` : undefined,
         },
         {
             label: 'Card portfolio (mark)',
             detail: `${portfolio.positions.length} lot${portfolio.positions.length === 1 ? '' : 's'} custodied by Courtyard on Polygon`,
             value: portfolio.proofSummary.onchainCurrentMarkLabel,
-            ratioPct: portfolioPct,
             hint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total protocol value` : undefined,
+            barValue: cardPortfolioUsd,
+            barColor: 'var(--accent-blue)',
+            barHint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total` : undefined,
         },
         {
             label: 'Card portfolio (cost)',
@@ -559,8 +580,15 @@ function ProtocolStats() {
                     ? undefined
                     : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% unrealized vs mark`,
             hintTone: portfolioPnlTone,
+            barValue: cardCostUsd,
+            barColor: 'var(--accent)',
+            barHint:
+                portfolioPnlPct === undefined
+                    ? undefined
+                    : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% vs mark`,
         },
     ];
+    const treasuryMaxValue = Math.max(1, ...treasuryRows.map((row) => row.barValue));
 
     /* ── Visuals ──────────────────────────────────────────────
      * Each group is a single card via StatGroup. Chart content is passed raw —
@@ -568,7 +596,7 @@ function ProtocolStats() {
      *
      * Supply    — big progress bar (hero) + 7-bucket tokenomics donut (chart)
      * Valuation — comparison bars (chart) + 4 precise rows (rows)
-     * Treasury  — composition segmented bar (chart, left) + 3 rows (right)
+     * Treasury  — row-integrated value bars
      * Markets   — venue share split bars (chart) + 4 rows (rows)
      */
 
@@ -640,8 +668,38 @@ function ProtocolStats() {
         <div>
             <SubHead
                 title="Tokenomics breakdown"
-                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. Release timing varies per bucket — nothing dumps at TGE."
+                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. The mint tracker shows current live supply against the maximum possible allocation."
             />
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+                            Current minted allocation
+                        </Caption>
+                        <DataMono className="mt-1 block text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)] md:text-[1.4rem]">
+                            {fmtCatch(totalSupplyNum)}
+                        </DataMono>
+                        <DataMono className="mt-1 block text-[0.76rem] text-[var(--ink-faint)]">
+                            out of {fmtCatch(fixedSupplyNum)} possible
+                        </DataMono>
+                    </div>
+                    <DataMono className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent)] md:text-[2.2rem]">
+                        {fmtPct(mintedAllocationPct)}
+                    </DataMono>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                    <div
+                        className="h-full rounded-full bg-[var(--accent)]"
+                        style={{
+                            width: `${Math.min(100, mintedAllocationPct)}%`,
+                            minWidth: mintedAllocationPct > 0 ? 3 : 0,
+                        }}
+                    />
+                </div>
+                <DataMono className="mt-2 block text-[0.72rem] text-[var(--ink-faint)]">
+                    {fmtCatch(remainingMintableNum)} unminted before fixed cap
+                </DataMono>
+            </div>
             <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
                 <DonutChart
                     slices={TOKEN_ALLOCATION.map((b, i) => ({
@@ -649,10 +707,11 @@ function ProtocolStats() {
                         value: b.percent,
                         color: allocationPalette[i % allocationPalette.length],
                     }))}
-                    totalLabel="Supply"
-                    totalValue="100M"
+                    totalLabel="Minted"
+                    totalValue={fmtPct(mintedAllocationPct)}
                     size={220}
-                    ariaLabel="Token allocation donut chart"
+                    caption="Donut slices show each bucket's maximum share of the 100M cap."
+                    ariaLabel={`Token allocation donut chart. Current minted supply is ${fmtCatch(totalSupplyNum)} of ${fmtCatch(fixedSupplyNum)} possible.`}
                 />
                 <ChartLegend
                     items={TOKEN_ALLOCATION.map((b, i) => ({
@@ -710,88 +769,59 @@ function ProtocolStats() {
         </div>
     );
 
-    const lotColors = ['var(--accent)', 'var(--accent-blue)', 'var(--accent-green)', 'var(--accent-red)', '#8b5cf6', '#d946ef', '#f59e0b'];
-    const lotSlices = portfolio.positions.map((p, i) => ({
-        label: p.title,
-        value: Number(formatUnits(p.currentValueUsdt6, 6)),
-        color: lotColors[i % lotColors.length],
-    }));
-    const liquidSlice = liquidTreasuryUsd > 0
-        ? [{ label: 'Liquid treasury', value: liquidTreasuryUsd, color: 'var(--ink-faint)' }]
-        : [];
-    const treasuryChart = (
-        <div>
-            <SubHead
-                title="Composition by lot"
-                detail="Each colored slice is a card lot, sized by its current mark. The gray tail is liquid AVAX treasury waiting to be deployed."
-            />
-            <div className="mt-4 flex flex-col gap-4">
-                <SegmentedBar
-                    slices={[...lotSlices, ...liquidSlice]}
-                    height={20}
-                    ariaLabel="Treasury composition by lot"
-                />
-                <ChartLegend
-                    items={[
-                        ...lotSlices.map((s) => ({
-                            color: s.color,
-                            label: s.label,
-                            value: `$${s.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-                            pct: treasurySum > 0 ? (s.value / treasurySum) * 100 : 0,
-                        })),
-                        ...liquidSlice.map((s) => ({
-                            color: s.color,
-                            label: s.label,
-                            value: `$${s.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
-                            pct: treasurySum > 0 ? (s.value / treasurySum) * 100 : 0,
-                        })),
-                    ]}
-                />
-            </div>
-        </div>
-    );
-
-    // Treasury right-column chart — small comparison bars for Liquid / Mark / Cost
-    const treasuryCompareChart = (
+    const treasuryBreakdown = (
         <div>
             <SubHead
                 title="Value breakdown"
                 detail="Liquid AVAX dominates today; card lots are the productive portion. Cost vs mark shows unrealized P/L."
             />
-            <div className="mt-4">
-                <ComparisonBars
-                    height={120}
-                    bars={[
-                        {
-                            label: 'Liquid',
-                            value: liquidTreasuryUsd,
-                            display: fmtUsd(liquidTreasuryUsd),
-                            color: 'var(--ink-faint)',
-                            hint: liquidPct !== undefined ? `${liquidPct.toFixed(1)}% of total` : undefined,
-                            hintTone: 'neutral',
-                        },
-                        {
-                            label: 'Cards · mark',
-                            value: cardPortfolioUsd,
-                            display: fmtUsd(cardPortfolioUsd),
-                            color: 'var(--accent-blue)',
-                            hint: portfolioPct !== undefined ? `${portfolioPct.toFixed(1)}% of total` : undefined,
-                            hintTone: 'neutral',
-                        },
-                        {
-                            label: 'Cards · cost',
-                            value: cardCostUsd,
-                            display: fmtUsd(cardCostUsd),
-                            color: 'var(--accent)',
-                            hint:
-                                portfolioPnlPct === undefined
-                                    ? undefined
-                                    : `${portfolioPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(portfolioPnlPct).toFixed(1)}% vs mark`,
-                            hintTone: portfolioPnlTone,
-                        },
-                    ]}
-                    ariaLabel="Treasury value breakdown"
-                />
+            <div className="mt-4 divide-y divide-[var(--rule)]">
+                {treasuryRows.map((row) => {
+                    const hintClass =
+                        row.hintTone === 'up' ? 'v2-up'
+                            : row.hintTone === 'down' ? 'v2-down'
+                                : 'text-[var(--ink-faint)]';
+                    const pctOfMax = (row.barValue / treasuryMaxValue) * 100;
+
+                    return (
+                        <div
+                            key={row.label}
+                            className="grid gap-4 py-5 first:pt-0 last:pb-0 md:grid-cols-[1fr_auto] md:items-center md:gap-8"
+                        >
+                            <div className="min-w-0">
+                                <div className="text-[0.82rem] font-semibold text-[var(--text-primary)]">{row.label}</div>
+                                <div className="mt-1 text-[0.78rem] leading-[1.5] text-[var(--ink-faint)]">{row.detail}</div>
+                                <div className="mt-3 flex items-center gap-3">
+                                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+                                        <div
+                                            className="h-full rounded-full"
+                                            style={{
+                                                width: `${Math.min(100, Math.max(0, pctOfMax))}%`,
+                                                minWidth: row.barValue > 0 ? 4 : 0,
+                                                background: row.barColor,
+                                            }}
+                                        />
+                                    </div>
+                                    {row.barHint ? (
+                                        <DataMono className="shrink-0 text-[0.7rem] tabular-nums text-[var(--ink-muted)]">
+                                            {row.barHint}
+                                        </DataMono>
+                                    ) : null}
+                                </div>
+                            </div>
+                            <div className="text-right md:min-w-[180px]">
+                                <DataMono className="block text-[1.15rem] font-bold tracking-[-0.01em] tabular-nums text-[var(--text-primary)]">
+                                    {row.value}
+                                </DataMono>
+                                {row.hint ? (
+                                    <div className={`mt-1 text-[0.72rem] font-medium ${hintClass}`}>
+                                        {row.hint}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -802,7 +832,7 @@ function ProtocolStats() {
                 <div className="flex items-baseline justify-between">
                     <SectionLabel>Protocol accounting</SectionLabel>
                     <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
-                        {2 + valuation.length + treasury.length} metrics · 3 groups · 4 charts
+                        {2 + valuation.length + treasuryRows.length} metrics · 3 groups · 4 charts
                     </DataMono>
                 </div>
 
@@ -827,10 +857,9 @@ function ProtocolStats() {
                 <StatGroup
                     title="Treasury"
                     description="Where protocol value sits today: card lots custodied by Courtyard plus liquid AVAX waiting to be deployed."
-                    rows={treasury}
-                    chart={treasuryChart}
-                    layout="side-by-side"
-                    rightNode={treasuryCompareChart}
+                    rows={[]}
+                    chart={treasuryBreakdown}
+                    metricCount={treasuryRows.length}
                 />
             </div>
         </section>
@@ -1292,21 +1321,23 @@ function LiquiditySection() {
 
                     {/* Pool table / single-pair detail */}
                     {tab === 'all' ? (
-                        <div className="mt-8 border-t border-[var(--rule)] pt-5">
-                            <div
-                                className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
-                                style={{ gridTemplateColumns: '120px 140px 1fr 160px 160px 120px 80px' }}
-                            >
-                                <span>Venue</span>
-                                <span>Pair</span>
-                                <span>Quote</span>
-                                <span className="text-right">Liquidity</span>
-                                <span className="text-right">24H Vol</span>
-                                <span className="text-right">24H</span>
-                                <span className="text-right">Link</span>
+                        <div className="mt-8 overflow-x-auto border-t border-[var(--rule)] pt-5">
+                            <div className="min-w-[920px]">
+                                <div
+                                    className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
+                                    style={{ gridTemplateColumns: '120px 140px 1fr 160px 160px 120px 80px' }}
+                                >
+                                    <span>Venue</span>
+                                    <span>Pair</span>
+                                    <span>Quote</span>
+                                    <span className="text-right">Liquidity</span>
+                                    <span className="text-right">24H Vol</span>
+                                    <span className="text-right">24H</span>
+                                    <span className="text-right">Link</span>
+                                </div>
+                                <PoolRow pool={lfj} />
+                                <PoolRow pool={pharaoh} />
                             </div>
-                            <PoolRow pool={lfj} />
-                            <PoolRow pool={pharaoh} />
                         </div>
                     ) : (
                         <div className="mt-6 flex items-center justify-between border-t border-[var(--rule)] pt-4 text-[0.82rem]">
@@ -1336,12 +1367,14 @@ function LiquiditySection() {
 /* ── Export ─────────────────────────────────────────────── */
 
 function HoldersContent() {
+    const market = useCatchMarketData();
+
     return (
         <main>
-            <MarketHeader />
+            <MarketHeader market={market} />
             <AccountSection />
             <ClaimRow />
-            <OverviewCards />
+            <OverviewCards market={market} />
             <CompositionDonut />
             <ProtocolStats />
             <LiquiditySection />

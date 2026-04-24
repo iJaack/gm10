@@ -1,14 +1,16 @@
 import { useMemo } from 'react';
 import { formatEther, formatUnits } from 'viem';
-import { useAccount, useReadContract } from 'wagmi';
+import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { getClaimEligibilityState } from '../data/claimState';
 import {
+    CHAINLINK_AGGREGATOR_V3_ABI,
     GM10_ERC20_ABI,
     GM10_FUND_ABI,
     GM10_INVESTOR_ACCOUNTING_ABI,
     GM10_PROFIT_DISTRIBUTOR_ABI,
 } from '../data/contracts';
-import { GM10_MARKET_CONFIG } from '../data/gm10Config';
+import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS } from '../data/gm10Config';
+import { resolveLiquidTreasuryUsdt6 } from '../data/treasuryMath';
 import { useFujiContracts } from './useFujiProof';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
@@ -86,6 +88,32 @@ export function useHolderDashboard() {
         functionName: 'stableAccounting',
         query: { enabled: Boolean(contracts.proxyAddress) },
     });
+    const { data: avaxUsdRoundData } = useReadContract({
+        address: GM10_MARKET_CONFIG.avaxUsdFeedAddress ?? ZERO_ADDRESS,
+        abi: CHAINLINK_AGGREGATOR_V3_ABI,
+        functionName: 'latestRoundData',
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.avaxUsdFeedAddress) },
+    });
+    const { data: fundTreasuryBalance } = useBalance({
+        address: contracts.proxyAddress ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(contracts.proxyAddress) },
+    });
+    const { data: treasurySafeBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.treasurySafe.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.treasurySafe.address) },
+    });
+    const { data: liquidityCoordinatorBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.liquidityCoordinator.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.liquidityCoordinator.address) },
+    });
+    const { data: courtyardWorkflowBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.courtyardWorkflow.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.courtyardWorkflow.address) },
+    });
+    const { data: teamWalletBalance } = useBalance({
+        address: GM10_TREASURY_WALLETS.teamWallet.address ?? ZERO_ADDRESS,
+        query: { enabled: Boolean(GM10_TREASURY_WALLETS.teamWallet.address) },
+    });
 
     const { data: catchBalance } = useReadContract({
         address: GM10_MARKET_CONFIG.catchTokenAddress ?? ZERO_ADDRESS,
@@ -145,6 +173,28 @@ export function useHolderDashboard() {
         claimableProfitWei: claimableProfit,
         hasClaimAction: HAS_PUBLIC_CLAIM_ACTION,
     }), [claimableProfit, isConnected, isExcluded]);
+    const avaxUsd = avaxUsdRoundData && avaxUsdRoundData[1] > 0n
+        ? Number(formatUnits(avaxUsdRoundData[1], 8))
+        : 0;
+    const liquidTreasuryUsdt6 = useMemo(() => resolveLiquidTreasuryUsdt6({
+        walletBalancesWei: [
+            fundTreasuryBalance?.value,
+            treasurySafeBalance?.value,
+            liquidityCoordinatorBalance?.value,
+            courtyardWorkflowBalance?.value,
+            teamWalletBalance?.value,
+        ],
+        avaxUsd,
+        stableAccountingLiquidTreasury: stableAccounting?.[2],
+    }), [
+        avaxUsd,
+        courtyardWorkflowBalance?.value,
+        fundTreasuryBalance?.value,
+        liquidityCoordinatorBalance?.value,
+        stableAccounting,
+        teamWalletBalance?.value,
+        treasurySafeBalance?.value,
+    ]);
 
     return {
         account: address,
@@ -162,7 +212,7 @@ export function useHolderDashboard() {
             currentReferenceValue: isConnected ? formatUsdt6(investorPnl?.currentReferenceValueUsdt6) : 'Connect wallet',
             unrealizedReferencePnl: isConnected ? formatSignedUsdt6(investorPnl?.unrealizedReferencePnlUsdt6) : 'Connect wallet',
             remainingCostBasis: isConnected ? formatUsdt6(investorPnl?.remainingCostBasisUsdt6) : 'Connect wallet',
-            liquidTreasury: stableAccounting ? formatUsdt6(stableAccounting[2]) : 'Unavailable',
+            liquidTreasury: formatUsdt6(liquidTreasuryUsdt6),
             holderDistributionAccrued: stableAccounting ? formatUsdt6(stableAccounting[6]) : 'Unavailable',
             // stableAccounting[4] = buybackAccrued — AVAX set aside to buy back $CATCH from sale proceeds
             buybackAccrued: stableAccounting ? formatUsdt6(stableAccounting[4]) : 'Unavailable',

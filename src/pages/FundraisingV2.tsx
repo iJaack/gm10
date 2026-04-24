@@ -14,7 +14,7 @@
 import { useMemo, useState } from 'react';
 import { useAccount, useBalance, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { formatEther, parseEther } from 'viem';
+import { formatEther } from 'viem';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import {
     Caption,
@@ -39,9 +39,143 @@ import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiPr
 import { Web3Providers } from '../components/Web3Providers';
 
 const GAS_RESERVE = 0.05;
+const WEI_PER_AVAX = 10n ** 18n;
+const MAX_AVAX_DECIMALS = 18;
 
 function fmtAvax(n: number, digits = n < 1 ? 4 : 2) {
     return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: digits });
+}
+
+type NormalizedInvestmentAmount =
+    | {
+        ok: true;
+        amountNumber: number;
+        amountWei: bigint;
+        normalizedAmount: string;
+    }
+    | {
+        ok: false;
+        error: string;
+    };
+
+function normalizeInvestmentAmount(rawAmount: string): NormalizedInvestmentAmount {
+    const raw = rawAmount.trim();
+    const amountNumber = Number(raw);
+    if (!raw || !Number.isFinite(amountNumber) || amountNumber <= 0) {
+        return { ok: false, error: 'Enter a valid AVAX amount.' };
+    }
+
+    const match = raw.match(/^\+?(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:e([+-]?\d+))?$/i);
+    if (!match) {
+        return { ok: false, error: 'Enter a valid AVAX amount.' };
+    }
+
+    const integerPart = match[1] ?? '0';
+    const fractionPart = match[2] ?? match[3] ?? '';
+    const exponent = Number(match[4] ?? '0');
+    const digits = `${integerPart}${fractionPart}` || '0';
+    const decimalIndex = integerPart.length + exponent;
+
+    let normalizedInteger: string;
+    let normalizedFraction: string;
+    if (decimalIndex <= 0) {
+        normalizedInteger = '0';
+        normalizedFraction = `${'0'.repeat(Math.abs(decimalIndex))}${digits}`;
+    } else if (decimalIndex >= digits.length) {
+        normalizedInteger = `${digits}${'0'.repeat(decimalIndex - digits.length)}`;
+        normalizedFraction = '';
+    } else {
+        normalizedInteger = digits.slice(0, decimalIndex);
+        normalizedFraction = digits.slice(decimalIndex);
+    }
+
+    normalizedInteger = normalizedInteger.replace(/^0+(?=\d)/, '') || '0';
+    normalizedFraction = normalizedFraction.replace(/0+$/, '');
+
+    if (normalizedFraction.length > MAX_AVAX_DECIMALS) {
+        const extraDecimals = normalizedFraction.slice(MAX_AVAX_DECIMALS);
+        if (!/^0+$/.test(extraDecimals)) {
+            return { ok: false, error: 'AVAX amount supports up to 18 decimal places.' };
+        }
+        normalizedFraction = normalizedFraction.slice(0, MAX_AVAX_DECIMALS).replace(/0+$/, '');
+    }
+
+    const fractionWei = (normalizedFraction || '0').padEnd(MAX_AVAX_DECIMALS, '0');
+    const amountWei = (BigInt(normalizedInteger) * WEI_PER_AVAX) + BigInt(fractionWei);
+    if (amountWei <= 0n) {
+        return { ok: false, error: 'Enter an AVAX amount of at least 0.000000000000000001.' };
+    }
+
+    return {
+        ok: true,
+        amountNumber,
+        amountWei,
+        normalizedAmount: normalizedFraction ? `${normalizedInteger}.${normalizedFraction}` : normalizedInteger,
+    };
+}
+
+type InvestmentValidationInput = {
+    rawAmount: string;
+    minInvestmentWei: bigint;
+    maxInvestmentWei: bigint;
+    remainingWei: bigint;
+    exactDustCloseAmount: string | null;
+    roundId: number;
+    minInvestmentLabel: number;
+    maxInvestmentLabel: number;
+    remainingLabel: number;
+    hasBalanceData: boolean;
+    spendableAvax: number;
+};
+
+type InvestmentValidationResult =
+    | {
+        ok: true;
+        normalizedAmount: string;
+        amountWei: bigint;
+    }
+    | {
+        ok: false;
+        error: string;
+    };
+
+function validateInvestmentAmount(input: InvestmentValidationInput): InvestmentValidationResult {
+    const normalized = normalizeInvestmentAmount(input.rawAmount);
+    if (!normalized.ok) return normalized;
+
+    if (input.remainingWei > 0n && normalized.amountWei > input.remainingWei) {
+        return {
+            ok: false,
+            error: input.exactDustCloseAmount
+                ? `Only ${input.exactDustCloseAmount} AVAX remains. Use that exact amount to close Round ${input.roundId}; overpaying the remaining cap reverts.`
+                : `Only ${fmtAvax(input.remainingLabel)} AVAX remains in Round ${input.roundId}.`,
+        };
+    }
+
+    if (input.exactDustCloseAmount && normalized.amountWei !== input.remainingWei) {
+        return {
+            ok: false,
+            error: `Round ${input.roundId} has only ${input.exactDustCloseAmount} AVAX left. Use the exact final amount to close and auto-finalize the round.`,
+        };
+    }
+
+    if (!input.exactDustCloseAmount && normalized.amountWei < input.minInvestmentWei) {
+        return { ok: false, error: `Minimum buy is ${input.minInvestmentLabel} AVAX.` };
+    }
+
+    if (normalized.amountWei > input.maxInvestmentWei) {
+        return { ok: false, error: `Maximum buy is ${input.maxInvestmentLabel} AVAX.` };
+    }
+
+    if (input.hasBalanceData && normalized.amountNumber > input.spendableAvax) {
+        return { ok: false, error: `Insufficient spendable balance. Keep ${GAS_RESERVE} AVAX for gas.` };
+    }
+
+    return {
+        ok: true,
+        amountWei: normalized.amountWei,
+        normalizedAmount: normalized.normalizedAmount,
+    };
 }
 
 function fmtUtc(ts: number) {
@@ -73,6 +207,33 @@ function Round1Archive() {
     const lotCount = portfolio.positions.length;
     const lotWord = lotCount === 1 ? 'lot' : 'lots';
     const lotCountLabel = lotCount > 0 ? `${lotCount} ${lotWord}` : 'lots';
+    const archiveRows = [
+        {
+            label: 'Raised',
+            detail: `${fmtAvax(raised)} / ${fmtAvax(target)} AVAX · 100%`,
+            value: `$${usdValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+        },
+        {
+            label: 'Fill time',
+            detail: '13 Apr 2026, 20:13 UTC → 15 Apr 2026, 16:48 UTC',
+            value: filledLabel,
+        },
+        {
+            label: 'Participants',
+            detail: 'Unique invest() callers',
+            value: participantsLabel,
+        },
+        {
+            label: 'Deployed',
+            detail: `Acquired ${lotCountLabel} via Courtyard custody`,
+            value: `${portfolio.proofSummary.costBasisLabel} cost basis`,
+        },
+        {
+            label: '$CATCH minted',
+            detail: 'Tokens issued to Round 1 participants',
+            value: `${(raised / Number(formatEther(archiveRound.tokenPrice))).toLocaleString('en-US', { maximumFractionDigits: 0 })} $CATCH`,
+        },
+    ];
 
     return (
         <section className="px-4 py-20 border-t border-[var(--rule)]">
@@ -87,32 +248,30 @@ function Round1Archive() {
                     The rest sits in the treasury waiting for Round 2 to close.
                 </p>
 
-                <Hairline className="mt-10" />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Raised</Caption>,
-                    <span className="text-[var(--ink-faint)]">{fmtAvax(raised)} / {fmtAvax(target)} AVAX · 100%</span>,
-                    <span className="text-right text-[var(--text-primary)]">${usdValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Fill time</Caption>,
-                    <span className="text-[var(--ink-faint)]">13 Apr 2026, 20:13 UTC → 15 Apr 2026, 16:48 UTC</span>,
-                    <span className="text-right text-[var(--text-primary)]">{filledLabel}</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Participants</Caption>,
-                    <span className="text-[var(--ink-faint)]">Unique invest() callers</span>,
-                    <span className="text-right text-[var(--text-primary)]">{participantsLabel}</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Deployed</Caption>,
-                    <span className="text-[var(--ink-faint)]">Acquired {lotCountLabel} via Courtyard custody</span>,
-                    <span className="text-right text-[var(--text-primary)]">{portfolio.proofSummary.costBasisLabel} cost basis</span>,
-                ]} />
-                <LedgerRow columns="240px 1fr 240px" cells={[
-                    <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">$CATCH minted</Caption>,
-                    <span className="text-[var(--ink-faint)]">Tokens issued to Round 1 participants</span>,
-                    <span className="text-right text-[var(--text-primary)]">{(raised / Number(formatEther(archiveRound.tokenPrice))).toLocaleString('en-US', { maximumFractionDigits: 0 })} $CATCH</span>,
-                ]} />
+                <div className="mt-10 border-t border-[var(--rule)]">
+                    <div className="md:hidden divide-y divide-[var(--rule)]">
+                        {archiveRows.map((row) => (
+                            <div key={row.label} className="py-5">
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>
+                                <div className="mt-2 text-[1rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">
+                                    {row.value}
+                                </div>
+                                <p className="mt-1 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">
+                                    {row.detail}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="hidden md:block">
+                        {archiveRows.map((row) => (
+                            <LedgerRow key={row.label} columns="240px 1fr 240px" cells={[
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>,
+                                <span className="text-[var(--ink-faint)]">{row.detail}</span>,
+                                <span className="text-right text-[var(--text-primary)]">{row.value}</span>,
+                            ]} />
+                        ))}
+                    </div>
+                </div>
 
                 <div className="mt-6 flex flex-wrap gap-6">
                     <a
@@ -183,7 +342,14 @@ function FundraisingContent() {
     const tokenPrice = round.round ? Number(formatEther(round.round.tokenPrice)) : BUY_PAGE_DEFAULTS.priceAvax;
     const minInvestment = round.round ? Number(formatEther(round.round.minInvestment)) : BUY_PAGE_DEFAULTS.minAvax;
     const maxInvestment = round.round ? Number(formatEther(round.round.maxInvestment)) : BUY_PAGE_DEFAULTS.maxAvax;
-    const remaining = Math.max(0, target - raised);
+    const remainingWei = round.round && round.round.targetAmount > round.round.raisedAmount
+        ? round.round.targetAmount - round.round.raisedAmount
+        : 0n;
+    const remaining = round.round ? Number(formatEther(remainingWei)) : Math.max(0, target - raised);
+    const exactDustCloseAmount = round.round && remainingWei > 0n && remainingWei < round.round.minInvestment
+        ? formatEther(remainingWei)
+        : null;
+    const maxContribution = remaining > 0 ? Math.min(maxInvestment, remaining) : maxInvestment;
     const progress = target > 0 ? Math.min((raised / target) * 100, 100) : 0;
     const isPlanned = round.isPlanned;
     const isRoundActive = round.isRoundOpen;
@@ -222,13 +388,30 @@ function FundraisingContent() {
             setTxError(isUpcoming ? `Round ${roundId} has not opened yet.` : `Round ${roundId} is closed for new buys.`);
             return;
         }
+        const validation = validateInvestmentAmount({
+            rawAmount: amount,
+            minInvestmentWei: round.round.minInvestment,
+            maxInvestmentWei: round.round.maxInvestment,
+            remainingWei,
+            exactDustCloseAmount,
+            roundId,
+            minInvestmentLabel: minInvestment,
+            maxInvestmentLabel: maxInvestment,
+            remainingLabel: remaining,
+            hasBalanceData: Boolean(balanceData),
+            spendableAvax,
+        });
+        if (!validation.ok) {
+            setTxError(validation.error);
+            return;
+        }
         try {
             writeContract({
                 address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
                 abi: GM10_FUND_ABI,
                 functionName: 'invest',
                 args: [BigInt(roundId)],
-                value: parseEther(amount),
+                value: validation.amountWei,
             });
         } catch (error) {
             setTxError(error instanceof Error ? error.message : 'Transaction failed');
@@ -236,7 +419,11 @@ function FundraisingContent() {
     }
 
     function setQuick(frac: number) {
-        const v = Math.max(0, Math.min(maxInvestment, spendableAvax * frac));
+        if (exactDustCloseAmount) {
+            setAmount(exactDustCloseAmount);
+            return;
+        }
+        const v = Math.max(0, Math.min(maxContribution, spendableAvax * frac));
         setAmount(Number(v.toFixed(4)).toString());
     }
 
@@ -367,8 +554,8 @@ function FundraisingContent() {
                                     </div>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="flex items-baseline justify-between py-3 border-b border-[var(--rule)]">
+                                <div className="mt-4 border border-[var(--rule-strong)] bg-[var(--bg-secondary)] px-4 shadow-[0_0_0_1px_var(--accent-muted)]">
+                                    <div className="flex items-baseline justify-between border-b border-[var(--rule)] py-3">
                                         <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
                                             WALLET · <span className="text-[var(--text-primary)]">{shortAddr(address)}</span>
                                         </DataMono>
@@ -407,41 +594,41 @@ function FundraisingContent() {
                                     </div>
 
                                     {/* Preview */}
-                                    <div className="grid grid-cols-2 gap-4 border-t border-[var(--rule)] py-4">
+                                    <div className="grid grid-cols-2 gap-4 border-y border-[var(--rule-strong)] bg-[var(--accent-muted)] px-4 py-4">
                                         <div>
-                                            <Caption className="block text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">You pay</Caption>
-                                            <DataMono className="mt-1.5 block text-[1.15rem] font-bold text-[var(--text-primary)]">
-                                                {amount || '0.00'} <span className="text-[0.85rem] font-semibold text-[var(--ink-muted)]">AVAX</span>
+                                            <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">You pay</Caption>
+                                            <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--text-primary)]">
+                                                {amount || '0.00'} <span className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">AVAX</span>
                                             </DataMono>
-                                            <DataMono className="text-[0.75rem] font-medium text-[var(--ink-faint)]">
+                                            <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
                                                 ~${amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                             </DataMono>
                                         </div>
                                         <div className="text-right">
-                                            <Caption className="block text-[0.64rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">You receive</Caption>
-                                            <DataMono className="mt-1.5 block text-[1.15rem] font-bold text-[var(--accent-brass)]">
-                                                {estimatedTokens} <span className="text-[0.85rem] font-semibold">$CATCH</span>
+                                            <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">You receive</Caption>
+                                            <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--accent-brass)]">
+                                                {estimatedTokens} <span className="text-[0.9rem] font-semibold">$CATCH</span>
                                             </DataMono>
-                                            <DataMono className="text-[0.75rem] font-medium text-[var(--ink-faint)]">
+                                            <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
                                                 @ {tokenPrice} AVAX each
                                             </DataMono>
                                         </div>
                                     </div>
 
                                     {/* CTA */}
-                                    <div className="py-4 border-t border-[var(--rule)]">
+                                    <div className="py-4">
                                         <button
                                             type="button"
                                             onClick={handleInvest}
                                             disabled={buyUnavailable || isPending || isConfirming || !amount}
-                                            className="v2-mono text-[1.05rem] font-semibold tracking-[0.03em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors disabled:cursor-not-allowed disabled:text-[var(--ink-faint)]"
+                                            className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                         >
                                             {isPending || isConfirming ? (
                                                 <><span className="v2-pulse" /> Confirm in wallet…</>
                                             ) : isConfirmed ? (
                                                 <>✓ Confirmed</>
                                             ) : (
-                                                <>→ Confirm invest</>
+                                                <>Commit now</>
                                             )}
                                         </button>
 
@@ -450,7 +637,7 @@ function FundraisingContent() {
                                                 href={`https://snowtrace.io/tx/${hash}`}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="ml-6 v2-mono text-[0.78rem] font-medium text-[var(--ink-muted)] hover:text-[var(--text-primary)]"
+                                                className="mt-3 inline-block v2-mono text-[0.78rem] font-medium text-[var(--ink-muted)] hover:text-[var(--text-primary)]"
                                             >
                                                 → Snowtrace
                                             </a>
@@ -462,7 +649,7 @@ function FundraisingContent() {
                                             ⚠ {displayError}
                                         </div>
                                     ) : null}
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -519,26 +706,41 @@ function FundraisingContent() {
                     <p className="mt-2 text-[0.82rem] text-[var(--ink-faint)]">
                         At full cap ({fmtAvax(target)} AVAX): {fmtAvax(target * 0.85)} treasury · {fmtAvax(target * 0.10)} LP · {fmtAvax(target * 0.05)} team.
                     </p>
-                    <Hairline className="mt-8" />
+                    <div className="mt-8 border-t border-[var(--rule)]">
                     {ROUND_PROCEEDS_ALLOCATION.buckets.map((bucket) => {
                         const base = raised > 0 ? raised : target;
                         const allocated = base * (bucket.percent / 100);
                         return (
-                            <LedgerRow
-                                key={bucket.label}
-                                columns="48px 1fr 160px 140px"
-                                cells={[
-                                    <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>,
-                                    <span>
-                                        <span className="text-[var(--text-primary)]">{bucket.label}</span>
-                                        <span className="ml-3 text-[var(--ink-faint)]">{bucket.detail}</span>
-                                    </span>,
-                                    <span className="text-right text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</span>,
-                                    <span className="text-right text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,
-                                ]}
-                            />
+                            <div key={bucket.label}>
+                                <div className="md:hidden border-b border-[var(--rule)] py-5">
+                                    <div className="flex items-baseline justify-between gap-4">
+                                        <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>
+                                        <div className="text-right">
+                                            <div className="text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</div>
+                                            <div className="v2-mono mt-1 text-[0.78rem] text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 text-[var(--text-primary)]">{bucket.label}</div>
+                                    <p className="mt-1 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">{bucket.detail}</p>
+                                </div>
+                                <div className="hidden md:block">
+                                    <LedgerRow
+                                        columns="48px 1fr 160px 140px"
+                                        cells={[
+                                            <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>,
+                                            <span>
+                                                <span className="text-[var(--text-primary)]">{bucket.label}</span>
+                                                <span className="ml-3 text-[var(--ink-faint)]">{bucket.detail}</span>
+                                            </span>,
+                                            <span className="text-right text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</span>,
+                                            <span className="text-right text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,
+                                        ]}
+                                    />
+                                </div>
+                            </div>
                         );
                     })}
+                    </div>
                 </div>
             </section>
 

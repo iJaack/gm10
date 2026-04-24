@@ -438,7 +438,7 @@ function CatchContent() {
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {[
                             { label: 'Portfolio value', desc: 'Sum of all marked positions' },
-                            { label: 'Liquid treasury', desc: 'Cash held in fund contracts' },
+                            { label: 'Liquid treasury', desc: 'Cash held across treasury wallets' },
                             { label: 'Weekly NAV cap', desc: 'Max inferred move per week' },
                             { label: 'Onchain reporting', desc: 'All values verifiable on Snowtrace' },
                         ].map((item) => (
@@ -561,8 +561,8 @@ function CatchContent() {
                             ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                             : 'border-[var(--border-strong)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]';
                         const items = [
-                            <ScrollReveal key={phase.rounds} delay={(index + 1) as 1 | 2 | 3} className="md:flex-1">
-                                <div className="flex md:flex-col md:flex-1">
+                            <ScrollReveal key={phase.rounds} delay={(index + 1) as 1 | 2 | 3} className="flex md:flex-1">
+                                <div className="flex w-full md:flex-1 md:flex-col">
                                     {/* Mobile: vertical stem on left */}
                                     <div className="mr-4 flex flex-col items-center md:hidden">
                                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[0.78rem] font-extrabold ${circleClass}`}>
@@ -578,7 +578,7 @@ function CatchContent() {
                                             {index + 1}
                                         </div>
                                     </div>
-                                    <div className={`mb-4 flex-1 rounded-2xl border bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] md:mb-0 ${index === 0 ? 'border-[var(--accent)]/30' : 'border-[var(--border)]'}`}>
+                                    <div className={`mb-4 flex-1 rounded-2xl border bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] md:mb-0 md:flex md:flex-col ${index === 0 ? 'border-[var(--accent)]/30' : 'border-[var(--border)]'}`}>
                                         <div className="flex items-center gap-2">
                                             <span className="label-font text-[var(--accent)]">{phase.rounds}</span>
                                             {index === 0 && <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--accent)]">Current</span>}

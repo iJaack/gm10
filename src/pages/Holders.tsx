@@ -6,6 +6,7 @@ import { ScrollReveal } from '../components/ScrollReveal';
 import { Web3Providers } from '../components/Web3Providers';
 import type { MarketPool } from '../data/marketData';
 import { useCatchMarketData } from '../hooks/useCatchMarketData';
+import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
 import { useHolderDashboard } from '../hooks/useHolderDashboard';
 
 function formatUsd(value?: number) {
@@ -79,6 +80,7 @@ function PoolRow({ pool }: { pool: MarketPool }) {
 function HoldersContent() {
     const holder = useHolderDashboard();
     const market = useCatchMarketData();
+    const portfolio = useFujiPortfolioPositions();
 
     const pnlValue = holder.labels.unrealizedReferencePnl;
     const pnlIsPositive = typeof pnlValue === 'string' && !pnlValue.startsWith('-') && pnlValue !== 'Unavailable' && pnlValue !== '—';
@@ -161,7 +163,7 @@ function HoldersContent() {
                             <div className="mt-4 space-y-4">
                                 <div>
                                     <div className="label-font text-[0.58rem]">Liquid treasury</div>
-                                    <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.liquidTreasury}</div>
+                                    <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{portfolio.proofSummary.liquidTreasuryLabel}</div>
                                 </div>
                                 <div>
                                     <div className="label-font text-[0.58rem]">Sale profit liability</div>

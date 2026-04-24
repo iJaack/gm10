@@ -1,12 +1,17 @@
 import { addBps, formatDecimalUnits, parseDecimalUnits } from './units.js';
+import { solanaAddressToBytes32 } from '../../src/lib/solanaAddress.js';
 
 export const AVALANCHE_CHAIN_ID = 43114;
 export const POLYGON_CHAIN_ID = 137;
+export const SOLANA_CHAIN_ID = 1151111081099710;
 export const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
 export const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+export const SOLANA_NATIVE_SOL = '11111111111111111111111111111111';
+export const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 export const ROUTE_BUFFER_BPS = 200;
 const MIN_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('0.005', 18));
 const MAX_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('100', 18));
+const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
 function sourceGasRaw(quote) {
   return (quote.estimate?.gasCosts ?? [])
@@ -90,6 +95,19 @@ export function fetchLiFiQuote(params, fetchImpl = fetch) {
 
 function fetchLiFiSourceQuote(params, fetchImpl = fetch) {
   return requestLiFiQuote('/v1/quote', params, fetchImpl);
+}
+
+function assertSourceAmount(rawValue) {
+  if (!/^\d+$/.test(String(rawValue ?? ''))) throw new Error('Missing AVAX raw source amount');
+  if (BigInt(rawValue) <= 0n) throw new Error('AVAX source amount must be greater than zero');
+}
+
+function assertAvaxAddress(value) {
+  if (!ADDRESS_RE.test(String(value ?? ''))) throw new Error('Missing Avalanche Safe address for LI.FI quote');
+}
+
+function assertSolanaAddress(value) {
+  solanaAddressToBytes32(String(value ?? ''));
 }
 
 function fallbackFromAmounts(preferredRaw) {
@@ -191,5 +209,59 @@ export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress }, fe
   return {
     usdc,
     summary: summarizeFunding(usdc),
+  };
+}
+
+export async function buildSolanaFundingQuote({ fromAmountRaw, fromAddress, toAddress }, fetchImpl = fetch) {
+  assertSourceAmount(fromAmountRaw);
+  assertAvaxAddress(fromAddress);
+  assertSolanaAddress(toAddress);
+
+  const quote = await fetchLiFiSourceQuote(
+    {
+      fromChain: AVALANCHE_CHAIN_ID,
+      toChain: SOLANA_CHAIN_ID,
+      fromToken: NATIVE_TOKEN,
+      toToken: SOLANA_NATIVE_SOL,
+      fromAddress,
+      toAddress,
+      fromAmount: fromAmountRaw,
+      slippage: 0.005,
+      integrator: 'gm10-admin',
+      order: 'CHEAPEST',
+    },
+    fetchImpl,
+  );
+
+  return {
+    sol: normalizeQuote('solanaSol', quote, 0),
+  };
+}
+
+export async function buildSolanaUsdcFundingQuote({ usdcRaw, fromAddress, toAddress }, fetchImpl = fetch) {
+  if (!/^\d+$/.test(String(usdcRaw ?? ''))) throw new Error('Missing Solana USDC raw target amount');
+  assertAvaxAddress(fromAddress);
+  assertSolanaAddress(toAddress);
+
+  const quote = await fetchLiFiTargetQuote(
+    'solanaUsdc',
+    {
+      fromChain: AVALANCHE_CHAIN_ID,
+      toChain: SOLANA_CHAIN_ID,
+      fromToken: NATIVE_TOKEN,
+      toToken: SOLANA_USDC,
+      fromAddress,
+      toAddress,
+      slippage: 0.005,
+      integrator: 'gm10-admin',
+      order: 'CHEAPEST',
+    },
+    usdcRaw,
+    usdcPreferredFromAmountRaw(usdcRaw),
+    fetchImpl,
+  );
+
+  return {
+    usdc: normalizeQuote('solanaUsdc', quote, usdcRaw),
   };
 }

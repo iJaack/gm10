@@ -233,7 +233,7 @@ const CAGR_INDEX: Array<{ year: number; usd: number }> = [
 function CagrChart() {
     const W = 640;
     const H = 220;
-    const pad = { l: 4, r: 4, t: 12, b: 24 };
+    const pad = { l: 24, r: 24, t: 12, b: 24 };
     const plotW = W - pad.l - pad.r;
     const plotH = H - pad.t - pad.b;
     const yrs = CAGR_INDEX.map((d) => d.year);

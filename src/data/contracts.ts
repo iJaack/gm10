@@ -152,6 +152,22 @@ export const GM10_PORTFOLIO_REGISTRY_ABI = [
     },
 ] as const;
 
+export const CHAINLINK_AGGREGATOR_V3_ABI = [
+    {
+        inputs: [],
+        name: 'latestRoundData',
+        outputs: [
+            { name: 'roundId', type: 'uint80' },
+            { name: 'answer', type: 'int256' },
+            { name: 'startedAt', type: 'uint256' },
+            { name: 'updatedAt', type: 'uint256' },
+            { name: 'answeredInRound', type: 'uint80' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 export const GM10_INVESTOR_ACCOUNTING_ABI = [
     {
         inputs: [

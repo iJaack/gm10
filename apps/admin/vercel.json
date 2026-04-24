@@ -2,6 +2,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/valuation-cron",
+      "schedule": "0 6 * * 5"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -12,7 +18,7 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET"
+          "value": "GET,POST,OPTIONS"
         },
         {
           "key": "Access-Control-Allow-Headers",

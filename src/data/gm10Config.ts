@@ -12,6 +12,7 @@ export const GM10_CHAIN_ID = Number(import.meta.env.VITE_GM10_CHAIN_ID || 43114)
 export const GM10_CHAIN_NAME = import.meta.env.VITE_GM10_CHAIN_NAME || 'Avalanche';
 export const GM10_NETWORK_LABEL = import.meta.env.VITE_GM10_NETWORK_LABEL || 'Avalanche Mainnet';
 export const GM10_EXPLORER_BASE_URL = import.meta.env.VITE_GM10_EXPLORER_BASE_URL || 'https://snowtrace.io/address';
+export const GM10_EXPLORER_TX_BASE_URL = import.meta.env.VITE_GM10_EXPLORER_TX_BASE_URL || 'https://snowtrace.io/tx';
 export const POLYGONSCAN_BASE_URL = 'https://polygonscan.com';
 
 // LayerZero endpoint IDs
@@ -56,6 +57,24 @@ const catchTokenAddress = parseAddress(
 const liquidityCoordinatorAddress = parseAddress(
     import.meta.env.VITE_GM10_LIQUIDITY_COORDINATOR_ADDRESS || '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
 );
+const avaxUsdFeedAddress = parseAddress(
+    import.meta.env.VITE_GM10_AVAX_USD_FEED_ADDRESS || '0x0A77230d17318075983913bC2145DB16C7366156',
+);
+const treasurySafeAddress = parseAddress(
+    import.meta.env.VITE_GM10_TREASURY_SAFE_ADDRESS
+    || import.meta.env.VITE_GM10_ADMIN_TREASURY_SAFE_ADDRESS
+    || '0x39971795266a794a8156271729A07994952a6FAD',
+);
+const teamWalletAddress = parseAddress(
+    import.meta.env.VITE_GM10_TEAM_WALLET_ADDRESS
+    || import.meta.env.VITE_GM10_ADMIN_TEAM_WALLET_ADDRESS
+    || '0x5cA0A679025B6c7dA08a70be3b244399fF0D7813',
+);
+const courtyardWorkflowAddress = parseAddress(
+    import.meta.env.VITE_GM10_COURTYARD_WORKFLOW_ADDRESS
+    || import.meta.env.VITE_GM10_ADMIN_COURTYARD_WORKFLOW_ADDRESS
+    || '0x5448884263E8C27c87CCE6279faE8175271D131c',
+);
 const lfjPairAddress = parseAddress(import.meta.env.VITE_GM10_LFJ_PAIR_ADDRESS);
 const pharaohPoolAddress = parseAddress(import.meta.env.VITE_GM10_PHARAOH_POOL_ADDRESS);
 
@@ -88,9 +107,33 @@ export const GM10_POSITION_IDS = [1, 2] as const;
 export const GM10_MARKET_CONFIG = {
     catchTokenAddress,
     liquidityCoordinatorAddress,
+    avaxUsdFeedAddress,
     lfjPairAddress,
     pharaohPoolAddress,
     dexscreenerTokenUrl: catchTokenAddress
         ? `https://api.dexscreener.com/latest/dex/tokens/${catchTokenAddress}`
         : undefined,
+} as const;
+
+export const GM10_TREASURY_WALLETS = {
+    fundProxy: {
+        label: 'Fund proxy',
+        address: fundProxyAddress,
+    },
+    treasurySafe: {
+        label: 'Avalanche treasury Safe',
+        address: treasurySafeAddress,
+    },
+    liquidityCoordinator: {
+        label: 'Liquidity coordinator',
+        address: liquidityCoordinatorAddress,
+    },
+    courtyardWorkflow: {
+        label: 'Courtyard workflow',
+        address: courtyardWorkflowAddress,
+    },
+    teamWallet: {
+        label: 'Team wallet',
+        address: teamWalletAddress,
+    },
 } as const;
