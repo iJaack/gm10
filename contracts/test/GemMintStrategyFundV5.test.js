@@ -349,6 +349,56 @@ describe("GemMintStrategyFundV5 security workflows", function () {
     await expect(ctx.fund.connect(ctx.ops).finalizeSale(saleKey)).to.not.be.reverted;
   });
 
+  it("finalizes inherited pricing and investor accounting config in V6", async function () {
+    const [owner] = await ethers.getSigners();
+    const FundV2 = await ethers.getContractFactory("GemMintStrategyFundV2");
+    const fundV2 = await upgrades.deployProxy(
+      FundV2,
+      [owner.address, 100n, 1000n],
+      { kind: "uups", initializer: "initialize" }
+    );
+    await fundV2.waitForDeployment();
+
+    const MockERC20 = await ethers.getContractFactory("MockERC20");
+    const usdt = await MockERC20.deploy("Mock USDT", "USDT");
+    await usdt.waitForDeployment();
+
+    const MockAggregator = await ethers.getContractFactory("MockAggregatorV3");
+    const feed = await MockAggregator.deploy(8, 25n * 10n ** 8n);
+    await feed.waitForDeployment();
+
+    const PortfolioRegistryV2 = await ethers.getContractFactory("Gm10PortfolioRegistryV2");
+    const portfolioRegistry = await PortfolioRegistryV2.deploy(await fundV2.getAddress());
+    await portfolioRegistry.waitForDeployment();
+
+    const InvestorAccounting = await ethers.getContractFactory("Gm10InvestorAccounting");
+    const investorAccounting = await InvestorAccounting.deploy(await fundV2.getAddress());
+    await investorAccounting.waitForDeployment();
+
+    const FundV5 = await ethers.getContractFactory("GemMintStrategyFundV5");
+    let fund = await upgrades.upgradeProxy(await fundV2.getAddress(), FundV5, {
+      kind: "uups",
+      call: { fn: "initializeV5", args: [await portfolioRegistry.getAddress(), 24 * 60 * 60] },
+    });
+    await fund.waitForDeployment();
+    expect(await fund.investorAccounting()).to.equal(ethers.ZeroAddress);
+
+    const FundV6 = await ethers.getContractFactory("GemMintStrategyFundV6");
+    fund = await upgrades.upgradeProxy(await fund.getAddress(), FundV6, {
+      kind: "uups",
+      call: {
+        fn: "initializeV6",
+        args: [await usdt.getAddress(), await feed.getAddress(), await investorAccounting.getAddress()],
+      },
+    });
+    await fund.waitForDeployment();
+
+    expect(await fund.investorAccounting()).to.equal(await investorAccounting.getAddress());
+    await expect(
+      fund.initializeV6(await usdt.getAddress(), await feed.getAddress(), await investorAccounting.getAddress())
+    ).to.be.revertedWithCustomError(fund, "InvalidInitialization");
+  });
+
   it("prevents rescuing canonical CATCH from the OFT adapter", async function () {
     const ctx = await loadFixture(deployV5Fixture);
     const MockEndpoint = await ethers.getContractFactory("MockLayerZeroEndpointV2");

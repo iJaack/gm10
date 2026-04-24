@@ -42,7 +42,7 @@
     "network": "avalanche",
     "chainId": "43114",
     "proxy": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
-    "implementation": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
+    "implementation": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
     "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
     "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
     "portfolioRegistry": "0x1b7341C74cfA0C098431197aE5b697A73036CDFC",
@@ -65,6 +65,16 @@
       "settlementToken": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
       "upgradeTx": "0xb30ec6bdd5002178a4d74c646a2e81aa6df4af9ede40927fddc2529128039914",
       "settlementTokenTx": "0x3c81bf59db50efc96d09514a7805b488ef1ad3ed9b0ec930367435cf167d77db"
+    },
+    "implementationV6": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
+    "lastConfigUpgrade": {
+      "to": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
+      "timestamp": "2026-04-24T18:09:21.928Z",
+      "blockNumber": 83783722,
+      "canonicalUsdt": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "avaxUsdFeed": "0x0A77230d17318075983913bC2145DB16C7366156",
+      "investorAccounting": "0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963",
+      "tx": "0x1b217f4698a7fc7ca6ae07d3e443f39755d28a14ec5cbbd959517c5d4429f9d2"
     }
   },
   "fujiPurchaseTest": {
