@@ -8,6 +8,7 @@ type RoundTimingState = {
     isUpcoming: boolean;
     isClosed: boolean;
     isPlanned?: boolean;
+    status?: string;
     roundId?: number;
     startsAt?: number;
     endsAt?: number;
@@ -75,8 +76,16 @@ export function RoundTimingCallout({
     const secondsToStart = startsAt - now;
     const secondsToEnd = endsAt - now;
     const target = roundState.round ? Number(formatEther(roundState.round.targetAmount)) : BUY_PAGE_DEFAULTS.targetAvax;
+    const normalizedPlannedStatus = roundState.status?.toLowerCase();
+    const plannedSetupLabel = normalizedPlannedStatus === 'round 2 in progress'
+        ? 'in progress'
+        : normalizedPlannedStatus?.includes('in progress')
+            ? 'setup in progress'
+            : normalizedPlannedStatus?.includes('delayed')
+            ? 'setup delayed'
+            : 'setup pending';
     const title = roundState.isPlanned
-        ? `Round ${roundId} terms are ready`
+        ? `Round ${roundId} ${plannedSetupLabel}`
         : roundState.isUpcoming
         ? `Round ${roundId} opens in ${formatCountdown(secondsToStart)}`
         : roundState.isRoundOpen
@@ -103,7 +112,7 @@ export function RoundTimingCallout({
             <div>
                 <div>
                     <div className="label-font text-[var(--accent)]">
-                        {roundState.isPlanned ? 'Current round' : roundState.isUpcoming ? 'Next opening' : roundState.isRoundOpen ? 'Current window' : 'Round status'}
+                        {roundState.isPlanned ? 'Setup status' : roundState.isUpcoming ? 'Next opening' : roundState.isRoundOpen ? 'Current window' : 'Round status'}
                     </div>
                     <div className={`${compact ? 'mt-1 text-[1.05rem]' : 'mt-2 text-[1.45rem] sm:text-[1.75rem]'} font-extrabold tracking-[-0.035em] text-[var(--text-primary)]`}>
                         {title}
@@ -147,6 +156,7 @@ export function getRoundScheduleShortLabel(roundState: RoundTimingState) {
     const startsAt = roundState.startsAt ?? ROUND_2_START_AT;
     const endsAt = roundState.endsAt ?? ROUND_2_END_AT;
 
+    if (roundState.isPlanned) return roundState.status ?? 'Round setup pending';
     if (roundState.isUpcoming) return `Opens ${formatUtcTimestamp(startsAt)}`;
     if (roundState.isRoundOpen) return `Closes ${formatUtcTimestamp(endsAt)}`;
     return 'Proof remains live';

@@ -22,6 +22,10 @@
     "purchase:test:fuji": "hardhat run scripts/testPurchaseFlowFuji.js --network fuji",
     "purchase:resume:fuji": "hardhat run scripts/resumePurchaseFlowFuji.js --network fuji",
     "revoke:purchase-roles:fuji": "hardhat run scripts/revokePurchaseTestRolesFuji.js --network fuji",
+    "repair:legacy-storage:fuji": "hardhat run scripts/repairLegacyStorageUpgrade.js --network fuji",
+    "repair:legacy-storage:mainnet": "hardhat run scripts/repairLegacyStorageUpgrade.js --network avalanche",
+    "migrate:registry-v2:fuji": "hardhat run scripts/migratePortfolioRegistryV2.js --network fuji",
+    "migrate:registry-v2:mainnet": "hardhat run scripts/migratePortfolioRegistryV2.js --network avalanche",
     "verify:fuji": "hardhat run scripts/verify.js --network fuji",
     "verify:mainnet": "hardhat run scripts/verify.js --network avalanche",
     "clean": "hardhat clean"

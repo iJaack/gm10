@@ -94,6 +94,13 @@ function FundraisingContent() {
     const isUpcoming = roundState.isUpcoming;
     const isClosed = roundState.isClosed;
     const buyUnavailable = isPlannedRound || !roundState.isRoundOpen || !GM10_PRIMARY_DEPLOYMENT.proxy.address;
+    const plannedRoundTitle = roundState.status.toLowerCase() === 'round 2 in progress'
+        ? 'Round 2 in progress'
+        : roundState.status.toLowerCase().includes('in progress')
+            ? 'Round 2 setup in progress'
+            : roundState.status.toLowerCase().includes('delayed')
+                ? 'Round 2 setup delayed'
+            : 'Round 2 setup pending';
     const roundWindowLabel = `${formatUtcTimestamp(roundState.startsAt ?? ROUND_2_START_AT)} UTC → ${formatUtcTimestamp(roundState.endsAt ?? ROUND_2_END_AT)} UTC`;
     const progress = roundTarget > 0 ? Math.min((roundRaised / roundTarget) * 100, 100) : 0;
     const estimatedTokens = amount ? (Number(amount) / tokenPrice).toFixed(2) : '0.00';
@@ -388,7 +395,7 @@ function FundraisingContent() {
                         {!displayError && !isRoundActive ? (
                             <div className="border-t border-[var(--border)] px-6 py-4">
                                 <PixelMessageBox
-                                    title={isPlannedRound ? 'Round 2 setup pending' : isUpcoming ? 'Round upcoming' : 'Round closed'}
+                                    title={isPlannedRound ? plannedRoundTitle : isUpcoming ? 'Round upcoming' : 'Round closed'}
                                     body={isPlannedRound
                                         ? `Round ${activeRoundId} terms are published, but the round has not been started onchain yet. Buying stays disabled until the admin creates the round.`
                                         : isUpcoming

@@ -30,6 +30,13 @@ import { HOME_GM10_ADVANTAGES } from '../data/protocol';
 function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
+    const roundStatusSentence = round.isRoundOpen
+        ? `Round ${round.roundId} is live on Avalanche mainnet.`
+        : round.isPlanned
+            ? round.status.toLowerCase().startsWith('round 2 setup ')
+                ? `Round ${round.roundId} setup is ${round.status.toLowerCase().replace(/^round 2 setup /, '')} on Avalanche mainnet.`
+                : `Round ${round.roundId} is ${round.status.toLowerCase().replace(/^round 2 /, '')} on Avalanche mainnet.`
+            : `Round ${round.roundId} ${round.isUpcoming ? 'opens soon.' : 'is closed for new buys.'}`;
 
     const onPhoto = {
         primary: theme === 'dark' ? '#ffffff' : '#0f0e0a',
@@ -85,7 +92,7 @@ function Hero() {
                             GM10 turns sourcing, diligence, custody, valuation, and exits into one managed onchain strategy, so a single position can track the full portfolio.
                         </p>
                         <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
-                            {round.isRoundOpen ? `Round ${round.roundId} is live on Avalanche mainnet.` : `Round ${round.roundId} ${round.isUpcoming ? 'opens soon.' : 'is closed for new buys.'}`}
+                            {roundStatusSentence}
                             {' '}Public proof links, contract-enforced timing, and verified contracts on Snowtrace.
                         </p>
                     </div>

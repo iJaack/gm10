@@ -45,7 +45,7 @@
     "implementation": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
     "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
     "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
-    "portfolioRegistry": "0x1b7341C74cfA0C098431197aE5b697A73036CDFC",
+    "portfolioRegistry": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
     "investorAccounting": "0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963",
     "canonicalUsdt": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
     "avaxUsdFeed": "0x0A77230d17318075983913bC2145DB16C7366156",
@@ -75,6 +75,25 @@
       "avaxUsdFeed": "0x0A77230d17318075983913bC2145DB16C7366156",
       "investorAccounting": "0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963",
       "tx": "0x1b217f4698a7fc7ca6ae07d3e443f39755d28a14ec5cbbd959517c5d4429f9d2"
+    },
+    "lastLegacyStorageRepair": {
+      "repairImplementation": "0xA1cfFc987CDe520BaCf13a517d840D4e8d0Eb4a1",
+      "finalImplementation": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
+      "portfolioRegistry": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
+      "tx": "0x3dc7f816b3a01fbaa143d8fb0ba011f08f41536108d3bea5a449b0e276277023",
+      "blockNumber": 83799186,
+      "timestamp": "2026-04-24T22:39:19.299Z"
+    },
+    "portfolioRegistryV2Migrated": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
+    "lastPortfolioRegistryMigration": {
+      "sourceRegistry": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
+      "migratedRegistry": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
+      "pointerImplementation": "0x8Fa419CE61Fa5d735A5a6E19679A069a56FB4905",
+      "finalImplementation": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
+      "positionCount": "8",
+      "tx": "0x389f558b1c9049c4d70d26acb8a0303ac40b4943928fc6c4155793ae6ae04ad2",
+      "blockNumber": 83799691,
+      "timestamp": "2026-04-24T22:48:19.986Z"
     }
   },
   "fujiPurchaseTest": {

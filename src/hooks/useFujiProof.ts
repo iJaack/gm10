@@ -43,8 +43,76 @@ const ROUND_2_PLANNED_ROUND = {
     isFinalized: false,
 } as const;
 
+export type Gm10RoundData = {
+    roundId: bigint;
+    targetAmount: bigint;
+    raisedAmount: bigint;
+    tokenPrice: bigint;
+    minInvestment: bigint;
+    maxInvestment: bigint;
+    startTime: bigint;
+    endTime: bigint;
+    isActive: boolean;
+    isFinalized: boolean;
+};
+
 function hasRoundData<T extends { targetAmount: bigint }>(round?: T): round is T {
     return Boolean(round && round.targetAmount > 0n);
+}
+
+export function deriveFujiRoundState({
+    round2,
+    now = Math.floor(Date.now() / 1000),
+    fallbackRound = ROUND_2_PLANNED_ROUND,
+    roundId = BUY_PAGE_DEFAULTS.roundId,
+}: {
+    round2?: Gm10RoundData;
+    now?: number;
+    fallbackRound?: Gm10RoundData;
+    roundId?: number;
+}) {
+    const hasOnchainRound2 = hasRoundData(round2);
+    const round = hasOnchainRound2 ? round2 : fallbackRound;
+    const startsAt = Number(round.startTime);
+    const endsAt = Number(round.endTime);
+    const raisedAmount = round.raisedAmount;
+    const targetAmount = round.targetAmount;
+    const capReached = targetAmount > 0n && raisedAmount >= targetAmount;
+    const isUpcoming = now < startsAt;
+    const isClosedByTime = now > endsAt;
+    const isClosed = hasOnchainRound2 && (capReached || isClosedByTime || Boolean(round.isFinalized));
+    const isRoundOpen = hasOnchainRound2 && Boolean(round.isActive) && !isUpcoming && !isClosed;
+
+    const plannedStatus = isUpcoming
+        ? 'Round 2 setup pending'
+        : isClosedByTime
+            ? 'Round 2 setup delayed'
+            : 'Round 2 setup in progress';
+    const status = !hasOnchainRound2
+        ? plannedStatus
+        : isClosed
+        ? capReached || Boolean(round.isFinalized)
+            ? 'Finalized'
+            : 'Closed'
+        : isUpcoming
+            ? 'Upcoming'
+            : isRoundOpen
+                ? 'Open'
+                : 'Inactive';
+
+    return {
+        roundId,
+        round,
+        roundSource: hasOnchainRound2 ? 'onchain' as const : 'planned' as const,
+        isPlanned: !hasOnchainRound2,
+        status,
+        isUpcoming,
+        isClosed,
+        isCapReached: capReached,
+        isRoundOpen,
+        startsAt,
+        endsAt,
+    };
 }
 
 function formatUsdt6(value?: bigint) {
@@ -249,31 +317,15 @@ export function useFujiRoundState() {
         query: { enabled: Boolean(proxyAddress) },
     });
 
-    const hasOnchainRound2 = hasRoundData(round2);
-    const round = hasOnchainRound2 ? round2 : ROUND_2_PLANNED_ROUND;
-    const roundId = BUY_PAGE_DEFAULTS.roundId;
-    const now = Math.floor(Date.now() / 1000);
-    const startsAt = Number(round.startTime);
-    const endsAt = Number(round.endTime);
+    const derivedRound = deriveFujiRoundState({
+        round2: hasRoundData(round2) ? round2 : undefined,
+        now: Math.floor(Date.now() / 1000),
+        fallbackRound: ROUND_2_PLANNED_ROUND,
+        roundId: BUY_PAGE_DEFAULTS.roundId,
+    });
+    const { round } = derivedRound;
     const raisedAmount = round.raisedAmount;
     const targetAmount = round.targetAmount;
-    const capReached = targetAmount > 0n && raisedAmount >= targetAmount;
-    const isUpcoming = now < startsAt;
-    const isClosedByTime = now > endsAt;
-    const isClosed = hasOnchainRound2 && (capReached || isClosedByTime || Boolean(round.isFinalized));
-    const isRoundOpen = hasOnchainRound2 && Boolean(round.isActive) && !isUpcoming && !isClosed;
-
-    const status = !hasOnchainRound2
-        ? 'Round 2 setup pending'
-        : isClosed
-        ? capReached || Boolean(round?.isFinalized)
-            ? 'Finalized'
-            : 'Closed'
-        : isUpcoming
-            ? 'Upcoming'
-            : isRoundOpen
-                ? 'Open'
-                : 'Inactive';
 
     const progress = targetAmount > 0n
         ? Math.min((Number(raisedAmount) / Number(targetAmount)) * 100, 100)
@@ -282,19 +334,9 @@ export function useFujiRoundState() {
     return {
         links,
         currentRoundId: currentRoundId ? Number(currentRoundId) : undefined,
-        roundId,
-        round,
-        roundSource: hasOnchainRound2 ? 'onchain' as const : 'planned' as const,
-        isPlanned: !hasOnchainRound2,
+        ...derivedRound,
         archiveRound: hasRoundData(round1Archive) ? round1Archive : undefined,
-        status,
         progress,
-        isUpcoming,
-        isClosed,
-        isCapReached: capReached,
-        isRoundOpen,
-        startsAt,
-        endsAt,
         targetLabel: round ? `${Number(formatEther(round.targetAmount)).toLocaleString('en-US')} AVAX` : `${BUY_PAGE_DEFAULTS.targetAvax.toLocaleString('en-US')} AVAX`,
         raisedLabel: round ? `${Number(formatEther(round.raisedAmount)).toLocaleString('en-US')} AVAX` : '0 AVAX',
         priceLabel: round ? `${Number(formatEther(round.tokenPrice))} AVAX` : `${BUY_PAGE_DEFAULTS.priceAvax} AVAX`,

@@ -428,6 +428,19 @@ function FundraisingContent() {
     }
 
     const roundWindow = `${fmtUtc(round.startsAt ?? ROUND_2_START_AT)} UTC → ${fmtUtc(round.endsAt ?? ROUND_2_END_AT)} UTC`;
+    const roundHeadline = isRoundActive
+        ? 'Live now.'
+        : isPlanned
+            ? round.status.toLowerCase() === 'round 2 in progress'
+                ? 'In progress.'
+                : round.status.toLowerCase().includes('in progress')
+                ? 'Setup in progress.'
+                : round.status.toLowerCase().includes('delayed')
+                    ? 'Setup delayed.'
+                    : 'Setup pending.'
+            : isUpcoming
+                ? 'Opens soon.'
+                : 'Closed.';
 
     return (
         <main>
@@ -459,7 +472,7 @@ function FundraisingContent() {
                             </Display>
                         </div>
                         <DisplayItalic as="div" className="text-[clamp(1.4rem,3vw,2.2rem)] text-[var(--ink-muted)] pb-3">
-                            {isRoundActive ? 'Live now.' : isUpcoming ? 'Opens soon.' : 'Closed.'}
+                            {roundHeadline}
                         </DisplayItalic>
                     </div>
                 </div>

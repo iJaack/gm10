@@ -65,6 +65,13 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 
 function FAQContent() {
     const roundState = useFujiRoundState();
+    const roundAvailability = roundState.isRoundOpen
+        ? 'The round page is where the answers turn into a decision. Module, position, proof — all in one surface.'
+        : roundState.isPlanned
+            ? roundState.status.toLowerCase() === 'round 2 in progress'
+                ? `Round ${roundState.roundId} is in progress, and the round page still shows the full proof stack.`
+                : `Round ${roundState.roundId} setup is in progress, and the round page still shows the full proof stack.`
+            : `Round ${roundState.roundId} is ${roundState.isUpcoming ? 'upcoming' : 'closed'}, but the round page still shows the full proof stack.`;
     const pageCopy = SUPPORT_PAGE_COPY.faq;
 
     return (
@@ -114,9 +121,7 @@ function FAQContent() {
                         Ready to act on it?
                     </Display>
                     <p className="mt-3 max-w-[56ch] text-[0.95rem] leading-[1.7] text-[var(--ink-muted)]">
-                        {roundState.isRoundOpen
-                            ? 'The round page is where the answers turn into a decision. Module, position, proof — all in one surface.'
-                            : `Round ${roundState.roundId} is ${roundState.isUpcoming ? 'upcoming' : 'closed'}, but the round page still shows the full proof stack.`}
+                        {roundAvailability}
                     </p>
                     <div className="mt-6 flex flex-wrap gap-6">
                         <Link to="/fundraising" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">

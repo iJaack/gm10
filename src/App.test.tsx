@@ -9,6 +9,7 @@ const wagmiMocks = vi.hoisted(() => ({
         isConnected: false,
     },
     balanceValue: undefined as bigint | undefined,
+    roundState: undefined as any,
     reset: vi.fn(),
     writeContract: vi.fn(),
 }));
@@ -76,7 +77,7 @@ vi.mock('./hooks/useFujiProof', () => ({
             },
         ],
     }),
-    useFujiRoundState: () => ({
+    useFujiRoundState: () => wagmiMocks.roundState ?? ({
         roundId: 2,
         round: {
             targetAmount: 5000000000000000000000n,
@@ -278,6 +279,7 @@ afterEach(() => {
     cleanup();
     wagmiMocks.account = { address: undefined, isConnected: false };
     wagmiMocks.balanceValue = undefined;
+    wagmiMocks.roundState = undefined;
     wagmiMocks.reset.mockClear();
     wagmiMocks.writeContract.mockClear();
     window.history.pushState({}, '', '/');
@@ -354,6 +356,45 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
+    });
+
+    it('shows planned round 2 setup as in progress during the configured window', async () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                roundId: 2n,
+                targetAmount: 5000000000000000000000n,
+                raisedAmount: 0n,
+                tokenPrice: 3500000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 500000000000000000000n,
+                startTime: 1776351600n,
+                endTime: 1778943600n,
+                isActive: false,
+                isFinalized: false,
+            },
+            status: 'Round 2 setup in progress',
+            progress: 0,
+            isRoundOpen: false,
+            isUpcoming: false,
+            isClosed: false,
+            isPlanned: true,
+            roundSource: 'planned',
+            startsAt: 1776351600,
+            endsAt: 1778943600,
+            archiveRound: undefined,
+            targetLabel: '5,000 AVAX',
+            raisedLabel: '0 AVAX',
+            priceLabel: '0.0035 AVAX',
+            minMaxLabel: '0.1 to 500 AVAX',
+            links: [],
+        };
+
+        renderAt('/fundraising');
+
+        expect((await screen.findAllByText(/round 2 setup in progress/i)).length).toBeGreaterThan(0);
+        expect(screen.getByText(/setup in progress\./i)).toBeInTheDocument();
+        expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
 
     it('preflights round 2 buys against the exact remaining cap before submitting', async () => {

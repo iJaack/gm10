@@ -14,12 +14,12 @@ contract Gm10PortfolioRegistryV2 {
     address public immutable fund;
     uint256 public collectiblePositionCount;
 
-    mapping(uint32 => Gm10Types.ChainSafeConfig) private chainSafes;
-    mapping(bytes32 => bool) private approvedMarketplaceIds;
-    mapping(bytes32 => Gm10Types.PurchaseAuthorization) private purchaseAuthorizations;
-    mapping(bytes32 => Gm10Types.SaleAuthorization) private saleAuthorizations;
-    mapping(uint256 => Gm10Types.CollectiblePosition) private collectiblePositions;
-    mapping(uint256 => Gm10Types.ValuationObservation) private latestValuationObservation;
+    mapping(uint32 => Gm10Types.ChainSafeConfig) internal chainSafes;
+    mapping(bytes32 => bool) internal approvedMarketplaceIds;
+    mapping(bytes32 => Gm10Types.PurchaseAuthorization) internal purchaseAuthorizations;
+    mapping(bytes32 => Gm10Types.SaleAuthorization) internal saleAuthorizations;
+    mapping(uint256 => Gm10Types.CollectiblePosition) internal collectiblePositions;
+    mapping(uint256 => Gm10Types.ValuationObservation) internal latestValuationObservation;
 
     event ChainSafeUpdated(uint32 indexed chainEid, address evmSafe, bytes32 nonEvmSafe, bool enabled);
     event MarketplaceApprovalUpdated(bytes32 indexed marketplaceId, bool approved);
