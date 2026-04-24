@@ -201,6 +201,22 @@ export const FUND_ADMIN_ABI = [
     },
 ] as const;
 
+export const CHAINLINK_AGGREGATOR_V3_ABI = [
+    {
+        inputs: [],
+        name: 'latestRoundData',
+        outputs: [
+            { name: 'roundId', type: 'uint80' },
+            { name: 'answer', type: 'int256' },
+            { name: 'startedAt', type: 'uint256' },
+            { name: 'updatedAt', type: 'uint256' },
+            { name: 'answeredInRound', type: 'uint80' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 export const ERC20_ABI = [
     {
         inputs: [{ name: 'account', type: 'address' }],

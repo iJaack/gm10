@@ -13,6 +13,7 @@ export const MAINNET = {
     polygonCourtyardSafe: parseAddress(import.meta.env.VITE_GM10_ADMIN_POLYGON_COURTYARD_SAFE_ADDRESS) ?? '0x39971795266a794a8156271729A07994952a6FAD',
     polygonCourtyardHotWallet: parseAddress(import.meta.env.VITE_GM10_ADMIN_POLYGON_COURTYARD_HOT_WALLET_ADDRESS) ?? '0xc6E01B7A2e8D842447ED43d30FE89Ae9a9077b50',
     stargateAdapter: parseAddress(import.meta.env.VITE_GM10_ADMIN_STARGATE_ADAPTER_ADDRESS),
+    avaxUsdFeed: parseAddress(import.meta.env.VITE_GM10_ADMIN_AVAX_USD_FEED_ADDRESS ?? import.meta.env.VITE_GM10_AVAX_USD_FEED_ADDRESS) ?? '0x0A77230d17318075983913bC2145DB16C7366156',
 } as const;
 
 export const MAINNET_TOKENS = {
