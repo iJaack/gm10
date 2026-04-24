@@ -469,17 +469,6 @@ export function PhygitalsPanel() {
         }
     }
 
-    function submitReleaseFunds() {
-        if (!MAINNET.fundProxy || !purchase.purchaseKey.trim()) return;
-        reset();
-        writeContract({
-            address: MAINNET.fundProxy,
-            abi: FUND_ADMIN_ABI,
-            functionName: 'releasePurchaseFunds',
-            args: [purchaseKey, parseUsdt6Input(purchase.releaseAmountUsdt)],
-        });
-    }
-
     function submitRecordExecution() {
         if (!MAINNET.portfolioRegistry || !purchase.purchaseKey.trim()) return;
         reset();
@@ -684,8 +673,8 @@ export function PhygitalsPanel() {
                     <div>Purchase key: {purchase.purchaseKey || 'Resolve a card'}</div>
                     <div>Authorization status: {purchaseAuthorization ? statusLabel(purchaseAuthorization.status) : 'Unavailable'}</div>
                     <div>Max spend: {purchase.maxSpendUsdt || '0'} USDT</div>
-                    <div>Release amount: {purchase.releaseAmountUsdt || '0'} USDT</div>
-                    <div>Released: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
+                    <div>Funding amount: {purchase.releaseAmountUsdt || '0'} USDT</div>
+                    <div>Confirmed funding: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
                     <div className="break-all">Destination Safe: {formatNonEvmSafe(purchaseAuthorization?.destinationSafeAlt)}</div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -697,9 +686,6 @@ export function PhygitalsPanel() {
                 <div className="flex flex-wrap gap-3">
                     <TxButton onClick={submitAuthorizePurchase} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !card || phygitalsApproved !== true || !solanaChainSafe?.enabled}>
                         Authorize purchase
-                    </TxButton>
-                    <TxButton onClick={submitReleaseFunds} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !card || !purchase.releaseAmountUsdt}>
-                        Release funds
                     </TxButton>
                     <TxButton onClick={submitRecordExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !card || !purchase.executionRef}>
                         Record execution

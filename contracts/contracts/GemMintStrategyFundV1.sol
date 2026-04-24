@@ -180,6 +180,7 @@ contract GemMintStrategyFundV1 is
     error InsufficientFreeBalance();
     error TransferFailed();
     error TokenTransferFailed();
+    error DeprecatedLegacyBuyback();
 
     // ============ Storage Gap for Future Upgrades ============
     uint256[45] private __gap;
@@ -484,6 +485,10 @@ contract GemMintStrategyFundV1 is
         uint256 _cardIndex,
         uint256 _salePrice
     ) external virtual onlyRole(MANAGER_ROLE) nonReentrant {
+        _cardIndex;
+        _salePrice;
+        revert DeprecatedLegacyBuyback();
+/*
         Card storage card = cards[_cardIndex];
         if (!card.isActive) revert CardNotFound();
 
@@ -508,6 +513,7 @@ contract GemMintStrategyFundV1 is
         _updateNAV();
 
         emit CardSold(_cardIndex, _salePrice, buybackAmount);
+*/
     }
 
     // ============ Buyback Mechanism ============

@@ -18,20 +18,20 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
     bytes32 private constant FAILSAFE_ROLE = keccak256("FAILSAFE_ROLE");
     bytes32 private constant VALUATION_MANAGER_ROLE = keccak256("VALUATION_MANAGER_ROLE");
 
-    address private canonicalUsdt;
-    address private avaxUsdFeed;
+    address internal canonicalUsdt;
+    address internal avaxUsdFeed;
     address public portfolioRegistry;
     address public investorAccounting;
 
-    uint256 private canonicalPortfolioValueUsdt6;
+    uint256 internal canonicalPortfolioValueUsdt6;
     uint256 public navPerTokenUsdt6;
-    uint256 private lastStableNavUpdate;
-    uint256 private liquidTreasuryUsdt6;
-    uint256 private outstandingPurchaseReleasesUsdt6;
-    uint256 private buybackAccruedUsdt6;
-    uint256 private lpAccruedUsdt6;
-    uint256 private redemptionReserveUsdt6;
-    uint256 private weeklyNavCapBps;
+    uint256 internal lastStableNavUpdate;
+    uint256 internal liquidTreasuryUsdt6;
+    uint256 internal outstandingPurchaseReleasesUsdt6;
+    uint256 internal liquidityCatchBuyAccruedUsdt6;
+    uint256 internal liquidityAvaxPairingAccruedUsdt6;
+    uint256 internal holderDistributionAccruedUsdt6;
+    uint256 internal weeklyNavCapBps;
 
     mapping(address => bool) private approvedRecoveryAddresses;
 
@@ -214,8 +214,8 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
         approvedRecoveryAddresses[_account] = _approved;
     }
 
-    function releasePurchaseFunds(bytes32 _purchaseKey, uint256 _amountUsdt6) external onlyRole(MANAGER_ROLE) {
-        if (liquidTreasuryUsdt6 < _amountUsdt6 + redemptionReserveUsdt6) revert InsufficientFreeBalance();
+    function releasePurchaseFunds(bytes32 _purchaseKey, uint256 _amountUsdt6) external virtual onlyRole(MANAGER_ROLE) {
+        if (liquidTreasuryUsdt6 < _amountUsdt6 + holderDistributionAccruedUsdt6) revert InsufficientFreeBalance();
 
         IGm10PortfolioRegistry(portfolioRegistry).releasePurchaseFunds(_purchaseKey, _amountUsdt6);
 
@@ -242,24 +242,26 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
         _syncStableNav();
     }
 
-    function finalizeSale(bytes32 _saleKey) external onlyRole(MANAGER_ROLE) {
+    function finalizeSale(bytes32 _saleKey) external virtual onlyRole(MANAGER_ROLE) {
         (, uint256 markedValueUsdt6, uint256 costBasisUsdt6, uint256 netProceedsUsdt6) =
             IGm10PortfolioRegistry(portfolioRegistry).finalizeSale(_saleKey);
         uint256 treasuryAllocationUsdt6;
-        uint256 buybackAllocationUsdt6;
-        uint256 lpAllocationUsdt6;
-        uint256 reserveAllocationUsdt6;
+        uint256 holderDistributionAllocationUsdt6;
+        uint256 liquidityCatchBuyAllocationUsdt6;
+        uint256 liquidityAvaxPairingAllocationUsdt6;
 
         if (netProceedsUsdt6 <= costBasisUsdt6) {
             treasuryAllocationUsdt6 = netProceedsUsdt6;
         } else {
             uint256 realizedProfitUsdt6 = netProceedsUsdt6 - costBasisUsdt6;
-            uint256 treasuryProfitShareUsdt6 = Math.mulDiv(realizedProfitUsdt6, 4000, WORKFLOW_BPS);
+            uint256 treasuryProfitShareUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2500, WORKFLOW_BPS);
             treasuryAllocationUsdt6 = costBasisUsdt6 + treasuryProfitShareUsdt6;
-            buybackAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2500, WORKFLOW_BPS);
-            lpAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2000, WORKFLOW_BPS);
-            reserveAllocationUsdt6 =
-                realizedProfitUsdt6 - treasuryProfitShareUsdt6 - buybackAllocationUsdt6 - lpAllocationUsdt6;
+            holderDistributionAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 4000, WORKFLOW_BPS);
+            uint256 liquidityAllocationUsdt6 =
+                realizedProfitUsdt6 - treasuryProfitShareUsdt6 - holderDistributionAllocationUsdt6;
+            liquidityCatchBuyAllocationUsdt6 = liquidityAllocationUsdt6 / 2;
+            liquidityAvaxPairingAllocationUsdt6 =
+                liquidityAllocationUsdt6 - liquidityCatchBuyAllocationUsdt6;
         }
 
         if (canonicalPortfolioValueUsdt6 >= markedValueUsdt6) {
@@ -269,9 +271,9 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
         }
 
         liquidTreasuryUsdt6 += treasuryAllocationUsdt6;
-        buybackAccruedUsdt6 += buybackAllocationUsdt6;
-        lpAccruedUsdt6 += lpAllocationUsdt6;
-        redemptionReserveUsdt6 += reserveAllocationUsdt6;
+        holderDistributionAccruedUsdt6 += holderDistributionAllocationUsdt6;
+        liquidityCatchBuyAccruedUsdt6 += liquidityCatchBuyAllocationUsdt6;
+        liquidityAvaxPairingAccruedUsdt6 += liquidityAvaxPairingAllocationUsdt6;
 
         _syncStableNav();
     }
@@ -358,9 +360,9 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
             uint256 lastStableNavUpdateTimestamp,
             uint256 liquidTreasury,
             uint256 outstandingPurchaseReleases,
-            uint256 buybackAccrued,
-            uint256 lpAccrued,
-            uint256 redemptionReserve,
+            uint256 liquidityCatchBuyAccrued,
+            uint256 liquidityAvaxPairingAccrued,
+            uint256 holderDistributionAccrued,
             uint256 weeklyNavCap
         )
     {
@@ -369,14 +371,14 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
             lastStableNavUpdate,
             liquidTreasuryUsdt6,
             outstandingPurchaseReleasesUsdt6,
-            buybackAccruedUsdt6,
-            lpAccruedUsdt6,
-            redemptionReserveUsdt6,
+            liquidityCatchBuyAccruedUsdt6,
+            liquidityAvaxPairingAccruedUsdt6,
+            holderDistributionAccruedUsdt6,
             weeklyNavCapBps
         );
     }
 
-    function _quoteAvaxToUsdt(uint256 _avaxAmountWei) internal view returns (uint256) {
+    function _quoteAvaxToUsdt(uint256 _avaxAmountWei) internal view virtual returns (uint256) {
         if (avaxUsdFeed == address(0)) revert InvalidPriceFeed();
         (, int256 answer,,,) = IChainlinkPriceFeed(avaxUsdFeed).latestRoundData();
         if (answer <= 0) revert InvalidPriceFeed();
@@ -390,9 +392,9 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
             liquidTreasuryUsdt6 +
             outstandingPurchaseReleasesUsdt6 +
             canonicalPortfolioValueUsdt6 +
-            buybackAccruedUsdt6 +
-            lpAccruedUsdt6 +
-            redemptionReserveUsdt6;
+            liquidityCatchBuyAccruedUsdt6 +
+            liquidityAvaxPairingAccruedUsdt6 +
+            holderDistributionAccruedUsdt6;
 
         uint256 supply = totalSupply();
         if (supply > 0) {

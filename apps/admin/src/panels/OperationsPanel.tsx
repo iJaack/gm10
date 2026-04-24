@@ -13,8 +13,8 @@ const BYTES32_RE = /^0x[a-fA-F0-9]{64}$/;
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const COURTYARD_MARKETPLACE_ID = keccak256(stringToHex('COURTYARD'));
 const PHYGITALS_MARKETPLACE_ID = keccak256(stringToHex('PHYGITALS'));
-const PURCHASE_STATUS = ['None', 'Approved', 'Funds released', 'Executed', 'Position recorded', 'Cancelled'] as const;
-const SALE_STATUS = ['None', 'Approved', 'Executed', 'Proceeds received', 'Finalized', 'Cancelled'] as const;
+const PURCHASE_STATUS = ['None', 'Approved', 'Legacy funds released', 'Funding confirmed', 'Executed', 'Position recorded', 'Cancelled'] as const;
+const SALE_STATUS = ['None', 'Approved', 'Executed', 'External proceeds pending', 'Proceeds received', 'Finalized', 'Cancelled'] as const;
 const COURTYARD_CHECKLIST_SUMMARY = summarizeMarketplaceChecklist(MARKETPLACE_CHECKLIST_ITEMS.map((item) => item.id));
 const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
@@ -183,6 +183,15 @@ type SaleForm = {
     proofRef: string;
     netProceedsUsdt: string;
     nativeProceedsAvax: string;
+    settlementMode: 'stable' | 'native' | 'external';
+    stableProceedsToken: string;
+    stableProceedsAmount: string;
+    pullStableFromCaller: boolean;
+    sourceChainEid: string;
+    sourceToken: string;
+    sourceTokenAmount: string;
+    sourceTokenDecimals: string;
+    sourceProceedsRef: string;
 };
 
 function bytes32FromInput(value: string, emptyValue: Bytes32 = zeroHash): Bytes32 {
@@ -363,6 +372,15 @@ export function OperationsPanel() {
         proofRef: '',
         netProceedsUsdt: '',
         nativeProceedsAvax: '',
+        settlementMode: 'stable',
+        stableProceedsToken: POLYGON_USDC,
+        stableProceedsAmount: '',
+        pullStableFromCaller: false,
+        sourceChainEid: '',
+        sourceToken: '',
+        sourceTokenAmount: '',
+        sourceTokenDecimals: '18',
+        sourceProceedsRef: '',
     });
     const [mode, setMode] = useState<'round' | 'profit' | 'marketplace' | 'courtyard' | 'lp'>('round');
 
@@ -912,16 +930,18 @@ export function OperationsPanel() {
     }
 
     function submitAuthorizePurchase() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.portfolioRegistry) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'authorizeCourtyardPurchase',
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'authorizePurchaseV2',
             args: [
                 purchaseKey,
                 LZ_EID.POLYGON_MAINNET,
+                COURTYARD_MARKETPLACE_ID,
                 bytes32FromInput(purchase.assetRef),
+                POLYGON_USDC,
                 parseUsdt6Input(purchase.maxSpendUsdt),
                 bytes32FromInput(purchase.mandateRef),
             ],
@@ -943,17 +963,6 @@ export function OperationsPanel() {
                 parseUsdt6Input(purchase.maxSpendUsdt),
                 bytes32FromInput(purchase.mandateRef),
             ],
-        });
-    }
-
-    function submitReleasePhygitalsFunds() {
-        if (!MAINNET.fundProxy || !purchase.key.trim()) return;
-        reset();
-        writeContract({
-            address: MAINNET.fundProxy,
-            abi: FUND_ADMIN_ABI,
-            functionName: 'releasePurchaseFunds',
-            args: [purchaseKey, parseUsdt6Input(purchase.releaseAmountUsdt)],
         });
     }
 
@@ -1000,24 +1009,32 @@ export function OperationsPanel() {
         });
     }
 
-    function submitReleasePurchaseFunds() {
-        if (!MAINNET.courtyardWorkflow) return;
+    function submitConfirmPurchaseFunding() {
+        if (!MAINNET.fundProxy || !purchase.key.trim()) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'releaseCourtyardPurchaseFunds',
-            args: [purchaseKey, parseUsdt6Input(purchase.releaseAmountUsdt)],
+            address: MAINNET.fundProxy,
+            abi: FUND_ADMIN_ABI,
+            functionName: 'confirmPurchaseFunding',
+            args: [
+                purchaseKey,
+                POLYGON_USDC,
+                parseUsdt6Input(purchase.releaseAmountUsdt),
+                LZ_EID.POLYGON_MAINNET,
+                polygonSafe as `0x${string}`,
+                bytes32FromInput(purchase.settlementRef),
+                bytes32FromInput(purchase.proofRef),
+            ],
         });
     }
 
     function submitRecordPurchaseExecution() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.portfolioRegistry) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'recordCourtyardPurchaseExecution',
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'recordPurchaseExecution',
             args: [
                 purchaseKey,
                 bytes32FromInput(purchase.executionRef),
@@ -1028,12 +1045,12 @@ export function OperationsPanel() {
     }
 
     function submitRecordPosition() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.fundProxy) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'recordCourtyardPosition',
+            address: MAINNET.fundProxy,
+            abi: FUND_ADMIN_ABI,
+            functionName: 'recordCollectiblePosition',
             args: [
                 purchaseKey,
                 {
@@ -1055,15 +1072,16 @@ export function OperationsPanel() {
     }
 
     function submitAuthorizeSale() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.portfolioRegistry) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'authorizeCourtyardSale',
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'authorizeSale',
             args: [
                 saleKey,
                 parseUintInput(sale.positionId),
+                COURTYARD_MARKETPLACE_ID,
                 parseUsdt6Input(sale.minNetProceedsUsdt),
                 bytes32FromInput(sale.mandateRef),
             ],
@@ -1071,12 +1089,12 @@ export function OperationsPanel() {
     }
 
     function submitRecordSaleExecution() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.portfolioRegistry) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'recordCourtyardSaleExecution',
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'recordSaleExecution',
             args: [
                 saleKey,
                 parseUsdt6Input(sale.grossProceedsUsdt),
@@ -1090,24 +1108,57 @@ export function OperationsPanel() {
     }
 
     function submitConfirmSaleProceeds() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.fundProxy) return;
         reset();
+        if (sale.settlementMode === 'native') {
+            writeContract({
+                address: MAINNET.fundProxy,
+                abi: FUND_ADMIN_ABI,
+                functionName: 'confirmNativeSaleProceeds',
+                args: [saleKey, bytes32FromInput(sale.proceedsRef), bytes32FromInput(sale.proofRef)],
+                value: parseEther(sale.nativeProceedsAvax.trim() || '0'),
+            });
+            return;
+        }
+        if (sale.settlementMode === 'stable') {
+            writeContract({
+                address: MAINNET.fundProxy,
+                abi: FUND_ADMIN_ABI,
+                functionName: 'confirmStableSaleProceeds',
+                args: [
+                    saleKey,
+                    (isAddress(sale.stableProceedsToken) ? sale.stableProceedsToken : POLYGON_USDC) as `0x${string}`,
+                    parseUnits(sale.stableProceedsAmount.trim() || '0', 6),
+                    sale.pullStableFromCaller,
+                    bytes32FromInput(sale.proceedsRef),
+                    bytes32FromInput(sale.proofRef),
+                ],
+            });
+            return;
+        }
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'confirmCourtyardSaleProceeds',
-            args: [saleKey, parseUsdt6Input(sale.netProceedsUsdt)],
-            value: parseEther(sale.nativeProceedsAvax.trim() || '0'),
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'recordExternalSaleProceeds',
+            args: [
+                saleKey,
+                Number(sale.sourceChainEid || '0'),
+                (isAddress(sale.sourceToken) ? sale.sourceToken : ADDRESS_ZERO) as `0x${string}`,
+                parseUnits(sale.sourceTokenAmount.trim() || '0', Number(sale.sourceTokenDecimals || '18')),
+                Number(sale.sourceTokenDecimals || '18'),
+                bytes32FromInput(sale.sourceProceedsRef),
+                bytes32FromInput(sale.proofRef),
+            ],
         });
     }
 
     function submitFinalizeSale() {
-        if (!MAINNET.courtyardWorkflow) return;
+        if (!MAINNET.fundProxy) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'finalizeCourtyardSale',
+            address: MAINNET.fundProxy,
+            abi: FUND_ADMIN_ABI,
+            functionName: 'finalizeSale',
             args: [saleKey],
         });
     }
@@ -1133,8 +1184,8 @@ export function OperationsPanel() {
             <div className="rounded-xl border border-white/10 bg-white/5 p-6">
                 <h2 className="mb-4 text-lg font-bold text-white">Profit participation operations</h2>
                 <p className="mb-3 text-xs leading-5 text-gray-400">
-                    This surface tracks the live profit-sharing model: excluded protocol wallets, cumulative AVAX distributions,
-                    and the mainnet marketplace approval list for operator-assisted card workflow execution.
+                    This surface tracks the sale-profit model: holder claim eligibility, cumulative AVAX distributions,
+                    LP replenishment accruals, and the mainnet marketplace approval list for operator-assisted card workflow execution.
                 </p>
                 <div className="grid gap-2 text-xs text-gray-400">
                     <div>Fund proxy: {MAINNET.fundProxy ?? 'Pending env config'}</div>
@@ -1146,8 +1197,9 @@ export function OperationsPanel() {
                     <div>Live liquid treasury: {formatUsdt6(liveLiquidTreasuryUsdt6)}</div>
                     <div className="pl-3 text-gray-500">{liveLiquidTreasuryDetail}</div>
                     <div>Stored accounting treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
-                    <div>Holder distribution liability: {stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'}</div>
-                    <div>LP accrual bucket: {stableAccounting ? `${formatUnits(stableAccounting[5], 6)} USDT` : 'Unavailable'}</div>
+                    <div>Holder claim bucket: {stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'}</div>
+                    <div>LP $CATCH market-buy bucket: {stableAccounting ? `${formatUnits(stableAccounting[4], 6)} USDT` : 'Unavailable'}</div>
+                    <div>LP AVAX pairing bucket: {stableAccounting ? `${formatUnits(stableAccounting[5], 6)} USDT` : 'Unavailable'}</div>
                     <div>Profit-eligible supply: {eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'}</div>
                     <div>Cumulative profit per token: {cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'}</div>
                     <div>Total AVAX distributed: {totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'}</div>
@@ -1168,7 +1220,7 @@ export function OperationsPanel() {
                         onClick={() => setMode('profit')}
                         className={`rounded-lg px-3 py-2 text-sm ${mode === 'profit' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
                     >
-                        Profit Share
+                        Holder Claims
                     </button>
                     <button
                         type="button"
@@ -1221,7 +1273,7 @@ export function OperationsPanel() {
                 ) : mode === 'profit' ? (
                     <div className="grid gap-4">
                         <p className="text-xs leading-5 text-gray-400">
-                            Exclude protocol-controlled wallets from claimable AVAX profit distributions. Circulating holders stay eligible by default.
+                            Exclude protocol-controlled wallets from the 40% holder claim bucket. Circulating holders stay eligible by default.
                         </p>
                         <label className="flex flex-col gap-1">
                             <span className="text-xs text-gray-400">Wallet address</span>
@@ -1431,14 +1483,6 @@ export function OperationsPanel() {
                                         disabled={!MAINNET.portfolioRegistry || !purchase.key.trim() || !phygitalsCard}
                                     >
                                         Authorize Phygitals purchase
-                                    </TxButton>
-                                    <TxButton
-                                        onClick={submitReleasePhygitalsFunds}
-                                        txHash={txHash}
-                                        isPending={isPending}
-                                        disabled={!MAINNET.fundProxy || !purchase.key.trim() || !purchase.releaseAmountUsdt || !phygitalsCard}
-                                    >
-                                        Release funds
                                     </TxButton>
                                     <TxButton
                                         onClick={submitRecordPhygitalsExecution}
@@ -1712,7 +1756,8 @@ export function OperationsPanel() {
                                 <div>Status: {purchaseAuthorization ? statusLabel(PURCHASE_STATUS, purchaseAuthorization.status) : 'Unavailable'}</div>
                                 <div>Destination Safe: {purchaseAuthorization?.destinationSafe ?? 'Unavailable'}</div>
                                 <div>Max spend: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.maxSpendUsdt6, 6)} USDT` : 'Unavailable'}</div>
-                                <div>Released: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
+                                <div>Funding token: {purchaseAuthorization?.fundingToken ?? 'Unavailable'}</div>
+                                <div>Confirmed funding: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Field label="Purchase key" value={purchase.key} onChange={(value) => updatePurchase('key', value)} placeholder="courtyard-purchase-1 or 0x..." mono />
@@ -1721,15 +1766,15 @@ export function OperationsPanel() {
                                 <Field label="Mandate ref" value={purchase.mandateRef} onChange={(value) => updatePurchase('mandateRef', value)} placeholder="buy mandate or 0x..." mono />
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                <TxButton onClick={submitAuthorizePurchase} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !purchase.key.trim()}>
+                                <TxButton onClick={submitAuthorizePurchase} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !purchase.key.trim()}>
                                     Authorize purchase
                                 </TxButton>
                             </div>
 
                             <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-                                <Field label="Release amount (USDT)" value={purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} placeholder="80" type="number" />
-                                <TxButton onClick={submitReleasePurchaseFunds} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !purchase.key.trim()}>
-                                    Release purchase funds
+                                <Field label="Confirmed funding amount (USDT)" value={purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} placeholder="80" type="number" />
+                                <TxButton onClick={submitConfirmPurchaseFunding} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !purchase.key.trim() || !ADDRESS_RE.test(polygonSafe)}>
+                                    Confirm purchase funding
                                 </TxButton>
                             </div>
 
@@ -1739,7 +1784,7 @@ export function OperationsPanel() {
                                 <Field label="Proof ref" value={purchase.proofRef} onChange={(value) => updatePurchase('proofRef', value)} placeholder="proof hash or 0x..." mono />
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                <TxButton onClick={submitRecordPurchaseExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !purchase.key.trim()}>
+                                <TxButton onClick={submitRecordPurchaseExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !purchase.key.trim()}>
                                     Record purchase execution
                                 </TxButton>
                             </div>
@@ -1780,7 +1825,7 @@ export function OperationsPanel() {
                                     onClick={submitRecordPosition}
                                     txHash={txHash}
                                     isPending={isPending}
-                                    disabled={!MAINNET.courtyardWorkflow || !purchase.key.trim() || !isAddress(position.evmCollection)}
+                                    disabled={!MAINNET.fundProxy || !purchase.key.trim() || !isAddress(position.evmCollection)}
                                 >
                                     Record collectible position
                                 </TxButton>
@@ -1794,7 +1839,9 @@ export function OperationsPanel() {
                                 <div>Position ID: {saleAuthorization ? saleAuthorization.positionId.toString() : 'Unavailable'}</div>
                                 <div>Min net proceeds: {saleAuthorization ? `${formatUnits(saleAuthorization.minNetProceedsUsdt6, 6)} USDT` : 'Unavailable'}</div>
                                 <div>Net proceeds confirmed: {saleAuthorization ? `${formatUnits(saleAuthorization.netProceedsUsdt6, 6)} USDT` : 'Unavailable'}</div>
-                                <div>Native proceeds confirmed: {saleAuthorization ? `${formatEther(saleAuthorization.netProceedsNativeWei)} AVAX` : 'Unavailable'}</div>
+                                <div>Settlement token: {saleAuthorization?.proceedsToken ?? 'Unavailable'}</div>
+                                <div>Settlement amount: {saleAuthorization ? saleAuthorization.proceedsAmount.toString() : 'Unavailable'}</div>
+                                <div>External source: {saleAuthorization?.sourceChainEid ? `${saleAuthorization.sourceChainEid} / ${saleAuthorization.sourceToken}` : 'None'}</div>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Field label="Sale key" value={sale.key} onChange={(value) => updateSale('key', value)} placeholder="courtyard-sale-1 or 0x..." mono />
@@ -1803,7 +1850,7 @@ export function OperationsPanel() {
                                 <Field label="Mandate ref" value={sale.mandateRef} onChange={(value) => updateSale('mandateRef', value)} placeholder="sale mandate or 0x..." mono />
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                <TxButton onClick={submitAuthorizeSale} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !sale.key.trim()}>
+                                <TxButton onClick={submitAuthorizeSale} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !sale.key.trim()}>
                                     Authorize sale
                                 </TxButton>
                             </div>
@@ -1817,20 +1864,50 @@ export function OperationsPanel() {
                                 <Field label="Proof ref" value={sale.proofRef} onChange={(value) => updateSale('proofRef', value)} placeholder="proof hash or 0x..." mono />
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                <TxButton onClick={submitRecordSaleExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !sale.key.trim()}>
+                                <TxButton onClick={submitRecordSaleExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !sale.key.trim()}>
                                     Record sale execution
                                 </TxButton>
                             </div>
 
                             <div className="grid gap-3 md:grid-cols-2">
-                                <Field label="Net proceeds (USDT)" value={sale.netProceedsUsdt} onChange={(value) => updateSale('netProceedsUsdt', value)} placeholder="110" type="number" />
-                                <Field label="Native proceeds to deposit (AVAX)" value={sale.nativeProceedsAvax} onChange={(value) => updateSale('nativeProceedsAvax', value)} placeholder="4.4" type="number" />
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-xs text-gray-400">Settlement mode</span>
+                                    <select
+                                        className="rounded bg-black/40 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#4fa8e0]"
+                                        value={sale.settlementMode}
+                                        onChange={(event) => updateSale('settlementMode', event.target.value as SaleForm['settlementMode'])}
+                                    >
+                                        <option value="stable">USDC/USDT returned to fund</option>
+                                        <option value="native">AVAX returned to fund</option>
+                                        <option value="external">External token pending normalization</option>
+                                    </select>
+                                </label>
+                                {sale.settlementMode === 'stable' ? (
+                                    <>
+                                        <Field label="Stable proceeds token" value={sale.stableProceedsToken} onChange={(value) => updateSale('stableProceedsToken', value)} placeholder="0x..." mono />
+                                        <Field label="Stable proceeds amount" value={sale.stableProceedsAmount} onChange={(value) => updateSale('stableProceedsAmount', value)} placeholder="110" type="number" />
+                                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                                            <input type="checkbox" checked={sale.pullStableFromCaller} onChange={(event) => updateSale('pullStableFromCaller', event.target.checked)} />
+                                            Pull stablecoin from connected wallet
+                                        </label>
+                                    </>
+                                ) : sale.settlementMode === 'native' ? (
+                                    <Field label="Native proceeds to deposit (AVAX)" value={sale.nativeProceedsAvax} onChange={(value) => updateSale('nativeProceedsAvax', value)} placeholder="4.4" type="number" />
+                                ) : (
+                                    <>
+                                        <Field label="Source chain EID" value={sale.sourceChainEid} onChange={(value) => updateSale('sourceChainEid', value)} placeholder="30101" type="number" />
+                                        <Field label="Source token" value={sale.sourceToken} onChange={(value) => updateSale('sourceToken', value)} placeholder="0x..." mono />
+                                        <Field label="Source token amount" value={sale.sourceTokenAmount} onChange={(value) => updateSale('sourceTokenAmount', value)} placeholder="1" type="number" />
+                                        <Field label="Source token decimals" value={sale.sourceTokenDecimals} onChange={(value) => updateSale('sourceTokenDecimals', value)} placeholder="18" type="number" />
+                                        <Field label="Source proceeds ref" value={sale.sourceProceedsRef} onChange={(value) => updateSale('sourceProceedsRef', value)} placeholder="external tx or 0x..." mono />
+                                    </>
+                                )}
                             </div>
                             <div className="flex flex-wrap gap-3">
-                                <TxButton onClick={submitConfirmSaleProceeds} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !sale.key.trim()}>
-                                    Confirm sale proceeds
+                                <TxButton onClick={submitConfirmSaleProceeds} txHash={txHash} isPending={isPending} disabled={(!MAINNET.fundProxy && sale.settlementMode !== 'external') || (!MAINNET.portfolioRegistry && sale.settlementMode === 'external') || !sale.key.trim()}>
+                                    {sale.settlementMode === 'external' ? 'Record external proceeds' : 'Confirm settled proceeds'}
                                 </TxButton>
-                                <TxButton onClick={submitFinalizeSale} txHash={txHash} isPending={isPending} disabled={!MAINNET.courtyardWorkflow || !sale.key.trim()}>
+                                <TxButton onClick={submitFinalizeSale} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !sale.key.trim() || saleAuthorization?.status !== 4}>
                                     Finalize sale
                                 </TxButton>
                             </div>

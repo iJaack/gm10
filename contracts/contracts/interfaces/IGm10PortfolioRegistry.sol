@@ -23,9 +23,29 @@ interface IGm10PortfolioRegistry {
         bytes32 mandateHash
     ) external;
 
+    function authorizePurchaseV2(
+        bytes32 purchaseKey,
+        uint32 chainEid,
+        bytes32 marketplaceId,
+        bytes32 assetRef,
+        address fundingToken,
+        uint256 maxSpendUsdt6,
+        bytes32 mandateHash
+    ) external;
+
     function cancelPurchaseAuthorization(bytes32 purchaseKey) external;
 
     function releasePurchaseFunds(bytes32 purchaseKey, uint256 amountUsdt6) external;
+
+    function confirmPurchaseFunding(
+        bytes32 purchaseKey,
+        address fundingToken,
+        uint256 amountUsdt6,
+        uint32 destinationChainEid,
+        address destinationSafe,
+        bytes32 settlementRef,
+        bytes32 proofHash
+    ) external;
 
     function recordPurchaseExecution(
         bytes32 purchaseKey,
@@ -59,6 +79,25 @@ interface IGm10PortfolioRegistry {
     ) external;
 
     function confirmSaleProceedsReceived(bytes32 saleKey, uint256 netProceedsUsdt6) external;
+
+    function recordExternalSaleProceeds(
+        bytes32 saleKey,
+        uint32 sourceChainEid,
+        address sourceToken,
+        uint256 sourceTokenAmount,
+        uint8 sourceTokenDecimals,
+        bytes32 sourceProceedsRef,
+        bytes32 proofHash
+    ) external;
+
+    function confirmSaleProceedsReceivedV2(
+        bytes32 saleKey,
+        address proceedsToken,
+        uint256 proceedsAmount,
+        uint256 netProceedsUsdt6,
+        bytes32 proceedsRef,
+        bytes32 proofHash
+    ) external;
 
     function finalizeSale(bytes32 saleKey)
         external

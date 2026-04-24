@@ -6,6 +6,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract GemMintTimelock is TimelockControllerUpgradeable, UUPSUpgradeable {
 
+    constructor() {
+        _disableInitializers();
+    }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 }

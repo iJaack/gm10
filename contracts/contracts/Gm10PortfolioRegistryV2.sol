@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./Gm10Types.sol";
 
-contract Gm10PortfolioRegistry {
+contract Gm10PortfolioRegistryV2 {
     using Math for uint256;
 
     uint256 public constant WORKFLOW_BPS = 10_000;
@@ -23,13 +23,14 @@ contract Gm10PortfolioRegistry {
 
     event ChainSafeUpdated(uint32 indexed chainEid, address evmSafe, bytes32 nonEvmSafe, bool enabled);
     event MarketplaceApprovalUpdated(bytes32 indexed marketplaceId, bool approved);
-    event PurchaseAuthorized(bytes32 indexed purchaseKey, uint32 indexed chainEid, bytes32 indexed marketplaceId, uint256 maxSpendUsdt6);
-    event PurchaseFundsReleased(bytes32 indexed purchaseKey, uint256 amountUsdt6);
+    event PurchaseAuthorized(bytes32 indexed purchaseKey, uint32 indexed chainEid, bytes32 indexed marketplaceId, address fundingToken, uint256 maxSpendUsdt6);
+    event PurchaseFundingConfirmed(bytes32 indexed purchaseKey, address indexed fundingToken, uint256 amountUsdt6, uint32 destinationChainEid, address destinationSafe);
     event PurchaseExecutionRecorded(bytes32 indexed purchaseKey, bytes32 executionRef, bytes32 settlementRef);
     event CollectiblePositionRecorded(uint256 indexed positionId, bytes32 indexed purchaseKey, uint256 acquisitionPriceUsdt6);
     event SaleAuthorized(bytes32 indexed saleKey, uint256 indexed positionId, uint256 minNetProceedsUsdt6);
     event SaleExecutionRecorded(bytes32 indexed saleKey, uint256 grossProceedsUsdt6, uint256 netProceedsUsdt6);
-    event SaleProceedsConfirmed(bytes32 indexed saleKey, uint256 netProceedsUsdt6);
+    event ExternalSaleProceedsRecorded(bytes32 indexed saleKey, uint32 sourceChainEid, address sourceToken, uint256 sourceTokenAmount);
+    event SaleProceedsConfirmed(bytes32 indexed saleKey, address indexed proceedsToken, uint256 proceedsAmount, uint256 netProceedsUsdt6);
     event SaleFinalized(bytes32 indexed saleKey, uint256 indexed positionId, uint256 markedValueUsdt6, uint256 netProceedsUsdt6);
     event ValuationObservationSubmitted(uint256 indexed positionId, uint8 sourceType, uint256 candidateValueUsdt6, bytes32 sourceRef);
 
@@ -46,7 +47,7 @@ contract Gm10PortfolioRegistry {
     error MissingRole();
 
     modifier onlyFundRole(bytes32 role) {
-        if (!IGm10FundAccess(fund).hasRole(role, msg.sender)) revert MissingRole();
+        if (!IGm10FundAccessV2(fund).hasRole(role, msg.sender)) revert MissingRole();
         _;
     }
 
@@ -91,19 +92,31 @@ contract Gm10PortfolioRegistry {
         uint256 maxSpendUsdt6,
         bytes32 mandateHash
     ) external onlyFundRole(GOVERNANCE_ROLE) {
-        if (purchaseAuthorizations[purchaseKey].status != Gm10Types.PurchaseStatus.None) revert WorkflowAlreadyExists();
-        if (!chainSafes[chainEid].enabled) revert UnsupportedChain();
-        if (!approvedMarketplaceIds[marketplaceId]) revert UnsupportedMarketplace();
-        if (maxSpendUsdt6 == 0) revert InvalidParameters();
+        authorizePurchaseV2(purchaseKey, chainEid, marketplaceId, assetRef, address(0), maxSpendUsdt6, mandateHash);
+    }
 
+    function authorizePurchaseV2(
+        bytes32 purchaseKey,
+        uint32 chainEid,
+        bytes32 marketplaceId,
+        bytes32 assetRef,
+        address fundingToken,
+        uint256 maxSpendUsdt6,
+        bytes32 mandateHash
+    ) public onlyFundRole(GOVERNANCE_ROLE) {
+        if (purchaseAuthorizations[purchaseKey].status != Gm10Types.PurchaseStatus.None) revert WorkflowAlreadyExists();
         Gm10Types.ChainSafeConfig storage safeConfig = chainSafes[chainEid];
+        if (!safeConfig.enabled) revert UnsupportedChain();
+        if (!approvedMarketplaceIds[marketplaceId]) revert UnsupportedMarketplace();
+        if (maxSpendUsdt6 == 0 || mandateHash == bytes32(0)) revert InvalidParameters();
+
         purchaseAuthorizations[purchaseKey] = Gm10Types.PurchaseAuthorization({
             purchaseKey: purchaseKey,
             status: Gm10Types.PurchaseStatus.Approved,
             chainEid: chainEid,
             marketplaceId: marketplaceId,
             assetRef: assetRef,
-            fundingToken: address(0),
+            fundingToken: fundingToken,
             maxSpendUsdt6: maxSpendUsdt6,
             releasedUsdt6: 0,
             destinationSafe: safeConfig.evmSafe,
@@ -115,7 +128,7 @@ contract Gm10PortfolioRegistry {
             proofHash: bytes32(0)
         });
 
-        emit PurchaseAuthorized(purchaseKey, chainEid, marketplaceId, maxSpendUsdt6);
+        emit PurchaseAuthorized(purchaseKey, chainEid, marketplaceId, fundingToken, maxSpendUsdt6);
     }
 
     function cancelPurchaseAuthorization(bytes32 purchaseKey) external onlyFundRole(GOVERNANCE_ROLE) {
@@ -124,13 +137,36 @@ contract Gm10PortfolioRegistry {
         authorization.status = Gm10Types.PurchaseStatus.Cancelled;
     }
 
-    function releasePurchaseFunds(bytes32 purchaseKey, uint256 amountUsdt6) external onlyFund {
+    function releasePurchaseFunds(bytes32, uint256) external pure {
+        revert InvalidWorkflowState();
+    }
+
+    function confirmPurchaseFunding(
+        bytes32 purchaseKey,
+        address fundingToken,
+        uint256 amountUsdt6,
+        uint32 destinationChainEid,
+        address destinationSafe,
+        bytes32 settlementRef,
+        bytes32 proofHash
+    ) external onlyFund {
         Gm10Types.PurchaseAuthorization storage authorization = purchaseAuthorizations[purchaseKey];
         if (authorization.status != Gm10Types.PurchaseStatus.Approved) revert InvalidWorkflowState();
         if (amountUsdt6 == 0 || amountUsdt6 > authorization.maxSpendUsdt6) revert PurchaseBudgetExceeded();
-        authorization.status = Gm10Types.PurchaseStatus.FundsReleased;
+        if (
+            authorization.fundingToken != fundingToken ||
+            authorization.chainEid != destinationChainEid ||
+            authorization.destinationSafe != destinationSafe ||
+            settlementRef == bytes32(0) ||
+            proofHash == bytes32(0)
+        ) revert InvalidParameters();
+
+        authorization.status = Gm10Types.PurchaseStatus.FundingConfirmed;
         authorization.releasedUsdt6 = amountUsdt6;
-        emit PurchaseFundsReleased(purchaseKey, amountUsdt6);
+        authorization.settlementRef = settlementRef;
+        authorization.proofHash = proofHash;
+
+        emit PurchaseFundingConfirmed(purchaseKey, fundingToken, amountUsdt6, destinationChainEid, destinationSafe);
     }
 
     function recordPurchaseExecution(
@@ -140,7 +176,8 @@ contract Gm10PortfolioRegistry {
         bytes32 proofHash
     ) external onlyFundRole(MANAGER_ROLE) {
         Gm10Types.PurchaseAuthorization storage authorization = purchaseAuthorizations[purchaseKey];
-        if (authorization.status != Gm10Types.PurchaseStatus.FundsReleased) revert InvalidWorkflowState();
+        if (authorization.status != Gm10Types.PurchaseStatus.FundingConfirmed) revert InvalidWorkflowState();
+        if (executionRef == bytes32(0) || settlementRef == bytes32(0) || proofHash == bytes32(0)) revert InvalidParameters();
         authorization.status = Gm10Types.PurchaseStatus.Executed;
         authorization.executionRef = executionRef;
         authorization.settlementRef = settlementRef;
@@ -201,6 +238,7 @@ contract Gm10PortfolioRegistry {
     ) external onlyFundRole(GOVERNANCE_ROLE) {
         if (saleAuthorizations[saleKey].status != Gm10Types.SaleStatus.None) revert WorkflowAlreadyExists();
         if (!approvedMarketplaceIds[marketplaceId]) revert UnsupportedMarketplace();
+        if (mandateHash == bytes32(0)) revert InvalidParameters();
 
         Gm10Types.CollectiblePosition storage position = collectiblePositions[positionId];
         if (position.status != Gm10Types.PositionStatus.Active) revert UnsupportedPosition();
@@ -253,6 +291,7 @@ contract Gm10PortfolioRegistry {
         Gm10Types.SaleAuthorization storage sale = saleAuthorizations[saleKey];
         if (sale.status != Gm10Types.SaleStatus.Approved) revert InvalidWorkflowState();
         if (grossProceedsUsdt6 < marketplaceFeesUsdt6 + bridgeFeesUsdt6) revert InvalidSaleMath();
+        if (executionRef == bytes32(0) || proofHash == bytes32(0)) revert InvalidParameters();
 
         uint256 netProceedsUsdt6 = grossProceedsUsdt6 - marketplaceFeesUsdt6 - bridgeFeesUsdt6;
         if (netProceedsUsdt6 < sale.minNetProceedsUsdt6) revert SaleBelowMinimum();
@@ -261,7 +300,7 @@ contract Gm10PortfolioRegistry {
         sale.grossProceedsUsdt6 = grossProceedsUsdt6;
         sale.marketplaceFeesUsdt6 = marketplaceFeesUsdt6;
         sale.bridgeFeesUsdt6 = bridgeFeesUsdt6;
-        sale.netProceedsUsdt6 = netProceedsUsdt6;
+        sale.netProceedsUsdt6 = 0;
         sale.executionRef = executionRef;
         sale.proceedsRef = proceedsRef;
         sale.proofHash = proofHash;
@@ -269,12 +308,64 @@ contract Gm10PortfolioRegistry {
         emit SaleExecutionRecorded(saleKey, grossProceedsUsdt6, netProceedsUsdt6);
     }
 
-    function confirmSaleProceedsReceived(bytes32 saleKey, uint256 netProceedsUsdt6) external onlyFundRole(MANAGER_ROLE) {
+    function recordExternalSaleProceeds(
+        bytes32 saleKey,
+        uint32 sourceChainEid,
+        address sourceToken,
+        uint256 sourceTokenAmount,
+        uint8 sourceTokenDecimals,
+        bytes32 sourceProceedsRef,
+        bytes32 proofHash
+    ) external onlyFundRole(MANAGER_ROLE) {
         Gm10Types.SaleAuthorization storage sale = saleAuthorizations[saleKey];
         if (sale.status != Gm10Types.SaleStatus.Executed) revert InvalidWorkflowState();
-        if (sale.netProceedsUsdt6 != netProceedsUsdt6) revert InvalidSaleMath();
+        if (sourceChainEid == 0 || sourceTokenAmount == 0 || sourceProceedsRef == bytes32(0) || proofHash == bytes32(0)) {
+            revert InvalidParameters();
+        }
+
+        sale.status = Gm10Types.SaleStatus.ExternalProceedsPending;
+        sale.sourceChainEid = sourceChainEid;
+        sale.sourceToken = sourceToken;
+        sale.sourceTokenAmount = sourceTokenAmount;
+        sale.sourceTokenDecimals = sourceTokenDecimals;
+        sale.sourceProceedsRef = sourceProceedsRef;
+        sale.proofHash = proofHash;
+
+        emit ExternalSaleProceedsRecorded(saleKey, sourceChainEid, sourceToken, sourceTokenAmount);
+    }
+
+    function confirmSaleProceedsReceived(bytes32, uint256) external pure {
+        revert InvalidWorkflowState();
+    }
+
+    function confirmSaleProceedsReceivedV2(
+        bytes32 saleKey,
+        address proceedsToken,
+        uint256 proceedsAmount,
+        uint256 netProceedsUsdt6,
+        bytes32 proceedsRef,
+        bytes32 proofHash
+    ) external onlyFund {
+        Gm10Types.SaleAuthorization storage sale = saleAuthorizations[saleKey];
+        if (
+            sale.status != Gm10Types.SaleStatus.Executed &&
+            sale.status != Gm10Types.SaleStatus.ExternalProceedsPending
+        ) revert InvalidWorkflowState();
+        if (
+            proceedsAmount == 0 ||
+            netProceedsUsdt6 < sale.minNetProceedsUsdt6 ||
+            proceedsRef == bytes32(0) ||
+            proofHash == bytes32(0)
+        ) revert InvalidParameters();
+
         sale.status = Gm10Types.SaleStatus.ProceedsReceived;
-        emit SaleProceedsConfirmed(saleKey, netProceedsUsdt6);
+        sale.proceedsToken = proceedsToken;
+        sale.proceedsAmount = proceedsAmount;
+        sale.netProceedsUsdt6 = netProceedsUsdt6;
+        sale.proceedsRef = proceedsRef;
+        sale.proofHash = proofHash;
+
+        emit SaleProceedsConfirmed(saleKey, proceedsToken, proceedsAmount, netProceedsUsdt6);
     }
 
     function finalizeSale(bytes32 saleKey)
@@ -322,9 +413,9 @@ contract Gm10PortfolioRegistry {
             revert UnsupportedPosition();
         }
 
-        bool capped;
         appliedValueUsdt6 = candidateValueUsdt6;
         oldValueUsdt6 = position.currentValueUsdt6;
+        bool capped;
 
         if (sourceType != Gm10Types.ValuationSourceType.ExactTrade && oldValueUsdt6 > 0) {
             uint256 maxDeltaUsdt6 = Math.mulDiv(oldValueUsdt6, weeklyNavCapBps, WORKFLOW_BPS);
@@ -340,6 +431,9 @@ contract Gm10PortfolioRegistry {
             }
         }
 
+        position.currentValueUsdt6 = appliedValueUsdt6;
+        position.lastValuationAt = block.timestamp;
+        position.lastNavMarkUsdt6 = appliedValueUsdt6;
         latestValuationObservation[positionId] = Gm10Types.ValuationObservation({
             positionId: positionId,
             sourceType: sourceType,
@@ -350,10 +444,6 @@ contract Gm10PortfolioRegistry {
             capped: capped,
             proofHash: proofHash
         });
-
-        position.currentValueUsdt6 = appliedValueUsdt6;
-        position.lastNavMarkUsdt6 = appliedValueUsdt6;
-        position.lastValuationAt = block.timestamp;
 
         emit ValuationObservationSubmitted(positionId, uint8(sourceType), candidateValueUsdt6, sourceRef);
     }
@@ -399,6 +489,6 @@ contract Gm10PortfolioRegistry {
     }
 }
 
-interface IGm10FundAccess {
+interface IGm10FundAccessV2 {
     function hasRole(bytes32 role, address account) external view returns (bool);
 }

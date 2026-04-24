@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { formatUnits, isAddress, keccak256, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
-import { COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
+import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { EXPLORER_TX_BASE_URL, LZ_EID, MAINNET } from '../addresses';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -15,10 +15,10 @@ const STORAGE_KEY = 'gm10:courtyard-wizard:draft';
 const STEP_IDS = [
     'resolve',
     'preflight',
+    'authorize_purchase',
     'withdraw_avax',
     'bridge_usdc_to_hot_wallet',
-    'authorize_purchase',
-    'release_funds',
+    'confirm_funding',
     'buy_on_courtyard',
     'detect_hot_wallet_nft',
     'transfer_nft_to_safe',
@@ -168,10 +168,10 @@ const ERC721_ABI = [
 const STEPS: Array<{ id: StepId; title: string }> = [
     { id: 'resolve', title: 'Resolve listing' },
     { id: 'preflight', title: 'Preflight' },
+    { id: 'authorize_purchase', title: 'Authorize purchase' },
     { id: 'withdraw_avax', title: 'Withdraw AVAX' },
     { id: 'bridge_usdc_to_hot_wallet', title: 'Bridge USDC' },
-    { id: 'authorize_purchase', title: 'Authorize purchase' },
-    { id: 'release_funds', title: 'Release funds' },
+    { id: 'confirm_funding', title: 'Confirm funding' },
     { id: 'buy_on_courtyard', title: 'Buy on Courtyard' },
     { id: 'detect_hot_wallet_nft', title: 'Detect Hot Wallet NFT' },
     { id: 'transfer_nft_to_safe', title: 'Move NFT to Safe' },
@@ -464,18 +464,18 @@ export function CourtyardWizardPanel() {
 
     const purchaseStatus = Number(purchaseAuthorization?.status ?? 0);
     const purchaseAuthorized = purchaseStatus >= 1;
-    const purchaseReleased = purchaseStatus >= 2 || (purchaseAuthorization?.releasedUsdt6 ?? 0n) >= parseUsdt6Input(draft.purchase.releaseAmountUsdt);
-    const purchaseExecuted = purchaseStatus >= 3;
-    const positionRecorded = purchaseStatus >= 4;
+    const purchaseReleased = purchaseStatus >= 3 || (purchaseAuthorization?.releasedUsdt6 ?? 0n) >= parseUsdt6Input(draft.purchase.releaseAmountUsdt);
+    const purchaseExecuted = purchaseStatus >= 4;
+    const positionRecorded = purchaseStatus >= 5;
     const hotWalletHasUsdc = (hotWalletUsdc ?? 0n) >= targetUsdcRaw && targetUsdcRaw > 0n;
     const nftInHotWallet = sameAddress(nftOwner, polygonHotWallet);
     const nftInSafe = sameAddress(nftOwner, polygonSafe);
     const bridgeRouteDone = hotWalletHasUsdc || lifiStatus.data?.status === 'DONE';
     const bridgeRouteFailed = lifiStatus.data?.status === 'FAILED' || lifiStatus.data?.status === 'INVALID';
     const nextContractStep: Partial<Record<StepId, StepId>> = {
+        authorize_purchase: 'withdraw_avax',
         withdraw_avax: 'bridge_usdc_to_hot_wallet',
-        authorize_purchase: 'release_funds',
-        release_funds: 'buy_on_courtyard',
+        confirm_funding: 'buy_on_courtyard',
         record_execution: 'record_position',
         record_position: 'complete',
     };
@@ -624,7 +624,7 @@ export function CourtyardWizardPanel() {
     async function continueAfterSafeConfirmation(step: StepId) {
         setError('');
         await refetchPurchaseAuthorization();
-        completeStep(step, nextContractStep[step] ?? draft.activeStep);
+            completeStep(step, nextContractStep[step] ?? draft.activeStep);
         setPendingTx(null);
     }
 
@@ -670,13 +670,15 @@ export function CourtyardWizardPanel() {
     async function submitAuthorize() {
         await submitContractStep('authorize_purchase', 'Authorizing Courtyard purchase', () =>
             writeContractAsync({
-                address: MAINNET.courtyardWorkflow,
-                abi: COURTYARD_WORKFLOW_ABI,
-                functionName: 'authorizeCourtyardPurchase',
+                address: MAINNET.portfolioRegistry,
+                abi: REGISTRY_ABI,
+                functionName: 'authorizePurchaseV2',
                 args: [
                     purchaseKey,
                     LZ_EID.POLYGON_MAINNET,
+                    COURTYARD_MARKETPLACE_ID,
                     bytes32FromInput(draft.purchase.assetRef),
+                    POLYGON_USDC,
                     parseUsdt6Input(draft.purchase.maxSpendUsdt),
                     bytes32FromInput(draft.purchase.mandateRef),
                 ],
@@ -684,13 +686,21 @@ export function CourtyardWizardPanel() {
         );
     }
 
-    async function submitRelease() {
-        await submitContractStep('release_funds', 'Releasing purchase funds', () =>
+    async function submitConfirmFunding() {
+        await submitContractStep('confirm_funding', 'Confirming purchase funding', () =>
             writeContractAsync({
-                address: MAINNET.courtyardWorkflow,
-                abi: COURTYARD_WORKFLOW_ABI,
-                functionName: 'releaseCourtyardPurchaseFunds',
-                args: [purchaseKey, parseUsdt6Input(draft.purchase.releaseAmountUsdt)],
+                address: MAINNET.fundProxy,
+                abi: FUND_ADMIN_ABI,
+                functionName: 'confirmPurchaseFunding',
+                args: [
+                    purchaseKey,
+                    POLYGON_USDC,
+                    parseUsdt6Input(draft.purchase.releaseAmountUsdt),
+                    LZ_EID.POLYGON_MAINNET,
+                    polygonSafe as `0x${string}`,
+                    bytes32FromInput(draft.purchase.settlementRef),
+                    bytes32FromInput(draft.purchase.proofRef),
+                ],
             }),
         );
     }
@@ -698,9 +708,9 @@ export function CourtyardWizardPanel() {
     async function submitRecordExecution() {
         await submitContractStep('record_execution', 'Recording purchase execution', () =>
             writeContractAsync({
-                address: MAINNET.courtyardWorkflow,
-                abi: COURTYARD_WORKFLOW_ABI,
-                functionName: 'recordCourtyardPurchaseExecution',
+                address: MAINNET.portfolioRegistry,
+                abi: REGISTRY_ABI,
+                functionName: 'recordPurchaseExecution',
                 args: [
                     purchaseKey,
                     bytes32FromInput(draft.purchase.executionRef),
@@ -714,9 +724,9 @@ export function CourtyardWizardPanel() {
     async function submitRecordPosition() {
         await submitContractStep('record_position', 'Recording collectible position', () =>
             writeContractAsync({
-                address: MAINNET.courtyardWorkflow,
-                abi: COURTYARD_WORKFLOW_ABI,
-                functionName: 'recordCourtyardPosition',
+                address: MAINNET.fundProxy,
+                abi: FUND_ADMIN_ABI,
+                functionName: 'recordCollectiblePosition',
                 args: [
                     purchaseKey,
                     {
@@ -760,7 +770,7 @@ export function CourtyardWizardPanel() {
 
     useEffect(() => {
         if (draft.activeStep === 'bridge_usdc_to_hot_wallet' && bridgeRouteDone) {
-            completeStep('bridge_usdc_to_hot_wallet', 'authorize_purchase');
+            completeStep('bridge_usdc_to_hot_wallet', 'confirm_funding');
             setPendingTx(null);
         }
     }, [draft.activeStep, bridgeRouteDone]);
@@ -772,8 +782,8 @@ export function CourtyardWizardPanel() {
     }, [draft.activeStep, bridgeRouteFailed, lifiStatus.data?.substatusMessage]);
 
     useEffect(() => {
-        if (draft.activeStep === 'authorize_purchase' && purchaseAuthorized) completeStep('authorize_purchase', 'release_funds');
-        if (draft.activeStep === 'release_funds' && purchaseReleased) completeStep('release_funds', 'buy_on_courtyard');
+        if (draft.activeStep === 'authorize_purchase' && purchaseAuthorized) completeStep('authorize_purchase', 'withdraw_avax');
+        if (draft.activeStep === 'confirm_funding' && purchaseReleased) completeStep('confirm_funding', 'buy_on_courtyard');
         if (draft.activeStep === 'record_execution' && purchaseExecuted) completeStep('record_execution', 'record_position');
         if (draft.activeStep === 'record_position' && positionRecorded) completeStep('record_position', 'complete');
     }, [draft.activeStep, positionRecorded, purchaseAuthorized, purchaseExecuted, purchaseReleased]);
@@ -859,7 +869,7 @@ export function CourtyardWizardPanel() {
                             </div>
                         ) : null}
                         <div className="flex flex-wrap gap-3">
-                            <PrimaryButton onClick={() => completeStep('preflight', 'withdraw_avax')} disabled={!preflightOk}>
+                            <PrimaryButton onClick={() => completeStep('preflight', 'authorize_purchase')} disabled={!preflightOk}>
                                 Continue to withdrawal
                             </PrimaryButton>
                             <SecondaryButton onClick={resolveListing} disabled={isResolving}>Refresh quote</SecondaryButton>
@@ -938,17 +948,17 @@ export function CourtyardWizardPanel() {
                         ) : null}
                     </Panel>
                 );
-            case 'release_funds':
+            case 'confirm_funding':
                 return (
-                    <Panel title="Release purchase funds">
-                        <Field label="Release amount (USDT)" value={draft.purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} type="number" />
-                        <div className="text-xs text-gray-400">Release amount stays equal to listing price. Funding buffer is not added to accounting.</div>
-                        <StoredTxSummary hash={draft.txHashes.release_funds} label="Stored release transaction" />
-                        <PrimaryButton onClick={submitRelease} disabled={purchaseReleased || isContractPending}>
-                            {purchaseReleased ? 'Already released' : 'Submit release'}
+                    <Panel title="Confirm purchase funding">
+                        <Field label="Confirmed funding amount (USDT)" value={draft.purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} type="number" />
+                        <div className="text-xs text-gray-400">Confirm this only after Polygon USDC is visible in the Hot Wallet. Funding buffer is not added to accounting.</div>
+                        <StoredTxSummary hash={draft.txHashes.confirm_funding} label="Stored funding confirmation transaction" />
+                        <PrimaryButton onClick={submitConfirmFunding} disabled={purchaseReleased || isContractPending || !isAddress(polygonSafe)}>
+                            {purchaseReleased ? 'Already confirmed' : 'Confirm funding'}
                         </PrimaryButton>
-                        {draft.txHashes.release_funds ? (
-                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('release_funds')}>
+                        {draft.txHashes.confirm_funding ? (
+                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('confirm_funding')}>
                                 I confirmed this in Safe
                             </SecondaryButton>
                         ) : null}

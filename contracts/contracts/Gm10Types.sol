@@ -6,6 +6,7 @@ library Gm10Types {
         None,
         Approved,
         FundsReleased,
+        FundingConfirmed,
         Executed,
         PositionRecorded,
         Cancelled
@@ -15,6 +16,7 @@ library Gm10Types {
         None,
         Approved,
         Executed,
+        ExternalProceedsPending,
         ProceedsReceived,
         Finalized,
         Cancelled
@@ -54,6 +56,7 @@ library Gm10Types {
         uint32 chainEid;
         bytes32 marketplaceId;
         bytes32 assetRef;
+        address fundingToken;
         uint256 maxSpendUsdt6;
         uint256 releasedUsdt6;
         address destinationSafe;
@@ -76,10 +79,17 @@ library Gm10Types {
         uint256 marketplaceFeesUsdt6;
         uint256 bridgeFeesUsdt6;
         uint256 netProceedsUsdt6;
+        uint32 sourceChainEid;
+        address sourceToken;
+        uint256 sourceTokenAmount;
+        uint8 sourceTokenDecimals;
+        address proceedsToken;
+        uint256 proceedsAmount;
         uint256 approvedAt;
         bytes32 mandateHash;
         bytes32 executionRef;
         bytes32 proceedsRef;
+        bytes32 sourceProceedsRef;
         bytes32 proofHash;
     }
 
