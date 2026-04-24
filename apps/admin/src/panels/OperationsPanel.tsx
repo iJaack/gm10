@@ -1,9 +1,9 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
-import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
+import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
-import { COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
+import { CHAINLINK_AGGREGATOR_V3_ABI, COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { TxButton, TxResult } from '../components/TxButton';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
@@ -20,6 +20,8 @@ const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
 const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
 const DEFAULT_SOLANA_MULTISIG = 'GWE93fpg5M4vsfYnpW21pD3t1pQx4XktcAzwhPqYRaTG';
+const AVAX_WEI = 10n ** 18n;
+const USDT6 = 1_000_000n;
 const LiFiWidget = lazy(() => import('@lifi/widget').then((mod) => ({ default: mod.LiFiWidget })));
 
 type Bytes32 = `0x${string}`;
@@ -222,6 +224,30 @@ function formatRawUnits(value: string | undefined, decimals: number) {
     }
 }
 
+function formatAvax(value?: bigint) {
+    if (value === undefined) return 'Unavailable';
+    return `${Number(formatEther(value)).toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
+}
+
+function formatUsdt6(value?: bigint) {
+    if (value === undefined) return 'Unavailable';
+    return Number(formatUnits(value, 6)).toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
+
+function avaxUsdToUsdt6(avaxUsd: number) {
+    if (!Number.isFinite(avaxUsd) || avaxUsd <= 0) return 0n;
+    return BigInt(Math.round(avaxUsd * Number(USDT6)));
+}
+
+function avaxWeiToUsdt6(balanceWei: bigint, avaxUsd: number) {
+    return (balanceWei * avaxUsdToUsdt6(avaxUsd)) / AVAX_WEI;
+}
+
 function parseUsdt6Input(value: string): bigint {
     return parseUnits(value.trim() || '0', 6);
 }
@@ -375,6 +401,59 @@ export function OperationsPanel() {
         query: { enabled: Boolean(MAINNET.fundProxy) },
     });
     const effectiveTreasuryAddress = (treasuryAddress ?? MAINNET.treasurySafe) as `0x${string}` | undefined;
+
+    const { data: fundBalance } = useBalance({
+        address: MAINNET.fundProxy as `0x${string}`,
+        query: { enabled: Boolean(MAINNET.fundProxy) },
+    });
+    const { data: treasuryBalance } = useBalance({
+        address: effectiveTreasuryAddress,
+        query: { enabled: Boolean(effectiveTreasuryAddress) },
+    });
+    const { data: liquidityCoordinatorBalance } = useBalance({
+        address: liquidityCoordinator as `0x${string}`,
+        query: { enabled: Boolean(liquidityCoordinator) },
+    });
+    const { data: courtyardWorkflowBalance } = useBalance({
+        address: MAINNET.courtyardWorkflow,
+        query: { enabled: Boolean(MAINNET.courtyardWorkflow) },
+    });
+    const { data: teamWalletBalance } = useBalance({
+        address: MAINNET.teamWallet,
+        query: { enabled: Boolean(MAINNET.teamWallet) },
+    });
+    const { data: avaxUsdRoundData } = useReadContract({
+        address: MAINNET.avaxUsdFeed,
+        abi: CHAINLINK_AGGREGATOR_V3_ABI,
+        functionName: 'latestRoundData',
+        query: { enabled: Boolean(MAINNET.avaxUsdFeed) },
+    });
+    const avaxUsd = avaxUsdRoundData && avaxUsdRoundData[1] > 0n
+        ? Number(formatUnits(avaxUsdRoundData[1], 8))
+        : undefined;
+    const liveLiquidTreasuryUsdt6 = useMemo(() => {
+        if (avaxUsd === undefined) return undefined;
+        const walletBalances = [
+            fundBalance?.value,
+            treasuryBalance?.value,
+            liquidityCoordinatorBalance?.value,
+            courtyardWorkflowBalance?.value,
+            teamWalletBalance?.value,
+        ];
+        if (walletBalances.some((balance) => balance === undefined)) return undefined;
+        const totalWei = walletBalances.reduce<bigint>((total, balance) => total + (balance ?? 0n), 0n);
+        return avaxWeiToUsdt6(totalWei, avaxUsd);
+    }, [
+        avaxUsd,
+        courtyardWorkflowBalance?.value,
+        fundBalance?.value,
+        liquidityCoordinatorBalance?.value,
+        teamWalletBalance?.value,
+        treasuryBalance?.value,
+    ]);
+    const liveLiquidTreasuryDetail = avaxUsd !== undefined
+        ? `${formatAvax(fundBalance?.value)} fund + ${formatAvax(treasuryBalance?.value)} Safe + ${formatAvax(liquidityCoordinatorBalance?.value)} liquidity + ${formatAvax(courtyardWorkflowBalance?.value)} Courtyard + ${formatAvax(teamWalletBalance?.value)} team @ ${formatUsdt6(avaxUsdToUsdt6(avaxUsd))}/AVAX`
+        : 'Waiting for Chainlink AVAX/USD';
 
     const { data: referenceNav } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -1063,8 +1142,10 @@ export function OperationsPanel() {
                     <div>Profit distributor: {profitDistributor ?? 'Pending module wiring'}</div>
                     <div>Liquidity coordinator: {liquidityCoordinator ?? 'Pending module wiring'}</div>
                     <div>Courtyard workflow: {MAINNET.courtyardWorkflow ?? 'Pending env config'}</div>
-                    <div>Reference NAV/token: {referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'}</div>
-                    <div>Reference treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
+                    <div>Stored reference NAV/token: {referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'}</div>
+                    <div>Live liquid treasury: {formatUsdt6(liveLiquidTreasuryUsdt6)}</div>
+                    <div className="pl-3 text-gray-500">{liveLiquidTreasuryDetail}</div>
+                    <div>Stored accounting treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
                     <div>Holder distribution liability: {stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'}</div>
                     <div>LP accrual bucket: {stableAccounting ? `${formatUnits(stableAccounting[5], 6)} USDT` : 'Unavailable'}</div>
                     <div>Profit-eligible supply: {eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'}</div>
@@ -1521,7 +1602,8 @@ export function OperationsPanel() {
                                 </div>
                                 <div>Polygon Hot Wallet for Courtyard buy/sell: {polygonHotWallet}</div>
                                 <div>Polygon custody Safe after purchase: {polygonChainSafe?.evmSafe ?? polygonSafe}</div>
-                                <div>Liquid treasury reference: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
+                                <div>Live liquid treasury: {formatUsdt6(liveLiquidTreasuryUsdt6)}</div>
+                                <div>Stored accounting treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
                             </div>
                             <p className="text-xs leading-5 text-gray-400">
                                 This withdraws AVAX from the fund to the Avalanche treasury Safe. Then use the LI.FI widget
