@@ -172,6 +172,13 @@ export const FUND_ADMIN_ABI = [
         type: 'function',
     },
     {
+        inputs: [{ name: '_saleKey', type: 'bytes32' }],
+        name: 'finalizeSale',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
         inputs: [
             { name: '_token', type: 'address' },
             { name: '_approved', type: 'bool' },

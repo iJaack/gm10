@@ -66,7 +66,7 @@ export const ROUND_PROCEEDS_ALLOCATION = {
             detail: 'Sent to the team wallet after Round 2 finalizes and used for bootstrapping expenses.',
         },
     ],
-    realizedProfitWaterfall: 'Separate from realized sale profit, which later follows the sale waterfall: 25% treasury reinvestment, 40% holder distributions, 20% LP replenishment, and 15% buyback and burn.',
+    realizedProfitWaterfall: 'Separate from realized sale profit, which later follows the sale waterfall: 25% treasury reinvestment, 40% holder claim bucket, and 35% LP replenishment. The LP bucket is split in half: one half market-buys $CATCH, the other half buys or retains AVAX, then the resulting CATCH/AVAX liquidity is added 50/50 to LFJ and Pharaoh, with LFJ LP burned.',
 } as const;
 
 export const RECENT_CARD_COMPS = [
@@ -162,7 +162,7 @@ export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     },
     {
         title: '📊 $CATCH tracks it all',
-        body: 'One token tracks every round contribution, holding, realized exit, LP replenishment, holder distributions, and reference NAV as the strategy evolves.',
+        body: 'One token tracks every round contribution, holding, realized exit, LP replenishment, holder claim buckets, and reference NAV as the strategy evolves.',
     },
 ] as const;
 
@@ -195,7 +195,7 @@ export const TOKEN_ALLOCATION = [
         label: 'Liquidity & Market Structure',
         percent: 10,
         color: 'from-amber-500 to-yellow-400',
-        detail: 'Reserved for market structure, with 10% of each round and 20% of realized sale profit routed to LP and split 50/50 between Trader Joe and Pharaoh.',
+        detail: 'Reserved for market structure, with 10% of each round and 35% of realized sale profit routed to LP replenishment across LFJ and Pharaoh.',
     },
     {
         label: 'Advisors',
@@ -216,16 +216,15 @@ export const TOKEN_RELEASE_RULES = [
     ['Core Team', '6-month cliff, then 42 months linear vesting.'],
     ['Advisors', 'Liquid after Round 1 finalization.'],
     ['Governance Treasury', 'Minted to the governance treasury wallet after Round 1 finalization.'],
-    ['Liquidity & Market Structure', '10% of raised AVAX funds LP and 20% of realized sale profit replenishes LP, split 50/50 between Trader Joe and Pharaoh.'],
+    ['Liquidity & Market Structure', '10% of raised AVAX funds LP and 35% of realized sale profit replenishes LP. The sale-profit LP bucket is split between a $CATCH market buy and AVAX pairing, then added 50/50 to LFJ and Pharaoh.'],
     ['Community & Ecosystem', 'Progressive release, not fully live at launch.'],
     ['Strategic Partnerships', 'Released only for approved partnership allocations.'],
 ] as const;
 
 export const WATERFALL = [
     { label: 'Treasury reinvestment', percent: 25, color: 'from-sky-400 to-blue-500' },
-    { label: 'Holder distributions', percent: 40, color: 'from-cyan-400 to-sky-500' },
-    { label: 'LP replenishment', percent: 20, color: 'from-emerald-400 to-teal-500' },
-    { label: 'Buyback and burn', percent: 15, color: 'from-amber-400 to-orange-500' },
+    { label: 'Holder claim bucket', percent: 40, color: 'from-cyan-400 to-sky-500' },
+    { label: 'LP replenishment', percent: 35, color: 'from-emerald-400 to-teal-500' },
 ] as const;
 
 export const PURCHASE_FLOW = [
@@ -262,7 +261,7 @@ export const SALE_FLOW = [
     },
     {
         title: 'Principal first, profit next',
-        detail: 'Once principal is restored, realized profit is forced into treasury, holder distributions, LP, and buyback buckets.',
+        detail: 'Once principal is restored, realized profit is forced into treasury, holder claim, and LP replenishment buckets.',
     },
 ] as const;
 

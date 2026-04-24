@@ -9,7 +9,7 @@ import { fetchPokemonPriceTrackerObservation } from './pokemon-price-tracker.js'
 import { fetchPhygitalsEvidenceObservation } from './phygitals.js';
 import { bytes32ToSolanaAddress } from '../../src/lib/solanaAddress.js';
 
-const DEFAULT_REGISTRY_ADDRESS = '0x02962F73AdFAA792636c62d3D2a76d922c6B052c';
+const DEFAULT_REGISTRY_ADDRESS = '0x1b7341C74cfA0C098431197aE5b697A73036CDFC';
 const DEFAULT_RPC_URL = 'https://api.avax.network/ext/bc/C/rpc';
 const MAX_DEFAULT_POSITIONS = 40;
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';

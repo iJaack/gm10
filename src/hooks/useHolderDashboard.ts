@@ -214,10 +214,10 @@ export function useHolderDashboard() {
             remainingCostBasis: isConnected ? formatUsdt6(investorPnl?.remainingCostBasisUsdt6) : 'Connect wallet',
             liquidTreasury: formatUsdt6(liquidTreasuryUsdt6),
             holderDistributionAccrued: stableAccounting ? formatUsdt6(stableAccounting[6]) : 'Unavailable',
-            // stableAccounting[4] = buybackAccrued — AVAX set aside to buy back $CATCH from sale proceeds
-            buybackAccrued: stableAccounting ? formatUsdt6(stableAccounting[4]) : 'Unavailable',
-            // stableAccounting[5] = lpAccrued — AVAX set aside to add to LP positions
-            lpAccrued: stableAccounting ? formatUsdt6(stableAccounting[5]) : 'Unavailable',
+            // stableAccounting[4] = liquidityCatchBuyAccrued — sale-profit funds reserved to market-buy $CATCH for LP.
+            liquidityCatchBuyAccrued: stableAccounting ? formatUsdt6(stableAccounting[4]) : 'Unavailable',
+            // stableAccounting[5] = liquidityAvaxPairingAccrued — sale-profit funds reserved for the AVAX side of LP.
+            liquidityAvaxPairingAccrued: stableAccounting ? formatUsdt6(stableAccounting[5]) : 'Unavailable',
         },
         raw: {
             profitDistributor: distributorAddress,

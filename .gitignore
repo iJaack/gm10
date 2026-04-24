@@ -19,6 +19,8 @@
 .DS_Store
 *.pem
 .worktrees/
+.claude/
+.playwright-cli/
 
 # debug
 npm-debug.log*

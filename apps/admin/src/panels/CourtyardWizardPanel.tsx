@@ -1133,7 +1133,7 @@ export function CourtyardWizardPanel() {
                         <div>Detected Hot Wallet USDC: {hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC` : 'Unavailable'}</div>
                         <div>Funding AVAX total before buffer: {quotes ? `${quotes.summary.totalAvax} AVAX` : 'Unavailable'}</div>
                         <div>Funding AVAX withdrawal with buffer: {quotes ? `${quotes.summary.bufferedAvax} AVAX` : 'Unavailable'}</div>
-                        <div>Purchase released: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
+                        <div>Funding confirmed: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
                         <div>Bridge source tx: {draft.txHashes.bridge_usdc_to_hot_wallet ? shortHash(draft.txHashes.bridge_usdc_to_hot_wallet) : 'Unavailable'}</div>
                     </div>
                 ) : null}

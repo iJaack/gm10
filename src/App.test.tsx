@@ -234,6 +234,8 @@ vi.mock('./hooks/useHolderDashboard', () => ({
             totalProfitDeposited: '0 AVAX',
             liquidTreasury: '$3,528.60',
             holderDistributionAccrued: '$0.00',
+            liquidityCatchBuyAccrued: '$0.00',
+            liquidityAvaxPairingAccrued: '$0.00',
         },
         raw: {
             referenceNav: 20000n,
@@ -429,6 +431,10 @@ describe('page compression regressions', () => {
         expect(liquidity?.detail).toMatch(/250 AVAX to LFJ LP and 250 AVAX to Pharaoh LP/i);
         expect(team?.detail).toMatch(/bootstrapping expenses/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Separate from realized sale profit/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/25% treasury reinvestment/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/40% holder claim bucket/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/35% LP replenishment/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/market-buys \$CATCH/i);
     });
 
     it('renders the portfolio gallery with live positions and activity', async () => {

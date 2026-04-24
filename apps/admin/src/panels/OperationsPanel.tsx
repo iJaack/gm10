@@ -1633,7 +1633,7 @@ export function OperationsPanel() {
                             ) : null}
                             {autopilotReady ? (
                                 <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs leading-5 text-emerald-100">
-                                    Autopilot prepared the withdrawal amount, LI.FI funding amounts, purchase authorization, fund release, and position fields. Review each prepared action before signing.
+                                    Autopilot prepared the withdrawal amount, LI.FI funding amounts, purchase authorization, funding confirmation, and position fields. Review each prepared action before signing.
                                 </div>
                             ) : null}
                         </Section>
@@ -1671,7 +1671,7 @@ export function OperationsPanel() {
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
                                 The prepared withdrawal includes the LI.FI USDC route, source-chain gas estimates, and a 2%
-                                buffer. Release amount accounting stays equal to the listing price.
+                                buffer. Confirmed funding accounting stays equal to the listing price.
                             </div>
                             {fundingQuotes ? (
                                 <div className="grid gap-1 text-xs text-gray-400">

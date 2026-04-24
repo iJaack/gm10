@@ -226,10 +226,10 @@ describe("GemMintStrategyFundV3", function () {
     await fund.connect(ops).finalizeSale(saleKey);
 
     stableAccounting = await fund.stableAccounting();
-    expect(stableAccounting[2]).to.equal(262_000_000n);
-    expect(stableAccounting[4]).to.equal(7_500_000n);
-    expect(stableAccounting[5]).to.equal(6_000_000n);
-    expect(stableAccounting[6]).to.equal(4_500_000n);
+    expect(stableAccounting[2]).to.equal(257_500_000n);
+    expect(stableAccounting[4]).to.equal(5_250_000n);
+    expect(stableAccounting[5]).to.equal(5_250_000n);
+    expect(stableAccounting[6]).to.equal(12_000_000n);
     expect(stableAccounting[0]).to.equal(0n);
   });
 

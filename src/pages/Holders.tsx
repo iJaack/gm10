@@ -166,7 +166,7 @@ function HoldersContent() {
                                     <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{portfolio.proofSummary.liquidTreasuryLabel}</div>
                                 </div>
                                 <div>
-                                    <div className="label-font text-[0.58rem]">Sale profit liability</div>
+                                    <div className="label-font text-[0.58rem]">Holder claim bucket</div>
                                     <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.holderDistributionAccrued}</div>
                                 </div>
                             </div>

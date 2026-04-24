@@ -323,8 +323,8 @@ function CompositionDonut() {
             value: holder.labels.totalProfitDeposited,
         },
         {
-            label: 'Pending holder distribution',
-            detail: 'Accrued but not yet claimed by holders',
+            label: 'Holder claim bucket',
+            detail: '40% of realized sale profit reserved for eligible holders',
             value: holder.labels.holderDistributionAccrued,
         },
     ];
@@ -1371,16 +1371,16 @@ function LiquiditySection() {
                                         <span>Pharaoh {pharaohPct.toFixed(1)}%</span>
                                     </div>
                                     <div className="mt-1 text-center text-[0.72rem] text-[var(--ink-faint)]">
-                                        + {holder.labels.lpAccrued} LP reserve awaiting deployment
+                                        + {holder.labels.liquidityAvaxPairingAccrued} AVAX-side LP reserve awaiting deployment
                                     </div>
                                 </div>
 
                                 {/* Buyback rows */}
                                 <div className="mt-6">
                                     <StatRowItem row={{
-                                        label: 'Buyback from sale proceeds',
-                                        detail: 'AVAX earmarked to buy $CATCH on the open market using realized card-sale proceeds',
-                                        value: holder.labels.buybackAccrued,
+                                        label: '$CATCH market-buy reserve from sale proceeds',
+                                        detail: 'Half of the 35% LP replenishment bucket market-buys $CATCH before adding LFJ and Pharaoh liquidity',
+                                        value: holder.labels.liquidityCatchBuyAccrued,
                                     }} />
                                     <StatRowItem row={{
                                         label: 'Buyback from round proceeds',

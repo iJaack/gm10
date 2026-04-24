@@ -45,9 +45,9 @@ const WATERFALL_CODE_REFERENCE = [
         color: 'var(--accent-blue)',
         source: 'GemMintStrategyFundV3.sol',
         code: `uint256 treasuryAllocationUsdt6;
-uint256 buybackAllocationUsdt6;
-uint256 lpAllocationUsdt6;
-uint256 reserveAllocationUsdt6;`,
+uint256 holderDistributionAllocationUsdt6;
+uint256 liquidityCatchBuyAllocationUsdt6;
+uint256 liquidityAvaxPairingAllocationUsdt6;`,
     },
     {
         emoji: '💰',
@@ -59,6 +59,7 @@ uint256 reserveAllocationUsdt6;`,
     treasuryAllocationUsdt6 = netProceedsUsdt6;
 } else {
     uint256 realizedProfitUsdt6 = netProceedsUsdt6 - costBasisUsdt6;
+    uint256 treasuryProfitShareUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2500, WORKFLOW_BPS);
     treasuryAllocationUsdt6 = costBasisUsdt6 + treasuryProfitShareUsdt6;
 }`,
     },
@@ -68,10 +69,12 @@ uint256 reserveAllocationUsdt6;`,
         detail: 'Splits automatically — four buckets, no discretion',
         color: 'var(--accent)',
         source: 'GemMintStrategyFundV3.sol',
-        code: `buybackAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2500, WORKFLOW_BPS);
-lpAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2000, WORKFLOW_BPS);
-reserveAllocationUsdt6 =
-    realizedProfitUsdt6 - treasuryProfitShareUsdt6 - buybackAllocationUsdt6 - lpAllocationUsdt6;`,
+        code: `holderDistributionAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 4000, WORKFLOW_BPS);
+uint256 liquidityAllocationUsdt6 =
+    realizedProfitUsdt6 - treasuryProfitShareUsdt6 - holderDistributionAllocationUsdt6;
+liquidityCatchBuyAllocationUsdt6 = liquidityAllocationUsdt6 / 2;
+liquidityAvaxPairingAllocationUsdt6 =
+    liquidityAllocationUsdt6 - liquidityCatchBuyAllocationUsdt6;`,
     },
 ] as const;
 
@@ -485,14 +488,13 @@ function CatchContent() {
                         {/* Fork */}
                         <div className="h-5 w-px bg-[var(--border-strong)]" />
                         <div className="relative w-full">
-                            {/* Horizontal bar — spans center of col1 to center of col4 */}
-                            <div className="absolute top-0 left-[12.5%] right-[12.5%] h-px bg-[var(--border-strong)]" />
-                            <div className="grid grid-cols-2 gap-3 pt-5 sm:grid-cols-4">
+                            {/* Horizontal bar — spans center of col1 to center of col3 */}
+                            <div className="absolute top-0 left-[16.666%] right-[16.666%] h-px bg-[var(--border-strong)]" />
+                            <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-3">
                                 {([
                                     { label: 'Treasury reinvestment', percent: 25, color: '#0ea5e9', desc: 'Future card buying power' },
-                                    { label: 'Holder distributions', percent: 40, color: '#6366f1', desc: 'Claimable AVAX from realized profit' },
-                                    { label: 'CATCH/AVAX LP', percent: 20, color: '#10b981', desc: 'Market depth & liquidity' },
-                                    { label: 'Buyback & burn', percent: 15, color: '#f59e0b', desc: 'Supply support via buyback logic' },
+                                    { label: 'Holder claim bucket', percent: 40, color: '#6366f1', desc: 'Claimable AVAX from realized profit' },
+                                    { label: 'LP replenishment', percent: 35, color: '#10b981', desc: 'Half $CATCH market-buy, half AVAX pairing' },
                                 ] as const).map((out) => (
                                     <div key={out.label} className="flex flex-col items-center">
                                         <div className="h-5 w-px bg-[var(--border-strong)]" />

@@ -158,7 +158,11 @@ export function DashboardPanel() {
                 />
                 <StatCard label="Round 1" value={getRoundStatus(round1)} detail={round1 ? `Raised ${formatAvax(round1.raisedAmount)} of ${formatAvax(round1.targetAmount)}` : 'No round data'} />
                 <StatCard label="Round 2" value={getRoundStatus(round2)} detail={round2 ? `Raised ${formatAvax(round2.raisedAmount)}; routing bucket ${formatAvax(routing.routingBucket)}` : 'Not created yet'} />
-                <StatCard label="Contract accounting" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} detail={stableAccounting ? `Stored liquid treasury field; LP accrual ${formatUnits(stableAccounting[5], 6)} USDT` : undefined} />
+                <StatCard
+                    label="Contract accounting"
+                    value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}
+                    detail={stableAccounting ? `Holder claims ${formatUnits(stableAccounting[6], 6)} USDT; LP market-buy ${formatUnits(stableAccounting[4], 6)} USDT; LP AVAX side ${formatUnits(stableAccounting[5], 6)} USDT` : undefined}
+                />
                 <StatCard label="LP deployed" value={`${formatAvax((traderJoeAvaxLp ?? 0n) + (pharaohAvaxLp ?? 0n))}`} detail={`LFJ ${formatAvax(traderJoeAvaxLp)} / Pharaoh ${formatAvax(pharaohAvaxLp)}`} />
                 <StatCard label="Profit distributed" value={formatAvax(totalProfitDeposited)} detail="Completed sale profit only, separate from round proceeds allocation." />
             </div>

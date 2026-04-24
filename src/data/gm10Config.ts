@@ -46,7 +46,7 @@ const fundProxyAddress = parseAddress(
     import.meta.env.VITE_GM10_FUND_PROXY_ADDRESS || '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
 );
 const portfolioRegistryAddress = parseAddress(
-    import.meta.env.VITE_GM10_PORTFOLIO_REGISTRY_ADDRESS || '0x02962F73AdFAA792636c62d3D2a76d922c6B052c',
+    import.meta.env.VITE_GM10_PORTFOLIO_REGISTRY_ADDRESS || '0x1b7341C74cfA0C098431197aE5b697A73036CDFC',
 );
 const investorAccountingAddress = parseAddress(
     import.meta.env.VITE_GM10_INVESTOR_ACCOUNTING_ADDRESS || '0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963',

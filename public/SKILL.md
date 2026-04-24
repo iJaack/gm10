@@ -95,10 +95,12 @@ Release / vesting:
 
 Sale proceeds split after principal recovery:
 
-- `40%` treasury reinvestment
-- `25%` buyback and burn
-- `20%` CATCH / AVAX LP
-- `15%` redemption reserve
+- `25%` treasury reinvestment
+- `40%` holder claim bucket
+- `35%` CATCH / AVAX LP replenishment
+  - half market-buys `$CATCH`
+  - half buys or retains `$AVAX`
+  - resulting liquidity is added 50/50 to LFJ and Pharaoh, with LFJ LP burned
 
 ## Website copy rules
 

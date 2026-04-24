@@ -66,9 +66,8 @@ export function ProfitWaterfallDiagram() {
                                 <div className="text-2xl font-bold text-[var(--accent-blue)]">{slice.percent}%</div>
                                 <div className="text-sm leading-7 text-[var(--text-secondary)]">
                                     {slice.label === 'Treasury reinvestment' && 'Returned to the strategy and future card buying power.'}
-                                    {slice.label === 'Holder distributions' && 'Realized profit routed into claimable AVAX distributions for eligible circulating holders.'}
-                                    {slice.label === 'LP replenishment' && 'Reserved for LP replenishment and split across Trader Joe and Pharaoh.'}
-                                    {slice.label === 'Buyback and burn' && 'Used to support the token through buyback-and-burn logic.'}
+                                    {slice.label === 'Holder claim bucket' && 'Realized profit routed into claimable AVAX distributions for eligible circulating holders.'}
+                                    {slice.label === 'LP replenishment' && 'Half market-buys $CATCH, half buys or retains AVAX, then liquidity is added 50/50 to LFJ and Pharaoh.'}
                                 </div>
                             </div>
                         </div>

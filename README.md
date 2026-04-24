@@ -20,10 +20,12 @@ The repo is being refactored toward:
 - per-asset purchase approvals
 - per-position sale approvals
 - mandatory realized-profit split:
-  - `40%` treasury reinvestment
-  - `25%` buyback and burn
-  - `20%` LP
-  - `15%` redemption reserve
+  - `25%` treasury reinvestment
+  - `40%` holder claim bucket
+  - `35%` LP replenishment
+    - half market-buys `$CATCH`
+    - half buys or retains `$AVAX`
+    - resulting liquidity is added 50/50 to LFJ and Pharaoh, with LFJ LP burned
 - wallet-level reporting
 - Pokemon-first website copy and tokenomics
 

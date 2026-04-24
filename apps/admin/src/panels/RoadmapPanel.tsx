@@ -122,11 +122,11 @@ const ROADMAP_NODES: RoadmapNode[] = [
     {
         id: 'profit-waterfall',
         title: 'Profit-waterfall reconciliation',
-        status: 'Blocked',
+        status: 'Done',
         area: 'Governance',
         stage: 'distribution',
-        notes: 'Repo copy and contract behavior must be reconciled before staking or claim launch messaging.',
-        blockedBy: ['public-proof'],
+        notes: 'Realized-profit split is reconciled across contract accounting, public copy, and admin copy: 25% treasury, 40% holder claim bucket, 35% LP replenishment.',
+        detail: 'The LP bucket is split between a $CATCH market-buy half and an AVAX pairing half before adding LFJ and Pharaoh liquidity 50/50.',
     },
     {
         id: 'claim-dashboard',
@@ -143,7 +143,7 @@ const ROADMAP_NODES: RoadmapNode[] = [
         area: 'Staking',
         stage: 'distribution',
         notes: 'Define lock durations, voting weight, gauge creation, boost rules, early unlock policy, and reward routing.',
-        blockedBy: ['profit-waterfall', 'supply-audit'],
+        blockedBy: ['supply-audit'],
     },
     {
         id: 'public-claim-actions',
@@ -152,7 +152,7 @@ const ROADMAP_NODES: RoadmapNode[] = [
         area: 'Distribution',
         stage: 'distribution',
         notes: 'Blocked until distributor capabilities, exclusions, and claim/stream accounting are finalized and tested.',
-        blockedBy: ['profit-waterfall', 'gauge-spec'],
+        blockedBy: ['gauge-spec'],
         detail: 'Current UI intentionally keeps public claim writes disabled.',
     },
     {
