@@ -126,6 +126,11 @@ function formatUsdt6(value?: bigint) {
     }).format(Number(formatUnits(value, 6)));
 }
 
+function formatPercent(value: number) {
+    const prefix = value > 0 ? '+' : '';
+    return `${prefix}${value.toFixed(1)}%`;
+}
+
 function formatAddress(address?: `0x${string}`) {
     if (!address) return 'Pending deployment';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -639,6 +644,8 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             onchainCurrentMarkLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
             platformNavLabel: valueSummary.platformNavUsdt6 !== undefined ? formatUsdt6(valueSummary.platformNavUsdt6) : 'Unavailable',
             unrealizedPnlLabel: formatUsdt6(valueSummary.unrealizedPnlUsdt6),
+            unrealizedPnlPercentLabel: formatPercent(valueSummary.unrealizedPnlPercent),
+            unrealizedPnlDirection: valueSummary.unrealizedPnlDirection,
             unrealizedSourceLabel: valueSummary.unrealizedSource === 'courtyard'
                 ? 'Courtyard profile NAV'
                 : hasPublicValuationOverrides

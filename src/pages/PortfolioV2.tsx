@@ -30,16 +30,28 @@ import type { Gm10PortfolioPosition } from '../hooks/useFujiProof';
 function SummaryStrip({
     stats,
 }: {
-    stats: { label: string; value: string }[];
+    stats: {
+        label: string;
+        value: string;
+        secondaryValue?: string;
+        tone?: 'up' | 'down' | 'flat';
+    }[];
 }) {
     return (
-        <div className="grid grid-cols-2 gap-4 py-8 sm:grid-cols-3 md:grid-cols-5 md:gap-6">
+        <div className="grid grid-cols-2 gap-4 py-8 md:grid-cols-4 md:gap-6">
             {stats.map((s) => (
                 <div key={s.label} className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-4 transition-colors hover:border-[var(--border-strong)]">
                     <Label as="span" className="text-[0.65rem]">{s.label}</Label>
-                    <DataMono className="text-[1.45rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
-                        {s.value}
-                    </DataMono>
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <DataMono className="text-[1.45rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
+                            {s.value}
+                        </DataMono>
+                        {s.secondaryValue ? (
+                            <DataMono className={`text-[0.86rem] font-bold ${s.tone === 'up' ? 'v2-up' : s.tone === 'down' ? 'v2-down' : 'text-[var(--ink-muted)]'}`}>
+                                {s.secondaryValue}
+                            </DataMono>
+                        ) : null}
+                    </div>
                 </div>
             ))}
         </div>
@@ -235,10 +247,14 @@ function PortfolioContent() {
 
     const summaryStats = [
         { label: 'COST', value: portfolio.proofSummary.costBasisLabel },
-        { label: 'MARKED', value: portfolio.proofSummary.onchainCurrentMarkLabel },
-        { label: 'TREASURY', value: portfolio.proofSummary.liquidTreasuryLabel },
-        { label: 'P/L', value: portfolio.proofSummary.unrealizedPnlLabel },
-        { label: 'HOLDINGS', value: portfolio.proofSummary.holdingsLabel },
+        { label: 'MARK-TO-MARKET', value: portfolio.proofSummary.onchainCurrentMarkLabel },
+        { label: 'CASH FUNDS', value: portfolio.proofSummary.liquidTreasuryLabel },
+        {
+            label: 'P/L',
+            value: portfolio.proofSummary.unrealizedPnlLabel,
+            secondaryValue: portfolio.proofSummary.unrealizedPnlPercentLabel,
+            tone: portfolio.proofSummary.unrealizedPnlDirection,
+        },
     ];
 
     return (
@@ -266,7 +282,7 @@ function PortfolioContent() {
                             Collection
                         </Display>
                         <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
-                            Every lot is a graded card custodied by Courtyard on Polygon, mirrored onchain.
+                            Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
                             Cost basis is the acquisition price. Current mark follows the registry.
                         </p>
                     </div>

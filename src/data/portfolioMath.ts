@@ -13,6 +13,8 @@ export type PortfolioValueSummary = {
     onchainCurrentMarkUsdt6: bigint;
     platformNavUsdt6?: bigint;
     unrealizedPnlUsdt6: bigint;
+    unrealizedPnlPercent: number;
+    unrealizedPnlDirection: 'up' | 'down' | 'flat';
     unrealizedSource: 'courtyard' | 'onchain';
 };
 
@@ -37,11 +39,22 @@ export function calculatePortfolioValueSummary(
         ? dollarsToUsdt6(platformNav.netWorthUsd)
         : undefined;
     const activeCurrentMark = platformNavUsdt6 ?? totals.onchainCurrentMarkUsdt6;
+    const unrealizedPnlUsdt6 = activeCurrentMark - totals.costBasisUsdt6;
+    const unrealizedPnlPercent = totals.costBasisUsdt6 === 0n
+        ? 0
+        : (Number(unrealizedPnlUsdt6) / Number(totals.costBasisUsdt6)) * 100;
+    const unrealizedPnlDirection = unrealizedPnlUsdt6 > 0n
+        ? 'up'
+        : unrealizedPnlUsdt6 < 0n
+            ? 'down'
+            : 'flat';
 
     return {
         ...totals,
         platformNavUsdt6,
-        unrealizedPnlUsdt6: activeCurrentMark - totals.costBasisUsdt6,
+        unrealizedPnlUsdt6,
+        unrealizedPnlPercent,
+        unrealizedPnlDirection,
         unrealizedSource: platformNavUsdt6 !== undefined ? 'courtyard' : 'onchain',
     };
 }

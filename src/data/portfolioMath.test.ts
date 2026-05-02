@@ -12,6 +12,8 @@ describe('portfolio value summary', () => {
         expect(summary.onchainCurrentMarkUsdt6).toBe(360_000000n);
         expect(summary.platformNavUsdt6).toBe(400_000000n);
         expect(summary.unrealizedPnlUsdt6).toBe(54_000000n);
+        expect(summary.unrealizedPnlPercent).toBeCloseTo(15.6069, 4);
+        expect(summary.unrealizedPnlDirection).toBe('up');
         expect(summary.unrealizedSource).toBe('courtyard');
     });
 
@@ -22,7 +24,16 @@ describe('portfolio value summary', () => {
 
         expect(summary.platformNavUsdt6).toBeUndefined();
         expect(summary.unrealizedPnlUsdt6).toBe(-10_000000n);
+        expect(summary.unrealizedPnlPercent).toBe(-4);
+        expect(summary.unrealizedPnlDirection).toBe('down');
         expect(summary.unrealizedSource).toBe('onchain');
+    });
+
+    it('keeps zero cost basis P/L percentage flat', () => {
+        const summary = calculatePortfolioValueSummary([], { status: 'unavailable' });
+
+        expect(summary.unrealizedPnlPercent).toBe(0);
+        expect(summary.unrealizedPnlDirection).toBe('flat');
     });
 
     it('rejects invalid dollar inputs', () => {
