@@ -107,6 +107,7 @@ test('valuation-public handles preflight and rejects unsupported methods', async
 });
 
 test('valuation-public falls back to live consensus marks when no submitted marks exist', async () => {
+  const freshObservedAt = new Date().toISOString();
   const handler = createValuationPublicHandler({
     createValuationPackStoreImpl: () => ({
       getLatestPack: async () => null,
@@ -122,8 +123,8 @@ test('valuation-public falls back to live consensus marks when no submitted mark
             sourceId: 'primary',
             sourceName: 'PokemonPriceTracker',
             cardKey: 'psa:11029260',
-            observedAt: '2026-04-21T10:00:00.000Z',
-            fetchedAt: '2026-04-21T10:00:00.000Z',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
             valueUsdc6: '0',
             currency: 'USD',
             confidence: 0,
@@ -135,8 +136,8 @@ test('valuation-public falls back to live consensus marks when no submitted mark
             sourceId: 'benchmark',
             sourceName: 'Current registry mark',
             cardKey: 'psa:11029260',
-            observedAt: '2026-04-21T10:00:00.000Z',
-            fetchedAt: '2026-04-21T10:00:00.000Z',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
             valueUsdc6: '999000000',
             currency: 'USD',
             confidence: 0.85,
@@ -148,8 +149,8 @@ test('valuation-public falls back to live consensus marks when no submitted mark
             sourceId: 'evidence',
             sourceName: 'Courtyard',
             cardKey: 'psa:11029260',
-            observedAt: '2026-04-21T10:00:00.000Z',
-            fetchedAt: '2026-04-21T10:00:00.000Z',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
             valueUsdc6: '1100000000',
             currency: 'USD',
             confidence: 0.8,
