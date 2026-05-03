@@ -4,6 +4,12 @@ function parseAddress(value: string | undefined): `0x${string}` | undefined {
     return value as `0x${string}`;
 }
 
+function parsePositiveNumber(value: string | undefined): number | undefined {
+    if (!value) return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function buildExplorerUrl(baseUrl: string, address?: `0x${string}`) {
     return address ? `${baseUrl}/${address}` : baseUrl;
 }
@@ -117,6 +123,7 @@ export const GM10_MARKET_CONFIG = {
     dexscreenerTokenUrl: catchTokenAddress
         ? `https://api.dexscreener.com/latest/dex/tokens/${catchTokenAddress}`
         : undefined,
+    lastKnownSpotPriceUsd: parsePositiveNumber(import.meta.env.VITE_GM10_LAST_KNOWN_CATCH_PRICE_USD),
 } as const;
 
 export const GM10_TREASURY_WALLETS = {

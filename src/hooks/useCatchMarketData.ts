@@ -5,6 +5,7 @@ import { GM10_MARKET_CONFIG } from '../data/gm10Config';
 import { normalizeCatchMarketData, type CatchMarketData, type DexPair } from '../data/marketData';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+const CATCH_MARKET_PRICE_CACHE_KEY = 'gm10.catch.lastKnownSpotPriceUsd';
 
 const unavailableMarket: CatchMarketData = {
     status: 'unavailable',
@@ -12,10 +13,36 @@ const unavailableMarket: CatchMarketData = {
     pharaoh: { venue: 'Pharaoh', status: 'unavailable' },
 };
 
+function readCachedSpotPriceUsd() {
+    if (typeof window === 'undefined') return undefined;
+
+    try {
+        const raw = window.localStorage.getItem(CATCH_MARKET_PRICE_CACHE_KEY);
+        if (!raw) return undefined;
+        const price = Number(raw);
+        return Number.isFinite(price) && price > 0 ? price : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function writeCachedSpotPriceUsd(price: number) {
+    if (typeof window === 'undefined' || !Number.isFinite(price) || price <= 0) return;
+
+    try {
+        window.localStorage.setItem(CATCH_MARKET_PRICE_CACHE_KEY, String(price));
+    } catch {
+        // Storage may be unavailable in private browsing or tests.
+    }
+}
+
 export function useCatchMarketData() {
     const [pairs, setPairs] = useState<readonly DexPair[]>([]);
     const [fetchedAt, setFetchedAt] = useState<string>();
     const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
+    const [cachedSpotPriceUsd, setCachedSpotPriceUsd] = useState<number | undefined>(() => (
+        readCachedSpotPriceUsd() ?? GM10_MARKET_CONFIG.lastKnownSpotPriceUsd
+    ));
 
     const liquidityAddress = GM10_MARKET_CONFIG.liquidityCoordinatorAddress ?? ZERO_ADDRESS;
     const { data: liquidityReads } = useReadContracts({
@@ -62,15 +89,25 @@ export function useCatchMarketData() {
     }), [liquidityReads]);
 
     const marketData = useMemo(() => {
-        if (!pairs.length && fetchStatus === 'idle') return unavailableMarket;
+        if (!pairs.length && fetchStatus === 'idle' && cachedSpotPriceUsd === undefined) return unavailableMarket;
 
         return normalizeCatchMarketData(pairs, {
             lfjPairAddress: GM10_MARKET_CONFIG.lfjPairAddress,
             pharaohPoolAddress: GM10_MARKET_CONFIG.pharaohPoolAddress,
             fallback,
             fetchedAt,
+            lastKnownSpotPriceUsd: cachedSpotPriceUsd,
         });
-    }, [fallback, fetchedAt, fetchStatus, pairs]);
+    }, [cachedSpotPriceUsd, fallback, fetchedAt, fetchStatus, pairs]);
+
+    useEffect(() => {
+        if (marketData.spotPriceSource !== 'live' || marketData.spotPriceUsd === undefined) return;
+
+        writeCachedSpotPriceUsd(marketData.spotPriceUsd);
+        setCachedSpotPriceUsd((current) => (
+            current === marketData.spotPriceUsd ? current : marketData.spotPriceUsd
+        ));
+    }, [marketData.spotPriceSource, marketData.spotPriceUsd]);
 
     return {
         ...marketData,

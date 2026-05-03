@@ -31,6 +31,7 @@ export type MarketPool = {
 
 export type CatchMarketData = {
     spotPriceUsd?: number;
+    spotPriceSource?: 'live' | 'cached';
     lfj: MarketPool;
     pharaoh: MarketPool;
     fetchedAt?: string;
@@ -123,16 +124,25 @@ export function normalizeCatchMarketData(
         pharaohPoolAddress?: string;
         fallback?: MarketFallbackLiquidity;
         fetchedAt?: string;
+        lastKnownSpotPriceUsd?: number;
     },
 ): CatchMarketData {
     const lfjPair = choosePair(pairs, 'LFJ', options.lfjPairAddress);
     const pharaohPair = choosePair(pairs, 'Pharaoh', options.pharaohPoolAddress);
     const lfj = normalizePool('LFJ', lfjPair, options.fallback);
     const pharaoh = normalizePool('Pharaoh', pharaohPair, options.fallback);
-    const spotPriceUsd = lfj.priceUsd ?? pharaoh.priceUsd ?? pairs.map((pair) => parseNumber(pair.priceUsd)).find((price) => price !== undefined);
+    const liveSpotPriceUsd = lfj.priceUsd ?? pharaoh.priceUsd ?? pairs.map((pair) => parseNumber(pair.priceUsd)).find((price) => price !== undefined);
+    const lastKnownSpotPriceUsd = options.lastKnownSpotPriceUsd !== undefined
+        && Number.isFinite(options.lastKnownSpotPriceUsd)
+        && options.lastKnownSpotPriceUsd > 0
+        ? options.lastKnownSpotPriceUsd
+        : undefined;
+    const spotPriceUsd = liveSpotPriceUsd ?? lastKnownSpotPriceUsd;
+    const spotPriceSource = liveSpotPriceUsd !== undefined ? 'live' : spotPriceUsd !== undefined ? 'cached' : undefined;
 
     return {
         spotPriceUsd,
+        spotPriceSource,
         lfj,
         pharaoh,
         fetchedAt: options.fetchedAt,

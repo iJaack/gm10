@@ -74,6 +74,16 @@ describe('market data normalization', () => {
         expect(market.pharaoh.fallbackCatch).toBe(4n);
     });
 
+    it('uses the cached last-known spot price when live DEX pairs have no price', () => {
+        const market = normalizeCatchMarketData([], {
+            lastKnownSpotPriceUsd: 0.0215,
+        });
+
+        expect(market.status).toBe('available');
+        expect(market.spotPriceUsd).toBe(0.0215);
+        expect(market.spotPriceSource).toBe('cached');
+    });
+
     it('values protocol LP from both the deployed AVAX side and deployed CATCH side', () => {
         const protocol = resolveProtocolLpValue({
             venue: 'Pharaoh',

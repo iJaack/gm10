@@ -92,6 +92,8 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
     const price = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
     const priceAvax = price !== undefined && avaxUsd > 0 ? price / avaxUsd : undefined;
     const change = market.lfj.priceChange24h ?? market.pharaoh.priceChange24h ?? 0;
+    const hasLiveChange = market.spotPriceSource !== 'cached'
+        && (market.lfj.priceChange24h !== undefined || market.pharaoh.priceChange24h !== undefined);
     const isUp = change >= 0;
 
     const { liveNavUsd } = deriveLivePortfolioNavUsd({
@@ -136,9 +138,15 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                         ) : null}
                     </div>
                     <div className="flex min-w-[180px] flex-col gap-1.5 pb-1 lg:justify-self-center lg:pb-3">
-                        <DataMono className={isUp ? 'v2-up text-[1.2rem] md:text-[1.35rem]' : 'v2-down text-[1.2rem] md:text-[1.35rem]'}>
-                            {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
-                        </DataMono>
+                        {hasLiveChange ? (
+                            <DataMono className={isUp ? 'v2-up text-[1.2rem] md:text-[1.35rem]' : 'v2-down text-[1.2rem] md:text-[1.35rem]'}>
+                                {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
+                            </DataMono>
+                        ) : (
+                            <DataMono className="text-[1.02rem] uppercase tracking-[0.08em] text-[var(--ink-muted)] md:text-[1.12rem]">
+                                Last known price
+                            </DataMono>
+                        )}
                         {liveChartUrl ? (
                             <a
                                 href={liveChartUrl}
@@ -150,7 +158,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                             </a>
                         ) : (
                             <DataMono className="text-[0.72rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] md:text-[0.78rem]">
-                                Live DEX change
+                                {market.spotPriceSource === 'cached' ? 'Cached DEX quote' : 'Live DEX change'}
                             </DataMono>
                         )}
                     </div>
