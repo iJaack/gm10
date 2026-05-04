@@ -43,6 +43,12 @@ function formatUsd(value?: number, digits = 2) {
     }).format(value);
 }
 
+function formatSignedUsd(value?: number, digits = 2) {
+    if (value === undefined || !isFinite(value)) return '—';
+    if (value === 0) return formatUsd(0, digits);
+    return `${value > 0 ? '+' : '-'}${formatUsd(Math.abs(value), digits)}`;
+}
+
 function shortAddr(a?: string) {
     if (!a) return 'pending';
     return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -792,6 +798,18 @@ function ProtocolStats() {
 
 function AccountSection() {
     const holder = useHolderDashboard();
+    const portfolio = useFujiPortfolioPositions();
+    const { liveNavUsd } = deriveLivePortfolioNavUsd({
+        liquidTreasuryLabel: portfolio.proofSummary.liquidTreasuryLabel,
+        cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
+        totalSupplyLabel: holder.labels.totalSupply,
+    });
+    const liveReferenceValue = holder.isConnected && liveNavUsd !== undefined
+        ? parseDisplayNumber(holder.labels.catchBalance) * liveNavUsd
+        : undefined;
+    const liveReferencePnl = liveReferenceValue !== undefined
+        ? liveReferenceValue - parseDisplayNumber(holder.labels.remainingCostBasis)
+        : undefined;
 
     return (
         <section className="px-4 pt-2 pb-10">
@@ -855,7 +873,7 @@ function AccountSection() {
                             cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Reference value</Caption>,
                                 <span className="text-[var(--ink-faint)]">Wallet tokens × NAV</span>,
-                                <span className="text-right text-[var(--text-primary)]">{holder.labels.currentReferenceValue}</span>,
+                                <span className="text-right text-[var(--text-primary)]">{formatUsd(liveReferenceValue)}</span>,
                             ]}
                         />
                         <LedgerRow
@@ -863,8 +881,8 @@ function AccountSection() {
                             cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Unrealized P/L</Caption>,
                                 <span className="text-[var(--ink-faint)]">Not claimable — mark-to-market</span>,
-                                <span className={`text-right ${holder.labels.unrealizedReferencePnl.startsWith('-') ? 'v2-down' : holder.labels.unrealizedReferencePnl.startsWith('+') ? 'v2-up' : 'text-[var(--text-primary)]'}`}>
-                                    {holder.labels.unrealizedReferencePnl}
+                                <span className={`text-right ${liveReferencePnl !== undefined && liveReferencePnl < 0 ? 'v2-down' : liveReferencePnl !== undefined && liveReferencePnl > 0 ? 'v2-up' : 'text-[var(--text-primary)]'}`}>
+                                    {formatSignedUsd(liveReferencePnl)}
                                 </span>,
                             ]}
                         />

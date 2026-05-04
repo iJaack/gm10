@@ -10,6 +10,8 @@ const wagmiMocks = vi.hoisted(() => ({
     },
     balanceValue: undefined as bigint | undefined,
     roundState: undefined as any,
+    holderDashboard: undefined as any,
+    portfolioProofSummary: undefined as any,
     reset: vi.fn(),
     writeContract: vi.fn(),
 }));
@@ -201,6 +203,7 @@ vi.mock('./hooks/useFujiProof', () => ({
             portfolioValueLabel: '$40.00',
             liquidTreasuryLabel: '$10.00',
             referenceNavLabel: '$0.02',
+            ...wagmiMocks.portfolioProofSummary,
         },
     }),
 }));
@@ -246,6 +249,7 @@ vi.mock('./hooks/useHolderDashboard', () => ({
             referenceNav: 20000n,
             navPerToken: 20000n,
         },
+        ...wagmiMocks.holderDashboard,
     }),
 }));
 
@@ -284,6 +288,8 @@ afterEach(() => {
     wagmiMocks.account = { address: undefined, isConnected: false };
     wagmiMocks.balanceValue = undefined;
     wagmiMocks.roundState = undefined;
+    wagmiMocks.holderDashboard = undefined;
+    wagmiMocks.portfolioProofSummary = undefined;
     wagmiMocks.reset.mockClear();
     wagmiMocks.writeContract.mockClear();
     window.history.pushState({}, '', '/');
@@ -512,6 +518,43 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/^Pharaoh$/).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
+    });
+
+    it('uses live NAV for connected wallet reference value', async () => {
+        wagmiMocks.holderDashboard = {
+            account: '0x7f1c000000000000000000000000000000007852',
+            isConnected: true,
+            labels: {
+                totalSupply: '100 CATCH',
+                profitEligibleSupply: '100 CATCH',
+                referenceNav: '$0.02',
+                navPerToken: '$0.02',
+                catchBalance: '10 CATCH',
+                remainingCostBasis: '$21.00',
+                currentReferenceValue: '$0.20',
+                unrealizedReferencePnl: '-$20.80',
+                claimableProfit: 'Unavailable',
+                claimedProfit: '0 AVAX',
+                totalProfitDeposited: '0 AVAX',
+                holderProfitsClaimableClaimed: '$0.00',
+                holderProfitApr: 'APR unavailable',
+                liquidTreasury: '$100.00',
+                holderDistributionAccrued: '$0.00',
+                liquidityCatchBuyAccrued: '$0.00',
+                liquidityAvaxPairingAccrued: '$0.00',
+            },
+        };
+        wagmiMocks.portfolioProofSummary = {
+            onchainCurrentMarkLabel: '$200.00',
+            liquidTreasuryLabel: '$100.00',
+        };
+
+        renderAt('/holders');
+
+        expect(await screen.findByText(/^Reference value$/i)).toBeInTheDocument();
+        expect(screen.getByText('$30.00')).toBeInTheDocument();
+        expect(screen.getByText('+$9.00')).toBeInTheDocument();
+        expect(screen.queryByText('$0.20')).not.toBeInTheDocument();
     });
 
     it('keeps faq as a short edge-case page with forward links', async () => {
