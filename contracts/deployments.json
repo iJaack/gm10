@@ -94,6 +94,16 @@
       "tx": "0x389f558b1c9049c4d70d26acb8a0303ac40b4943928fc6c4155793ae6ae04ad2",
       "blockNumber": 83799691,
       "timestamp": "2026-04-24T22:48:19.986Z"
+    },
+    "lastInvestorTrackingStorageRepair": {
+      "repairImplementation": "0x1d50b2fCadC84026a31E0F8bbAD8975ff435e3C6",
+      "finalImplementation": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
+      "tx": "0x36dd6c6ef6b5fa4b45a1d7e376cca2f3dc5382360fdcc3c74a53ccb9d3bba49e",
+      "blockNumber": 84690924,
+      "totalRoundsCompleted": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "investorListLength": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "totalInvestors": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": "2026-05-05T22:08:52.383Z"
     }
   },
   "fujiPurchaseTest": {

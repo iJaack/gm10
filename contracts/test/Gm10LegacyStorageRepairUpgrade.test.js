@@ -5,6 +5,9 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
 const LEGACY_CURRENT_ROUND_ID_SLOT = 21n;
 const LEGACY_FUNDRAISING_ROUNDS_SLOT = 23n;
+const CURRENT_TOTAL_ROUNDS_COMPLETED_SLOT = 14n;
+const CURRENT_INVESTOR_LIST_SLOT = 18n;
+const CURRENT_TOTAL_INVESTORS_SLOT = 19n;
 const LEGACY_STABLE_ACCOUNTING_SLOTS = {
   canonicalPortfolioValue: 8n,
   navPerToken: 9n,
@@ -43,7 +46,7 @@ async function setStorage(address, slot, value) {
 }
 
 async function deployV6Fixture() {
-  const [owner, ops, governance, failsafe] = await ethers.getSigners();
+  const [owner, ops, governance, failsafe, investor] = await ethers.getSigners();
 
   const FundV2 = await ethers.getContractFactory("GemMintStrategyFundV2");
   const fundV2 = await upgrades.deployProxy(
@@ -120,7 +123,7 @@ async function deployV6Fixture() {
   });
   await fund.waitForDeployment();
 
-  return { fund, governance, legacyPortfolioRegistry, portfolioRegistryV2 };
+  return { fund, governance, legacyPortfolioRegistry, portfolioRegistryV2, investor };
 }
 
 const legacyRounds = [
@@ -192,6 +195,33 @@ async function seedLegacyStableAccounting(proxyAddress) {
   for (const [key, slot] of Object.entries(LEGACY_STABLE_ACCOUNTING_SLOTS)) {
     await setStorage(proxyAddress, slot, legacyStableAccounting[key]);
   }
+}
+
+async function runLegacyStorageRepair(proxyAddress, governance, legacyPortfolioRegistry) {
+  const finalImplementation = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+  const RepairUpgrade = await ethers.getContractFactory("Gm10LegacyStorageRepairUpgrade");
+  const repairUpgrade = await RepairUpgrade.deploy();
+  await repairUpgrade.waitForDeployment();
+  const repairCalldata = repairUpgrade.interface.encodeFunctionData("repairLegacyStorageAndReturn", [
+    finalImplementation,
+    await legacyPortfolioRegistry.getAddress(),
+  ]);
+
+  const uups = new ethers.Contract(
+    proxyAddress,
+    ["function upgradeToAndCall(address newImplementation, bytes data) payable"],
+    governance
+  );
+  await uups.upgradeToAndCall(await repairUpgrade.getAddress(), repairCalldata);
+  expect(await upgrades.erc1967.getImplementationAddress(proxyAddress)).to.equal(finalImplementation);
+
+  return ethers.getContractAt("GemMintStrategyFundV6", proxyAddress);
+}
+
+async function seedLiveInvestorTrackingCorruption(proxyAddress) {
+  await setStorage(proxyAddress, CURRENT_TOTAL_ROUNDS_COMPLETED_SLOT, 472_605_000n);
+  await setStorage(proxyAddress, CURRENT_INVESTOR_LIST_SLOT, 0x74d9667454499b0cf3b2n);
+  await setStorage(proxyAddress, CURRENT_TOTAL_INVESTORS_SLOT, 100n);
 }
 
 describe("Gm10LegacyStorageRepairUpgrade", function () {
@@ -283,5 +313,47 @@ describe("Gm10LegacyStorageRepairUpgrade", function () {
     expect(stableAccounting.liquidityAvaxPairingAccrued).to.equal(legacyStableAccounting.liquidityAvaxPairingAccrued);
     expect(stableAccounting.holderDistributionAccrued).to.equal(legacyStableAccounting.holderDistributionAccrued);
     expect(stableAccounting.weeklyNavCap).to.equal(legacyStableAccounting.weeklyNavCap);
+  });
+
+  it("repairs live investor tracking slots so new Round 2 buys stop panicking", async function () {
+    const { fund, governance, legacyPortfolioRegistry, investor } = await loadFixture(deployV6Fixture);
+    const proxyAddress = await fund.getAddress();
+    const liveRounds = legacyRounds.slice(0, 2);
+
+    await seedLegacyRoundStorage(proxyAddress, liveRounds);
+    await seedLegacyStableAccounting(proxyAddress);
+    const repairedFund = await runLegacyStorageRepair(proxyAddress, governance, legacyPortfolioRegistry);
+    await seedLiveInvestorTrackingCorruption(proxyAddress);
+
+    const amount = ethers.parseEther("0.5");
+    await expect(repairedFund.connect(investor).invest(2n, { value: amount })).to.be.revertedWithPanic(0x41);
+
+    const finalImplementation = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+    const InvestorTrackingRepair = await ethers.getContractFactory("Gm10InvestorTrackingStorageRepairUpgrade");
+    const investorTrackingRepair = await InvestorTrackingRepair.deploy();
+    await investorTrackingRepair.waitForDeployment();
+    const repairCalldata = investorTrackingRepair.interface.encodeFunctionData("repairInvestorTrackingAndReturn", [
+      finalImplementation,
+    ]);
+
+    const uups = new ethers.Contract(
+      proxyAddress,
+      ["function upgradeToAndCall(address newImplementation, bytes data) payable"],
+      governance
+    );
+    await uups.upgradeToAndCall(await investorTrackingRepair.getAddress(), repairCalldata);
+    expect(await upgrades.erc1967.getImplementationAddress(proxyAddress)).to.equal(finalImplementation);
+    expect(await ethers.provider.getStorage(proxyAddress, storageWord(CURRENT_TOTAL_ROUNDS_COMPLETED_SLOT)))
+      .to.equal(storageWord(1n));
+    expect(await ethers.provider.getStorage(proxyAddress, storageWord(CURRENT_INVESTOR_LIST_SLOT)))
+      .to.equal(storageWord(0n));
+    expect(await ethers.provider.getStorage(proxyAddress, storageWord(CURRENT_TOTAL_INVESTORS_SLOT)))
+      .to.equal(storageWord(0n));
+
+    const fixedFund = await ethers.getContractAt("GemMintStrategyFundV6", proxyAddress);
+    const expectedTokens = (amount * 10n ** 18n) / ethers.parseEther("0.0035");
+    await expect(fixedFund.connect(investor).invest(2n, { value: amount }))
+      .to.emit(fixedFund, "Investment")
+      .withArgs(investor.address, 2n, amount, expectedTokens);
   });
 });
