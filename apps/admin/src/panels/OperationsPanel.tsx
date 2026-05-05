@@ -1170,6 +1170,10 @@ export function OperationsPanel() {
     );
     const polygonHotWalletConfigured = ADDRESS_RE.test(polygonHotWallet);
     const courtyardApproved = courtyardMarketplaceApproved === true;
+    const courtyardSetupBlockers = [
+        !polygonSafeConfigured ? 'Polygon custody Safe' : null,
+        !courtyardApproved ? 'COURTYARD marketplace approval' : null,
+    ].filter((label): label is string => Boolean(label));
     const autopilotReady = Boolean(
         autopilotAsset &&
         fundingQuotes &&
@@ -1206,6 +1210,37 @@ export function OperationsPanel() {
                 </div>
             </div>
 
+            {courtyardSetupBlockers.length ? (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h3 className="text-sm font-semibold text-amber-100">Courtyard authorization setup needed</h3>
+                            <div className="mt-1 text-xs leading-5 text-amber-100/80">
+                                Blocking purchase authorization: {courtyardSetupBlockers.join(', ')}.
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setMode('courtyard')}
+                                className="rounded-lg border border-amber-300/30 bg-amber-300/15 px-3 py-2 text-xs font-semibold text-amber-50 hover:bg-amber-300/25"
+                            >
+                                Courtyard setup
+                            </button>
+                            {!courtyardApproved ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setMode('marketplace')}
+                                    className="rounded-lg border border-amber-300/30 bg-amber-300/15 px-3 py-2 text-xs font-semibold text-amber-50 hover:bg-amber-300/25"
+                                >
+                                    Marketplace approval
+                                </button>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
             <div className="rounded-xl border border-white/10 bg-white/5 p-6">
                 <div className="mb-5 flex gap-2">
                     <button
@@ -1234,7 +1269,7 @@ export function OperationsPanel() {
                         onClick={() => setMode('courtyard')}
                         className={`rounded-lg px-3 py-2 text-sm ${mode === 'courtyard' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
                     >
-                        Courtyard
+                        Courtyard setup
                     </button>
                     <button
                         type="button"
