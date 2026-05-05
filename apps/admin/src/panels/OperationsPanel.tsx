@@ -382,7 +382,7 @@ export function OperationsPanel() {
         sourceTokenDecimals: '18',
         sourceProceedsRef: '',
     });
-    const [mode, setMode] = useState<'round' | 'profit' | 'marketplace' | 'courtyard' | 'lp'>('round');
+    const [mode, setMode] = useState<'round' | 'profit' | 'marketplace' | 'courtyard' | 'lp'>('courtyard');
 
     const { writeContract, data: txHash, isPending, error, reset } = useWriteContract();
     const { sendTransactionAsync, isPending: isSolanaFundingPending, error: solanaFundingSendError } = useSendTransaction();
@@ -1242,7 +1242,7 @@ export function OperationsPanel() {
             ) : null}
 
             <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <div className="mb-5 flex gap-2">
+                <div className="mb-5 flex flex-wrap gap-2">
                     <button
                         type="button"
                         onClick={() => setMode('round')}
