@@ -30,9 +30,9 @@ export function resolveHolderAccounting(inputs: HolderAccountingInputs): HolderA
         : clampSupply(inputs.totalSupply - excludedSupply);
 
     return {
-        profitEligibleSupply: inputs.profitEligibleSupply ?? derivedEligibleSupply,
+        profitEligibleSupply: derivedEligibleSupply,
         excludedSupply,
-        referenceNav: inputs.referenceNav ?? inputs.navPerToken,
-        totalProfitDeposited: inputs.totalProfitDeposited ?? (inputs.hasProfitDistributor ? undefined : 0n),
+        referenceNav: inputs.navPerToken,
+        totalProfitDeposited: 0n,
     };
 }

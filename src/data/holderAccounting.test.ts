@@ -16,15 +16,21 @@ describe('holder accounting fallback resolution', () => {
         expect(accounting.excludedSupply).toBe(44_875_651171480581126954n);
     });
 
-    it('preserves explicit onchain profit eligibility when the contract exposes it', () => {
+    it('derives V6 holder accounting without trusting removed legacy helper values', () => {
         const accounting = resolveHolderAccounting({
             totalSupply: 1_000n,
-            profitEligibleSupply: 777n,
             excludedBalances: [500n],
+            navPerToken: 22_773n,
+            profitEligibleSupply: 777n,
+            referenceNav: 99_999n,
+            totalProfitDeposited: 12n,
+            hasProfitDistributor: true,
         });
 
-        expect(accounting.profitEligibleSupply).toBe(777n);
+        expect(accounting.profitEligibleSupply).toBe(500n);
         expect(accounting.excludedSupply).toBe(500n);
+        expect(accounting.referenceNav).toBe(22_773n);
+        expect(accounting.totalProfitDeposited).toBe(0n);
     });
 
     it('falls back to live NAV and zero deposited profit for the current V6 upgrade surface', () => {
@@ -37,11 +43,31 @@ describe('holder accounting fallback resolution', () => {
         expect(accounting.totalProfitDeposited).toBe(0n);
     });
 
-    it('keeps profit deposited unavailable while a distributor read is expected but missing', () => {
+    it('defaults deposited holder profit to zero while the public claim module is absent', () => {
+        const accounting = resolveHolderAccounting({});
+
+        expect(accounting.totalProfitDeposited).toBe(0n);
+    });
+
+    it('clamps derived profit-eligible supply at zero when excluded balances exceed total supply', () => {
         const accounting = resolveHolderAccounting({
-            hasProfitDistributor: true,
+            totalSupply: 100n,
+            excludedBalances: [75n, 50n],
         });
 
-        expect(accounting.totalProfitDeposited).toBeUndefined();
+        expect(accounting.profitEligibleSupply).toBe(0n);
+        expect(accounting.excludedSupply).toBe(125n);
+    });
+
+    it('keeps profit-eligible supply undefined until total supply is available', () => {
+        const accounting = resolveHolderAccounting({
+            excludedBalances: [25n, 50n],
+            navPerToken: 22_773n,
+        });
+
+        expect(accounting.profitEligibleSupply).toBeUndefined();
+        expect(accounting.excludedSupply).toBe(75n);
+        expect(accounting.referenceNav).toBe(22_773n);
+        expect(accounting.totalProfitDeposited).toBe(0n);
     });
 });

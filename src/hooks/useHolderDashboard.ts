@@ -7,7 +7,6 @@ import {
     GM10_ERC20_ABI,
     GM10_FUND_ABI,
     GM10_INVESTOR_ACCOUNTING_ABI,
-    GM10_PROFIT_DISTRIBUTOR_ABI,
 } from '../data/contracts';
 import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS, ROUND_1_START_AT } from '../data/gm10Config';
 import { resolveHolderAccounting } from '../data/holderAccounting';
@@ -76,13 +75,6 @@ export function useHolderDashboard() {
     const contracts = useFujiContracts();
     const account = address ?? ZERO_ADDRESS;
 
-    const { data: profitDistributor } = useReadContract({
-        address: contracts.proxyAddress ?? ZERO_ADDRESS,
-        abi: GM10_FUND_ABI,
-        functionName: 'profitDistributor',
-        query: { enabled: Boolean(contracts.proxyAddress) },
-    });
-
     const { data: navPerToken } = useReadContract({
         address: contracts.proxyAddress ?? ZERO_ADDRESS,
         abi: GM10_FUND_ABI,
@@ -90,24 +82,10 @@ export function useHolderDashboard() {
         query: { enabled: Boolean(contracts.proxyAddress) },
     });
 
-    const { data: referenceNav } = useReadContract({
-        address: contracts.proxyAddress ?? ZERO_ADDRESS,
-        abi: GM10_FUND_ABI,
-        functionName: 'referenceNavPerTokenUsdt6',
-        query: { enabled: Boolean(contracts.proxyAddress) },
-    });
-
     const { data: totalSupply } = useReadContract({
         address: contracts.proxyAddress ?? ZERO_ADDRESS,
         abi: GM10_FUND_ABI,
         functionName: 'totalSupply',
-        query: { enabled: Boolean(contracts.proxyAddress) },
-    });
-
-    const { data: profitEligibleSupply } = useReadContract({
-        address: contracts.proxyAddress ?? ZERO_ADDRESS,
-        abi: GM10_FUND_ABI,
-        functionName: 'profitEligibleSupply18',
         query: { enabled: Boolean(contracts.proxyAddress) },
     });
 
@@ -183,41 +161,6 @@ export function useHolderDashboard() {
         query: { enabled: Boolean(GM10_MARKET_CONFIG.catchTokenAddress && isConnected) },
     });
 
-    const { data: fundClaimableProfit } = useReadContract({
-        address: contracts.proxyAddress ?? ZERO_ADDRESS,
-        abi: GM10_FUND_ABI,
-        functionName: 'claimableProfit',
-        args: [account],
-        query: { enabled: Boolean(contracts.proxyAddress && isConnected) },
-    });
-
-    const distributorAddress = profitDistributor && profitDistributor !== ZERO_ADDRESS
-        ? profitDistributor as `0x${string}`
-        : undefined;
-
-    const { data: isExcluded } = useReadContract({
-        address: distributorAddress ?? ZERO_ADDRESS,
-        abi: GM10_PROFIT_DISTRIBUTOR_ABI,
-        functionName: 'excludedFromProfitShare',
-        args: [account],
-        query: { enabled: Boolean(distributorAddress && isConnected) },
-    });
-
-    const { data: distributorClaimableProfit } = useReadContract({
-        address: distributorAddress ?? ZERO_ADDRESS,
-        abi: GM10_PROFIT_DISTRIBUTOR_ABI,
-        functionName: 'claimableProfit',
-        args: [account],
-        query: { enabled: Boolean(distributorAddress && isConnected) },
-    });
-
-    const { data: totalProfitDeposited } = useReadContract({
-        address: distributorAddress ?? ZERO_ADDRESS,
-        abi: GM10_PROFIT_DISTRIBUTOR_ABI,
-        functionName: 'totalProfitDepositedWei',
-        query: { enabled: Boolean(distributorAddress) },
-    });
-
     const { data: investorPnl } = useReadContract({
         address: contracts.investorAccountingAddress ?? ZERO_ADDRESS,
         abi: GM10_INVESTOR_ACCOUNTING_ABI,
@@ -227,23 +170,16 @@ export function useHolderDashboard() {
     });
     const holderAccounting = useMemo(() => resolveHolderAccounting({
         totalSupply,
-        profitEligibleSupply,
         excludedBalances: excludedSupplyBalances,
-        referenceNav,
         navPerToken,
-        totalProfitDeposited,
-        hasProfitDistributor: Boolean(distributorAddress),
     }), [
-        distributorAddress,
         excludedSupplyBalances,
         navPerToken,
-        profitEligibleSupply,
-        referenceNav,
-        totalProfitDeposited,
         totalSupply,
     ]);
 
-    const claimableProfit = distributorClaimableProfit ?? fundClaimableProfit;
+    const claimableProfit = 0n;
+    const isExcluded = undefined;
     const claimState = useMemo(() => getClaimEligibilityState({
         isConnected,
         isExcluded,
@@ -310,7 +246,6 @@ export function useHolderDashboard() {
             liquidityAvaxPairingAccrued: stableAccounting ? formatUsdt6(stableAccounting[5]) : 'Unavailable',
         },
         raw: {
-            profitDistributor: distributorAddress,
             isExcluded,
             claimableProfit,
             catchBalance,
