@@ -81,7 +81,7 @@ const ROADMAP_NODES: RoadmapNode[] = [
         status: 'Done',
         area: 'Proof',
         stage: 'proof',
-        notes: 'Public proof, portfolio, holder, and valuation surfaces are live on gm10.xyz/admin.gm10.xyz.',
+        notes: 'Public proof, portfolio, holder, and valuation surfaces are live from the unified gm10 deployment.',
     },
     {
         id: 'valuation-public',
@@ -89,7 +89,7 @@ const ROADMAP_NODES: RoadmapNode[] = [
         status: 'Done',
         area: 'Proof',
         stage: 'proof',
-        notes: 'Website consumes submitted or live public valuation marks from admin.gm10.xyz/api/valuation-public.',
+        notes: 'Website consumes submitted or live public valuation marks from the unified deployment API.',
         detail: 'Completed before this roadmap pass. Keep mark-source details updated as providers change.',
     },
     {

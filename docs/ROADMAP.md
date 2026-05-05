@@ -16,7 +16,7 @@ GM10 is moving from founder-led collectible execution toward transparent, gauge-
 - [x] Add valuation fallback behavior so available market sources can drive marks when another source is unavailable.
   Done: public valuation marks now use available market data such as Courtyard when PokemonPriceTracker data is unavailable.
 - [x] Publish public card marks on the website from the latest valuation projection.
-  Done: `gm10.xyz` consumes public valuation marks from `admin.gm10.xyz/api/valuation-public`.
+  Done: `gm10.xyz` consumes public valuation marks from the same main GM10 deployment API that also serves `admin.gm10.xyz`.
 - [x] Standardize one marketplace checklist for every new venue: approval, custody reference, fees, settlement proof, valuation source, and fallback handling.
   Done: the six-gate checklist now lives in `docs/marketplace-checklist.md`, shared app data, and the admin Operations marketplace tab with Courtyard as the regression fixture.
 - [ ] Expand beyond the first supported workflows into additional collector and marketplace rails.
@@ -47,7 +47,7 @@ GM10 is moving from founder-led collectible execution toward transparent, gauge-
 - [x] Make proof surfaces public for rounds, holdings, marks, treasury accounting, and holder dashboards.
   Done: public proof, portfolio, and holder pages are live on `gm10.xyz`.
 - [x] Add living roadmap tracking for public and internal work.
-  Done: the public roadmap lives in this document, and the private admin roadmap is a horizontal blocker diagram in `admin.gm10.xyz`.
+  Done: the public roadmap lives in this document, and the private admin roadmap is a horizontal blocker diagram at `admin.gm10.xyz`, served by the main GM10 deployment.
 - [ ] Move sensitive controls behind clearer Safe, timelock, and governance processes.
 - [ ] Shift from ops-led execution to community-guided decisions, then to onchain-enforced treasury controls.
 - [ ] Decentralize as fast as the tools, checks, marketplace workflows, and safety limits can support.

@@ -1,8 +1,77 @@
 {
-    "rewrites": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "crons": [
+    {
+      "path": "/api/valuation-cron",
+      "schedule": "0 6 * * 5"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
         {
-            "source": "/((?!api/).*)",
-            "destination": "/index.html"
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,POST,OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, content-type, Authorization, x-gm10-admin-address, x-gm10-admin-message, x-gm10-admin-signature"
         }
-    ]
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.gm10.xyz"
+        }
+      ],
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors https://app.safe.global https://*.safe.global"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(?!api/|admin/)(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.gm10.xyz"
+        }
+      ],
+      "headers": {
+        "Content-Security-Policy": "frame-ancestors https://app.safe.global https://*.safe.global"
+      },
+      "dest": "/admin/index.html"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.gm10.xyz"
+        }
+      ],
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }

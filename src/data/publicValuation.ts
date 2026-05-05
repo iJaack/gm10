@@ -46,6 +46,9 @@ export function normalizePublicValuationOverrides(
 }
 
 export function publicValuationUrl() {
-    const origin = String(import.meta.env.VITE_GM10_ADMIN_ORIGIN ?? 'https://admin.gm10.xyz').replace(/\/+$/, '');
+    const configuredOrigin = import.meta.env.VITE_GM10_ADMIN_ORIGIN;
+    if (!configuredOrigin) return '/api/valuation-public';
+
+    const origin = String(configuredOrigin).replace(/\/+$/, '');
     return `${origin}/api/valuation-public`;
 }

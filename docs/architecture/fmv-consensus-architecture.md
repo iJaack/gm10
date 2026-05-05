@@ -379,7 +379,7 @@ Responsibilities:
 
 Schedule:
 
-- Configured in `apps/admin/vercel.json`.
+- Configured in the root `vercel.json` because the admin console is served by the main GM10 Vercel deployment.
 - Current schedule: `0 6 * * 5`, which runs Fridays at 06:00 UTC.
 
 ## Data Flow

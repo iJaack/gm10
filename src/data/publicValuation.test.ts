@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizePublicValuationOverrides } from './publicValuation';
+import { normalizePublicValuationOverrides, publicValuationUrl } from './publicValuation';
 
 describe('public valuation overrides', () => {
     it('keeps submitted positive marks keyed by position id', () => {
@@ -29,5 +29,35 @@ describe('public valuation overrides', () => {
         });
 
         expect(overrides).toEqual({});
+    });
+
+    it('uses the unified same-origin valuation API by default', () => {
+        const previousOrigin = import.meta.env.VITE_GM10_ADMIN_ORIGIN;
+        delete (import.meta.env as Record<string, string | undefined>).VITE_GM10_ADMIN_ORIGIN;
+
+        try {
+            expect(publicValuationUrl()).toBe('/api/valuation-public');
+        } finally {
+            if (previousOrigin === undefined) {
+                delete (import.meta.env as Record<string, string | undefined>).VITE_GM10_ADMIN_ORIGIN;
+            } else {
+                (import.meta.env as Record<string, string | undefined>).VITE_GM10_ADMIN_ORIGIN = previousOrigin;
+            }
+        }
+    });
+
+    it('keeps the explicit admin origin override when configured', () => {
+        const previousOrigin = import.meta.env.VITE_GM10_ADMIN_ORIGIN;
+        (import.meta.env as Record<string, string | undefined>).VITE_GM10_ADMIN_ORIGIN = 'https://admin.gm10.xyz/';
+
+        try {
+            expect(publicValuationUrl()).toBe('https://admin.gm10.xyz/api/valuation-public');
+        } finally {
+            if (previousOrigin === undefined) {
+                delete (import.meta.env as Record<string, string | undefined>).VITE_GM10_ADMIN_ORIGIN;
+            } else {
+                (import.meta.env as Record<string, string | undefined>).VITE_GM10_ADMIN_ORIGIN = previousOrigin;
+            }
+        }
     });
 });

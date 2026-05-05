@@ -6,14 +6,20 @@
   "engines": {
     "node": ">=20"
   },
+  "workspaces": [
+    "apps/admin"
+  ],
   "scripts": {
     "dev": "vite",
-    "prebuild": "cp SKILL.md public/SKILL.md",
-    "build": "rm -rf dist && vite build",
+    "build:web": "cp SKILL.md public/SKILL.md && rm -rf dist && vite build",
+    "build:admin": "npm --workspace gm10-admin run build -- --base=/admin/ && node scripts/copy-admin-dist.mjs",
+    "build": "npm run build:web && npm run build:admin",
     "preview": "vite preview",
     "test:web": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check": "npm run typecheck && npm run test:web && npm run build",
+    "admin:test": "npm --workspace gm10-admin test",
+    "admin:typecheck": "npm --workspace gm10-admin run typecheck",
+    "check": "npm run typecheck && npm run test:web && npm run admin:test && npm run admin:typecheck && npm run build",
     "test": "npm run check && npm --prefix contracts test"
   },
   "dependencies": {
