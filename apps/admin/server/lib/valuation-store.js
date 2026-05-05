@@ -58,8 +58,14 @@ async function blobJson(pathname, body, access, { allowOverwrite = pathname.ends
   });
 }
 
+export function blobReadOptions(access, useCache = true) {
+  return access === 'private'
+    ? { access, useCache }
+    : { access };
+}
+
 async function readBlobJson(pathname, access, useCache = true) {
-  const result = await blobGet(pathname, { access, useCache });
+  const result = await blobGet(pathname, blobReadOptions(access, useCache));
   if (!result || result.statusCode === 304 || !result.stream) {
     return null;
   }
