@@ -3,7 +3,7 @@ import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
-import { CHAINLINK_AGGREGATOR_V3_ABI, COURTYARD_WORKFLOW_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
+import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { TxButton, TxResult } from '../components/TxButton';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
@@ -725,12 +725,12 @@ export function OperationsPanel() {
     }
 
     function submitCourtyardPolygonSafe() {
-        if (!MAINNET.courtyardWorkflow || !ADDRESS_RE.test(polygonSafe)) return;
+        if (!MAINNET.portfolioRegistry || !ADDRESS_RE.test(polygonSafe)) return;
         reset();
         writeContract({
-            address: MAINNET.courtyardWorkflow,
-            abi: COURTYARD_WORKFLOW_ABI,
-            functionName: 'configureCourtyardChain',
+            address: MAINNET.portfolioRegistry,
+            abi: REGISTRY_ABI,
+            functionName: 'setChainSafe',
             args: [
                 LZ_EID.POLYGON_MAINNET,
                 polygonSafe as `0x${string}`,
@@ -1736,7 +1736,7 @@ export function OperationsPanel() {
                                     onClick={submitCourtyardPolygonSafe}
                                     txHash={txHash}
                                     isPending={isPending}
-                                    disabled={!MAINNET.courtyardWorkflow || !ADDRESS_RE.test(polygonSafe)}
+                                    disabled={!MAINNET.portfolioRegistry || !ADDRESS_RE.test(polygonSafe)}
                                 >
                                     Configure Polygon Safe
                                 </TxButton>

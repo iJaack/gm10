@@ -489,6 +489,7 @@ export function CourtyardWizardPanel() {
         { label: 'LI.FI USDC route output is sufficient', ok: Boolean(quotes?.usdc.enoughOutput && quotes.usdc.transactionRequest?.to) },
     ];
     const preflightOk = preflightChecks.every((check) => check.ok);
+    const preflightBlockers = preflightChecks.filter((check) => !check.ok);
 
     function updateDraft(updater: (current: WizardDraft) => WizardDraft) {
         setDraft((current) => {
@@ -668,6 +669,11 @@ export function CourtyardWizardPanel() {
     }
 
     async function submitAuthorize() {
+        if (!preflightOk) {
+            setError(`Purchase authorization is blocked: ${preflightBlockers.map((check) => check.label).join(', ')}.`);
+            return;
+        }
+
         await submitContractStep('authorize_purchase', 'Authorizing Courtyard purchase', () =>
             writeContractAsync({
                 address: MAINNET.portfolioRegistry,
@@ -870,7 +876,7 @@ export function CourtyardWizardPanel() {
                         ) : null}
                         <div className="flex flex-wrap gap-3">
                             <PrimaryButton onClick={() => completeStep('preflight', 'authorize_purchase')} disabled={!preflightOk}>
-                                Continue to withdrawal
+                                Continue to authorization
                             </PrimaryButton>
                             <SecondaryButton onClick={resolveListing} disabled={isResolving}>Refresh quote</SecondaryButton>
                         </div>
@@ -938,7 +944,12 @@ export function CourtyardWizardPanel() {
                             <div>Status: {purchaseStatus}</div>
                         </div>
                         <StoredTxSummary hash={draft.txHashes.authorize_purchase} label="Stored authorization transaction" />
-                        <PrimaryButton onClick={submitAuthorize} disabled={purchaseAuthorized || isContractPending}>
+                        {!preflightOk ? (
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                Authorization is blocked until preflight passes: {preflightBlockers.map((check) => check.label).join(', ')}.
+                            </div>
+                        ) : null}
+                        <PrimaryButton onClick={submitAuthorize} disabled={!preflightOk || purchaseAuthorized || isContractPending}>
                             {purchaseAuthorized ? 'Already authorized' : 'Submit authorization'}
                         </PrimaryButton>
                         {draft.txHashes.authorize_purchase ? (
