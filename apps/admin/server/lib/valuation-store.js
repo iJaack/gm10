@@ -4,6 +4,7 @@ import { dirname, resolve, join } from 'node:path';
 
 const PACK_ROOT = 'valuation-packs';
 const JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
+export const VALUATION_BLOB_ACCESS = 'public';
 
 function packFilename(packId) {
   return `${packId}.json`;
@@ -159,14 +160,14 @@ function createLocalStore(rootDir) {
 }
 
 function createBlobStore() {
-  const getPackArtifact = async (packId) => readBlobJson(packPath('', packId), 'public');
-  const getReviewState = async (packId) => readBlobJson(reviewPath('', packId), 'private', false);
+  const getPackArtifact = async (packId) => readBlobJson(packPath('', packId), VALUATION_BLOB_ACCESS);
+  const getReviewState = async (packId) => readBlobJson(reviewPath('', packId), VALUATION_BLOB_ACCESS, false);
   const getPack = async (packId) => mergeReviewState(
     await getPackArtifact(packId),
     await getReviewState(packId),
   );
   const getLatestPack = async () => {
-    const latest = await readBlobJson(latestPath(''), 'private', false);
+    const latest = await readBlobJson(latestPath(''), VALUATION_BLOB_ACCESS, false);
     if (!latest?.packId) {
       return null;
     }
@@ -176,11 +177,11 @@ function createBlobStore() {
 
   return {
     async savePack(pack) {
-      await blobJson(packPath('', pack.packId), pack, 'public');
+      await blobJson(packPath('', pack.packId), pack, VALUATION_BLOB_ACCESS);
       await blobJson(latestPath(''), {
         generatedAt: pack.generatedAt,
         packId: pack.packId,
-      }, 'private');
+      }, VALUATION_BLOB_ACCESS);
     },
 
     getPack,
@@ -193,7 +194,7 @@ function createBlobStore() {
       }
 
       const nextReviewState = mergeReviewCard(await getReviewState(update.packId), update);
-      await blobJson(reviewPath('', update.packId), nextReviewState, 'private', { allowOverwrite: true });
+      await blobJson(reviewPath('', update.packId), nextReviewState, VALUATION_BLOB_ACCESS, { allowOverwrite: true });
       return mergeReviewState(pack, nextReviewState);
     },
   };

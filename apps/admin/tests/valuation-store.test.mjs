@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createValuationPackStore } from '../server/lib/valuation-store.js';
+import { createValuationPackStore, VALUATION_BLOB_ACCESS } from '../server/lib/valuation-store.js';
 
 test('local valuation pack store writes immutable pack and latest index', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'gm10-valuation-'));
@@ -57,4 +57,8 @@ test('local valuation pack store merges mutable review state without rewriting p
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('blob valuation pack store uses public access for CLI-created stores', () => {
+  assert.equal(VALUATION_BLOB_ACCESS, 'public');
 });
