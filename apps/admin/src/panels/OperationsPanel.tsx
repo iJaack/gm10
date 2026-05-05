@@ -1670,7 +1670,7 @@ export function OperationsPanel() {
                                 />
                             </div>
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                                The prepared withdrawal includes the LI.FI USDC route, source-chain gas estimates, and a 2%
+                                The prepared withdrawal includes the LI.FI USDC route, source-chain gas estimates, and a 0.1%
                                 buffer. Confirmed funding accounting stays equal to the listing price.
                             </div>
                             {fundingQuotes ? (
@@ -1678,7 +1678,7 @@ export function OperationsPanel() {
                                     <div>USDC route AVAX input: {fundingQuotes.usdc.fromAmountAvax} AVAX via {fundingQuotes.usdc.tool || 'LI.FI'}</div>
                                     <div>Estimated source gas: {fundingQuotes.usdc.sourceGasAvax} AVAX</div>
                                     <div>Total before buffer: {fundingQuotes.summary.totalAvax} AVAX</div>
-                                    <div>Prepared withdrawal with 2% buffer: {fundingQuotes.summary.bufferedAvax} AVAX</div>
+                                    <div>Prepared withdrawal with 0.1% buffer: {fundingQuotes.summary.bufferedAvax} AVAX</div>
                                 </div>
                             ) : null}
                             <div className="flex flex-wrap gap-3">

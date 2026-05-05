@@ -45,7 +45,7 @@ test('normalizes exact-output quote and source gas', () => {
   assert.equal(belowMinimum.enoughOutput, false);
 });
 
-test('builds one USDC route with a 2 percent AVAX buffer', async () => {
+test('builds one USDC route with a 0.1 percent AVAX buffer', async () => {
   const fetchImpl = async (url) => {
     const parsed = new URL(url);
     const toAmount = parsed.searchParams.get('toAmount');
@@ -69,7 +69,8 @@ test('builds one USDC route with a 2 percent AVAX buffer', async () => {
   assert.equal(result.usdc.totalInputAvax, '1.01');
   assert.equal(result.pol, undefined);
   assert.equal(result.summary.totalAvax, '1.01');
-  assert.equal(result.summary.bufferedAvax, '1.0302');
+  assert.equal(result.summary.bufferedAvax, '1.01101');
+  assert.equal(result.summary.bufferBps, 10);
 });
 
 test('falls back to exact-source LI.FI quotes when exact-output routing is unavailable', async () => {

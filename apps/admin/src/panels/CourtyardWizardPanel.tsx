@@ -865,7 +865,7 @@ export function CourtyardWizardPanel() {
                             <div className="grid gap-1 text-xs text-gray-400">
                                 <div>USDC route AVAX input: {quotes.usdc.fromAmountAvax} AVAX via {quotes.usdc.tool || 'LI.FI'}</div>
                                 <div>Estimated source gas: {quotes.usdc.sourceGasAvax} AVAX</div>
-                                <div>Withdraw with 2% buffer: {quotes.summary.bufferedAvax} AVAX</div>
+                                <div>Withdraw with 0.1% buffer: {quotes.summary.bufferedAvax} AVAX</div>
                             </div>
                         ) : null}
                         <div className="flex flex-wrap gap-3">
