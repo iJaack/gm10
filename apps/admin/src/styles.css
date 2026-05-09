@@ -43,11 +43,7 @@ body {
 
 /* Production ambient gradient — faint, pokeball-hint */
 body {
-    background:
-        radial-gradient(ellipse 45% 40% at 12% 6%, rgba(232, 69, 58, 0.04), transparent),
-        radial-gradient(ellipse 40% 35% at 88% 10%, rgba(79, 168, 224, 0.04), transparent),
-        radial-gradient(ellipse 55% 45% at 50% 92%, rgba(90, 50, 140, 0.05), transparent),
-        var(--bg-primary);
+    background: var(--bg-primary);
 }
 
 input, select, textarea {
@@ -68,7 +64,7 @@ input, select, textarea {
 .admin-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 .admin-card:hover {

@@ -1,4 +1,6 @@
 import { MARKETPLACE_CHECKLIST_ITEMS } from '../data/marketplaceChecklist';
+import { MetricCard, PageHeader, StatusStrip } from '../components/AdminPrimitives';
+import { READ_STATUS } from '../lib/adminMetrics.js';
 
 type RoadmapStatus = 'Done' | 'In progress' | 'Blocked' | 'Planned';
 
@@ -325,27 +327,24 @@ export function RoadmapPanel() {
 
     return (
         <div className="grid gap-6">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="label-font">Private roadmap</div>
-                <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white">Execution dependency map</h1>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-400">
-                            Left-to-right roadmap for marketplace rollout, gauges, staking, profit distribution, tokenomics, partner pilots, and decentralization.
-                            Each card shows the exact blocker that must clear before the item should move forward.
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-white/10 bg-black/20 text-right">
-                        <div className="border-r border-white/10 px-4 py-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-gray-500">Done</div>
-                            <div className="mt-1 text-xl font-bold text-white">{completed} / {total}</div>
-                        </div>
-                        <div className="px-4 py-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-gray-500">Blocked</div>
-                            <div className="mt-1 text-xl font-bold text-red-100">{blocked}</div>
-                        </div>
-                    </div>
-                </div>
+            <PageHeader
+                eyebrow="Operational roadmap"
+                title="Execution dependency map"
+                description="Track marketplace rollout, valuation data truth, holder claims, LP deployment, tokenomics, and governance as operational readiness states."
+            />
+            <StatusStrip
+                items={[
+                    { label: `${completed} done`, status: READ_STATUS.live },
+                    { label: `${blocked} blocked`, status: blocked ? READ_STATUS.error : READ_STATUS.live },
+                    { label: `${total} total nodes`, status: READ_STATUS.configured },
+                    { label: `${MARKETPLACE_CHECKLIST_ITEMS.length} marketplace gates`, status: READ_STATUS.configured },
+                ]}
+            />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="Done" value={`${completed} / ${total}`} status={READ_STATUS.live} sourceLabel="roadmap" accent="green" />
+                <MetricCard label="Blocked" value={blocked.toString()} status={blocked ? READ_STATUS.error : READ_STATUS.live} sourceLabel="readiness" accent={blocked ? 'red' : 'green'} />
+                <MetricCard label="Marketplace gates" value={MARKETPLACE_CHECKLIST_ITEMS.length.toString()} status={READ_STATUS.configured} sourceLabel="checklist" />
+                <MetricCard label="Decision focus" value="Data truth" status={READ_STATUS.fallback} sourceLabel="current overhaul" detail="Admin surfaces should distinguish live, configured, fallback, stale, and unavailable data." />
             </div>
 
             <section className="rounded-2xl border border-white/10 bg-white/5 p-5">

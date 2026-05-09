@@ -3,8 +3,10 @@ import { formatUnits } from 'viem';
 import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
+import { MetricCard, PageHeader, StatusStrip } from '../components/AdminPrimitives';
 import { TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
+import { READ_STATUS } from '../lib/adminMetrics.js';
 import { resolveSafeAwareAdminAddress } from '../lib/safeContext.js';
 import {
     fetchLatestValuationPack,
@@ -465,11 +467,24 @@ export function ValuationPanel() {
 
     return (
         <div className="grid gap-6">
-            <div className="grid gap-3">
-                <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">Valuation workflow</h1>
-                <p className="max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
-                    Weekly Friday FMV marks use 2-of-3 consensus. Run valuation with the JSON boxes empty to use server-side provider discovery. An approved onchain submission creates the official mark.
-                </p>
+            <PageHeader
+                eyebrow="Valuation controls"
+                title="Valuation workflow"
+                description="Run weekly FMV consensus, review provider evidence, and submit approved marks with explicit signing and readiness states."
+            />
+            <StatusStrip
+                items={[
+                    { label: activeCards.length ? `${activeCards.length} active positions` : 'positions unavailable', status: activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: pack ? 'pack loaded' : 'pack not loaded', status: pack ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: isAuthLoading ? 'Safe context loading' : 'Safe context ready', status: isAuthLoading ? READ_STATUS.partial : READ_STATUS.live },
+                    { label: localError ? 'local error' : 'no local errors', status: localError ? READ_STATUS.error : READ_STATUS.live },
+                ]}
+            />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="Active cards" value={activeCards.length.toString()} status={activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="registry" />
+                <MetricCard label="Valuation pack" value={pack?.packId ?? 'Unavailable'} status={pack ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={pack ? 'loaded' : 'not loaded'} detail={pack ? `Generated ${formatTimestamp(pack.generatedAt)}` : 'Run or load a pack.'} />
+                <MetricCard label="Approved cards" value={Object.values(approvedCards).filter(Boolean).length.toString()} status={Object.values(approvedCards).some(Boolean) ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="local review" />
+                <MetricCard label="Submission signer" value={authAddress ? `${authAddress.slice(0, 6)}...${authAddress.slice(-4)}` : 'Unavailable'} status={authAddress ? READ_STATUS.configured : READ_STATUS.unavailable} sourceLabel={safeAppInfo.isSafeApp ? 'Safe app' : 'wallet'} />
             </div>
 
             <div className="admin-card grid gap-4 p-5">

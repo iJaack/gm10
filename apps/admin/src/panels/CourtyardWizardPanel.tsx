@@ -4,6 +4,8 @@ import { formatUnits, isAddress, keccak256, parseEther, parseUnits, stringToHex,
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { EXPLORER_TX_BASE_URL, LZ_EID, MAINNET } from '../addresses';
+import { PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
+import { READ_STATUS } from '../lib/adminMetrics.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
 const BYTES32_RE = /^0x[a-fA-F0-9]{64}$/;
@@ -12,6 +14,7 @@ const POLYGON_CHAIN_ID = 137;
 const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const;
 const COURTYARD_MARKETPLACE_ID = keccak256(stringToHex('COURTYARD'));
 const STORAGE_KEY = 'gm10:courtyard-wizard:draft';
+const NFT_OWNERSHIP_POLL_INTERVAL_MS = 5_000;
 const STEP_IDS = [
     'resolve',
     'preflight',
@@ -165,6 +168,19 @@ const ERC721_ABI = [
     },
 ] as const;
 
+const ERC1155_ABI = [
+    {
+        inputs: [
+            { name: 'account', type: 'address' },
+            { name: 'id', type: 'uint256' },
+        ],
+        name: 'balanceOf',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 const STEPS: Array<{ id: StepId; title: string }> = [
     { id: 'resolve', title: 'Resolve listing' },
     { id: 'preflight', title: 'Preflight' },
@@ -248,6 +264,17 @@ function parseUsdt6Input(value: string): bigint {
 
 function parseUintInput(value: string): bigint {
     return BigInt(value.trim() || '0');
+}
+
+function tryParseUintInput(value: string | undefined): bigint | undefined {
+    try {
+        const trimmed = String(value ?? '').trim();
+        if (!trimmed) return undefined;
+        const parsed = BigInt(trimmed);
+        return parsed >= 0n ? parsed : undefined;
+    } catch {
+        return undefined;
+    }
 }
 
 function shortHash(hash: string) {
@@ -378,7 +405,24 @@ export function CourtyardWizardPanel() {
     const polygonHotWallet = MAINNET.polygonCourtyardHotWallet;
     const purchaseKey = useMemo(() => bytes32FromInput(draft.purchase.key), [draft.purchase.key]);
     const targetUsdcRaw = asset ? BigInt(asset.listing.priceRaw) : 0n;
-    const nftTokenId = asset?.tokenId ? BigInt(asset.tokenId) : 0n;
+    const positionTokenId = tryParseUintInput(draft.position.tokenId);
+    const assetTokenId = tryParseUintInput(asset?.tokenId);
+    const nftTokenId = positionTokenId ?? assetTokenId ?? 0n;
+    const nftCollection = (
+        isAddress(draft.position.evmCollection)
+            ? draft.position.evmCollection
+            : asset?.collectionContract ?? ADDRESS_ZERO
+    ) as `0x${string}`;
+    const hasNftLookupTarget = isAddress(nftCollection) && (positionTokenId !== undefined || assetTokenId !== undefined);
+    const shouldPollNftOwner = Boolean(
+        hasNftLookupTarget &&
+        (
+            draft.activeStep === 'buy_on_courtyard' ||
+            draft.activeStep === 'detect_hot_wallet_nft' ||
+            draft.activeStep === 'transfer_nft_to_safe' ||
+            draft.activeStep === 'record_position'
+        ),
+    );
 
     const { data: treasuryAddress } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -424,16 +468,60 @@ export function CourtyardWizardPanel() {
         },
     });
 
-    const { data: nftOwner, refetch: refetchNftOwner } = useReadContract({
-        address: (asset?.collectionContract ?? ADDRESS_ZERO) as `0x${string}`,
+    const {
+        data: erc721Owner,
+        refetch: refetchErc721Owner,
+        isFetching: isErc721OwnerFetching,
+        isError: isErc721OwnerError,
+        error: erc721OwnerError,
+    } = useReadContract({
+        address: nftCollection,
         abi: ERC721_ABI,
         functionName: 'ownerOf',
         args: [nftTokenId],
         chainId: POLYGON_CHAIN_ID,
         query: {
-            enabled: Boolean(asset && isAddress(asset.collectionContract)),
+            enabled: shouldPollNftOwner,
             retry: false,
-            refetchInterval: 15_000,
+            refetchInterval: shouldPollNftOwner ? NFT_OWNERSHIP_POLL_INTERVAL_MS : false,
+            refetchIntervalInBackground: true,
+        },
+    });
+
+    const {
+        data: erc1155HotWalletBalance,
+        refetch: refetchErc1155HotWalletBalance,
+        isFetching: isErc1155HotWalletFetching,
+    } = useReadContract({
+        address: nftCollection,
+        abi: ERC1155_ABI,
+        functionName: 'balanceOf',
+        args: [polygonHotWallet, nftTokenId],
+        chainId: POLYGON_CHAIN_ID,
+        query: {
+            enabled: shouldPollNftOwner,
+            retry: false,
+            refetchInterval: shouldPollNftOwner ? NFT_OWNERSHIP_POLL_INTERVAL_MS : false,
+            refetchIntervalInBackground: true,
+        },
+    });
+
+    const {
+        data: erc1155SafeBalance,
+        refetch: refetchErc1155SafeBalance,
+        isFetching: isErc1155SafeFetching,
+        isError: isErc1155SafeError,
+    } = useReadContract({
+        address: nftCollection,
+        abi: ERC1155_ABI,
+        functionName: 'balanceOf',
+        args: [polygonSafe, nftTokenId],
+        chainId: POLYGON_CHAIN_ID,
+        query: {
+            enabled: shouldPollNftOwner,
+            retry: false,
+            refetchInterval: shouldPollNftOwner ? NFT_OWNERSHIP_POLL_INTERVAL_MS : false,
+            refetchIntervalInBackground: true,
         },
     });
 
@@ -468,10 +556,37 @@ export function CourtyardWizardPanel() {
     const purchaseExecuted = purchaseStatus >= 4;
     const positionRecorded = purchaseStatus >= 5;
     const hotWalletHasUsdc = (hotWalletUsdc ?? 0n) >= targetUsdcRaw && targetUsdcRaw > 0n;
-    const nftInHotWallet = sameAddress(nftOwner, polygonHotWallet);
-    const nftInSafe = sameAddress(nftOwner, polygonSafe);
+    const erc1155InHotWallet = (erc1155HotWalletBalance ?? 0n) > 0n;
+    const erc1155InSafe = (erc1155SafeBalance ?? 0n) > 0n;
+    const nftInHotWallet = sameAddress(erc721Owner, polygonHotWallet) || erc1155InHotWallet;
+    const nftInSafe = sameAddress(erc721Owner, polygonSafe) || erc1155InSafe;
+    const detectedTokenStandard = erc1155InHotWallet || erc1155InSafe ? 'ERC1155' : 'ERC721';
+    const nftOwner = erc721Owner ?? (erc1155InSafe ? polygonSafe : erc1155InHotWallet ? polygonHotWallet : undefined);
+    const isNftOwnerFetching = isErc721OwnerFetching || isErc1155HotWalletFetching || isErc1155SafeFetching;
+    const nftOwnerStatus = nftOwner
+        ? `${nftOwner}${detectedTokenStandard === 'ERC1155' ? ` (${detectedTokenStandard})` : ''}`
+        : isErc721OwnerError && !erc1155InHotWallet && !erc1155InSafe
+            ? 'Not detected yet'
+            : isNftOwnerFetching
+                ? 'Checking...'
+                : 'Waiting for ownership update';
+    const erc721OwnershipReadError = erc721OwnerError instanceof Error ? erc721OwnerError.message : undefined;
+    const erc1155SafeBalanceStatus = erc1155SafeBalance !== undefined
+        ? erc1155SafeBalance.toString()
+        : isErc1155SafeError
+            ? 'Not supported by collection'
+            : 'Checking...';
+
+    async function refetchNftOwner() {
+        await Promise.allSettled([
+            refetchErc721Owner(),
+            refetchErc1155HotWalletBalance(),
+            refetchErc1155SafeBalance(),
+        ]);
+    }
     const bridgeRouteDone = hotWalletHasUsdc || lifiStatus.data?.status === 'DONE';
     const bridgeRouteFailed = lifiStatus.data?.status === 'FAILED' || lifiStatus.data?.status === 'INVALID';
+    const currentStepTitle = STEPS.find((step) => step.id === draft.activeStep)?.title ?? draft.activeStep;
     const nextContractStep: Partial<Record<StepId, StepId>> = {
         authorize_purchase: 'withdraw_avax',
         withdraw_avax: 'bridge_usdc_to_hot_wallet',
@@ -737,7 +852,7 @@ export function CourtyardWizardPanel() {
                     purchaseKey,
                     {
                         custodyMode: Number(draft.position.custodyMode),
-                        tokenStandard: bytes32FromInput(draft.position.tokenStandard),
+                        tokenStandard: bytes32FromInput(detectedTokenStandard),
                         evmCollection: isAddress(draft.position.evmCollection) ? draft.position.evmCollection : ADDRESS_ZERO,
                         nonEvmCollection: bytes32FromInput(draft.position.nonEvmCollection),
                         tokenId: parseUintInput(draft.position.tokenId),
@@ -793,6 +908,11 @@ export function CourtyardWizardPanel() {
         if (draft.activeStep === 'record_execution' && purchaseExecuted) completeStep('record_execution', 'record_position');
         if (draft.activeStep === 'record_position' && positionRecorded) completeStep('record_position', 'complete');
     }, [draft.activeStep, positionRecorded, purchaseAuthorized, purchaseExecuted, purchaseReleased]);
+
+    useEffect(() => {
+        if (detectedTokenStandard !== 'ERC1155' || draft.position.tokenStandard === 'ERC1155') return;
+        updatePosition('tokenStandard', 'ERC1155');
+    }, [detectedTokenStandard, draft.position.tokenStandard]);
 
     useEffect(() => {
         if (draft.activeStep === 'buy_on_courtyard' && nftInSafe) {
@@ -981,14 +1101,17 @@ export function CourtyardWizardPanel() {
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Hot Wallet: {polygonHotWallet}</div>
                             <div>USDC balance: {hotWalletUsdc !== undefined ? formatUnits(hotWalletUsdc, 6) : 'Checking...'}</div>
-                            <div>NFT owner: {nftOwner ?? 'Not detected yet'}</div>
+                            <div>NFT owner: {nftOwnerStatus}</div>
+                            <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
                         {asset ? (
                             <a href={asset.sourceUrl} target="_blank" rel="noreferrer" className="w-fit rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14]">
                                 Open Courtyard listing
                             </a>
                         ) : null}
-                        <SecondaryButton onClick={() => void refetchNftOwner()}>Check NFT ownership</SecondaryButton>
+                        <SecondaryButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
+                            {isNftOwnerFetching ? 'Checking ownership...' : 'Check NFT ownership now'}
+                        </SecondaryButton>
                     </Panel>
                 );
             case 'detect_hot_wallet_nft':
@@ -996,9 +1119,12 @@ export function CourtyardWizardPanel() {
                     <Panel title="Detect NFT in Hot Wallet">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Expected owner: {polygonHotWallet}</div>
-                            <div>Detected owner: {nftOwner ?? 'Checking...'}</div>
+                            <div>Detected owner: {nftOwnerStatus}</div>
+                            <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
-                        <SecondaryButton onClick={() => void refetchNftOwner()}>Refresh ownership</SecondaryButton>
+                        <SecondaryButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
+                            {isNftOwnerFetching ? 'Checking ownership...' : 'Refresh ownership now'}
+                        </SecondaryButton>
                     </Panel>
                 );
             case 'transfer_nft_to_safe':
@@ -1010,9 +1136,12 @@ export function CourtyardWizardPanel() {
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>From Hot Wallet: {polygonHotWallet}</div>
                             <div>To Polygon Safe: {polygonSafe}</div>
-                            <div>Detected owner: {nftOwner ?? 'Checking...'}</div>
+                            <div>Detected owner: {nftOwnerStatus}</div>
+                            <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
-                        <SecondaryButton onClick={() => void refetchNftOwner()}>Refresh ownership</SecondaryButton>
+                        <SecondaryButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
+                            {isNftOwnerFetching ? 'Checking ownership...' : 'Refresh ownership now'}
+                        </SecondaryButton>
                     </Panel>
                 );
             case 'record_execution':
@@ -1039,7 +1168,13 @@ export function CourtyardWizardPanel() {
                     <Panel title="Record collectible position">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Custody detected: {nftInSafe ? 'Polygon Safe owns the NFT' : 'Waiting for Polygon Safe custody'}</div>
-                            <div>Owner: {nftOwner ?? 'Checking...'}</div>
+                            <div>Owner: {nftOwnerStatus}</div>
+                            {!nftOwner && erc721OwnershipReadError ? <div>ERC721 read error: {erc721OwnershipReadError}</div> : null}
+                            <div>Query collection: {nftCollection}</div>
+                            <div>Query token ID: {nftTokenId.toString()}</div>
+                            <div>Detected token standard: {detectedTokenStandard}</div>
+                            <div>ERC1155 Safe balance: {erc1155SafeBalanceStatus}</div>
+                            <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                             <Field label="Collection" value={draft.position.evmCollection} onChange={(value) => updatePosition('evmCollection', value)} mono />
@@ -1051,7 +1186,7 @@ export function CourtyardWizardPanel() {
                         </div>
                         <StoredTxSummary hash={draft.txHashes.record_position} label="Stored position record transaction" />
                         <PrimaryButton onClick={submitRecordPosition} disabled={!nftInSafe || positionRecorded || isContractPending}>
-                            {positionRecorded ? 'Position recorded' : 'Submit position record'}
+                            {positionRecorded ? 'Position recorded' : nftInSafe ? 'Submit position record' : 'Waiting for Polygon Safe custody'}
                         </PrimaryButton>
                         {draft.txHashes.record_position ? (
                             <SecondaryButton onClick={() => void continueAfterSafeConfirmation('record_position')}>
@@ -1079,6 +1214,29 @@ export function CourtyardWizardPanel() {
 
     return (
         <div className="grid gap-6">
+            <PageHeader
+                eyebrow="Guided execution"
+                title="Courtyard Wizard"
+                description="Resolve listings, fund Polygon USDC, verify custody, and record accounting through a source-labeled execution timeline."
+                actions={<SecondaryButton onClick={resetWizard}>Reset</SecondaryButton>}
+            />
+            <StatusStrip
+                items={[
+                    { label: `current ${currentStepTitle}`, status: READ_STATUS.configured },
+                    { label: asset ? 'listing resolved' : 'listing pending', status: asset ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: purchaseAuthorized ? 'purchase authorized' : 'authorization pending', status: purchaseAuthorized ? READ_STATUS.live : READ_STATUS.partial },
+                    { label: bridgeRouteFailed ? 'bridge failed' : bridgeRouteDone ? 'bridge done' : 'bridge waiting', status: bridgeRouteFailed ? READ_STATUS.error : bridgeRouteDone ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: nftInSafe ? 'NFT in Safe' : nftInHotWallet ? 'NFT in hot wallet' : 'ownership waiting', status: nftInSafe ? READ_STATUS.live : nftInHotWallet ? READ_STATUS.partial : READ_STATUS.unavailable },
+                ]}
+            />
+            <WorkflowTimeline
+                steps={[
+                    { label: 'Resolve listing', status: asset ? READ_STATUS.live : READ_STATUS.unavailable, detail: asset?.title ?? 'Paste a Courtyard asset URL.' },
+                    { label: 'Authorize and withdraw', status: purchaseAuthorized ? READ_STATUS.live : READ_STATUS.partial, detail: purchaseAuthorized ? `Purchase status ${purchaseStatus}` : 'Safe/admin authorization still pending.' },
+                    { label: 'Bridge and buy', status: bridgeRouteDone || hotWalletHasUsdc ? READ_STATUS.live : bridgeRouteFailed ? READ_STATUS.error : READ_STATUS.unavailable, detail: hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC in hot wallet` : 'Waiting for hot wallet USDC.' },
+                    { label: 'Custody and record', status: positionRecorded ? READ_STATUS.live : nftInSafe ? READ_STATUS.partial : READ_STATUS.unavailable, detail: positionRecorded ? 'Position recorded on Avalanche.' : nftOwnerStatus },
+                ]}
+            />
             <div className="rounded-xl border border-white/10 bg-white/5 p-6">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -1087,7 +1245,6 @@ export function CourtyardWizardPanel() {
                             Guided purchase funding and accounting. The wizard submits Safe/admin transactions, waits for confirmations, funds only Polygon USDC to the Hot Wallet, and waits for NFT custody before recording the final position.
                         </p>
                     </div>
-                    <SecondaryButton onClick={resetWizard}>Reset</SecondaryButton>
                 </div>
 
                 <div className="mb-5 grid gap-2 md:grid-cols-3">

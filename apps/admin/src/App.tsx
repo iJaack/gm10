@@ -30,7 +30,7 @@ function AdminApp() {
         <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
             {/* Header */}
             <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg-primary)]/85 backdrop-blur-xl">
-                <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
                     <div className="flex items-baseline gap-2">
                         <span className="text-base font-extrabold tracking-[-0.01em] text-[var(--accent-blue)]">GM10</span>
                         <span className="label-font text-[0.62rem]" style={{ color: 'var(--text-tertiary)' }}>Admin</span>
@@ -50,7 +50,7 @@ function AdminApp() {
 
             {/* Nav tabs */}
             <div className="border-b border-[var(--border)]">
-                <div className="mx-auto flex max-w-5xl gap-1 px-6">
+                <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-6">
                     {TABS.map(t => (
                         <button
                             key={t}
@@ -69,7 +69,7 @@ function AdminApp() {
             </div>
 
             {/* Content */}
-            <main className="mx-auto max-w-5xl px-6 py-10">
+            <main className="mx-auto max-w-7xl px-6 py-8">
                 {tab === 'Dashboard' && <DashboardPanel />}
                 {tab === 'Rounds' && <RoundsPanel />}
                 {tab === 'Operations' && <OperationsPanel />}

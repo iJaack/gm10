@@ -4,8 +4,10 @@ import { encodeFunctionData, formatUnits, isAddress, keccak256, padHex, parseUni
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
+import { MetricCard, PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
+import { READ_STATUS } from '../lib/adminMetrics.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -514,16 +516,35 @@ export function PhygitalsPanel() {
 
     return (
         <div className="grid gap-6">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <h2 className="mb-3 text-lg font-bold text-white">Phygitals adapter</h2>
-                <div className="grid gap-2 text-xs text-gray-400">
-                    <div>Marketplace ID: {PHYGITALS_MARKETPLACE_ID}</div>
-                    <div>Marketplace approved: {phygitalsApproved === undefined ? 'Unavailable' : String(phygitalsApproved)}</div>
-                    <div>Solana EID: {LZ_EID.SOLANA_MAINNET}</div>
-                    <div className="break-all">Configured Solana multisig: {formatNonEvmSafe(solanaChainSafe?.nonEvmSafe)}</div>
-                    <div>Solana custody enabled: {solanaChainSafe ? String(solanaChainSafe.enabled) : 'Unavailable'}</div>
-                </div>
+            <PageHeader
+                eyebrow="Phygitals workflow"
+                title="Phygitals adapter"
+                description="Resolve Solana-backed cards, configure custody, fund purchases, and record positions through a visible readiness flow."
+            />
+            <StatusStrip
+                items={[
+                    { label: phygitalsApproved === true ? 'marketplace approved' : 'approval pending', status: phygitalsApproved === true ? READ_STATUS.live : READ_STATUS.partial },
+                    { label: solanaChainSafe?.enabled ? 'Solana custody enabled' : 'custody not enabled', status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: card ? 'card resolved' : 'card pending', status: card ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: fundingQuote ? 'funding quote live' : 'quote pending', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable },
+                ]}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="Marketplace" value={phygitalsApproved === undefined ? 'Unavailable' : phygitalsApproved ? 'Approved' : 'Not approved'} status={phygitalsApproved ? READ_STATUS.live : phygitalsApproved === false ? READ_STATUS.partial : READ_STATUS.unavailable} sourceLabel="registry read" detail={<span className="break-all font-mono">{PHYGITALS_MARKETPLACE_ID}</span>} />
+                <MetricCard label="Solana custody" value={solanaChainSafe?.enabled ? 'Enabled' : 'Unavailable'} status={solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={`EID ${LZ_EID.SOLANA_MAINNET}`} detail={<span className="break-all">{formatNonEvmSafe(solanaChainSafe?.nonEvmSafe)}</span>} />
+                <MetricCard label="Resolved card" value={card?.title ?? 'Unavailable'} status={card ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={card ? 'Phygitals' : 'pending'} />
+                <MetricCard label="Funding quote" value={fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX` : 'Unavailable'} status={fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={fundingQuote?.usdc.tool || 'LI.FI'} detail={fundingQuote ? `Estimated receive ${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC` : 'Resolve a card before quoting.'} />
             </div>
+
+            <WorkflowTimeline
+                steps={[
+                    { label: 'Configure custody', status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable, detail: configuredSolanaDestination },
+                    { label: 'Resolve card', status: card ? READ_STATUS.live : READ_STATUS.unavailable, detail: card?.title ?? 'No card loaded.' },
+                    { label: 'Fund purchase', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable, detail: fundingQuote ? `${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC target` : 'Quote not loaded.' },
+                    { label: 'Record position', status: (purchaseAuthorization?.status ?? 0) >= 4 ? READ_STATUS.live : purchaseAuthorization ? READ_STATUS.partial : READ_STATUS.unavailable, detail: purchaseAuthorization ? statusLabel(purchaseAuthorization.status ?? 0) : 'Authorization unavailable.' },
+                ]}
+            />
 
             <Section title="Setup">
                 <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">

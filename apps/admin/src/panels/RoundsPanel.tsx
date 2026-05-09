@@ -11,7 +11,9 @@ import {
     WAVAX_ABI,
 } from '../abis';
 import { LIQUIDITY_VENUES, MAINNET, MAINNET_TOKENS } from '../addresses';
+import { ActionReadinessPanel, MetricCard, PageHeader, StatusStrip } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
+import { READ_STATUS } from '../lib/adminMetrics.js';
 import {
     PHARAOH_FEE_1_PERCENT,
     ROUND2_DEADLINE_SECONDS,
@@ -401,23 +403,40 @@ export function RoundsPanel() {
 
     const canCreateRound2 = !currentRoundId || currentRoundId < ROUND2_ID;
     const canFinalizeRound2 = Boolean(round2 && !round2Finalized && (round2.raisedAmount >= round2.targetAmount || BigInt(Math.floor(Date.now() / 1000)) > round2.endTime));
+    const quoteFreshness = lfjQuote && pharaohSlot0 ? READ_STATUS.live : lfjQuote || pharaohSlot0 ? READ_STATUS.partial : READ_STATUS.unavailable;
 
     return (
         <div className="grid gap-6">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <h2 className="text-xl font-bold text-white">Rounds</h2>
-                <p className="mt-2 text-sm leading-6 text-gray-400">
-                    Round close logic follows the live implementation: exact remaining dust can close below the normal minimum,
-                    cap-fill auto-finalizes, and overpaying the remaining cap reverts.
-                </p>
-                <div className="mt-4 grid gap-2 text-xs text-gray-400">
-                    <div>Fund proxy: {MAINNET.fundProxy}</div>
-                    <div>Current round ID: {currentRoundId?.toString() ?? 'Unavailable'}</div>
-                    <div>Fund AVAX balance: {fundBalance ? `${Number(formatEther(fundBalance.value)).toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX` : 'Unavailable'}</div>
-                    <div>Treasury Safe: {effectiveTreasuryAddress}</div>
-                    <div>Treasury AVAX balance: {treasuryBalance ? `${Number(formatEther(treasuryBalance.value)).toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX` : 'Unavailable'}</div>
-                </div>
+            <PageHeader
+                eyebrow="Round operations"
+                title="Rounds"
+                description="Create, close, and route fundraising rounds with explicit finalization and quote-readiness gates."
+            />
+            <StatusStrip
+                items={[
+                    { label: `Current round ${currentRoundId?.toString() ?? 'unavailable'}`, status: currentRoundId !== undefined ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: getRoundStatus(round2), status: round2 ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: round2Finalized ? 'routing unlocked' : 'finalization required', status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback },
+                    { label: quoteFreshness === READ_STATUS.live ? 'quotes live' : 'quote reads pending', status: quoteFreshness },
+                ]}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="Fund balance" value={formatAvax(fundBalance?.value)} status={fundBalance ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={fundBalance ? 'live balance' : 'unavailable'} />
+                <MetricCard label="Treasury Safe" value={formatAvax(treasuryBalance?.value)} status={READ_STATUS.configured} sourceLabel="configured Safe" detail={<span className="break-all font-mono">{effectiveTreasuryAddress}</span>} />
+                <MetricCard label="Raised" value={formatAvax(round2?.raisedAmount)} status={round2 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="Round 2" accent="blue" />
+                <MetricCard label="Routing bucket" value={formatAvax(routing.routingBucket)} status={round2 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={round2Finalized ? 'withdrawable' : 'planned'} accent="yellow" />
             </div>
+
+            <ActionReadinessPanel
+                title="Routing readiness"
+                rows={[
+                    { label: 'Round 2 finalization', status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback, detail: round2Finalized ? 'Routing withdrawals are enabled.' : 'Finalize Round 2 before withdrawing routing buckets.' },
+                    { label: 'LFJ quote', status: lfjQuote ? READ_STATUS.live : READ_STATUS.unavailable, detail: lfjQuote ? 'Legacy Joe quote returned for the selected tranche.' : 'Enter or select a tranche before relying on LFJ output.' },
+                    { label: 'Pharaoh pool read', status: pharaohSlot0 ? READ_STATUS.live : READ_STATUS.unavailable, detail: pharaohSlot0 ? `Current tick ${pharaohTick}.` : 'Pool tick unavailable; Pharaoh routing is not decision-ready.' },
+                    { label: 'Pharaoh drift guard', status: pharaohRoutingPaused ? READ_STATUS.error : READ_STATUS.live, detail: pharaohRoutingPaused ? 'Spot drift exceeded the configured guard.' : 'Spot drift is within the 10% guard.' },
+                ]}
+            />
 
             <div className="grid gap-4 lg:grid-cols-2">
                 <RoundCard title="Round 1 complete" round={round1 as RoundData | undefined} />

@@ -5,7 +5,9 @@ import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchC
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
+import { ActionReadinessPanel, MetricCard, PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
+import { READ_STATUS } from '../lib/adminMetrics.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -1182,33 +1184,60 @@ export function OperationsPanel() {
         courtyardApproved &&
         fundingQuotes.usdc.enoughOutput,
     );
+    const lpReadsStatus = traderJoeAvaxLp !== undefined && pharaohAvaxLp !== undefined
+        ? READ_STATUS.live
+        : traderJoeAvaxLp !== undefined || pharaohAvaxLp !== undefined
+            ? READ_STATUS.partial
+            : READ_STATUS.unavailable;
+    const lpDeployedLabel = lpReadsStatus === READ_STATUS.live
+        ? `${formatEther((traderJoeAvaxLp ?? 0n) + (pharaohAvaxLp ?? 0n))} AVAX`
+        : 'Unavailable';
 
     return (
         <div className="grid gap-6">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <h2 className="mb-4 text-lg font-bold text-white">Profit participation operations</h2>
-                <p className="mb-3 text-xs leading-5 text-gray-400">
-                    This surface tracks the sale-profit model: holder claim eligibility, cumulative AVAX distributions,
-                    LP replenishment accruals, and the mainnet marketplace approval list for operator-assisted card workflow execution.
-                </p>
-                <div className="grid gap-2 text-xs text-gray-400">
-                    <div>Fund proxy: {MAINNET.fundProxy ?? 'Pending env config'}</div>
-                    <div>Portfolio registry: {MAINNET.portfolioRegistry ?? 'Pending env config'}</div>
-                    <div>Profit distributor: {profitDistributor ?? 'Pending module wiring'}</div>
-                    <div>Liquidity coordinator: {liquidityCoordinator ?? 'Pending module wiring'}</div>
-                    <div>Courtyard workflow: {MAINNET.courtyardWorkflow ?? 'Pending env config'}</div>
-                    <div>Stored reference NAV/token: {referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'}</div>
-                    <div>Live liquid treasury: {formatUsdt6(liveLiquidTreasuryUsdt6)}</div>
-                    <div className="pl-3 text-gray-500">{liveLiquidTreasuryDetail}</div>
-                    <div>Stored accounting treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
-                    <div>Holder claim bucket: {stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'}</div>
-                    <div>LP $CATCH market-buy bucket: {stableAccounting ? `${formatUnits(stableAccounting[4], 6)} USDT` : 'Unavailable'}</div>
-                    <div>LP AVAX pairing bucket: {stableAccounting ? `${formatUnits(stableAccounting[5], 6)} USDT` : 'Unavailable'}</div>
-                    <div>Profit-eligible supply: {eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'}</div>
-                    <div>Cumulative profit per token: {cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'}</div>
-                    <div>Total AVAX distributed: {totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'}</div>
-                </div>
+            <PageHeader
+                eyebrow="Workflow hub"
+                title="Operations"
+                description="Coordinate profit buckets, marketplace setup, Courtyard execution, and LP deployment with explicit readiness gates."
+            />
+            <StatusStrip
+                items={[
+                    { label: `mode ${mode}`, status: READ_STATUS.configured },
+                    { label: courtyardSetupBlockers.length ? `${courtyardSetupBlockers.length} Courtyard blocker${courtyardSetupBlockers.length === 1 ? '' : 's'}` : 'Courtyard ready', status: courtyardSetupBlockers.length ? READ_STATUS.partial : READ_STATUS.live },
+                    { label: autopilotReady ? 'autopilot ready' : 'autopilot waiting', status: autopilotReady ? READ_STATUS.live : READ_STATUS.unavailable },
+                    { label: lpReadsStatus === READ_STATUS.live ? 'LP reads live' : 'LP reads degraded', status: lpReadsStatus },
+                ]}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="Live liquid treasury" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'live wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
+                <MetricCard label="Stored treasury" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting" />
+                <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
+                <MetricCard label="LP deployed" value={lpDeployedLabel} status={lpReadsStatus} sourceLabel={lpReadsStatus === READ_STATUS.live ? 'live coordinator' : 'partial/unavailable'} detail={`LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`} />
+                <MetricCard label="Reference NAV" value={referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'} status={referenceNav !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="fund read" />
+                <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
+                <MetricCard label="Profit per token" value={cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'} status={cumulativeProfitPerToken !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
+                <MetricCard label="Total distributed" value={totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'} status={totalProfitDeposited !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
             </div>
+
+            <ActionReadinessPanel
+                title="Configuration readiness"
+                rows={[
+                    { label: 'Fund proxy', status: MAINNET.fundProxy ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.fundProxy ?? 'Pending env config' },
+                    { label: 'Portfolio registry', status: MAINNET.portfolioRegistry ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.portfolioRegistry ?? 'Pending env config' },
+                    { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending module wiring; sale-profit buckets still come from stableAccounting.' },
+                    { label: 'Liquidity coordinator', status: liquidityCoordinator ? READ_STATUS.configured : READ_STATUS.unavailable, detail: liquidityCoordinator ?? 'Pending module wiring' },
+                ]}
+            />
+
+            <WorkflowTimeline
+                steps={[
+                    { label: 'Resolve listing', status: autopilotAsset ? READ_STATUS.live : READ_STATUS.unavailable, detail: autopilotAsset?.title ?? 'Paste a Courtyard URL to prefill purchase data.' },
+                    { label: 'Authorize purchase', status: courtyardApproved ? READ_STATUS.live : READ_STATUS.partial, detail: courtyardApproved ? 'Marketplace approval is live.' : 'COURTYARD approval is required.' },
+                    { label: 'Fund hot wallet', status: fundingQuotes?.usdc.enoughOutput ? READ_STATUS.live : READ_STATUS.unavailable, detail: fundingQuotes ? `USDC target ${formatUnits(BigInt(fundingQuotes.usdc.toAmountRaw), 6)}` : 'Resolve quotes before funding.' },
+                    { label: 'Record position', status: polygonSafeConfigured ? READ_STATUS.configured : READ_STATUS.partial, detail: polygonSafeConfigured ? 'Polygon custody Safe matches registry.' : 'Configure Polygon custody Safe first.' },
+                ]}
+            />
 
             {courtyardSetupBlockers.length ? (
                 <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
