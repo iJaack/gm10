@@ -1,5 +1,5 @@
 import { MARKETPLACE_CHECKLIST_ITEMS } from '../data/marketplaceChecklist';
-import { MetricCard, PageHeader, StatusStrip } from '../components/AdminPrimitives';
+import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 
 type RoadmapStatus = 'Done' | 'In progress' | 'Blocked' | 'Planned';
@@ -322,8 +322,18 @@ function CriticalChain({ chain }: { chain: readonly string[] }) {
 
 export function RoadmapPanel() {
     const completed = ROADMAP_NODES.filter((node) => node.status === 'Done').length;
-    const blocked = ROADMAP_NODES.filter((node) => node.status === 'Blocked').length;
+    const blockedNodes = ROADMAP_NODES.filter((node) => node.status === 'Blocked');
+    const plannedNodes = ROADMAP_NODES.filter((node) => node.status === 'Planned');
+    const inProgressNodes = ROADMAP_NODES.filter((node) => node.status === 'In progress');
+    const blocked = blockedNodes.length;
     const total = ROADMAP_NODES.length;
+    const nextBlockedNode = blockedNodes[0];
+    const nextPlannedNode = plannedNodes[0];
+    const decisionFocus = nextBlockedNode ?? nextPlannedNode;
+    const scrollToNode = (nodeId?: string) => {
+        if (!nodeId) return;
+        document.getElementById(`roadmap-${nodeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
 
     return (
         <div className="grid gap-6">
@@ -340,14 +350,79 @@ export function RoadmapPanel() {
                     { label: `${MARKETPLACE_CHECKLIST_ITEMS.length} marketplace gates`, status: READ_STATUS.configured },
                 ]}
             />
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+                <MetricCard
+                    label="Decision queue"
+                    value={
+                        <div className="grid gap-2">
+                            <span className="text-2xl tabular-nums">{decisionFocus?.title ?? 'Clear'}</span>
+                            <span className="text-base font-semibold text-gray-300">{decisionFocus?.area ?? 'No blocked node'}</span>
+                        </div>
+                    }
+                    status={nextBlockedNode ? READ_STATUS.error : nextPlannedNode ? READ_STATUS.partial : READ_STATUS.live}
+                    sourceLabel={decisionFocus?.status ?? 'roadmap'}
+                    accent={nextBlockedNode ? 'red' : nextPlannedNode ? 'yellow' : 'green'}
+                    detail={decisionFocus?.notes ?? 'Every roadmap node is either done or unblocked.'}
+                />
+                <OperatorActionsPanel
+                    title="Roadmap actions"
+                    actions={[
+                        {
+                            label: 'Open top blocker',
+                            detail: nextBlockedNode ? nextBlockedNode.notes : 'No blocked node is currently active.',
+                            onClick: () => scrollToNode(nextBlockedNode?.id),
+                            disabled: !nextBlockedNode,
+                            primary: Boolean(nextBlockedNode),
+                            status: nextBlockedNode ? READ_STATUS.error : READ_STATUS.live,
+                        },
+                        {
+                            label: 'Open next planned',
+                            detail: nextPlannedNode ? nextPlannedNode.notes : 'No planned node remains.',
+                            onClick: () => scrollToNode(nextPlannedNode?.id),
+                            disabled: !nextPlannedNode,
+                            status: nextPlannedNode ? READ_STATUS.partial : READ_STATUS.live,
+                        },
+                        {
+                            label: 'Marketplace gates',
+                            detail: `${MARKETPLACE_CHECKLIST_ITEMS.length} required gates before new venue adapters.`,
+                            onClick: () => scrollToNode('marketplace-checklist'),
+                            status: READ_STATUS.configured,
+                        },
+                        {
+                            label: 'Critical chains',
+                            detail: `${CRITICAL_CHAINS.length} dependency chains define the current operating order.`,
+                            onClick: () => document.getElementById('critical-chains')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                            status: READ_STATUS.configured,
+                        },
+                    ]}
+                />
+                <LedgerPanel
+                    title="Roadmap ledger"
+                    caption="Current blockers and planned decisions, separate from the full dependency diagram."
+                    rows={[
+                        ...blockedNodes.slice(0, 4).map((node) => ({
+                            label: node.title,
+                            value: node.status,
+                            status: READ_STATUS.error,
+                            detail: node.blockedBy?.length ? `Blocked by ${node.blockedBy.map((id) => NODE_BY_ID[id]?.title ?? id).join(', ')}.` : node.notes,
+                        })),
+                        ...plannedNodes.slice(0, Math.max(0, 6 - Math.min(blockedNodes.length, 4))).map((node) => ({
+                            label: node.title,
+                            value: node.status,
+                            status: READ_STATUS.partial,
+                            detail: node.blockedBy?.length ? `Depends on ${node.blockedBy.map((id) => NODE_BY_ID[id]?.title ?? id).join(', ')}.` : node.notes,
+                        })),
+                    ]}
+                />
+            </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard label="Done" value={`${completed} / ${total}`} status={READ_STATUS.live} sourceLabel="roadmap" accent="green" />
                 <MetricCard label="Blocked" value={blocked.toString()} status={blocked ? READ_STATUS.error : READ_STATUS.live} sourceLabel="readiness" accent={blocked ? 'red' : 'green'} />
                 <MetricCard label="Marketplace gates" value={MARKETPLACE_CHECKLIST_ITEMS.length.toString()} status={READ_STATUS.configured} sourceLabel="checklist" />
-                <MetricCard label="Decision focus" value="Data truth" status={READ_STATUS.fallback} sourceLabel="current overhaul" detail="Admin surfaces should distinguish live, configured, fallback, stale, and unavailable data." />
+                <MetricCard label="In progress" value={inProgressNodes.length.toString()} status={inProgressNodes.length ? READ_STATUS.partial : READ_STATUS.unavailable} sourceLabel="operator queue" detail={inProgressNodes.length ? inProgressNodes.map((node) => node.title).join(', ') : 'No in-progress roadmap node is marked.'} />
             </div>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <section id="critical-chains" className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <h2 className="text-lg font-bold text-white">Blocker chains</h2>
@@ -355,14 +430,14 @@ export function RoadmapPanel() {
                     </div>
                     <div className="text-[0.72rem] uppercase tracking-[0.16em] text-gray-500">Click a node to jump</div>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex max-w-full gap-3 overflow-x-auto pb-2">
                     {CRITICAL_CHAINS.map((chain) => (
                         <CriticalChain key={chain.join('|')} chain={chain} />
                     ))}
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="mb-5">
                     <h2 className="text-lg font-bold text-white">Horizontal roadmap diagram</h2>
                     <p className="mt-1 text-sm leading-6 text-gray-400">
@@ -370,7 +445,7 @@ export function RoadmapPanel() {
                     </p>
                 </div>
 
-                <div className="overflow-x-auto pb-4">
+                <div className="max-w-full overflow-x-auto pb-4">
                     <div className="flex min-w-[1800px] items-stretch gap-4">
                         {STAGES.map((stage, index) => {
                             const nodes = ROADMAP_NODES.filter((node) => node.stage === stage.id);

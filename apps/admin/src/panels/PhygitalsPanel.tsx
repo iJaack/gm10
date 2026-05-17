@@ -4,7 +4,7 @@ import { encodeFunctionData, formatUnits, isAddress, keccak256, padHex, parseUni
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { MetricCard, PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
+import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -274,6 +274,8 @@ export function PhygitalsPanel() {
         : solanaSafe.trim();
     const solanaFundingDestination = configuredSolanaDestination === 'Unavailable' ? solanaSafe.trim() : configuredSolanaDestination;
     const fundingTargetRaw = card?.listing?.priceRaw ?? (purchase.releaseAmountUsdt ? parseUsdt6Input(purchase.releaseAmountUsdt).toString() : '');
+    const purchaseStatus = Number(purchaseAuthorization?.status ?? 0n);
+    const positionRecorded = purchaseStatus >= 4;
 
     async function resolveCard() {
         setResolveError('');
@@ -530,6 +532,97 @@ export function PhygitalsPanel() {
                 ]}
             />
 
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+                <MetricCard
+                    label="Phygitals acquisition lane"
+                    value={
+                        <div className="grid gap-2">
+                            <span className="text-2xl tabular-nums">{card?.listing ? `${card.listing.priceDecimal} ${card.listing.currency.symbol}` : card?.title ?? 'Card pending'}</span>
+                            <span className="text-base font-semibold text-gray-300">{fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX funding` : 'Quote pending'}</span>
+                        </div>
+                    }
+                    status={card ? READ_STATUS.live : READ_STATUS.unavailable}
+                    sourceLabel={card ? 'Phygitals' : 'pending'}
+                    accent={card ? 'green' : 'yellow'}
+                    detail="Solana custody, funding, purchase authorization, and position records are shown as separate operator states."
+                />
+                <OperatorActionsPanel
+                    title="Phygitals actions"
+                    actions={[
+                        {
+                            label: 'Resolve card',
+                            detail: 'Load card, listing, custody, purchase, and position defaults.',
+                            onClick: () => void resolveCard(),
+                            disabled: isResolving || !phygitalsUrl.trim(),
+                            primary: !card,
+                        },
+                        {
+                            label: 'Quote funding',
+                            detail: 'Prepare AVAX to Solana USDC route for the listed card price.',
+                            onClick: () => void quoteSolanaUsdcFunding(),
+                            disabled: isFundingLoading || !card || !effectiveTreasuryAddress || !solanaFundingDestination,
+                            status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable,
+                        },
+                        {
+                            label: 'Batch authorize + fund',
+                            detail: 'Submit the Safe batch after marketplace approval and Solana custody are live.',
+                            onClick: () => void submitAuthorizeAndFundBatch(),
+                            disabled: isBatchSubmitting || !safeAppInfo.isSafeApp || safeAppInfo.chainId !== AVALANCHE_CHAIN_ID || !MAINNET.portfolioRegistry || !card || phygitalsApproved !== true || !solanaChainSafe?.enabled,
+                            status: safeBatchHash ? READ_STATUS.live : phygitalsApproved === true && solanaChainSafe?.enabled ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        },
+                        {
+                            label: 'Record position',
+                            detail: positionRecorded ? 'Solana position is recorded.' : 'Submit final collectible position accounting.',
+                            onClick: submitRecordPosition,
+                            disabled: !MAINNET.fundProxy || !card || !position.nonEvmTokenId || positionRecorded,
+                            status: positionRecorded ? READ_STATUS.live : card ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        },
+                    ]}
+                />
+                <LedgerPanel
+                    title="Acquisition ledger"
+                    caption="Phygitals-specific custody, funding, and accounting state."
+                    rows={[
+                        {
+                            label: 'Marketplace approval',
+                            value: phygitalsApproved === undefined ? 'Unavailable' : phygitalsApproved ? 'Approved' : 'Not approved',
+                            status: phygitalsApproved ? READ_STATUS.live : phygitalsApproved === false ? READ_STATUS.partial : READ_STATUS.unavailable,
+                            detail: PHYGITALS_MARKETPLACE_ID,
+                        },
+                        {
+                            label: 'Solana custody',
+                            value: solanaChainSafe?.enabled ? 'Enabled' : 'Unavailable',
+                            status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable,
+                            detail: formatNonEvmSafe(solanaChainSafe?.nonEvmSafe),
+                        },
+                        {
+                            label: 'Resolved card',
+                            value: card?.title ?? 'Unavailable',
+                            status: card ? READ_STATUS.live : READ_STATUS.unavailable,
+                            detail: card?.marketplace ?? 'Resolve a card before funding.',
+                        },
+                        {
+                            label: 'Funding route',
+                            value: fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX` : 'Unavailable',
+                            status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable,
+                            detail: fundingQuote ? `Estimated ${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC to Solana.` : 'Quote not loaded.',
+                        },
+                        {
+                            label: 'Purchase authorization',
+                            value: statusLabel(purchaseAuthorization?.status ?? 0),
+                            status: purchaseStatus > 0 ? READ_STATUS.live : purchase.purchaseKey ? READ_STATUS.partial : READ_STATUS.unavailable,
+                            detail: purchase.purchaseKey || 'Resolve a card.',
+                        },
+                        {
+                            label: 'Position record',
+                            value: positionRecorded ? 'Recorded' : 'Pending',
+                            status: positionRecorded ? READ_STATUS.live : card ? READ_STATUS.partial : READ_STATUS.unavailable,
+                            detail: position.nonEvmTokenId || 'No Solana asset ID loaded.',
+                        },
+                    ]}
+                />
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard label="Marketplace" value={phygitalsApproved === undefined ? 'Unavailable' : phygitalsApproved ? 'Approved' : 'Not approved'} status={phygitalsApproved ? READ_STATUS.live : phygitalsApproved === false ? READ_STATUS.partial : READ_STATUS.unavailable} sourceLabel="registry read" detail={<span className="break-all font-mono">{PHYGITALS_MARKETPLACE_ID}</span>} />
                 <MetricCard label="Solana custody" value={solanaChainSafe?.enabled ? 'Enabled' : 'Unavailable'} status={solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={`EID ${LZ_EID.SOLANA_MAINNET}`} detail={<span className="break-all">{formatNonEvmSafe(solanaChainSafe?.nonEvmSafe)}</span>} />
@@ -542,7 +635,7 @@ export function PhygitalsPanel() {
                     { label: 'Configure custody', status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable, detail: configuredSolanaDestination },
                     { label: 'Resolve card', status: card ? READ_STATUS.live : READ_STATUS.unavailable, detail: card?.title ?? 'No card loaded.' },
                     { label: 'Fund purchase', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable, detail: fundingQuote ? `${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC target` : 'Quote not loaded.' },
-                    { label: 'Record position', status: (purchaseAuthorization?.status ?? 0) >= 4 ? READ_STATUS.live : purchaseAuthorization ? READ_STATUS.partial : READ_STATUS.unavailable, detail: purchaseAuthorization ? statusLabel(purchaseAuthorization.status ?? 0) : 'Authorization unavailable.' },
+                    { label: 'Record position', status: positionRecorded ? READ_STATUS.live : purchaseAuthorization ? READ_STATUS.partial : READ_STATUS.unavailable, detail: purchaseAuthorization ? statusLabel(purchaseAuthorization.status ?? 0) : 'Authorization unavailable.' },
                 ]}
             />
 

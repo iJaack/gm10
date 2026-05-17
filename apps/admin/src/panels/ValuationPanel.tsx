@@ -3,7 +3,7 @@ import { formatUnits } from 'viem';
 import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { MetricCard, PageHeader, StatusStrip } from '../components/AdminPrimitives';
+import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip } from '../components/AdminPrimitives';
 import { TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -465,6 +465,32 @@ export function ValuationPanel() {
         }
     }
 
+    const approvedCount = pack
+        ? pack.cards.filter((card) => card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)])).length
+        : Object.values(approvedCards).filter(Boolean).length;
+    const submittedCount = pack?.cards.filter((card) => Boolean(card.submittedTxHash)).length ?? 0;
+    const needsReviewCount = pack
+        ? pack.cards.filter((card) => !card.submittedTxHash && !(card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]))).length
+        : activeCards.length;
+    const submittableCount = pack
+        ? pack.cards.filter((card) => {
+            const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
+            return approved && card.consensus.status === 'passed' && Boolean(card.consensus.proposedValueUsdc6) && !card.submittedTxHash;
+        }).length
+        : 0;
+    const reviewStatus = localError
+        ? READ_STATUS.error
+        : submittableCount > 0
+            ? READ_STATUS.partial
+            : submittedCount > 0 && needsReviewCount === 0
+                ? READ_STATUS.live
+                : pack
+                    ? READ_STATUS.partial
+                    : READ_STATUS.unavailable;
+    const scrollToReviewQueue = () => {
+        document.getElementById('valuation-review-queue')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     return (
         <div className="grid gap-6">
             <PageHeader
@@ -480,14 +506,105 @@ export function ValuationPanel() {
                     { label: localError ? 'local error' : 'no local errors', status: localError ? READ_STATUS.error : READ_STATUS.live },
                 ]}
             />
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+                <MetricCard
+                    label="Valuation decision queue"
+                    value={
+                        <div className="grid gap-2">
+                            <span className="text-3xl tabular-nums">{pack ? needsReviewCount : activeCards.length}</span>
+                            <span className="text-base font-semibold text-gray-300">{pack ? 'cards need review' : 'active cards to pack'}</span>
+                        </div>
+                    }
+                    status={pack ? reviewStatus : activeCards.length ? READ_STATUS.partial : READ_STATUS.unavailable}
+                    sourceLabel={pack ? 'loaded pack' : 'registry'}
+                    accent={reviewStatus === READ_STATUS.error ? 'red' : submittableCount > 0 ? 'yellow' : pack ? 'green' : 'blue'}
+                    detail={pack ? `Pack ${pack.packId} generated ${formatTimestamp(pack.generatedAt)}.` : 'Run or load a valuation pack before approving marks.'}
+                />
+                <OperatorActionsPanel
+                    title="Valuation actions"
+                    actions={[
+                        {
+                            label: 'Run valuation now',
+                            detail: 'Generate a fresh pack from active positions and provider observations.',
+                            onClick: runValuationNow,
+                            disabled: isSigning || isAuthLoading,
+                            primary: !pack,
+                        },
+                        {
+                            label: 'Load latest pack',
+                            detail: 'Load the latest persisted valuation pack for review.',
+                            onClick: loadLatestPack,
+                            disabled: isSigning || isAuthLoading,
+                            status: pack ? READ_STATUS.live : READ_STATUS.unavailable,
+                        },
+                        {
+                            label: 'Review approvals',
+                            detail: `${needsReviewCount} need review, ${approvedCount} approved, ${submittedCount} submitted.`,
+                            onClick: scrollToReviewQueue,
+                            disabled: !pack,
+                            status: reviewStatus,
+                        },
+                        {
+                            label: 'Submit marks',
+                            detail: `${submittableCount} approved mark${submittableCount === 1 ? '' : 's'} ready for onchain submission.`,
+                            onClick: scrollToReviewQueue,
+                            disabled: !pack || submittableCount === 0,
+                            status: submittableCount > 0 ? READ_STATUS.partial : pack ? READ_STATUS.unavailable : READ_STATUS.unavailable,
+                        },
+                    ]}
+                />
+                <LedgerPanel
+                    title="Valuation ledger"
+                    caption="Registry, pack, approval, and submission state separated from the form controls."
+                    rows={[
+                        {
+                            label: 'Active positions',
+                            value: activeCards.length.toString(),
+                            status: activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable,
+                            detail: 'Registry positions eligible for valuation pack generation.',
+                        },
+                        {
+                            label: 'Loaded pack',
+                            value: pack?.packId ?? 'Unavailable',
+                            status: pack ? READ_STATUS.live : READ_STATUS.unavailable,
+                            detail: pack ? `Generated ${formatTimestamp(pack.generatedAt)}.` : 'Run or load a pack.',
+                        },
+                        {
+                            label: 'Needs review',
+                            value: needsReviewCount.toString(),
+                            status: pack ? (needsReviewCount > 0 ? READ_STATUS.partial : READ_STATUS.live) : READ_STATUS.unavailable,
+                            detail: 'Cards without local or persisted approval.',
+                        },
+                        {
+                            label: 'Approved marks',
+                            value: approvedCount.toString(),
+                            status: approvedCount > 0 ? READ_STATUS.live : READ_STATUS.unavailable,
+                            detail: 'Local or persisted approvals.',
+                        },
+                        {
+                            label: 'Submittable marks',
+                            value: submittableCount.toString(),
+                            status: submittableCount > 0 ? READ_STATUS.partial : READ_STATUS.unavailable,
+                            detail: 'Approved consensus-passed marks not yet submitted.',
+                        },
+                        {
+                            label: 'Submission signer',
+                            value: authAddress ? `${authAddress.slice(0, 6)}...${authAddress.slice(-4)}` : 'Unavailable',
+                            status: authAddress ? READ_STATUS.configured : READ_STATUS.unavailable,
+                            detail: safeAppInfo.isSafeApp ? 'Safe app context.' : 'Wallet or fallback signer.',
+                        },
+                    ]}
+                />
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <MetricCard label="Active cards" value={activeCards.length.toString()} status={activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="registry" />
                 <MetricCard label="Valuation pack" value={pack?.packId ?? 'Unavailable'} status={pack ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={pack ? 'loaded' : 'not loaded'} detail={pack ? `Generated ${formatTimestamp(pack.generatedAt)}` : 'Run or load a pack.'} />
-                <MetricCard label="Approved cards" value={Object.values(approvedCards).filter(Boolean).length.toString()} status={Object.values(approvedCards).some(Boolean) ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="local review" />
+                <MetricCard label="Approved cards" value={approvedCount.toString()} status={approvedCount > 0 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="local review" />
                 <MetricCard label="Submission signer" value={authAddress ? `${authAddress.slice(0, 6)}...${authAddress.slice(-4)}` : 'Unavailable'} status={authAddress ? READ_STATUS.configured : READ_STATUS.unavailable} sourceLabel={safeAppInfo.isSafeApp ? 'Safe app' : 'wallet'} />
             </div>
 
-            <div className="admin-card grid gap-4 p-5">
+            <div id="valuation-controls" className="admin-card grid gap-4 p-5">
                 <label className="grid gap-2">
                     <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Card identity overrides JSON</span>
                     <textarea
@@ -550,7 +667,7 @@ export function ValuationPanel() {
             </div>
 
             {pack ? (
-                <div className="grid gap-4">
+                <div id="valuation-review-queue" className="grid gap-4">
                     {pack.cards.map((card) => {
                         const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
                         const isCardPersisting = Boolean(persistingCards[String(card.positionId)]);

@@ -5,7 +5,7 @@ import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchC
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { ActionReadinessPanel, MetricCard, PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
+import { ActionReadinessPanel, LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
@@ -474,6 +474,9 @@ export function OperationsPanel() {
     const liveLiquidTreasuryDetail = avaxUsd !== undefined
         ? `${formatAvax(fundBalance?.value)} fund + ${formatAvax(treasuryBalance?.value)} Safe + ${formatAvax(liquidityCoordinatorBalance?.value)} liquidity + ${formatAvax(courtyardWorkflowBalance?.value)} Courtyard + ${formatAvax(teamWalletBalance?.value)} team @ ${formatUsdt6(avaxUsdToUsdt6(avaxUsd))}/AVAX`
         : 'Waiting for Chainlink AVAX/USD';
+    const cardBuyingBudgetUsdt6 = avaxUsd !== undefined && fundBalance?.value !== undefined
+        ? avaxWeiToUsdt6(fundBalance.value, avaxUsd)
+        : undefined;
 
     const { data: referenceNav } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -1192,6 +1195,44 @@ export function OperationsPanel() {
     const lpDeployedLabel = lpReadsStatus === READ_STATUS.live
         ? `${formatEther((traderJoeAvaxLp ?? 0n) + (pharaohAvaxLp ?? 0n))} AVAX`
         : 'Unavailable';
+    const operationsLedgerRows = [
+        {
+            label: 'Fund contract',
+            value: formatAvax(fundBalance?.value),
+            status: liveStatus(fundBalance?.value),
+            detail: 'Card-buying hard max source; no team, Safe dust, LP, or workflow balances included.',
+        },
+        {
+            label: 'Treasury Safe dust',
+            value: formatAvax(treasuryBalance?.value),
+            status: liveStatus(treasuryBalance?.value),
+            detail: effectiveTreasuryAddress ?? 'Treasury Safe unavailable.',
+        },
+        {
+            label: 'Courtyard workflow',
+            value: formatAvax(courtyardWorkflowBalance?.value),
+            status: liveStatus(courtyardWorkflowBalance?.value),
+            detail: 'Marketplace execution lane balance.',
+        },
+        {
+            label: 'Liquidity coordinator',
+            value: formatAvax(liquidityCoordinatorBalance?.value),
+            status: liveStatus(liquidityCoordinatorBalance?.value),
+            detail: liquidityCoordinator ?? 'Coordinator unavailable.',
+        },
+        {
+            label: 'Team wallet',
+            value: formatAvax(teamWalletBalance?.value),
+            status: liveStatus(teamWalletBalance?.value),
+            detail: 'Team allocation only; excluded from spendable card budget.',
+        },
+        {
+            label: 'LP deployed',
+            value: lpDeployedLabel,
+            status: lpReadsStatus,
+            detail: `LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`,
+        },
+    ];
 
     return (
         <div className="grid gap-6">
@@ -1209,8 +1250,57 @@ export function OperationsPanel() {
                 ]}
             />
 
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+                <MetricCard
+                    label="Card-buying fund"
+                    value={
+                        <div className="grid gap-2">
+                            <span className="text-3xl tabular-nums">{formatAvax(fundBalance?.value)}</span>
+                            <span className="text-base font-semibold text-gray-300">{formatUsdt6(cardBuyingBudgetUsdt6)}</span>
+                        </div>
+                    }
+                    status={fundBalance?.value !== undefined ? READ_STATUS.live : READ_STATUS.unavailable}
+                    sourceLabel={fundBalance?.value !== undefined ? 'fund contract' : 'unavailable'}
+                    accent={fundBalance?.value !== undefined ? 'green' : 'yellow'}
+                    detail={avaxUsd !== undefined ? `Hard max at ${formatUsdt6(avaxUsdToUsdt6(avaxUsd))}/AVAX. Excludes team wallet, Safe dust, LP, and workflow balances.` : 'Waiting for Chainlink AVAX/USD.'}
+                />
+                <OperatorActionsPanel
+                    title="Operations queue"
+                    actions={[
+                        {
+                            label: 'Buy / source cards',
+                            detail: 'Open the Courtyard setup and purchase controls.',
+                            onClick: () => setMode('courtyard'),
+                            primary: true,
+                        },
+                        {
+                            label: 'Marketplace approvals',
+                            detail: 'Review venue checklist, approvals, and Solana custody setup.',
+                            onClick: () => setMode('marketplace'),
+                            status: courtyardSetupBlockers.length ? READ_STATUS.partial : READ_STATUS.live,
+                        },
+                        {
+                            label: 'Holder claims',
+                            detail: 'Review profit bucket, exclusions, and claimable account state.',
+                            onClick: () => setMode('profit'),
+                        },
+                        {
+                            label: 'LP deployment',
+                            detail: 'Review coordinator reads and liquidity execution controls.',
+                            onClick: () => setMode('lp'),
+                            status: lpReadsStatus,
+                        },
+                    ]}
+                />
+                <LedgerPanel
+                    title="Routed balances"
+                    caption="Wallets and workflow balances are shown separately so ops funds do not inflate card capacity."
+                    rows={operationsLedgerRows}
+                />
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Live liquid treasury" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'live wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
+                <MetricCard label="Tracked wallet aggregate" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'tracked wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
                 <MetricCard label="Stored treasury" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting" />
                 <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
                 <MetricCard label="LP deployed" value={lpDeployedLabel} status={lpReadsStatus} sourceLabel={lpReadsStatus === READ_STATUS.live ? 'live coordinator' : 'partial/unavailable'} detail={`LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`} />
@@ -1710,7 +1800,7 @@ export function OperationsPanel() {
                                 </div>
                                 <div>Polygon Hot Wallet for Courtyard buy/sell: {polygonHotWallet}</div>
                                 <div>Polygon custody Safe after purchase: {polygonChainSafe?.evmSafe ?? polygonSafe}</div>
-                                <div>Live liquid treasury: {formatUsdt6(liveLiquidTreasuryUsdt6)}</div>
+                                <div>Tracked wallet aggregate: {formatUsdt6(liveLiquidTreasuryUsdt6)}</div>
                                 <div>Stored accounting treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'}</div>
                             </div>
                             <p className="text-xs leading-5 text-gray-400">

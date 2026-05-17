@@ -1,9 +1,8 @@
-import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useBalance, useReadContract } from 'wagmi';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { MetricCard, PageHeader, ReadHealthPanel, ReconciliationTable, StatusChip, StatusStrip } from '../components/AdminPrimitives';
+import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, ReadHealthPanel, ReconciliationTable, StatusStrip, liveStatus } from '../components/AdminPrimitives';
 import {
     accountingBucketRows,
     aggregateLpDeployment,
@@ -34,103 +33,6 @@ function roundProgressWidth(raised?: bigint, target?: bigint) {
     if (raised === undefined || target === undefined || target === 0n) return '0%';
     const pct = Number((raised * 10_000n) / target) / 100;
     return `${Math.max(0, Math.min(100, pct))}%`;
-}
-
-function liveStatus(value: unknown) {
-    return value !== undefined && value !== null ? READ_STATUS.live : READ_STATUS.unavailable;
-}
-
-function LedgerPanel({
-    title,
-    caption,
-    rows,
-}: {
-    title: string;
-    caption: string;
-    rows: Array<{ label: string; value: ReactNode; status: typeof READ_STATUS[keyof typeof READ_STATUS]; detail?: ReactNode }>;
-}) {
-    return (
-        <section className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <h2 className="text-sm font-semibold text-white">{title}</h2>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">{caption}</p>
-                </div>
-            </div>
-            <div className="grid gap-2">
-                {rows.map((row) => (
-                    <div key={row.label} className="grid gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
-                        <div className="min-w-0">
-                            <div className="text-xs font-semibold text-gray-200">{row.label}</div>
-                            {row.detail ? <div className="mt-1 text-[0.7rem] leading-4 text-gray-500">{row.detail}</div> : null}
-                        </div>
-                        <div className="font-mono text-sm tabular-nums text-white">{row.value}</div>
-                        <StatusChip status={row.status} />
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
-}
-
-function NextActionsPanel({ onNavigate }: DashboardPanelProps) {
-    const actions: Array<{
-        label: string;
-        detail: string;
-        target: DashboardNavigationTarget;
-        primary?: boolean;
-    }> = [
-        {
-            label: 'Buy / source cards',
-            detail: 'Open Courtyard listing resolution, funding, custody, and position recording.',
-            target: 'Courtyard Wizard',
-            primary: true,
-        },
-        {
-            label: 'Check valuation',
-            detail: 'Review card marks, evidence, NAV, and public valuation inputs.',
-            target: 'Valuation',
-        },
-        {
-            label: 'Funding / operations',
-            detail: 'Review workflow balances, routing gates, and execution readiness.',
-            target: 'Operations',
-        },
-        {
-            label: 'Round close',
-            detail: 'Inspect current round status, dust close, finalization, and routing math.',
-            target: 'Rounds',
-        },
-    ];
-
-    return (
-        <section className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <div className="mb-3">
-                <div className="label-font text-[0.58rem] text-gray-500">Next actions</div>
-                <h2 className="mt-2 text-base font-semibold text-white">Operator shortcuts</h2>
-            </div>
-            <div className="grid gap-2">
-                {actions.map((action) => (
-                    <button
-                        key={action.label}
-                        type="button"
-                        onClick={() => onNavigate(action.target)}
-                        className={`group grid gap-1 rounded-md border px-3 py-2.5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/60 ${
-                            action.primary
-                                ? 'border-[var(--accent)]/60 bg-[var(--accent)] text-[#0b0a14] hover:bg-[#ffd75b]'
-                                : 'border-white/10 bg-black/20 text-white hover:border-white/20 hover:bg-white/[0.06]'
-                        }`}
-                    >
-                        <span className="flex items-center justify-between gap-3 text-sm font-semibold">
-                            {action.label}
-                            <span aria-hidden="true" className="text-base leading-none transition-transform group-hover:translate-x-0.5">{'->'}</span>
-                        </span>
-                        <span className={`text-xs leading-5 ${action.primary ? 'text-black/65' : 'text-gray-500'}`}>{action.detail}</span>
-                    </button>
-                ))}
-            </div>
-        </section>
-    );
 }
 
 export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
@@ -375,7 +277,31 @@ export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
                         </div>
                     }
                 />
-                <NextActionsPanel onNavigate={onNavigate} />
+                <OperatorActionsPanel
+                    actions={[
+                        {
+                            label: 'Buy / source cards',
+                            detail: 'Open Courtyard listing resolution, funding, custody, and position recording.',
+                            onClick: () => onNavigate('Courtyard Wizard'),
+                            primary: true,
+                        },
+                        {
+                            label: 'Check valuation',
+                            detail: 'Review card marks, evidence, NAV, and public valuation inputs.',
+                            onClick: () => onNavigate('Valuation'),
+                        },
+                        {
+                            label: 'Funding / operations',
+                            detail: 'Review workflow balances, routing gates, and execution readiness.',
+                            onClick: () => onNavigate('Operations'),
+                        },
+                        {
+                            label: 'Round close',
+                            detail: 'Inspect current round status, dust close, finalization, and routing math.',
+                            onClick: () => onNavigate('Rounds'),
+                        },
+                    ]}
+                />
                 <ReadHealthPanel
                     title="Read health"
                     rows={[
