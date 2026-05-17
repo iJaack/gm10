@@ -117,7 +117,7 @@ export function ReconciliationTable({
     rows: Array<{ metric: string; live: string; stored: string; status: ReadStatus }>;
 }) {
     return (
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.045]">
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/[0.045]">
             <table className="w-full min-w-[680px] text-left text-xs">
                 <thead className="border-b border-white/10 bg-black/20 text-gray-500">
                     <tr>

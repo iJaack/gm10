@@ -58,6 +58,53 @@ export function sumWalletBalancesUsdt6(walletBalancesWei, avaxUsd) {
   return { value: avaxWeiToUsdt6(totalWei, avaxUsd), status: READ_STATUS.live, sourceLabel: 'live wallets' };
 }
 
+export function resolveCardBuyingBudgetMetric({ fundBalanceWei, avaxUsd }) {
+  if (fundBalanceWei === undefined || fundBalanceWei === null) {
+    return {
+      balanceWei: undefined,
+      usdValue: undefined,
+      status: READ_STATUS.unavailable,
+      sourceLabel: 'fund unavailable',
+    };
+  }
+
+  const balanceWei = BigInt(fundBalanceWei);
+  if (!Number.isFinite(avaxUsd) || avaxUsd <= 0) {
+    return {
+      balanceWei,
+      usdValue: undefined,
+      status: READ_STATUS.partial,
+      sourceLabel: 'fund contract',
+      warning: 'price unavailable',
+    };
+  }
+
+  return {
+    balanceWei,
+    usdValue: avaxWeiToUsdt6(balanceWei, avaxUsd),
+    status: READ_STATUS.live,
+    sourceLabel: 'fund contract',
+  };
+}
+
+export function resolveTrackedWalletAggregateMetric({ walletBalancesWei, avaxUsd, stableAccountingLiquidTreasury }) {
+  const live = sumWalletBalancesUsdt6(walletBalancesWei, avaxUsd);
+  if (live.value !== undefined) {
+    return { ...live, sourceLabel: 'tracked wallets' };
+  }
+
+  if (stableAccountingLiquidTreasury !== undefined && stableAccountingLiquidTreasury !== null) {
+    return {
+      value: stableAccountingLiquidTreasury,
+      status: READ_STATUS.fallback,
+      sourceLabel: 'stored accounting fallback',
+      warning: live.sourceLabel,
+    };
+  }
+
+  return live;
+}
+
 export function resolveLiquidTreasuryMetric({ walletBalancesWei, avaxUsd, stableAccountingLiquidTreasury }) {
   const live = sumWalletBalancesUsdt6(walletBalancesWei, avaxUsd);
   if (live.value !== undefined) return live;

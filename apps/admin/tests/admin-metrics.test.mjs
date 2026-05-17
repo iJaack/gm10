@@ -4,7 +4,9 @@ import {
   aggregateLpDeployment,
   chainlinkPriceStatus,
   READ_STATUS,
+  resolveCardBuyingBudgetMetric,
   resolveLiquidTreasuryMetric,
+  resolveTrackedWalletAggregateMetric,
 } from '../src/lib/adminMetrics.js';
 
 const AVAX = 10n ** 18n;
@@ -46,8 +48,56 @@ test('liquid treasury prefers complete live wallet reads', () => {
   assert.equal(summary.sourceLabel, 'live wallets');
 });
 
+test('card buying budget uses only the fund balance', () => {
+  const summary = resolveCardBuyingBudgetMetric({
+    fundBalanceWei: 505n * AVAX,
+    avaxUsd: 10,
+  });
+
+  assert.equal(summary.balanceWei, 505n * AVAX);
+  assert.equal(summary.usdValue, 5_050_000_000n);
+  assert.equal(summary.status, READ_STATUS.live);
+  assert.equal(summary.sourceLabel, 'fund contract');
+});
+
+test('card buying budget is not blocked by unrelated partial wallet reads', () => {
+  const summary = resolveCardBuyingBudgetMetric({
+    fundBalanceWei: 708n * AVAX,
+    avaxUsd: 10,
+  });
+
+  assert.equal(summary.balanceWei, 708n * AVAX);
+  assert.equal(summary.usdValue, 7_080_000_000n);
+  assert.equal(summary.status, READ_STATUS.live);
+});
+
+test('tracked wallet aggregate is labeled separately from spendable card budget', () => {
+  const summary = resolveTrackedWalletAggregateMetric({
+    walletBalancesWei: [708n * AVAX, 2n * AVAX, 0n, 0n, AVAX / 5n],
+    avaxUsd: 10,
+    stableAccountingLiquidTreasury: 1_813_000_000n,
+  });
+
+  assert.equal(summary.value, 7_102_000_000n);
+  assert.equal(summary.status, READ_STATUS.live);
+  assert.equal(summary.sourceLabel, 'tracked wallets');
+});
+
 test('liquid treasury visibly falls back to stable accounting when wallet reads are partial', () => {
   const summary = resolveLiquidTreasuryMetric({
+    walletBalancesWei: [708n * AVAX, undefined, 0n, 0n, AVAX / 5n],
+    avaxUsd: 10,
+    stableAccountingLiquidTreasury: 1_813_000_000n,
+  });
+
+  assert.equal(summary.value, 1_813_000_000n);
+  assert.equal(summary.status, READ_STATUS.fallback);
+  assert.equal(summary.sourceLabel, 'stored accounting fallback');
+  assert.equal(summary.warning, 'partial wallet reads');
+});
+
+test('tracked wallet aggregate falls back to stored accounting only for reconciliation', () => {
+  const summary = resolveTrackedWalletAggregateMetric({
     walletBalancesWei: [708n * AVAX, undefined, 0n, 0n, AVAX / 5n],
     avaxUsd: 10,
     stableAccountingLiquidTreasury: 1_813_000_000n,

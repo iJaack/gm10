@@ -70,7 +70,7 @@ function AdminApp() {
 
             {/* Content */}
             <main className="mx-auto max-w-[120rem] px-6 py-8">
-                {tab === 'Dashboard' && <DashboardPanel />}
+                {tab === 'Dashboard' && <DashboardPanel onNavigate={setTab} />}
                 {tab === 'Rounds' && <RoundsPanel />}
                 {tab === 'Operations' && <OperationsPanel />}
                 {tab === 'Phygitals' && <PhygitalsPanel />}
