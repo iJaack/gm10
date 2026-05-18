@@ -160,19 +160,19 @@ const ROADMAP_NODES: RoadmapNode[] = [
     {
         id: 'supply-audit',
         title: 'Supply enforcement audit',
-        status: 'Blocked',
+        status: 'In progress',
         area: 'Tokenomics',
         stage: 'tokenomics',
-        notes: 'Public copy references a 100M fixed supply, while the inspected round-mint path needs explicit max-supply enforcement review.',
+        notes: 'V7 replaces fixed-cap language with no max supply, round-based buyer mints, and five 1% segment allocations per finalized round.',
         blockedBy: ['public-proof'],
     },
     {
         id: 'max-supply-model',
-        title: 'Max-supply model',
-        status: 'Planned',
+        title: 'Dynamic-supply model',
+        status: 'In progress',
         area: 'Tokenomics',
         stage: 'tokenomics',
-        notes: 'Model holder dilution, future rounds, gauges, liquidity, treasury flexibility, and governance power before selecting a new cap.',
+        notes: 'Model holder dilution, future rounds, excluded segment wallets, attribution-gated redemption, liquidity, treasury flexibility, and governance power before Safe execution.',
         blockedBy: ['supply-audit'],
     },
     {
@@ -181,7 +181,7 @@ const ROADMAP_NODES: RoadmapNode[] = [
         status: 'Planned',
         area: 'Tokenomics',
         stage: 'tokenomics',
-        notes: 'Any max-supply change needs contract enforcement, UI copy updates, holder dashboard updates, docs, and public explanation.',
+        notes: 'The migration needs V7 contract enforcement, tokenomics-controller configuration, UI copy updates, holder dashboard updates, docs, and public explanation.',
         blockedBy: ['max-supply-model'],
     },
     {

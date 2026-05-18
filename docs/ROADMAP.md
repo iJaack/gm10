@@ -28,12 +28,12 @@ GM10 is moving from founder-led collectible execution toward transparent, gauge-
 - [ ] Enable eligible wallets to claim or stream realized-profit distributions once the distributor, exclusions, and accounting are production ready.
 - [ ] Publish a plain-English staking guide before public actions go live.
 
-## 3. Tokenomics and Max-Supply Review
+## 3. Dynamic Tokenomics Upgrade
 
-- [ ] Review the `$CATCH` max supply after community and partner feedback.
-- [ ] Model the impact of any supply change on holders, treasury flexibility, liquidity, governance power, staking, and future rounds.
-- [ ] Publish a tokenomics update only after the mechanics are modeled, contract-enforceable, and communicated clearly.
-- [ ] Keep public supply language aligned with the deployed contracts and migration path.
+- [ ] Ship the V7 upgrade path with no max supply, round-based buyer mints, and five 1% segment allocations per finalized round.
+- [ ] Deploy the V7 tokenomics controller so segment wallets are excluded from profit share by onchain state, not frontend assumptions.
+- [ ] Enforce attribution-gated redemption so transferable segment or secondary-market tokens cannot redeem without investor attribution.
+- [ ] Keep public supply language aligned with the deployed contracts and Safe-executed migration path.
 
 ## 4. Treasury Strategy Expansion
 

@@ -168,57 +168,50 @@ export const EXPOSURE_STEPS: readonly ExposureStep[] = [
 
 export const TOKEN_ALLOCATION = [
     {
-        label: 'Fundraising Rounds Reserve',
-        percent: 40,
+        label: 'Round buyers',
+        percent: 95.24,
         color: 'from-sky-500 to-cyan-400',
-        detail: 'Reserved for Round 1 and later governance-approved rounds. This is the main public distribution bucket.',
+        detail: 'Every finalized round mints buyer tokens from actual sold allocation. There is no max supply reserve.',
     },
     {
         label: 'Core Team',
-        percent: 15,
+        percent: 0.95,
         color: 'from-red-500 to-orange-400',
-        detail: 'Builder allocation with a 6-month cliff and 42 months of linear vesting after that.',
+        detail: 'Minted as 1% of each finalized round’s sold buyer tokens and excluded from profit share at the wallet level.',
     },
     {
         label: 'Governance Treasury',
-        percent: 13,
+        percent: 0.95,
         color: 'from-indigo-500 to-blue-500',
-        detail: 'Held for audits, legal, integrations, infrastructure, and future governance-approved expansion.',
+        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for audits, legal, integrations, and operations.',
     },
     {
         label: 'Community & Ecosystem',
-        percent: 12,
+        percent: 0.95,
         color: 'from-emerald-500 to-teal-400',
-        detail: 'Collector campaigns, collaborations, referrals, and community activations around GM10.',
-    },
-    {
-        label: 'Liquidity & Market Structure',
-        percent: 10,
-        color: 'from-amber-500 to-yellow-400',
-        detail: 'Reserved for market structure, with 10% of each round and 35% of realized sale profit routed to LP replenishment across LFJ and Pharaoh.',
+        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for collector campaigns and community activations.',
     },
     {
         label: 'Advisors',
-        percent: 5,
+        percent: 0.95,
         color: 'from-fuchsia-500 to-pink-400',
-        detail: 'For specialist contributors across legal, technical, marketplace, and collectible work. This bucket is liquid after Round 1 finalization.',
+        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for specialist contributors.',
     },
     {
         label: 'Strategic Partnerships',
-        percent: 5,
+        percent: 0.95,
         color: 'from-violet-500 to-purple-400',
-        detail: 'Used for marketplace, ecosystem, and growth partnerships that materially improve sourcing or reach.',
+        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for marketplace, ecosystem, and growth partnerships.',
     },
 ] as const;
 
 export const TOKEN_RELEASE_RULES = [
-    ['Fundraising Rounds Reserve', 'Released only as rounds are opened.'],
-    ['Core Team', '6-month cliff, then 42 months linear vesting.'],
-    ['Advisors', 'Liquid after Round 1 finalization.'],
-    ['Governance Treasury', 'Minted to the governance treasury wallet after Round 1 finalization.'],
-    ['Liquidity & Market Structure', '10% of raised AVAX funds LP and 35% of realized sale profit replenishes LP. The sale-profit LP bucket is split between a $CATCH market buy and AVAX pairing, then added 50/50 to LFJ and Pharaoh.'],
-    ['Community & Ecosystem', 'Progressive release, not fully live at launch.'],
-    ['Strategic Partnerships', 'Released only for approved partnership allocations.'],
+    ['Round buyers', 'Minted from actual sold round allocation.'],
+    ['Core Team', '1% of buyer tokens minted at each finalized round.'],
+    ['Governance Treasury', '1% of buyer tokens minted at each finalized round.'],
+    ['Community & Ecosystem', '1% of buyer tokens minted at each finalized round.'],
+    ['Advisors', '1% of buyer tokens minted at each finalized round.'],
+    ['Strategic Partnerships', '1% of buyer tokens minted at each finalized round.'],
 ] as const;
 
 export const WATERFALL = [

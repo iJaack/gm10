@@ -219,8 +219,8 @@ function AllocationPieChart() {
                     })}
                     {/* Centre hole */}
                     <circle cx={cx} cy={cy} r={64} fill="var(--bg-primary)" />
-                    <text x={cx} y={cy - 9} textAnchor="middle" dominantBaseline="middle" fill="var(--text-primary)" fontSize="16" fontWeight="800">100M</text>
-                    <text x={cx} y={cy + 13} textAnchor="middle" dominantBaseline="middle" fill="var(--text-secondary)" fontSize="12">CATCH</text>
+                    <text x={cx} y={cy - 9} textAnchor="middle" dominantBaseline="middle" fill="var(--text-primary)" fontSize="16" fontWeight="800">Dynamic</text>
+                    <text x={cx} y={cy + 13} textAnchor="middle" dominantBaseline="middle" fill="var(--text-secondary)" fontSize="12">supply</text>
                 </svg>
 
                 {/* Floating tooltip */}
@@ -351,9 +351,9 @@ function CatchContent() {
                 {/* Quick stats */}
                 <div className="mt-8 grid gap-3 sm:grid-cols-4">
                     {[
-                        { emoji: '🪙', label: 'Total supply', value: '100,000,000', unit: 'CATCH' },
-                        { emoji: '💰', label: 'Public allocation', value: '40%', unit: 'Fundraising rounds' },
-                        { emoji: '🔒', label: 'Team vesting', value: '48 months', unit: '6-mo cliff + 42-mo linear' },
+                        { emoji: '🪙', label: 'Supply model', value: 'No cap', unit: 'Round-based issuance' },
+                        { emoji: '💰', label: 'Buyer mint', value: '100%', unit: 'Actual sold round tokens' },
+                        { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded wallets' },
                         { emoji: '📊', label: roundState.isRoundOpen ? 'Current round' : 'Round status', value: `Round ${roundState.roundId}`, unit: roundState.isRoundOpen ? 'Avalanche mainnet' : roundState.status },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
@@ -402,7 +402,7 @@ function CatchContent() {
                         Where the supply goes.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        100,000,000 CATCH. Fixed supply, no inflation. Each bucket has a locked release schedule — nothing dumps at TGE.
+                        There is no max supply. Each finalized round mints buyer tokens from actual sold allocation, then mints 1% each to the five configured segment wallets.
                     </p>
                 </ScrollReveal>
 

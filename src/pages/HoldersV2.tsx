@@ -546,9 +546,7 @@ function ProtocolStats() {
 
     // Supply is folded into a single hero bar (no row list). metricCount still reads "2".
     const excludedSupplyNum = Math.max(0, totalSupplyNum - eligibleSupplyNum);
-    const fixedSupplyNum = 100_000_000;
-    const mintedAllocationPct = fixedSupplyNum > 0 ? (totalSupplyNum / fixedSupplyNum) * 100 : 0;
-    const remainingMintableNum = Math.max(0, fixedSupplyNum - totalSupplyNum);
+    const mintedAllocationPct = totalSupplyNum > 0 ? 100 : 0;
     const fmtCatch = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH`;
     const fmtPct = (n: number, digits = n < 10 ? 2 : 1) => `${n.toFixed(digits)}%`;
     const supplyPct = eligibleRatio ?? 0;
@@ -661,7 +659,7 @@ function ProtocolStats() {
         <div>
             <SubHead
                 title="Tokenomics breakdown"
-                detail="Fixed 100M $CATCH at full dilution, split across seven buckets. The mint tracker shows current live supply against the maximum possible allocation."
+                detail="No max supply. Each finalized round mints buyer tokens plus five 1% segment allocations, with segment wallets excluded from profit share."
             />
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
                 <div className="flex flex-wrap items-end justify-between gap-4">
@@ -673,7 +671,7 @@ function ProtocolStats() {
                             {fmtCatch(totalSupplyNum)}
                         </DataMono>
                         <DataMono className="mt-1 block text-[0.76rem] text-[var(--ink-faint)]">
-                            out of {fmtCatch(fixedSupplyNum)} possible
+                            no fixed cap
                         </DataMono>
                     </div>
                     <DataMono className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent)] md:text-[2.2rem]">
@@ -690,7 +688,7 @@ function ProtocolStats() {
                     />
                 </div>
                 <DataMono className="mt-2 block text-[0.72rem] text-[var(--ink-faint)]">
-                    {fmtCatch(remainingMintableNum)} unminted before fixed cap
+                    Future rounds expand supply from actual sold tokens
                 </DataMono>
             </div>
             <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
@@ -703,8 +701,8 @@ function ProtocolStats() {
                     totalLabel="Minted"
                     totalValue={fmtPct(mintedAllocationPct)}
                     size={220}
-                    caption="Donut slices show each bucket's maximum share of the 100M cap."
-                    ariaLabel={`Token allocation donut chart. Current minted supply is ${fmtCatch(totalSupplyNum)} of ${fmtCatch(fixedSupplyNum)} possible.`}
+                    caption="Donut slices normalize the recurring per-round issuance model."
+                    ariaLabel={`Token allocation donut chart. Current minted supply is ${fmtCatch(totalSupplyNum)} with no fixed cap.`}
                 />
                 <ChartLegend
                     items={TOKEN_ALLOCATION.map((b, i) => ({

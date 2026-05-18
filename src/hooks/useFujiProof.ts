@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatEther, formatUnits } from 'viem';
 import { useAccount, useBalance, useReadContract, useReadContracts } from 'wagmi';
 import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
-import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_ERC20_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI } from '../data/contracts';
+import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_ERC20_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI, GM10_TOKENOMICS_CONTROLLER_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
 import {
     normalizePublicValuationOverrides,
@@ -444,10 +444,10 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     });
 
     const { data: profitEligibleSupply } = useReadContract({
-        address: contractState.proxyAddress ?? ZERO_ADDRESS,
-        abi: GM10_FUND_ABI,
+        address: GM10_MARKET_CONFIG.tokenomicsControllerAddress ?? contractState.proxyAddress ?? ZERO_ADDRESS,
+        abi: GM10_MARKET_CONFIG.tokenomicsControllerAddress ? GM10_TOKENOMICS_CONTROLLER_ABI : GM10_FUND_ABI,
         functionName: 'profitEligibleSupply18',
-        query: { enabled: Boolean(contractState.proxyAddress) },
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.tokenomicsControllerAddress || contractState.proxyAddress) },
     });
     const excludedSupplyAddresses = useMemo(() => {
         const addresses = [

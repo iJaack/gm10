@@ -495,6 +495,37 @@ export const PROFIT_DISTRIBUTOR_ABI = [
     },
 ] as const;
 
+export const TOKENOMICS_CONTROLLER_ABI = [
+    {
+        inputs: [{ name: '_segment', type: 'uint8' }, { name: '_recipient', type: 'address' }],
+        name: 'setSegmentRecipient',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: '_account', type: 'address' }, { name: '_excluded', type: 'bool' }],
+        name: 'setProfitShareExclusion',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: '_account', type: 'address' }],
+        name: 'excludedFromProfitShare',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'profitEligibleSupply18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 export const REGISTRY_ABI = [
     {
         inputs: [

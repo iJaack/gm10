@@ -7,6 +7,7 @@ import {
     GM10_ERC20_ABI,
     GM10_FUND_ABI,
     GM10_INVESTOR_ACCOUNTING_ABI,
+    GM10_TOKENOMICS_CONTROLLER_ABI,
 } from '../data/contracts';
 import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS, ROUND_1_START_AT } from '../data/gm10Config';
 import { resolveHolderAccounting } from '../data/holderAccounting';
@@ -152,6 +153,19 @@ export function useHolderDashboard() {
     const excludedSupplyBalances = useMemo(() => (excludedSupplyReads ?? []).map((read) => (
         read.status === 'success' ? read.result as bigint : undefined
     )), [excludedSupplyReads]);
+    const { data: controllerProfitEligibleSupply } = useReadContract({
+        address: GM10_MARKET_CONFIG.tokenomicsControllerAddress ?? ZERO_ADDRESS,
+        abi: GM10_TOKENOMICS_CONTROLLER_ABI,
+        functionName: 'profitEligibleSupply18',
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.tokenomicsControllerAddress) },
+    });
+    const { data: controllerExclusionState } = useReadContract({
+        address: GM10_MARKET_CONFIG.tokenomicsControllerAddress ?? ZERO_ADDRESS,
+        abi: GM10_TOKENOMICS_CONTROLLER_ABI,
+        functionName: 'excludedFromProfitShare',
+        args: [account],
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.tokenomicsControllerAddress && isConnected) },
+    });
 
     const { data: catchBalance } = useReadContract({
         address: GM10_MARKET_CONFIG.catchTokenAddress ?? ZERO_ADDRESS,
@@ -170,16 +184,18 @@ export function useHolderDashboard() {
     });
     const holderAccounting = useMemo(() => resolveHolderAccounting({
         totalSupply,
+        profitEligibleSupply: controllerProfitEligibleSupply,
         excludedBalances: excludedSupplyBalances,
         navPerToken,
     }), [
+        controllerProfitEligibleSupply,
         excludedSupplyBalances,
         navPerToken,
         totalSupply,
     ]);
 
     const claimableProfit = 0n;
-    const isExcluded = undefined;
+    const isExcluded = controllerExclusionState;
     const claimState = useMemo(() => getClaimEligibilityState({
         isConnected,
         isExcluded,

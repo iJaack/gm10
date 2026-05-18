@@ -3,7 +3,7 @@ import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
-import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI } from '../abis';
+import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI, TOKENOMICS_CONTROLLER_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
 import { ActionReadinessPanel, LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
@@ -404,6 +404,7 @@ export function OperationsPanel() {
         functionName: 'profitDistributor',
         query: { enabled: Boolean(MAINNET.fundProxy) },
     });
+    const tokenomicsController = MAINNET.tokenomicsController;
 
     const { data: fundLiquidityCoordinator } = useReadContract({
         address: MAINNET.fundProxy as `0x${string}`,
@@ -494,10 +495,10 @@ export function OperationsPanel() {
     });
 
     const { data: eligibleSupply } = useReadContract({
-        address: profitDistributor as `0x${string}`,
-        abi: PROFIT_DISTRIBUTOR_ABI,
-        functionName: 'eligibleSupply',
-        query: { enabled: Boolean(profitDistributor) },
+        address: tokenomicsController as `0x${string}`,
+        abi: TOKENOMICS_CONTROLLER_ABI,
+        functionName: 'profitEligibleSupply18',
+        query: { enabled: Boolean(tokenomicsController) },
     });
 
     const { data: cumulativeProfitPerToken } = useReadContract({
@@ -515,11 +516,11 @@ export function OperationsPanel() {
     });
 
     const { data: exclusionState } = useReadContract({
-        address: profitDistributor as `0x${string}`,
-        abi: PROFIT_DISTRIBUTOR_ABI,
+        address: tokenomicsController as `0x${string}`,
+        abi: TOKENOMICS_CONTROLLER_ABI,
         functionName: 'excludedFromProfitShare',
         args: [exclusionAddress as `0x${string}`],
-        query: { enabled: Boolean(profitDistributor) && /^0x[a-fA-F0-9]{40}$/.test(exclusionAddress) },
+        query: { enabled: Boolean(tokenomicsController) && /^0x[a-fA-F0-9]{40}$/.test(exclusionAddress) },
     });
 
     const { data: accountClaimable } = useReadContract({
@@ -681,11 +682,11 @@ export function OperationsPanel() {
     }
 
     function submitExclusion() {
-        if (!MAINNET.fundProxy || !/^0x[a-fA-F0-9]{40}$/.test(exclusionAddress)) return;
+        if (!tokenomicsController || !/^0x[a-fA-F0-9]{40}$/.test(exclusionAddress)) return;
         reset();
         writeContract({
-            address: MAINNET.fundProxy,
-            abi: FUND_ADMIN_ABI,
+            address: tokenomicsController,
+            abi: TOKENOMICS_CONTROLLER_ABI,
             functionName: 'setProfitShareExclusion',
             args: [exclusionAddress as `0x${string}`, excluded],
         });
@@ -1305,7 +1306,7 @@ export function OperationsPanel() {
                 <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
                 <MetricCard label="LP deployed" value={lpDeployedLabel} status={lpReadsStatus} sourceLabel={lpReadsStatus === READ_STATUS.live ? 'live coordinator' : 'partial/unavailable'} detail={`LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`} />
                 <MetricCard label="Reference NAV" value={referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'} status={referenceNav !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="fund read" />
-                <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
+                <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={tokenomicsController ? 'tokenomics controller' : 'not wired'} />
                 <MetricCard label="Profit per token" value={cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'} status={cumulativeProfitPerToken !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
                 <MetricCard label="Total distributed" value={totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'} status={totalProfitDeposited !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
             </div>
@@ -1315,7 +1316,8 @@ export function OperationsPanel() {
                 rows={[
                     { label: 'Fund proxy', status: MAINNET.fundProxy ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.fundProxy ?? 'Pending env config' },
                     { label: 'Portfolio registry', status: MAINNET.portfolioRegistry ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.portfolioRegistry ?? 'Pending env config' },
-                    { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending module wiring; sale-profit buckets still come from stableAccounting.' },
+                    { label: 'Tokenomics controller', status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable, detail: tokenomicsController ?? 'Pending V7 controller deployment.' },
+                    { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending claim distributor; sale-profit buckets still come from stableAccounting.' },
                     { label: 'Liquidity coordinator', status: liquidityCoordinator ? READ_STATUS.configured : READ_STATUS.unavailable, detail: liquidityCoordinator ?? 'Pending module wiring' },
                 ]}
             />
@@ -1452,7 +1454,7 @@ export function OperationsPanel() {
                             <div>Current claimable AVAX: {accountClaimable !== undefined ? formatEther(accountClaimable) : 'Unavailable'}</div>
                         </div>
                         <div className="flex flex-wrap gap-3">
-                            <TxButton onClick={submitExclusion} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !/^0x[a-fA-F0-9]{40}$/.test(exclusionAddress)}>
+                            <TxButton onClick={submitExclusion} txHash={txHash} isPending={isPending} disabled={!tokenomicsController || !/^0x[a-fA-F0-9]{40}$/.test(exclusionAddress)}>
                                 Save exclusion state
                             </TxButton>
                         </div>

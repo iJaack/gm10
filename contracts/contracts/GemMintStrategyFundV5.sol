@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract GemMintStrategyFundV5 is GemMintStrategyFundV3 {
     using SafeERC20 for IERC20;
 
-    uint256 public constant MAX_PRICE_FEED_STALENESS = 7 days;
+    uint256 private constant MAX_PRICE_FEED_STALENESS = 7 days;
 
     address private swapRouterV4;
     mapping(address => bool) private approvedBridgeAdapters;
@@ -162,7 +162,7 @@ contract GemMintStrategyFundV5 is GemMintStrategyFundV3 {
         emit SaleProceedsSettled(_saleKey, _proceedsToken, _amount, netProceedsUsdt6);
     }
 
-    function _quoteAvaxToUsdt(uint256 _avaxAmountWei) internal view override returns (uint256) {
+    function _quoteAvaxToUsdt(uint256 _avaxAmountWei) internal view virtual override returns (uint256) {
         if (avaxUsdFeed == address(0)) revert InvalidPriceFeed();
         (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) =
             IChainlinkPriceFeed(avaxUsdFeed).latestRoundData();

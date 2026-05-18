@@ -57,6 +57,9 @@ const portfolioRegistryAddress = parseAddress(
 const investorAccountingAddress = parseAddress(
     import.meta.env.VITE_GM10_INVESTOR_ACCOUNTING_ADDRESS || '0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963',
 );
+const tokenomicsControllerAddress = parseAddress(
+    import.meta.env.VITE_GM10_TOKENOMICS_CONTROLLER_ADDRESS,
+);
 const catchTokenAddress = parseAddress(
     import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,
 );
@@ -104,6 +107,11 @@ export const GM10_PRIMARY_DEPLOYMENT = {
         address: investorAccountingAddress,
         snowtraceUrl: buildExplorerUrl(GM10_EXPLORER_BASE_URL, investorAccountingAddress),
     },
+    tokenomicsController: {
+        label: 'V7 tokenomics controller',
+        address: tokenomicsControllerAddress,
+        snowtraceUrl: buildExplorerUrl(GM10_EXPLORER_BASE_URL, tokenomicsControllerAddress),
+    },
 } as const;
 
 export type Gm10ContractLink = {
@@ -120,6 +128,7 @@ export const GM10_MARKET_CONFIG = {
     avaxUsdFeedAddress,
     lfjPairAddress,
     pharaohPoolAddress,
+    tokenomicsControllerAddress,
     dexscreenerTokenUrl: catchTokenAddress
         ? `https://api.dexscreener.com/latest/dex/tokens/${catchTokenAddress}`
         : undefined,

@@ -207,6 +207,23 @@ export const GM10_ERC20_ABI = [
     },
 ] as const;
 
+export const GM10_TOKENOMICS_CONTROLLER_ABI = [
+    {
+        inputs: [],
+        name: 'profitEligibleSupply18',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'excludedFromProfitShare',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 export const GM10_PROFIT_DISTRIBUTOR_ABI = [
     {
         inputs: [{ name: 'account', type: 'address' }],

@@ -524,11 +524,10 @@ function FundraisingContent() {
                                 </span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Round FDV</Caption>,
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Round target value</Caption>,
                                 <span className="v2-mono text-right text-[var(--text-primary)]">
-                                    {/* Fully-diluted at round price: 100M total × tokenPrice AVAX × avaxUsd */}
-                                    ~${(100_000_000 * tokenPrice * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                                    <span className="text-[var(--ink-faint)] ml-2">(100M supply × round price)</span>
+                                    ~${(target * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                                    <span className="text-[var(--ink-faint)] ml-2">(uncapped supply; no FDV)</span>
                                 </span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[

@@ -101,15 +101,15 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
         uint256 _maxInvestment,
         uint256 _startTime,
         uint256 _endTime
-    ) external onlyRole(MANAGER_ROLE) {
+    ) external virtual onlyRole(MANAGER_ROLE) {
         _createFundraisingRound(_targetAmount, _tokenPrice, _minInvestment, _maxInvestment, _startTime, _endTime);
     }
 
-    function finalizeRound(uint256 _roundId) external onlyRole(MANAGER_ROLE) {
+    function finalizeRound(uint256 _roundId) external virtual onlyRole(MANAGER_ROLE) {
         _finalizeRound(_roundId);
     }
 
-    function invest(uint256 _roundId) external payable nonReentrant whenNotPaused {
+    function invest(uint256 _roundId) public payable virtual nonReentrant whenNotPaused {
         uint256 previousBalance = balanceOf(msg.sender);
         _invest(_roundId, msg.sender, msg.value);
 
@@ -123,10 +123,11 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
         );
 
         liquidTreasuryUsdt6 += normalizedContributionUsdt6;
+        _autoFinalizeFundedRound(_roundId);
         _syncStableNav();
     }
 
-    function redeem(uint256 _tokenAmount) external nonReentrant {
+    function redeem(uint256 _tokenAmount) external virtual nonReentrant {
         (uint256 attributableRedeemed, uint256 costBasisRemoved) =
             IGm10InvestorAccounting(investorAccounting).previewRedemption(msg.sender, _tokenAmount);
 
@@ -387,7 +388,7 @@ contract GemMintStrategyFundV3 is Gm10FundStorageV2 {
         return Math.mulDiv(_avaxAmountWei, uint256(answer), (10 ** feedDecimals) * 1e12);
     }
 
-    function _syncStableNav() internal {
+    function _syncStableNav() internal virtual {
         uint256 totalStableAssetsUsdt6 =
             liquidTreasuryUsdt6 +
             outstandingPurchaseReleasesUsdt6 +
