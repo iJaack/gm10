@@ -336,9 +336,7 @@ function PostCloseLedger({ avaxUsd }: { avaxUsd: number }) {
 
     return (
         <div>
-            <SectionLabel>Post-close ledger</SectionLabel>
-            <Hairline className="mt-3" />
-            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <DataMono className="block text-[0.68rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
                         Buying closed · Proof live

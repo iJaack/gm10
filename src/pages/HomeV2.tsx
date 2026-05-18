@@ -41,7 +41,7 @@ function Hero() {
                 : `Round ${round.roundId} is ${round.status.toLowerCase().replace(/^round 2 /, '')} on Avalanche mainnet.`
             : `Round ${round.roundId} ${round.isUpcoming ? 'opens soon.' : 'is closed for new buys.'}`;
     const roundProofSentence = isPostRound2Close
-        ? 'Liquidity routing is complete and the proof surface remains public.'
+        ? ''
         : 'Public proof links, contract-enforced timing, and verified contracts on Snowtrace.';
 
     const onPhoto = {
@@ -83,7 +83,7 @@ function Hero() {
                         className="mt-5 max-w-[18ch] lg:max-w-none text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.04em] sm:text-[3.5rem] lg:text-[4.35rem]"
                         style={{ color: onPhoto.primary, textShadow: onPhoto.shadow }}
                     >
-                        Trophy-grade Pokémon cards, without running the card book yourself.
+                        Exposure to the 'mons you can't $CATCH alone.
                     </h1>
                     <div
                         className="mt-6 max-w-[38rem] lg:max-w-none rounded-3xl px-5 py-4"
@@ -99,7 +99,7 @@ function Hero() {
                         </p>
                         <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
                             {roundStatusSentence}
-                            {' '}{roundProofSentence}
+                            {roundProofSentence ? ` ${roundProofSentence}` : null}
                         </p>
                     </div>
 

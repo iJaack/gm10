@@ -329,9 +329,10 @@ describe('page compression regressions', () => {
     it('keeps the home page focused on proxy access to elite pokemon-card upside', () => {
         renderAt('/');
 
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/trophy-grade pokémon cards/i);
-        expect(screen.getAllByText(/trophy-grade/i).length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/exposure to the 'mons you can't \$CATCH alone/i);
+        expect(screen.getAllByText(/\$CATCH/i).length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText(/GM10 turns sourcing, diligence, custody, valuation, and exits/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Liquidity routing is complete/i)).not.toBeInTheDocument();
         expect(screen.getByText(/the thesis/i)).toBeInTheDocument();
         expect(screen.getByText(/record public sale/i)).toBeInTheDocument();
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
@@ -403,7 +404,7 @@ describe('page compression regressions', () => {
         renderAt('/fundraising');
 
         expect(await screen.findByRole('heading', { name: /round 02/i })).toBeInTheDocument();
-        expect(screen.getByText(/post-close ledger/i)).toBeInTheDocument();
+        expect(screen.queryByText(/post-close ledger/i)).not.toBeInTheDocument();
         expect(screen.getByText(/buying closed · proof live/i)).toBeInTheDocument();
         expect(screen.getAllByText(/1,353\.9836 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LFJ liquidity route/i).length).toBeGreaterThan(0);
