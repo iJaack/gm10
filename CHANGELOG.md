@@ -4,6 +4,8 @@
 
 ### Gem Mint Strategy tokenomics V7 is live
 
+![Gem Mint Strategy V7 tokenomics launch hero](public/changelog/gm10-v7-tokenomics-hero.png)
+
 Gem Mint Strategy just shipped the biggest `$CATCH` tokenomics upgrade so far.
 
 The old model was simple, but too rigid for a strategy fund that grows round by round. V7 removes the fixed max supply and replaces it with dynamic issuance tied directly to completed fundraising rounds.
@@ -15,6 +17,8 @@ From now on, every finalized round mints the tokens sold to buyers, then mints f
 - Community & Ecosystem
 - Advisors
 - Strategic Partnerships
+
+![V7 round-based allocation and redemption gates](public/changelog/gm10-v7-allocation-gates.png)
 
 This is not a frontend-only change. The important constraints moved onchain.
 
