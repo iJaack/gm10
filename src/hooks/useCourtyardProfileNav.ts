@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CourtyardProfileNav } from '../data/courtyardNav';
 
 const PROFILE_URL = 'https://courtyard.io/user/gm10xyz/collection';
+const REFRESH_INTERVAL_MS = 30_000;
 
 const initialState: CourtyardProfileNav = {
     source: 'courtyard',
@@ -16,11 +17,15 @@ export function useCourtyardProfileNav() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const controller = new AbortController();
+        let activeController: AbortController | undefined;
+        let disposed = false;
 
-        async function loadNav() {
+        async function loadNav(isInitialLoad = false) {
+            activeController?.abort();
+            const controller = new AbortController();
+            activeController = controller;
             try {
-                setIsLoading(true);
+                if (isInitialLoad) setIsLoading(true);
                 const response = await fetch('/api/courtyard-profile-nav', {
                     signal: controller.signal,
                     headers: { Accept: 'application/json' },
@@ -31,22 +36,31 @@ export function useCourtyardProfileNav() {
                 }
 
                 const payload = await response.json() as CourtyardProfileNav;
-                setState(payload);
+                if (!disposed && activeController === controller) setState(payload);
             } catch (error) {
                 if (controller.signal.aborted) return;
-                setState({
-                    ...initialState,
-                    fetchedAt: new Date().toISOString(),
-                    reason: error instanceof Error ? error.message : 'Courtyard NAV unavailable',
-                });
+                if (!disposed && isInitialLoad) {
+                    setState({
+                        ...initialState,
+                        fetchedAt: new Date().toISOString(),
+                        reason: error instanceof Error ? error.message : 'Courtyard NAV unavailable',
+                    });
+                }
             } finally {
-                if (!controller.signal.aborted) setIsLoading(false);
+                if (!controller.signal.aborted && !disposed && isInitialLoad) setIsLoading(false);
             }
         }
 
-        void loadNav();
+        void loadNav(true);
+        const intervalId = window.setInterval(() => {
+            void loadNav(false);
+        }, REFRESH_INTERVAL_MS);
 
-        return () => controller.abort();
+        return () => {
+            disposed = true;
+            window.clearInterval(intervalId);
+            activeController?.abort();
+        };
     }, []);
 
     return { ...state, isLoading };

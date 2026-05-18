@@ -34,6 +34,20 @@ function publicCardMark(card, pack, { requireSubmitted = true } = {}) {
   };
 }
 
+function mergeMarksByPosition(primaryMarks, fallbackMarks) {
+  const seen = new Set();
+  const merged = [];
+
+  for (const mark of [...primaryMarks, ...fallbackMarks]) {
+    const key = Number(mark?.positionId);
+    if (!Number.isInteger(key) || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(mark);
+  }
+
+  return merged.sort((left, right) => Number(left.positionId) - Number(right.positionId));
+}
+
 async function buildLivePublicPack({ buildValuationPackImpl, fetchActiveTreasuryCardsImpl }) {
   const generatedAt = new Date().toISOString();
   const cards = await fetchActiveTreasuryCardsImpl();
@@ -51,7 +65,7 @@ export function createValuationPublicHandler({
 } = {}) {
   return async function handler(request = {}, response) {
     setCorsHeaders(response);
-    response.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120');
+    response.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=60');
 
     if (request.method === 'OPTIONS') {
       response.status(204).json({});
@@ -69,20 +83,41 @@ export function createValuationPublicHandler({
         localDir: process.env.GM10_VALUATION_LOCAL_DIR || process.cwd(),
       });
       const pack = await store.getLatestPack();
-      const marks = (pack?.cards ?? [])
+      const submittedMarks = (pack?.cards ?? [])
         .map((card) => publicCardMark(card, pack, { requireSubmitted: true }))
         .filter(Boolean);
-      if (marks.length === 0) {
-        const livePack = await buildLivePublicPack({ buildValuationPackImpl, fetchActiveTreasuryCardsImpl });
-        const liveMarks = (livePack.cards ?? [])
-          .map((card) => publicCardMark(card, livePack, { requireSubmitted: false }))
-          .filter(Boolean);
+      let livePack;
+      let liveError;
+      try {
+        livePack = await buildLivePublicPack({ buildValuationPackImpl, fetchActiveTreasuryCardsImpl });
+      } catch (error) {
+        liveError = error;
+      }
+      const liveMarks = (livePack?.cards ?? [])
+        .map((card) => publicCardMark(card, livePack, { requireSubmitted: false }))
+        .filter(Boolean);
 
+      if (liveMarks.length > 0) {
+        response.status(200).json({
+          packId: livePack.packId,
+          submittedPackId: pack?.packId ?? null,
+          generatedAt: livePack.generatedAt,
+          source: 'live',
+          marks: mergeMarksByPosition(liveMarks, submittedMarks),
+        });
+        return;
+      }
+
+      if (!livePack && submittedMarks.length === 0) {
+        throw liveError ?? new Error('Unable to generate live public valuation marks');
+      }
+
+      if (submittedMarks.length === 0) {
         response.status(200).json({
           packId: livePack.packId,
           generatedAt: livePack.generatedAt,
           source: 'live',
-          marks: liveMarks,
+          marks: [],
         });
         return;
       }
@@ -91,7 +126,7 @@ export function createValuationPublicHandler({
         packId: pack?.packId ?? null,
         generatedAt: pack?.generatedAt ?? null,
         source: 'submitted',
-        marks,
+        marks: submittedMarks,
       });
     } catch (error) {
       respondError(response, 500, error instanceof Error ? error.message : 'Unable to load public valuation marks');

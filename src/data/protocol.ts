@@ -69,6 +69,44 @@ export const ROUND_PROCEEDS_ALLOCATION = {
     realizedProfitWaterfall: 'Separate from realized sale profit, which later follows the sale waterfall: 25% treasury reinvestment, 40% holder claim bucket, and 35% LP replenishment. The LP bucket is split in half: one half market-buys $CATCH, the other half buys or retains AVAX, then the resulting CATCH/AVAX liquidity is added 50/50 to LFJ and Pharaoh, with LFJ LP burned.',
 } as const;
 
+export const ROUND_2_CLOSE_LEDGER = {
+    roundId: 2,
+    raisedAvax: 1353.9836,
+    targetAvax: 5000,
+    finalizedBlock: 85655273,
+    finalizedAtLabel: 'May 17, 2026',
+    raisedLabel: '1,353.9836 AVAX',
+    targetLabel: '5,000 AVAX',
+    progressLabel: '27.1%',
+    rows: [
+        {
+            label: 'Finalized raise',
+            value: '1,353.9836 AVAX',
+            detail: 'Round 2 closed and finalized on Avalanche mainnet.',
+        },
+        {
+            label: 'Strategy treasury',
+            value: '1,150.8861 AVAX',
+            detail: '85% of proceeds stayed with the strategy for card sourcing and execution.',
+        },
+        {
+            label: 'LFJ liquidity route',
+            value: '67.6992 AVAX',
+            detail: 'One half of the liquidity bucket routed into LFJ.',
+        },
+        {
+            label: 'Pharaoh liquidity route',
+            value: '67.6992 AVAX',
+            detail: 'One half of the liquidity bucket routed into Pharaoh.',
+        },
+        {
+            label: 'Team allocation',
+            value: '67.6992 AVAX',
+            detail: '5% bootstrap allocation sent to the team wallet.',
+        },
+    ],
+} as const;
+
 export const RECENT_CARD_COMPS = [
     {
         id: 'charizard',
@@ -153,8 +191,8 @@ export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
 
 export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     {
-        title: '🪙 Enter the round',
-        body: 'Round 2 is live on Avalanche mainnet. Buy $CATCH directly from the round module while the window is open.',
+        title: '🪙 Review the closed round',
+        body: 'Round 2 finalized on Avalanche mainnet. The public page now shows the raise, routing, and proof surface instead of an open buy window.',
     },
     {
         title: '🃏 We acquire the cards',
@@ -222,12 +260,12 @@ export const WATERFALL = [
 
 export const PURCHASE_FLOW = [
     {
-        title: 'The round opens onchain',
-        detail: 'Round 2 is live on Avalanche mainnet. The buy window auto-finalizes when the cap is reached or closes when the end timestamp passes.',
+        title: 'The round finalizes onchain',
+        detail: 'Round 2 closed on Avalanche mainnet. The finalized raise, minting, and routing stay inspectable from the public proof surface.',
     },
     {
         title: 'Card targets get greenlit',
-        detail: 'Round 2 remains ops-led: grails, slabs, provenance, price discipline, and venue-specific execution plans across Courtyard and future marketplaces.',
+        detail: 'Post-close execution remains ops-led: grails, slabs, provenance, price discipline, and venue-specific execution plans across Courtyard and future marketplaces.',
     },
     {
         title: 'Ops secures the slab',
@@ -337,11 +375,11 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'What is live today versus planned later?',
-        answer: 'Round 2 is live on Avalanche mainnet with live buying, public proof links, fixed token allocations, claimable AVAX profit distributions from realized exits, and public reference NAV reporting.',
+        answer: 'Round 2 is finalized on Avalanche mainnet. Live buying is closed; public proof links, token accounting, liquidity routing, holder dashboards, and reference NAV reporting remain inspectable.',
     },
     {
         question: 'How are Round 2 proceeds used?',
-        answer: 'Round 2 proceeds are allocated from actual AVAX raised: 85% to the strategy/card acquisition treasury, 10% to liquidity, and 5% to the team wallet for bootstrapping expenses. At the full 5,000 AVAX cap that means 4,250 AVAX to strategy treasury, 250 AVAX to LFJ LP, 250 AVAX to Pharaoh LP, and 250 AVAX to the team wallet for bootstrapping expenses. This is separate from the realized sale-profit waterfall.',
+        answer: 'Round 2 finalized at 1,353.9836 AVAX. The actual routing was 85% to the strategy/card acquisition treasury, 10% to liquidity split across LFJ and Pharaoh, and 5% to the team wallet for bootstrapping expenses. This is separate from the realized sale-profit waterfall.',
     },
     {
         question: 'Does GM10 guarantee returns?',
@@ -357,11 +395,11 @@ export type SiteNavItem = {
 export const GLOBAL_CTA_ROUTE = '/fundraising' as const;
 
 export function getRoundPrimaryCtaLabel(isRoundOpen: boolean) {
-    return isRoundOpen ? 'Join the Round' : 'Join Next Round';
+    return isRoundOpen ? 'Join the Round' : 'View Round Status';
 }
 
 export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
-    { to: '/fundraising', label: 'Join' },
+    { to: '/fundraising', label: 'Round Status' },
     { to: '/catch', label: 'How It Works' },
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/holders', label: 'Holders' },
@@ -439,7 +477,7 @@ export const HOME_INVESTOR_OBJECTIONS = [
     },
     {
         question: 'What proves the system is ready for mainnet?',
-        answer: 'Round 2 is live on mainnet with public proof links and contract-enforced timing and sale mechanics. Inspect the contracts on Snowtrace.',
+        answer: 'Round 2 finalized on mainnet with public proof links, contract-enforced timing, and onchain routing. Inspect the contracts on Snowtrace.',
     },
     {
         question: 'Why does Avalanche matter here?',
@@ -449,10 +487,10 @@ export const HOME_INVESTOR_OBJECTIONS = [
 
 export const SUPPORT_PAGE_COPY = {
     fundraising: {
-        eyebrow: 'Join the round',
-        title: 'Take one position in the full GM10 strategy.',
-        body: 'Use the Round 2 module to get exposure to the managed portfolio, then inspect the live Avalanche mainnet proof below.',
-        primaryCtaTo: '/fundraising#buy-panel',
+        eyebrow: 'Round status',
+        title: 'Round 2 is closed. The proof stays live.',
+        body: 'Review the finalized raise, post-close routing, and Avalanche mainnet proof for the latest completed round.',
+        primaryCtaTo: '/fundraising',
         secondaryCtaTo: '/fundraising#proof',
     },
     portfolio: {

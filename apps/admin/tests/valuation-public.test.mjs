@@ -25,6 +25,7 @@ function handlerForPack(pack) {
     createValuationPackStoreImpl: () => ({
       getLatestPack: async () => pack,
     }),
+    fetchActiveTreasuryCardsImpl: async () => [],
   });
 }
 
@@ -73,7 +74,7 @@ test('valuation-public exposes only approved submitted consensus marks', async (
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers['access-control-allow-origin'], '*');
-  assert.equal(response.headers['cache-control'], 's-maxage=30, stale-while-revalidate=120');
+  assert.equal(response.headers['cache-control'], 's-maxage=15, stale-while-revalidate=60');
   assert.deepEqual(response.payload, {
     packId: 'valuation-public-test',
     generatedAt: '2026-04-21T10:00:00.000Z',
@@ -90,6 +91,87 @@ test('valuation-public exposes only approved submitted consensus marks', async (
       },
     ],
   });
+});
+
+test('valuation-public prefers live marks and keeps submitted marks as per-position fallback', async () => {
+  const freshObservedAt = new Date().toISOString();
+  const handler = createValuationPublicHandler({
+    createValuationPackStoreImpl: () => ({
+      getLatestPack: async () => ({
+        packId: 'submitted-pack',
+        generatedAt: '2026-04-21T10:00:00.000Z',
+        cards: [
+          {
+            positionId: 7,
+            title: 'Fresh card',
+            decision: 'approved',
+            submittedTxHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            consensus: {
+              status: 'passed',
+              proposedValueUsdc6: '1100000000',
+            },
+          },
+          {
+            positionId: 8,
+            title: 'Submitted fallback card',
+            decision: 'approved',
+            submittedTxHash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+            consensus: {
+              status: 'passed',
+              proposedValueUsdc6: '200000000',
+            },
+          },
+        ],
+      }),
+    }),
+    fetchActiveTreasuryCardsImpl: async () => [
+      {
+        positionId: 7,
+        cardKey: 'psa:11029260',
+        title: 'Fresh card',
+        currentValueUsdc6: '1100000000',
+        observations: [
+          {
+            sourceId: 'primary',
+            sourceName: 'PokemonPriceTracker',
+            cardKey: 'psa:11029260',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
+            valueUsdc6: '1200000000',
+            currency: 'USD',
+            confidence: 0.9,
+            rawPayloadRef: 'pokemon://latest',
+            sourceUrl: 'https://example.com/primary',
+            matchReason: 'latest market price',
+          },
+          {
+            sourceId: 'benchmark',
+            sourceName: 'Current registry mark',
+            cardKey: 'psa:11029260',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
+            valueUsdc6: '1100000000',
+            currency: 'USD',
+            confidence: 0.85,
+            rawPayloadRef: 'registry://current-mark',
+            sourceUrl: 'https://example.com/registry',
+            matchReason: 'continuity benchmark',
+          },
+        ],
+      },
+    ],
+  });
+  const response = responseRecorder();
+
+  await handler({ method: 'GET' }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.source, 'live');
+  assert.equal(response.payload.submittedPackId, 'submitted-pack');
+  assert.deepEqual(response.payload.marks.map((mark) => [mark.positionId, mark.valueUsdc6]), [
+    [7, '1200000000'],
+    [8, '200000000'],
+  ]);
 });
 
 test('valuation-public handles preflight and rejects unsupported methods', async () => {

@@ -305,7 +305,7 @@ describe('route simplification', () => {
             link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
-        expect(labels).toEqual(['Join', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
+        expect(labels).toEqual(['Round Status', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
     });
 
     it.each([
@@ -366,6 +366,77 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
+    });
+
+    it('shows the post-Round 2 close ledger instead of wallet prompts when the round is finalized', async () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                roundId: 2n,
+                targetAmount: 5000000000000000000000n,
+                raisedAmount: 1353983600000000000000n,
+                tokenPrice: 3500000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 500000000000000000000n,
+                startTime: 1776351600n,
+                endTime: 1778943600n,
+                isActive: false,
+                isFinalized: true,
+            },
+            status: 'Finalized',
+            progress: 27.079672,
+            isRoundOpen: false,
+            isUpcoming: false,
+            isClosed: true,
+            isPlanned: false,
+            roundSource: 'onchain',
+            startsAt: 1776351600,
+            endsAt: 1778943600,
+            archiveRound: undefined,
+            targetLabel: '5,000 AVAX',
+            raisedLabel: '1,353.9836 AVAX',
+            priceLabel: '0.0035 AVAX',
+            minMaxLabel: '0.1 to 500 AVAX',
+            links: [],
+        };
+
+        renderAt('/fundraising');
+
+        expect(await screen.findByRole('heading', { name: /round 02/i })).toBeInTheDocument();
+        expect(screen.getByText(/post-close ledger/i)).toBeInTheDocument();
+        expect(screen.getByText(/buying closed · proof live/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/1,353\.9836 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/LFJ liquidity route/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Pharaoh liquidity route/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Finalized · proof live/i)).toBeInTheDocument();
+        expect(screen.getByText(/Round 2 is closed for new buys/i)).toBeInTheDocument();
+        expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
+    });
+
+    it('shows post-round token mechanics and total raised on the catch page', async () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                raisedAmount: 1353983600000000000000n,
+                isActive: false,
+                isFinalized: true,
+            },
+            status: 'Finalized',
+            isRoundOpen: false,
+            archiveRound: {
+                raisedAmount: 500000000000000000000n,
+            },
+        };
+
+        renderAt('/catch');
+
+        expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
+        expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
+        expect(screen.getByText(/excluded from profit claims/i)).toBeInTheDocument();
+        expect(screen.getByText(/total raised/i)).toBeInTheDocument();
+        expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/Across Rounds 1-2/i)).toBeInTheDocument();
     });
 
     it('shows planned round 2 setup as in progress during the configured window', async () => {
@@ -513,6 +584,11 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/\$0\.0220/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/connect a wallet to see your \$CATCH/i)).toBeInTheDocument();
         expect(screen.getByText(/protocol accounting/i)).toBeInTheDocument();
+        expect(screen.getByText(/supply composition/i)).toBeInTheDocument();
+        expect(screen.getByText(/dynamic supply expands when finalized rounds mint actual sold tokens/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/total minted/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/excluded from profit claims/i).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/no fixed cap/i)).not.toBeInTheDocument();
         expect(screen.getByText(/liquidity & venues/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^LFJ$/).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/^Pharaoh$/).length).toBeGreaterThan(0);

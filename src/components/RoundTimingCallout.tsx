@@ -90,7 +90,9 @@ export function RoundTimingCallout({
         ? `Round ${roundId} opens in ${formatCountdown(secondsToStart)}`
         : roundState.isRoundOpen
             ? `Round ${roundId} closes in ${formatCountdown(secondsToEnd)}`
-            : `Round ${roundId} is closed`;
+            : roundState.status?.toLowerCase() === 'finalized'
+                ? `Round ${roundId} finalized`
+                : `Round ${roundId} is closed`;
     const detail = roundState.isPlanned
         ? `Round ${roundId} is the current public round on this page. It becomes buyable after the admin starts it onchain. Planned window: ${formatUtcTimestamp(startsAt)} to ${formatUtcTimestamp(endsAt)}.`
         : roundState.isUpcoming

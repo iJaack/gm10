@@ -30,18 +30,19 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 const MAX_PUBLIC_POSITIONS = 40;
 const DEFAULT_PLATFORM_NAV: PlatformNavState = { status: 'unavailable' };
 const AVAX_WEI = 10n ** 18n;
+const PUBLIC_VALUATION_REFRESH_INTERVAL_MS = 30_000;
 
 const ROUND_2_PLANNED_ROUND = {
     roundId: BigInt(BUY_PAGE_DEFAULTS.roundId),
     targetAmount: 5_000n * AVAX_WEI,
-    raisedAmount: 0n,
+    raisedAmount: 1_353_983_600_000_000_000_000n,
     tokenPrice: 3_500_000_000_000_000n,
     minInvestment: AVAX_WEI / 10n,
     maxInvestment: 500n * AVAX_WEI,
     startTime: BigInt(ROUND_2_START_AT),
     endTime: BigInt(ROUND_2_END_AT),
     isActive: false,
-    isFinalized: false,
+    isFinalized: true,
 } as const;
 
 export type Gm10RoundData = {
@@ -74,6 +75,7 @@ export function deriveFujiRoundState({
 }) {
     const hasOnchainRound2 = hasRoundData(round2);
     const round = hasOnchainRound2 ? round2 : fallbackRound;
+    const isPublishedFallback = !hasOnchainRound2 && Boolean(fallbackRound.isFinalized);
     const startsAt = Number(round.startTime);
     const endsAt = Number(round.endTime);
     const raisedAmount = round.raisedAmount;
@@ -81,7 +83,7 @@ export function deriveFujiRoundState({
     const capReached = targetAmount > 0n && raisedAmount >= targetAmount;
     const isUpcoming = now < startsAt;
     const isClosedByTime = now > endsAt;
-    const isClosed = hasOnchainRound2 && (capReached || isClosedByTime || Boolean(round.isFinalized));
+    const isClosed = (hasOnchainRound2 || isPublishedFallback) && (capReached || isClosedByTime || Boolean(round.isFinalized));
     const isRoundOpen = hasOnchainRound2 && Boolean(round.isActive) && !isUpcoming && !isClosed;
 
     const plannedStatus = isUpcoming
@@ -89,7 +91,9 @@ export function deriveFujiRoundState({
         : isClosedByTime
             ? 'Round 2 setup delayed'
             : 'Round 2 setup in progress';
-    const status = !hasOnchainRound2
+    const status = isPublishedFallback
+        ? 'Finalized'
+        : !hasOnchainRound2
         ? plannedStatus
         : isClosed
         ? capReached || Boolean(round.isFinalized)
@@ -104,8 +108,8 @@ export function deriveFujiRoundState({
     return {
         roundId,
         round,
-        roundSource: hasOnchainRound2 ? 'onchain' as const : 'planned' as const,
-        isPlanned: !hasOnchainRound2,
+        roundSource: hasOnchainRound2 ? 'onchain' as const : isPublishedFallback ? 'published' as const : 'planned' as const,
+        isPlanned: !hasOnchainRound2 && !isPublishedFallback,
         status,
         isUpcoming,
         isClosed,
@@ -546,8 +550,13 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     }, [liveMetadataRequestKey, rawPositions]);
 
     useEffect(() => {
-        const controller = new AbortController();
+        let activeController: AbortController | undefined;
+        let disposed = false;
+
         async function loadPublicValuations() {
+            activeController?.abort();
+            const controller = new AbortController();
+            activeController = controller;
             try {
                 const response = await fetch(publicValuationUrl(), {
                     signal: controller.signal,
@@ -555,14 +564,24 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                 });
                 if (!response.ok) throw new Error(`Public valuation marks returned ${response.status}`);
                 const payload = await response.json() as PublicValuationResponse;
-                setPublicValuationOverrides(normalizePublicValuationOverrides(payload));
+                if (!disposed && activeController === controller) {
+                    setPublicValuationOverrides(normalizePublicValuationOverrides(payload));
+                }
             } catch {
-                if (!controller.signal.aborted) setPublicValuationOverrides({});
+                if (!controller.signal.aborted && !disposed) setPublicValuationOverrides((current) => current);
             }
         }
 
         void loadPublicValuations();
-        return () => controller.abort();
+        const intervalId = window.setInterval(() => {
+            void loadPublicValuations();
+        }, PUBLIC_VALUATION_REFRESH_INTERVAL_MS);
+
+        return () => {
+            disposed = true;
+            window.clearInterval(intervalId);
+            activeController?.abort();
+        };
     }, []);
 
     const positions = useMemo(() => rawPositions

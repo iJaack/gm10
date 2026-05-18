@@ -20,7 +20,7 @@ import {
 } from '../components/v2/primitives';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useTheme } from '../hooks/useTheme';
-import { HOME_GM10_ADVANTAGES } from '../data/protocol';
+import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 
 /* ─────────────────────────────────────────────── */
 /*  1. HERO                                         */
@@ -30,13 +30,19 @@ import { HOME_GM10_ADVANTAGES } from '../data/protocol';
 function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
+    const isPostRound2Close = round.isClosed && round.roundId === ROUND_2_CLOSE_LEDGER.roundId;
     const roundStatusSentence = round.isRoundOpen
         ? `Round ${round.roundId} is live on Avalanche mainnet.`
-        : round.isPlanned
+        : isPostRound2Close
+            ? `Round ${round.roundId} finalized at ${ROUND_2_CLOSE_LEDGER.raisedLabel} on Avalanche mainnet.`
+            : round.isPlanned
             ? round.status.toLowerCase().startsWith('round 2 setup ')
                 ? `Round ${round.roundId} setup is ${round.status.toLowerCase().replace(/^round 2 setup /, '')} on Avalanche mainnet.`
                 : `Round ${round.roundId} is ${round.status.toLowerCase().replace(/^round 2 /, '')} on Avalanche mainnet.`
             : `Round ${round.roundId} ${round.isUpcoming ? 'opens soon.' : 'is closed for new buys.'}`;
+    const roundProofSentence = isPostRound2Close
+        ? 'Liquidity routing is complete and the proof surface remains public.'
+        : 'Public proof links, contract-enforced timing, and verified contracts on Snowtrace.';
 
     const onPhoto = {
         primary: theme === 'dark' ? '#ffffff' : '#0f0e0a',
@@ -93,7 +99,7 @@ function Hero() {
                         </p>
                         <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
                             {roundStatusSentence}
-                            {' '}Public proof links, contract-enforced timing, and verified contracts on Snowtrace.
+                            {' '}{roundProofSentence}
                         </p>
                     </div>
 
@@ -103,7 +109,7 @@ function Hero() {
                             className="pixel-menu-link pixel-menu-link-active"
                         >
                             <span className="pixel-menu-cursor" aria-hidden>↗</span>
-                            <span>Join Round {round.roundId}</span>
+                            <span>{round.isRoundOpen ? `Join Round ${round.roundId}` : `Review Round ${round.roundId} close`}</span>
                         </Link>
                         <Link
                             to="/portfolio"
@@ -120,13 +126,14 @@ function Hero() {
                             className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/85 backdrop-blur-sm px-5 py-4"
                         >
                             <div className="label-font">
-                                {round.isRoundOpen ? 'Current window' : round.isUpcoming ? 'Next opening' : 'Round status'}
+                                {isPostRound2Close ? 'Latest close' : round.isRoundOpen ? 'Current window' : round.isUpcoming ? 'Next opening' : 'Round status'}
                             </div>
                             <div className="mt-2 text-[1.15rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
                                 Round {round.roundId} · {round.isRoundOpen ? 'live' : round.status.toLowerCase()}
                             </div>
                             <div className="mt-1 text-[0.88rem] text-[var(--text-secondary)]">
-                                {round.raisedLabel} raised of {round.targetLabel} · {round.progress.toFixed(1)}%
+                                {round.raisedLabel} raised of {round.targetLabel} cap · {round.progress.toFixed(1)}%
+                                {isPostRound2Close ? ` · block ${ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}` : ''}
                             </div>
                             <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
                                 <div

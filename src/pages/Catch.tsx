@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatEther } from 'viem';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { PixelLabel } from '../components/PixelUI';
 import { Web3Providers } from '../components/Web3Providers';
 import { Display, SectionLabel } from '../components/v2/primitives';
 import {
     GOVERNANCE_PHASES,
+    ROUND_2_CLOSE_LEDGER,
     SUPPORT_PAGE_COPY,
     TOKEN_ALLOCATION,
     TOKEN_RELEASE_RULES,
@@ -313,6 +315,14 @@ const SYSTEM_FLOW_STEPS = [
 function CatchContent() {
     const roundState = useFujiRoundState();
     const pageCopy = SUPPORT_PAGE_COPY.catch;
+    const round1RaisedAvax = roundState.archiveRound
+        ? Number(formatEther(roundState.archiveRound.raisedAmount))
+        : 500;
+    const round2RaisedAvax = roundState.round
+        ? Number(formatEther(roundState.round.raisedAmount))
+        : ROUND_2_CLOSE_LEDGER.raisedAvax;
+    const totalRaisedAvax = round1RaisedAvax + round2RaisedAvax;
+    const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
 
     return (
         <main>
@@ -351,10 +361,10 @@ function CatchContent() {
                 {/* Quick stats */}
                 <div className="mt-8 grid gap-3 sm:grid-cols-4">
                     {[
-                        { emoji: '🪙', label: 'Supply model', value: 'No cap', unit: 'Round-based issuance' },
-                        { emoji: '💰', label: 'Buyer mint', value: '100%', unit: 'Actual sold round tokens' },
-                        { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded wallets' },
-                        { emoji: '📊', label: roundState.isRoundOpen ? 'Current round' : 'Round status', value: `Round ${roundState.roundId}`, unit: roundState.isRoundOpen ? 'Avalanche mainnet' : roundState.status },
+                        { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Round-based issuance' },
+                        { emoji: '💰', label: 'Buyer mint', value: 'Sold round tokens', unit: 'Minted to buyers' },
+                        { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded from profit claims' },
+                        { emoji: '📊', label: 'Total raised', value: totalRaisedLabel, unit: `Across Rounds 1-${roundState.roundId}` },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
@@ -520,7 +530,7 @@ function CatchContent() {
                         Your position, always visible.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        The wallet view shows what GM10 can prove: contributed basis, current holdings, and the latest marked value. No fabricated numbers.
+                        The wallet view shows what GM10 can prove: contributed basis, current holdings, and the latest marked value.
                     </p>
                 </ScrollReveal>
 

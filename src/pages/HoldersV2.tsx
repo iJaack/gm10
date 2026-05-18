@@ -546,10 +546,10 @@ function ProtocolStats() {
 
     // Supply is folded into a single hero bar (no row list). metricCount still reads "2".
     const excludedSupplyNum = Math.max(0, totalSupplyNum - eligibleSupplyNum);
-    const mintedAllocationPct = totalSupplyNum > 0 ? 100 : 0;
     const fmtCatch = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH`;
     const fmtPct = (n: number, digits = n < 10 ? 2 : 1) => `${n.toFixed(digits)}%`;
     const supplyPct = eligibleRatio ?? 0;
+    const excludedPct = totalSupplyNum > 0 ? Math.max(0, 100 - supplyPct) : 0;
 
     const valuation: StatRow[] = [
         {
@@ -658,38 +658,56 @@ function ProtocolStats() {
     const supplyChart = (
         <div>
             <SubHead
-                title="Tokenomics breakdown"
-                detail="No max supply. Each finalized round mints buyer tokens plus five 1% segment allocations, with segment wallets excluded from profit share."
+                title="Supply composition"
+                detail="Dynamic supply expands when finalized rounds mint actual sold tokens. Profit-eligible supply excludes segment, liquidity, treasury, and operations wallets."
             />
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
-                            Current minted allocation
+                            Total minted
                         </Caption>
                         <DataMono className="mt-1 block text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)] md:text-[1.4rem]">
                             {fmtCatch(totalSupplyNum)}
                         </DataMono>
                         <DataMono className="mt-1 block text-[0.76rem] text-[var(--ink-faint)]">
-                            no fixed cap
+                            Current circulating supply after finalized rounds
                         </DataMono>
                     </div>
-                    <DataMono className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent)] md:text-[2.2rem]">
-                        {fmtPct(mintedAllocationPct)}
-                    </DataMono>
+                    <div className="text-right">
+                        <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+                            Profit-eligible
+                        </Caption>
+                        <DataMono className="mt-1 block text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent)] md:text-[2.2rem]">
+                            {fmtPct(supplyPct)}
+                        </DataMono>
+                    </div>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                    <div
-                        className="h-full rounded-full bg-[var(--accent)]"
-                        style={{
-                            width: `${Math.min(100, mintedAllocationPct)}%`,
-                            minWidth: mintedAllocationPct > 0 ? 3 : 0,
-                        }}
+                <div className="mt-3">
+                    <SegmentedBar
+                        height={10}
+                        slices={[
+                            { label: 'Profit-eligible holders', value: Math.max(eligibleSupplyNum, 0), color: 'var(--accent-blue)' },
+                            { label: 'Excluded system wallets', value: excludedSupplyNum, color: 'var(--accent)' },
+                        ]}
+                        caption="Eligible holders participate in realized-profit claims; excluded system wallets do not."
+                        ariaLabel={`Supply split. ${fmtCatch(eligibleSupplyNum)} is profit-eligible and ${fmtCatch(excludedSupplyNum)} is excluded from profit claims.`}
                     />
                 </div>
-                <DataMono className="mt-2 block text-[0.72rem] text-[var(--ink-faint)]">
-                    Future rounds expand supply from actual sold tokens
-                </DataMono>
+                <div className="mt-3 grid gap-2 text-[0.76rem] md:grid-cols-2">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2">
+                        <DataMono className="block text-[var(--ink-faint)]">Profit-eligible</DataMono>
+                        <DataMono className="mt-1 block font-semibold text-[var(--text-primary)]">
+                            {fmtCatch(eligibleSupplyNum)} · {fmtPct(supplyPct)}
+                        </DataMono>
+                    </div>
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2">
+                        <DataMono className="block text-[var(--ink-faint)]">Excluded from profit claims</DataMono>
+                        <DataMono className="mt-1 block font-semibold text-[var(--text-primary)]">
+                            {fmtCatch(excludedSupplyNum)} · {fmtPct(excludedPct)}
+                        </DataMono>
+                    </div>
+                </div>
             </div>
             <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
                 <DonutChart
@@ -698,11 +716,11 @@ function ProtocolStats() {
                         value: b.percent,
                         color: allocationPalette[i % allocationPalette.length],
                     }))}
-                    totalLabel="Minted"
-                    totalValue={fmtPct(mintedAllocationPct)}
+                    totalLabel="Buyer mint"
+                    totalValue="95.24%"
                     size={220}
-                    caption="Donut slices normalize the recurring per-round issuance model."
-                    ariaLabel={`Token allocation donut chart. Current minted supply is ${fmtCatch(totalSupplyNum)} with no fixed cap.`}
+                    caption="Recurring per-round model; segment wallets are excluded from profit claims."
+                    ariaLabel={`Token allocation model chart. Buyer tokens receive 95.24 percent of each finalized round mint, with segment wallets receiving the remaining 4.76 percent.`}
                 />
                 <ChartLegend
                     items={TOKEN_ALLOCATION.map((b, i) => ({

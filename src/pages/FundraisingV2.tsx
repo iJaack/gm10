@@ -28,6 +28,7 @@ import {
 import { GM10_FUND_ABI } from '../data/contracts';
 import {
     BUY_PAGE_DEFAULTS,
+    ROUND_2_CLOSE_LEDGER,
     ROUND_PROCEEDS_ALLOCATION,
 } from '../data/protocol';
 import {
@@ -191,6 +192,16 @@ function shortAddr(a?: string) {
     return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
 
+function fmtCountdown(seconds: number) {
+    const secs = Math.max(0, seconds);
+    const d = Math.floor(secs / 86_400);
+    const h = Math.floor((secs % 86_400) / 3_600);
+    const m = Math.floor((secs % 3_600) / 60);
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+}
+
 /* ── Round 1 archive ─────────────────────────────────── */
 
 function Round1Archive() {
@@ -245,7 +256,7 @@ function Round1Archive() {
                 <p className="mt-4 max-w-[56ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                     500 AVAX raised across 24 wallets, well before the end timestamp.
                     Capital was deployed into the first {lotCountLabel}, all custodied by Courtyard on Polygon.
-                    The rest sits in the treasury waiting for Round 2 to close.
+                    Round 2 is now closed, so the next visible work is post-close sourcing, valuation, and execution proof.
                 </p>
 
                 <div className="mt-10 border-t border-[var(--rule)]">
@@ -318,6 +329,74 @@ function Proof() {
     );
 }
 
+/* ── Post-close ledger ───────────────────────────────── */
+
+function PostCloseLedger({ avaxUsd }: { avaxUsd: number }) {
+    const raisedUsd = ROUND_2_CLOSE_LEDGER.raisedAvax * avaxUsd;
+
+    return (
+        <div>
+            <SectionLabel>Post-close ledger</SectionLabel>
+            <Hairline className="mt-3" />
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <DataMono className="block text-[0.68rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
+                        Buying closed · Proof live
+                    </DataMono>
+                    <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
+                        Finalized {ROUND_2_CLOSE_LEDGER.finalizedAtLabel}
+                    </DataMono>
+                </div>
+                <p className="mt-2 text-[0.82rem] leading-[1.45] text-[var(--ink-muted)]">
+                    Direct buys are closed. The close, routing, and contract proof remain public.
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-4 border-y border-[var(--rule)] py-3">
+                    <div>
+                        <Caption className="block text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--ink-faint)]">Raised</Caption>
+                        <DataMono className="mt-1 block text-[1.12rem] font-bold text-[var(--text-primary)]">
+                            {ROUND_2_CLOSE_LEDGER.raisedLabel}
+                        </DataMono>
+                        <DataMono className="text-[0.72rem] font-semibold text-[var(--ink-muted)]">
+                            ~${raisedUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        </DataMono>
+                    </div>
+                    <div className="text-right">
+                        <Caption className="block text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--ink-faint)]">Finalized</Caption>
+                        <DataMono className="mt-1 block text-[1.12rem] font-bold text-[var(--accent-brass)]">
+                            Block {ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}
+                        </DataMono>
+                        <DataMono className="text-[0.72rem] font-semibold text-[var(--ink-muted)]">
+                            {ROUND_2_CLOSE_LEDGER.progressLabel} of original cap
+                        </DataMono>
+                    </div>
+                </div>
+                <div className="mt-2 border-t border-[var(--rule)]">
+                    {ROUND_2_CLOSE_LEDGER.rows.map((row) => (
+                        <div key={row.label}>
+                            <div className="md:hidden border-b border-[var(--rule)] py-3">
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>
+                                <DataMono className="mt-1.5 block text-[0.9rem] text-[var(--text-primary)]">{row.value}</DataMono>
+                                <p className="mt-1 text-[0.8rem] leading-[1.45] text-[var(--ink-muted)]">{row.detail}</p>
+                            </div>
+                            <div className="hidden md:block">
+                                <LedgerRow
+                                    columns="170px 1fr 150px"
+                                    className="py-2.5"
+                                    cells={[
+                                        <Caption className="text-[0.66rem] uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>,
+                                        <span className="text-[0.84rem] leading-[1.45] text-[var(--ink-faint)]">{row.detail}</span>,
+                                        <span className="text-right text-[0.9rem] text-[var(--text-primary)]">{row.value}</span>,
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ── Main page ───────────────────────────────────────── */
 
 function FundraisingContent() {
@@ -355,6 +434,7 @@ function FundraisingContent() {
     const isRoundActive = round.isRoundOpen;
     const isUpcoming = round.isUpcoming;
     const isClosed = round.isClosed;
+    const isPostRound2Close = isClosed && roundId === ROUND_2_CLOSE_LEDGER.roundId;
     const buyUnavailable = isPlanned || !round.isRoundOpen || !GM10_PRIMARY_DEPLOYMENT.proxy.address;
     const estimatedTokens = amount ? (Number(amount) / tokenPrice).toFixed(2) : '0.00';
     const amountUsd = amount ? Number(amount) * avaxUsd : 0;
@@ -430,7 +510,9 @@ function FundraisingContent() {
     const roundWindow = `${fmtUtc(round.startsAt ?? ROUND_2_START_AT)} UTC → ${fmtUtc(round.endsAt ?? ROUND_2_END_AT)} UTC`;
     const roundHeadline = isRoundActive
         ? 'Live now.'
-        : isPlanned
+        : isClosed
+            ? `${round.status}.`
+            : isPlanned
             ? round.status.toLowerCase() === 'round 2 in progress'
                 ? 'In progress.'
                 : round.status.toLowerCase().includes('in progress')
@@ -441,6 +523,11 @@ function FundraisingContent() {
             : isUpcoming
                 ? 'Opens soon.'
                 : 'Closed.';
+    const timeMetricLabel = isClosed ? 'Close status' : 'Time left';
+    const timeMetricValue = isClosed
+        ? `${isPostRound2Close ? 'Finalized' : round.status} · proof live`
+        : fmtCountdown((round.endsAt ?? ROUND_2_END_AT) - Math.floor(Date.now() / 1000));
+    const emptyProgressLabel = isClosed ? 'Unfilled cap' : 'Remaining';
 
     return (
         <main>
@@ -451,7 +538,7 @@ function FundraisingContent() {
                         <DataMono className="text-[var(--ink-faint)] tracking-[0.08em] uppercase">
                             <a href="/" className="hover:text-[var(--text-primary)]">Gm10</a>
                             {' · '}
-                            <span className="text-[var(--text-primary)]">Join</span>
+                            <span className="text-[var(--text-primary)]">Round status</span>
                         </DataMono>
                         <DataMono className="tracking-[0.04em]">
                             <span className={isRoundActive ? 'v2-up' : 'text-[var(--ink-faint)]'}>
@@ -503,19 +590,8 @@ function FundraisingContent() {
                                 <span className="v2-mono text-right text-[var(--text-primary)]">{roundWindow}</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Time left</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">
-                                    {(() => {
-                                        const endT = round.endsAt ?? ROUND_2_END_AT;
-                                        const secs = Math.max(0, endT - Math.floor(Date.now() / 1000));
-                                        const d = Math.floor(secs / 86_400);
-                                        const h = Math.floor((secs % 86_400) / 3_600);
-                                        const m = Math.floor((secs % 3_600) / 60);
-                                        if (d > 0) return `${d}d ${h}h ${m}m`;
-                                        if (h > 0) return `${h}h ${m}m`;
-                                        return `${m}m`;
-                                    })()}
-                                </span>,
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{timeMetricLabel}</Caption>,
+                                <span className="v2-mono text-right text-[var(--text-primary)]">{timeMetricValue}</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Tokens at cap</Caption>,
@@ -527,7 +603,7 @@ function FundraisingContent() {
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Round target value</Caption>,
                                 <span className="v2-mono text-right text-[var(--text-primary)]">
                                     ~${(target * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                                    <span className="text-[var(--ink-faint)] ml-2">(uncapped supply; no FDV)</span>
+                                    <span className="text-[var(--ink-faint)] ml-2"> (uncapped supply; no FDV)</span>
                                 </span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
@@ -540,9 +616,11 @@ function FundraisingContent() {
 
                         {/* Terminal */}
                         <div>
-                            <SectionLabel>Trading terminal</SectionLabel>
-                            <Hairline className="mt-3" />
-                            {!isConnected ? (
+                            {!isClosed ? (
+                                <>
+                                    <SectionLabel>Trading terminal</SectionLabel>
+                                    <Hairline className="mt-3" />
+                                    {!isConnected ? (
                                 <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
                                     <DataMono className="block text-[0.72rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
                                         Wallet disconnected
@@ -662,6 +740,10 @@ function FundraisingContent() {
                                         </div>
                                     ) : null}
                                 </div>
+                                    )}
+                                </>
+                            ) : (
+                                <PostCloseLedger avaxUsd={avaxUsd} />
                             )}
                         </div>
                     </div>
@@ -688,7 +770,7 @@ function FundraisingContent() {
 
                             {/* Remaining (inside empty side) */}
                             <div className="absolute inset-y-0 right-0 flex flex-col justify-center pr-5 text-right z-10" style={{ maxWidth: `${100 - progress}%` }}>
-                                <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Remaining</Caption>
+                                <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{emptyProgressLabel}</Caption>
                                 <div className="text-[1.45rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] whitespace-nowrap">
                                     {fmtAvax(remaining)} <span className="text-[0.9rem] font-semibold text-[var(--text-secondary)]">AVAX</span>
                                 </div>
@@ -703,7 +785,9 @@ function FundraisingContent() {
                     </div>
 
                     <p className="mt-8 text-[0.86rem] leading-[1.7] text-[var(--ink-muted)]">
-                        Round {round.roundId} stays open until {fmtUtc(round.endsAt ?? ROUND_2_END_AT)} UTC — or earlier if the {fmtAvax(target)} AVAX cap fills first. $CATCH starts moving freely once the round closes.
+                        {isClosed
+                            ? `Round ${round.roundId} is closed for new buys. It finalized at ${fmtAvax(raised, 4)} AVAX, with the remaining cap left unfilled and the proof surface kept public.`
+                            : `Round ${round.roundId} stays open until ${fmtUtc(round.endsAt ?? ROUND_2_END_AT)} UTC — or earlier if the ${fmtAvax(target)} AVAX cap fills first. $CATCH starts moving freely once the round closes.`}
                     </p>
                 </div>
             </section>
@@ -711,17 +795,28 @@ function FundraisingContent() {
             {/* Allocation preview */}
             <section className="px-4 py-16 border-t border-[var(--rule)]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                    <SectionLabel>Proceeds allocation</SectionLabel>
+                    <SectionLabel>{isClosed ? 'Close routing' : 'Proceeds allocation'}</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[56ch]">
-                        How the {fmtAvax(raised)} AVAX raised so far will split once Round {round.roundId} closes.
+                        {isClosed
+                            ? `How the finalized ${fmtAvax(raised, 4)} AVAX Round ${round.roundId} raise routed after close.`
+                            : `How the ${fmtAvax(raised)} AVAX raised so far will split once Round ${round.roundId} closes.`}
                     </Display>
                     <p className="mt-2 text-[0.82rem] text-[var(--ink-faint)]">
-                        At full cap ({fmtAvax(target)} AVAX): {fmtAvax(target * 0.85)} treasury · {fmtAvax(target * 0.10)} LP · {fmtAvax(target * 0.05)} team.
+                        {isClosed
+                            ? `Actual close: ${ROUND_2_CLOSE_LEDGER.raisedLabel} raised, ${ROUND_2_CLOSE_LEDGER.progressLabel} of the original ${ROUND_2_CLOSE_LEDGER.targetLabel} cap. Liquidity split 50/50 across LFJ and Pharaoh.`
+                            : `At full cap (${fmtAvax(target)} AVAX): ${fmtAvax(target * 0.85)} treasury · ${fmtAvax(target * 0.10)} LP · ${fmtAvax(target * 0.05)} team.`}
                     </p>
                     <div className="mt-8 border-t border-[var(--rule)]">
                     {ROUND_PROCEEDS_ALLOCATION.buckets.map((bucket) => {
                         const base = raised > 0 ? raised : target;
                         const allocated = base * (bucket.percent / 100);
+                        const detail = isClosed
+                            ? bucket.label === 'Liquidity'
+                                ? 'Split 50/50 across LFJ and Pharaoh after finalization.'
+                                : bucket.label === 'Team wallet'
+                                    ? 'Sent after finalization as the 5% bootstrap allocation.'
+                                    : 'Kept with the strategy for card acquisition and execution.'
+                            : bucket.detail;
                         return (
                             <div key={bucket.label}>
                                 <div className="md:hidden border-b border-[var(--rule)] py-5">
@@ -733,7 +828,7 @@ function FundraisingContent() {
                                         </div>
                                     </div>
                                     <div className="mt-2 text-[var(--text-primary)]">{bucket.label}</div>
-                                    <p className="mt-1 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">{bucket.detail}</p>
+                                    <p className="mt-1 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">{detail}</p>
                                 </div>
                                 <div className="hidden md:block">
                                     <LedgerRow
@@ -742,7 +837,7 @@ function FundraisingContent() {
                                             <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}%</DataMono>,
                                             <span>
                                                 <span className="text-[var(--text-primary)]">{bucket.label}</span>
-                                                <span className="ml-3 text-[var(--ink-faint)]">{bucket.detail}</span>
+                                                <span className="ml-3 text-[var(--ink-faint)]"> {detail}</span>
                                             </span>,
                                             <span className="text-right text-[var(--text-primary)]">{fmtAvax(allocated)} AVAX</span>,
                                             <span className="text-right text-[var(--ink-faint)]">~${(allocated * avaxUsd).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>,

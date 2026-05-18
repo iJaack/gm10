@@ -52,7 +52,7 @@ export default async function handler(_request, response) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8_000);
 
-    response.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+    response.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=60');
 
     try {
         const courtyardResponse = await fetch(PROFILE_URL, {

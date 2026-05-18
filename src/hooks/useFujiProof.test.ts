@@ -32,4 +32,39 @@ describe('deriveFujiRoundState', () => {
         expect(state.isRoundOpen).toBe(false);
     });
 
+    it('uses the published finalized Round 2 fallback when live round reads are unavailable', () => {
+        const state = deriveFujiRoundState({
+            round2: undefined,
+            now: 1_779_000_000,
+            roundId: 2,
+        });
+
+        expect(state.status).toBe('Finalized');
+        expect(state.roundSource).toBe('published');
+        expect(state.isPlanned).toBe(false);
+        expect(state.isClosed).toBe(true);
+        expect(state.isRoundOpen).toBe(false);
+        expect(state.round.raisedAmount).toBe(1_353_983_600_000_000_000_000n);
+    });
+
+    it('labels an onchain finalized Round 2 as closed even below the original cap', () => {
+        const state = deriveFujiRoundState({
+            round2: {
+                ...round2Terms,
+                raisedAmount: 1_353_983_600_000_000_000_000n,
+                isActive: false,
+                isFinalized: true,
+            },
+            now: 1_779_000_000,
+            fallbackRound: round2Terms,
+            roundId: 2,
+        });
+
+        expect(state.status).toBe('Finalized');
+        expect(state.roundSource).toBe('onchain');
+        expect(state.isClosed).toBe(true);
+        expect(state.isRoundOpen).toBe(false);
+        expect(state.isCapReached).toBe(false);
+    });
+
 });

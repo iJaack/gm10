@@ -8,6 +8,7 @@ export type PublicValuationMark = {
 
 export type PublicValuationResponse = {
     packId?: string | null;
+    submittedPackId?: string | null;
     generatedAt?: string | null;
     source?: 'submitted' | 'live';
     marks?: PublicValuationMark[];

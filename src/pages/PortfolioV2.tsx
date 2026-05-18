@@ -283,7 +283,7 @@ function PortfolioContent() {
                         </Display>
                         <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis is the acquisition price. Current mark follows the registry.
+                            Cost basis is the acquisition price. Current mark uses the latest public valuation feed when available, then falls back to registry marks.
                         </p>
                     </div>
 
@@ -357,13 +357,13 @@ function PortfolioContent() {
             {/* Closer */}
             <section className="px-4 py-12 md:py-14 border-t border-[var(--rule)]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                    <SectionLabel>Next window</SectionLabel>
+                    <SectionLabel>{round.isClosed ? 'Post-close sourcing' : 'Next window'}</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.5rem,3vw,2.2rem)] max-w-[32ch]">
                         More lots will be acquired from Round {round.roundId} capital.
                     </Display>
                     <div className="mt-6 flex flex-wrap gap-6">
                         <Link to="/fundraising" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
-                            → Join Round {round.roundId}
+                            → {round.isRoundOpen ? `Join Round ${round.roundId}` : `Review Round ${round.roundId} close`}
                         </Link>
                         <Link to="/holders" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--ink-muted)] hover:text-[var(--text-primary)]">
                             → Holder dashboard
