@@ -7,6 +7,10 @@
  *   CORE_TEAM_WALLET=0x... GOVERNANCE_TREASURY_WALLET=0x...
  *   COMMUNITY_ECOSYSTEM_WALLET=0x... ADVISORS_WALLET=0x...
  *   STRATEGIC_PARTNERSHIPS_WALLET=0x...
+ *
+ * Optional resume env:
+ *   TOKENOMICS_CONTROLLER_ADDRESS=0x... IMPLEMENTATION_V7_ADDRESS=0x...
+ *   CURRENT_CONTRACT_NAME=GemMintStrategyFundV6
  */
 const hre = require("hardhat");
 const { ethers, upgrades } = hre;
@@ -24,6 +28,15 @@ const SAFE_ABI = [
 function requireAddress(name) {
   const value = process.env[name];
   if (!value || !ethers.isAddress(value)) {
+    throw new Error(`${name} must be a valid address`);
+  }
+  return ethers.getAddress(value);
+}
+
+function optionalAddress(name) {
+  const value = process.env[name];
+  if (!value) return "";
+  if (!ethers.isAddress(value)) {
     throw new Error(`${name} must be a valid address`);
   }
   return ethers.getAddress(value);
@@ -91,23 +104,45 @@ async function main() {
   await assertDeployableSize("GemMintStrategyFundV7");
   await assertDeployableSize("Gm10TokenomicsV7Controller");
 
-  const Controller = await ethers.getContractFactory("Gm10TokenomicsV7Controller", signer);
-  const controller = await Controller.deploy(proxy, ...segmentWallets);
-  await controller.waitForDeployment();
-  const controllerAddress = await controller.getAddress();
-  console.log("  Controller   :", controllerAddress);
+  let controllerAddress = optionalAddress("TOKENOMICS_CONTROLLER_ADDRESS");
+  if (controllerAddress) {
+    console.log("  Controller   :", controllerAddress, "(reused)");
+  } else {
+    const Controller = await ethers.getContractFactory("Gm10TokenomicsV7Controller", signer);
+    const controller = await Controller.deploy(proxy, ...segmentWallets);
+    await controller.waitForDeployment();
+    controllerAddress = await controller.getAddress();
+    console.log("  Controller   :", controllerAddress);
+  }
 
   const unsafeAllow = ["constructor", "state-variable-immutable"];
   const FundV7 = await ethers.getContractFactory("GemMintStrategyFundV7", signer);
-  await upgrades.validateUpgrade(proxy, FundV7, {
+  const upgradeOptions = {
     kind: "uups",
     unsafeAllow,
     constructorArgs: [controllerAddress],
-  });
-  const implementation = await FundV7.deploy(controllerAddress);
-  await implementation.waitForDeployment();
-  const implementationV7 = await implementation.getAddress();
-  console.log("  Implementation V7:", implementationV7);
+  };
+  try {
+    await upgrades.validateUpgrade(proxy, FundV7, upgradeOptions);
+  } catch (error) {
+    if (!String(error && error.message ? error.message : error).includes("not registered")) {
+      throw error;
+    }
+    console.log("  Existing proxy is not in the local OpenZeppelin manifest; importing it first.");
+    const CurrentFund = await ethers.getContractFactory(process.env.CURRENT_CONTRACT_NAME || "GemMintStrategyFundV6", signer);
+    await upgrades.forceImport(proxy, CurrentFund, { kind: "uups" });
+    await upgrades.validateUpgrade(proxy, FundV7, upgradeOptions);
+  }
+
+  let implementationV7 = optionalAddress("IMPLEMENTATION_V7_ADDRESS");
+  if (implementationV7) {
+    console.log("  Implementation V7:", implementationV7, "(reused)");
+  } else {
+    const implementation = await FundV7.deploy(controllerAddress);
+    await implementation.waitForDeployment();
+    implementationV7 = await implementation.getAddress();
+    console.log("  Implementation V7:", implementationV7);
+  }
 
   const safe = new ethers.Contract(safeAddress, SAFE_ABI, signer);
   const owners = await safe.getOwners();

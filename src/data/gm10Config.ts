@@ -58,7 +58,7 @@ const investorAccountingAddress = parseAddress(
     import.meta.env.VITE_GM10_INVESTOR_ACCOUNTING_ADDRESS || '0xFf6195A167e5afa21F98C204ab0B1A3CF0Eb8963',
 );
 const tokenomicsControllerAddress = parseAddress(
-    import.meta.env.VITE_GM10_TOKENOMICS_CONTROLLER_ADDRESS,
+    import.meta.env.VITE_GM10_TOKENOMICS_CONTROLLER_ADDRESS || '0x65acE06bbc9e079321451FAfaaD7C58223b20b26',
 );
 const catchTokenAddress = parseAddress(
     import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,

@@ -30,10 +30,10 @@ GM10 is moving from founder-led collectible execution toward transparent, gauge-
 
 ## 3. Dynamic Tokenomics Upgrade
 
-- [ ] Ship the V7 upgrade path with no max supply, round-based buyer mints, and five 1% segment allocations per finalized round.
-- [ ] Deploy the V7 tokenomics controller so segment wallets are excluded from profit share by onchain state, not frontend assumptions.
-- [ ] Enforce attribution-gated redemption so transferable segment or secondary-market tokens cannot redeem without investor attribution.
-- [ ] Keep public supply language aligned with the deployed contracts and Safe-executed migration path.
+- [x] Ship the V7 upgrade path with no max supply, round-based buyer mints, and five 1% segment allocations per finalized round. Completed on 2026-05-18 with implementation `0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438`.
+- [x] Deploy the V7 tokenomics controller so segment wallets are excluded from profit share by onchain state, not frontend assumptions. Controller `0x65acE06bbc9e079321451FAfaaD7C58223b20b26`.
+- [x] Enforce attribution-gated redemption so transferable segment or secondary-market tokens cannot redeem without investor attribution. Covered by V7 contract tests and live Safe upgrade tx `0x6ee5c96427584ba8a98c06e8628606a3113ce395eddc7b9877ee801287c1488e`.
+- [x] Keep public supply language aligned with the deployed contracts and Safe-executed migration path.
 
 ## 4. Treasury Strategy Expansion
 

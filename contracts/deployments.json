@@ -42,7 +42,7 @@
     "network": "avalanche",
     "chainId": "43114",
     "proxy": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
-    "implementation": "0x593225fB004B5692EF96Cd01A44dCde29ebDD3e3",
+    "implementation": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
     "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
     "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
     "portfolioRegistry": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
@@ -94,6 +94,22 @@
       "tx": "0x389f558b1c9049c4d70d26acb8a0303ac40b4943928fc6c4155793ae6ae04ad2",
       "blockNumber": 83799691,
       "timestamp": "2026-04-24T22:48:19.986Z"
+    },
+    "implementationV7": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
+    "tokenomicsController": "0x65acE06bbc9e079321451FAfaaD7C58223b20b26",
+    "lastTokenomicsUpgrade": {
+      "to": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
+      "controller": "0x65acE06bbc9e079321451FAfaaD7C58223b20b26",
+      "timestamp": "2026-05-18T08:19:16.696Z",
+      "blockNumber": 85734654,
+      "tx": "0x6ee5c96427584ba8a98c06e8628606a3113ce395eddc7b9877ee801287c1488e",
+      "segmentWallets": [
+        "0x1320D514c6c15F09611F10D01825dF080202511a",
+        "0x42cEc0860A8CA159905054b5A66Bf642D13a74f3",
+        "0xEeB5539041eCa7152A599C429790E03B05CD261E",
+        "0xCBa64c3f9852e9C2082B17C6D7872B3B463A9FB2",
+        "0xfe776F5483dA1456D319805C2853F840AfDbefAC"
+      ]
     }
   },
   "fujiPurchaseTest": {
