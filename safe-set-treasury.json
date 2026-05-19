@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "chainId": "43114",
+  "createdAt": 1778009471000,
+  "meta": {
+    "name": "GM10 set treasury",
+    "description": "Set GM10 fund treasury to the Avalanche Treasury Safe before Courtyard withdrawal.",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0x39971795266a794a8156271729A07994952a6FAD",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": [
+    {
+      "to": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
+      "value": "0",
+      "data": "0xf0f4426000000000000000000000000039971795266a794a8156271729a07994952a6fad",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_newTreasury",
+            "type": "address"
+          }
+        ],
+        "name": "setTreasury",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_newTreasury": "0x39971795266a794a8156271729A07994952a6FAD"
+      }
+    }
+  ]
+}

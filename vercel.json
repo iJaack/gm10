@@ -45,6 +45,32 @@
   ],
   "routes": [
     {
+      "src": "/manifest.json",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.gm10.xyz"
+        }
+      ],
+      "headers": {
+        "Content-Security-Policy": "frame-ancestors https://app.safe.global https://*.safe.global"
+      },
+      "dest": "/admin/manifest.json"
+    },
+    {
+      "src": "/safe-app-icon.svg",
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.gm10.xyz"
+        }
+      ],
+      "headers": {
+        "Content-Security-Policy": "frame-ancestors https://app.safe.global https://*.safe.global"
+      },
+      "dest": "/admin/safe-app-icon.svg"
+    },
+    {
       "src": "/(?!api/|admin/)(.*)",
       "has": [
         {
