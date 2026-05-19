@@ -6,7 +6,7 @@ import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { EXPLORER_TX_BASE_URL, LZ_EID, MAINNET } from '../addresses';
 import { AdminButton, AdminField as Field, AdminPage, OperatorFlowPanel, SectionPanel as Panel } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
-import { getPurchaseFundingConfirmationIssues } from '../lib/purchaseFunding.js';
+import { getFundingCapacityIssue, getPurchaseFundingConfirmationIssues } from '../lib/purchaseFunding.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
 const BYTES32_RE = /^0x[a-fA-F0-9]{64}$/;
@@ -488,6 +488,17 @@ export function CourtyardWizardPanel() {
     const purchaseStatus = Number(purchaseAuthorization?.status ?? 0);
     const purchaseAuthorized = purchaseStatus >= 1;
     const confirmFundingAmountUsdt6 = useMemo(() => tryParseUsdt6Input(draft.purchase.releaseAmountUsdt), [draft.purchase.releaseAmountUsdt]);
+    const fundingCapacityIssue = useMemo(() => getFundingCapacityIssue({
+        amountUsdt6: confirmFundingAmountUsdt6,
+        liquidTreasuryUsdt6: stableAccounting?.[2],
+        holderDistributionAccruedUsdt6: stableAccounting?.[6],
+    }), [confirmFundingAmountUsdt6, stableAccounting]);
+    const requiredFundingCapacityUsdt6 = confirmFundingAmountUsdt6 !== undefined && stableAccounting
+        ? confirmFundingAmountUsdt6 + stableAccounting[6]
+        : undefined;
+    const fundingCapacityDetail = stableAccounting && requiredFundingCapacityUsdt6 !== undefined
+        ? `Stored liquid treasury: ${formatUnits(stableAccounting[2], 6)} USDT. Required: ${formatUnits(requiredFundingCapacityUsdt6, 6)} USDT including the holder claim bucket.`
+        : 'Stored liquid treasury accounting is still loading.';
     const purchaseReleased = purchaseStatus >= 3 || (
         confirmFundingAmountUsdt6 !== undefined &&
         confirmFundingAmountUsdt6 > 0n &&
@@ -553,6 +564,7 @@ export function CourtyardWizardPanel() {
         { label: 'Polygon Hot Wallet configured', ok: isAddress(polygonHotWallet) },
         { label: 'COURTYARD marketplace approved', ok: courtyardMarketplaceApproved === true },
         { label: 'LI.FI USDC route output is sufficient', ok: Boolean(quotes?.usdc.enoughOutput && quotes.usdc.transactionRequest?.to) },
+        { label: fundingCapacityIssue ? `Stored liquid treasury covers purchase funding: ${fundingCapacityIssue}` : 'Stored liquid treasury covers purchase funding', ok: !fundingCapacityIssue },
     ];
     const preflightOk = preflightChecks.every((check) => check.ok);
     const preflightBlockers = preflightChecks.filter((check) => !check.ok);
@@ -697,6 +709,10 @@ export function CourtyardWizardPanel() {
 
     async function submitWithdraw() {
         if (!effectiveTreasuryAddress) return;
+        if (fundingCapacityIssue) {
+            setError(`Withdrawal is blocked: ${fundingCapacityIssue} ${fundingCapacityDetail}`);
+            return;
+        }
         await submitContractStep('withdraw_avax', 'Withdrawing AVAX to treasury Safe', () =>
             writeContractAsync({
                 address: MAINNET.fundProxy,
@@ -713,6 +729,10 @@ export function CourtyardWizardPanel() {
 
     async function submitBridgeUsdc() {
         setError('');
+        if (fundingCapacityIssue) {
+            setError(`Bridge is blocked: ${fundingCapacityIssue} ${fundingCapacityDetail}`);
+            return;
+        }
         try {
             const freshQuotes = await refreshBridgeQuote();
             const tx = freshQuotes.usdc.transactionRequest;
@@ -947,6 +967,7 @@ export function CourtyardWizardPanel() {
                                 <div>USDC route AVAX input: {quotes.usdc.fromAmountAvax} AVAX via {quotes.usdc.tool || 'LI.FI'}</div>
                                 <div>Estimated source gas: {quotes.usdc.sourceGasAvax} AVAX</div>
                                 <div>Withdraw with 0.1% buffer: {quotes.summary.bufferedAvax} AVAX</div>
+                                <div>{fundingCapacityDetail}</div>
                             </div>
                         ) : null}
                         <div className="flex flex-wrap gap-3">
@@ -967,8 +988,13 @@ export function CourtyardWizardPanel() {
                         </div>
                         <Field label="Withdrawal amount (AVAX)" value={draft.withdrawalAvax} onChange={(value) => updateDraft((current) => ({ ...current, withdrawalAvax: value }))} type="number" />
                         <Field label="Reason" value={draft.withdrawalReason} onChange={(value) => updateDraft((current) => ({ ...current, withdrawalReason: value }))} />
+                        {fundingCapacityIssue ? (
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                Withdrawal is blocked by accounting: {fundingCapacityIssue} {fundingCapacityDetail}
+                            </div>
+                        ) : null}
                         <StoredTxSummary hash={draft.txHashes.withdraw_avax} label="Stored withdrawal transaction" />
-                        <AdminButton variant="primary" onClick={submitWithdraw} disabled={!MAINNET.fundProxy || !effectiveTreasuryAddress || !draft.withdrawalAvax || isContractPending}>
+                        <AdminButton variant="primary" onClick={submitWithdraw} disabled={!MAINNET.fundProxy || !effectiveTreasuryAddress || !draft.withdrawalAvax || isContractPending || Boolean(fundingCapacityIssue)}>
                             {isContractPending || (pendingTx?.step === 'withdraw_avax' && contractReceipt.isLoading) ? 'Waiting...' : 'Submit withdrawal'}
                         </AdminButton>
                         {draft.txHashes.withdraw_avax ? (
@@ -987,13 +1013,19 @@ export function CourtyardWizardPanel() {
                             <div>Target: {asset?.listing.priceDecimal ?? '0'} USDC</div>
                             <div>Detected Hot Wallet USDC: {hotWalletUsdc !== undefined ? formatUnits(hotWalletUsdc, 6) : 'Checking...'}</div>
                             <div>LI.FI status: {lifiStatus.data?.status ?? (bridgeReceipt.isSuccess ? 'Waiting for destination' : 'Not submitted')}</div>
+                            <div>{fundingCapacityDetail}</div>
                         </div>
+                        {fundingCapacityIssue ? (
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                Bridge is blocked by accounting: {fundingCapacityIssue}
+                            </div>
+                        ) : null}
                         {lifiStatus.data?.lifiExplorerLink ? (
                             <a href={lifiStatus.data.lifiExplorerLink} target="_blank" rel="noreferrer" className="text-xs text-[#4fa8e0] underline">
                                 Open LI.FI route
                             </a>
                         ) : null}
-                        <AdminButton variant="primary" onClick={submitBridgeUsdc} disabled={!quotes?.usdc.transactionRequest?.to || isBridgePending || bridgeRouteDone}>
+                        <AdminButton variant="primary" onClick={submitBridgeUsdc} disabled={!quotes?.usdc.transactionRequest?.to || isBridgePending || bridgeRouteDone || Boolean(fundingCapacityIssue)}>
                             {isBridgePending || (pendingTx?.step === 'bridge_usdc_to_hot_wallet' && !bridgeRouteDone) ? 'Waiting...' : 'Submit LI.FI bridge'}
                         </AdminButton>
                         <AdminButton
@@ -1043,6 +1075,7 @@ export function CourtyardWizardPanel() {
                             <div>Settlement ref: {draft.purchase.settlementRef || 'Missing'}</div>
                             <div>Proof ref: {draft.purchase.proofRef || 'Missing'}</div>
                             <div>Stored treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Checking...'}</div>
+                            <div>{fundingCapacityDetail}</div>
                         </div>
                         {fundingConfirmationIssues.length ? (
                             <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  getFundingCapacityIssue,
   getPurchaseFundingConfirmationIssues,
   isNonZeroBytes32Input,
   sameAddress,
@@ -73,6 +74,20 @@ test('purchase funding confirmation waits for stored treasury accounting', () =>
   });
 
   assert.match(issues.join(' '), /Stored treasury accounting has not loaded yet/);
+});
+
+test('funding capacity issue explains insufficient stored liquid treasury', () => {
+  assert.equal(getFundingCapacityIssue({
+    amountUsdt6: 4_500_000_000n,
+    liquidTreasuryUsdt6: 1_813_075_955n,
+    holderDistributionAccruedUsdt6: 0n,
+  }), 'Stored liquid treasury is below confirmed funding plus the holder claim bucket.');
+
+  assert.equal(getFundingCapacityIssue({
+    amountUsdt6: 4_500_000_000n,
+    liquidTreasuryUsdt6: 4_500_000_000n,
+    holderDistributionAccruedUsdt6: 0n,
+  }), '');
 });
 
 test('purchase funding confirmation blocks mismatched authorization and insufficient accounting', () => {

@@ -23,6 +23,30 @@ export function isNonZeroBytes32Input(value) {
   return Boolean(trimmed && trimmed.toLowerCase() !== ZERO_BYTES32);
 }
 
+export function getFundingCapacityIssue({
+  amountUsdt6,
+  liquidTreasuryUsdt6,
+  holderDistributionAccruedUsdt6,
+}) {
+  const amount = toBigIntOrUndefined(amountUsdt6);
+  const liquidTreasury = toBigIntOrUndefined(liquidTreasuryUsdt6);
+  const holderDistribution = toBigIntOrUndefined(holderDistributionAccruedUsdt6);
+
+  if (amount === undefined) {
+    return 'Confirmed funding amount is invalid.';
+  }
+  if (amount <= 0n) {
+    return 'Confirmed funding amount must be greater than zero.';
+  }
+  if (liquidTreasury === undefined || holderDistribution === undefined) {
+    return 'Stored treasury accounting has not loaded yet.';
+  }
+  if (liquidTreasury < amount + holderDistribution) {
+    return 'Stored liquid treasury is below confirmed funding plus the holder claim bucket.';
+  }
+  return '';
+}
+
 export function getPurchaseFundingConfirmationIssues({
   purchase,
   authorization,
@@ -78,14 +102,13 @@ export function getPurchaseFundingConfirmationIssues({
     }
   }
 
-  const liquidTreasury = toBigIntOrUndefined(liquidTreasuryUsdt6);
-  const holderDistribution = toBigIntOrUndefined(holderDistributionAccruedUsdt6);
-  if (amount !== undefined && (liquidTreasury === undefined || holderDistribution === undefined)) {
-    issues.push('Stored treasury accounting has not loaded yet.');
-  } else if (amount !== undefined && liquidTreasury !== undefined && holderDistribution !== undefined) {
-    if (liquidTreasury < amount + holderDistribution) {
-      issues.push('Stored liquid treasury is below confirmed funding plus the holder claim bucket.');
-    }
+  const fundingCapacityIssue = getFundingCapacityIssue({
+    amountUsdt6,
+    liquidTreasuryUsdt6,
+    holderDistributionAccruedUsdt6,
+  });
+  if (fundingCapacityIssue && !issues.includes(fundingCapacityIssue)) {
+    issues.push(fundingCapacityIssue);
   }
 
   return issues;
