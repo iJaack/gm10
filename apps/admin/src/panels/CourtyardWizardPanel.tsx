@@ -4,7 +4,7 @@ import { formatUnits, isAddress, keccak256, parseEther, parseUnits, stringToHex,
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { EXPLORER_TX_BASE_URL, LZ_EID, MAINNET } from '../addresses';
-import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Panel, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
+import { AdminButton, AdminField as Field, AdminPage, OperatorFlowPanel, SectionPanel as Panel } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -863,7 +863,7 @@ export function CourtyardWizardPanel() {
         switch (draft.activeStep) {
             case 'resolve':
                 return (
-                    <Panel title="Resolve Courtyard listing">
+                    <Panel variant="inline" title="Resolve Courtyard listing">
                         <Field
                             label="Courtyard asset URL"
                             value={draft.courtyardUrl}
@@ -881,7 +881,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'preflight':
                 return (
-                    <Panel title="Preflight checks">
+                    <Panel variant="inline" title="Preflight checks">
                         {asset ? (
                             <div className="grid gap-4 md:grid-cols-[120px_1fr]">
                                 {asset.image ? <img src={asset.image} alt={asset.title} className="aspect-[3/4] w-full max-w-[120px] rounded-lg object-cover" /> : null}
@@ -924,7 +924,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'withdraw_avax':
                 return (
-                    <Panel title="Withdraw AVAX to Avalanche treasury Safe">
+                    <Panel variant="inline" title="Withdraw AVAX to Avalanche treasury Safe">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Fund contract: {MAINNET.fundProxy}</div>
                             <div>Treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}</div>
@@ -945,7 +945,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'bridge_usdc_to_hot_wallet':
                 return (
-                    <Panel title="Bridge AVAX to Polygon USDC">
+                    <Panel variant="inline" title="Bridge AVAX to Polygon USDC">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Source: Avalanche AVAX from connected treasury Safe</div>
                             <div>Destination: Polygon USDC to {polygonHotWallet}</div>
@@ -977,7 +977,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'authorize_purchase':
                 return (
-                    <Panel title="Authorize purchase">
+                    <Panel variant="inline" title="Authorize purchase">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Purchase key: {draft.purchase.key}</div>
                             <div>Max spend: {draft.purchase.maxSpendUsdt} USDT</div>
@@ -1001,7 +1001,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'confirm_funding':
                 return (
-                    <Panel title="Confirm purchase funding">
+                    <Panel variant="inline" title="Confirm purchase funding">
                         <Field label="Confirmed funding amount (USDT)" value={draft.purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} type="number" />
                         <div className="text-xs text-gray-400">Confirm this only after Polygon USDC is visible in the Hot Wallet. Funding buffer is not added to accounting.</div>
                         <StoredTxSummary hash={draft.txHashes.confirm_funding} label="Stored funding confirmation transaction" />
@@ -1017,7 +1017,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'buy_on_courtyard':
                 return (
-                    <Panel title="Buy on Courtyard with the Hot Wallet">
+                    <Panel variant="inline" title="Buy on Courtyard with the Hot Wallet">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Hot Wallet: {polygonHotWallet}</div>
                             <div>USDC balance: {hotWalletUsdc !== undefined ? formatUnits(hotWalletUsdc, 6) : 'Checking...'}</div>
@@ -1036,7 +1036,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'detect_hot_wallet_nft':
                 return (
-                    <Panel title="Detect NFT in Hot Wallet">
+                    <Panel variant="inline" title="Detect NFT in Hot Wallet">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Expected owner: {polygonHotWallet}</div>
                             <div>Detected owner: {nftOwnerStatus}</div>
@@ -1049,7 +1049,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'transfer_nft_to_safe':
                 return (
-                    <Panel title="Move NFT from Hot Wallet to Polygon Safe">
+                    <Panel variant="inline" title="Move NFT from Hot Wallet to Polygon Safe">
                         <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
                             Transfer the NFT manually from the Courtyard Hot Wallet to the Polygon custody Safe. The wizard will advance when Polygon ownership updates.
                         </div>
@@ -1066,7 +1066,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'record_execution':
                 return (
-                    <Panel title="Record purchase execution">
+                    <Panel variant="inline" title="Record purchase execution">
                         <div className="grid gap-3 md:grid-cols-3">
                             <Field label="Execution ref" value={draft.purchase.executionRef} onChange={(value) => updatePurchase('executionRef', value)} mono />
                             <Field label="Settlement ref" value={draft.purchase.settlementRef} onChange={(value) => updatePurchase('settlementRef', value)} mono />
@@ -1085,7 +1085,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'record_position':
                 return (
-                    <Panel title="Record collectible position">
+                    <Panel variant="inline" title="Record collectible position">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Custody detected: {nftInSafe ? 'Polygon Safe owns the NFT' : 'Waiting for Polygon Safe custody'}</div>
                             <div>Owner: {nftOwnerStatus}</div>
@@ -1117,7 +1117,7 @@ export function CourtyardWizardPanel() {
                 );
             case 'complete':
                 return (
-                    <Panel title="Purchase workflow complete">
+                    <Panel variant="inline" title="Purchase workflow complete">
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Purchase key: {draft.purchase.key}</div>
                             <div>Purchase status: {purchaseStatus}</div>
@@ -1131,51 +1131,6 @@ export function CourtyardWizardPanel() {
                 return null;
         }
     }
-
-    const acquisitionLedgerRows = [
-        {
-            label: 'Resolved listing',
-            value: asset?.title ?? 'Unavailable',
-            status: asset ? READ_STATUS.live : READ_STATUS.unavailable,
-            detail: asset ? `${asset.listing.priceDecimal} ${asset.listing.currency.symbol} from Courtyard.` : 'Paste a Courtyard asset URL to start.',
-        },
-        {
-            label: 'Fund withdrawal',
-            value: draft.withdrawalAvax ? `${draft.withdrawalAvax} AVAX` : 'Unavailable',
-            status: draft.withdrawalAvax ? READ_STATUS.configured : READ_STATUS.unavailable,
-            detail: 'AVAX withdrawal with the configured route buffer for Polygon USDC funding.',
-        },
-        {
-            label: 'Funding route',
-            value: quotes ? `${quotes.summary.bufferedAvax} AVAX` : 'Unavailable',
-            status: quotes?.usdc.enoughOutput ? READ_STATUS.live : quotes ? READ_STATUS.partial : READ_STATUS.unavailable,
-            detail: quotes ? `${quotes.usdc.tool || 'LI.FI'} route to ${formatUnits(targetUsdcRaw, 6)} USDC.` : 'Resolve a listing to quote LI.FI.',
-        },
-        {
-            label: 'Hot Wallet USDC',
-            value: hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC` : 'Unavailable',
-            status: hotWalletHasUsdc ? READ_STATUS.live : liveStatus(hotWalletUsdc),
-            detail: polygonHotWallet,
-        },
-        {
-            label: 'Purchase authorization',
-            value: purchaseStatus,
-            status: purchaseAuthorized ? READ_STATUS.live : READ_STATUS.partial,
-            detail: purchaseAuthorized ? 'Registry authorization is ready.' : 'Safe/admin authorization still pending.',
-        },
-        {
-            label: 'NFT custody',
-            value: nftInSafe ? 'Polygon Safe' : nftInHotWallet ? 'Hot Wallet' : 'Waiting',
-            status: nftInSafe ? READ_STATUS.live : nftInHotWallet ? READ_STATUS.partial : READ_STATUS.unavailable,
-            detail: nftOwnerStatus,
-        },
-        {
-            label: 'Position record',
-            value: positionRecorded ? 'Recorded' : 'Pending',
-            status: positionRecorded ? READ_STATUS.live : nftInSafe ? READ_STATUS.partial : READ_STATUS.unavailable,
-            detail: 'Final Avalanche accounting step after custody.',
-        },
-    ];
 
     return (
         <AdminPage
@@ -1191,129 +1146,63 @@ export function CourtyardWizardPanel() {
                 { label: nftInSafe ? 'NFT in Safe' : nftInHotWallet ? 'NFT in hot wallet' : 'ownership waiting', status: nftInSafe ? READ_STATUS.live : nftInHotWallet ? READ_STATUS.partial : READ_STATUS.unavailable },
             ]}
         >
-            <OperatorSummaryGrid>
-                <MetricCard
-                    label="Acquisition lane"
-                    value={
-                        <div className="grid gap-2">
-                            <span className="text-2xl tabular-nums">{asset ? `${asset.listing.priceDecimal} ${asset.listing.currency.symbol}` : 'Listing pending'}</span>
-                            <span className="text-base font-semibold text-gray-300">{quotes ? `${quotes.summary.bufferedAvax} AVAX withdrawal` : 'Quote pending'}</span>
+            <OperatorFlowPanel
+                title="Courtyard purchase flow"
+                description={
+                    <div className="grid gap-2 md:grid-cols-3">
+                        <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                            Avalanche treasury Safe
+                            <div className="mt-1 break-all font-mono text-gray-200">{effectiveTreasuryAddress ?? 'Unavailable'}</div>
                         </div>
-                    }
-                    status={asset ? READ_STATUS.live : READ_STATUS.unavailable}
-                    sourceLabel={asset ? 'Courtyard' : 'pending'}
-                    accent={asset ? 'green' : 'yellow'}
-                    detail={asset ? 'Budget, route, custody, and accounting are tracked as separate operator states.' : 'Resolve a listing before withdrawing or bridging funds.'}
-                />
-                <OperatorActionsPanel
-                    title="Purchase actions"
-                    actions={[
-                        {
-                            label: 'Resolve listing',
-                            detail: 'Paste a Courtyard URL and quote Polygon USDC funding.',
-                            onClick: () => setStep('resolve'),
-                            primary: !asset,
-                        },
-                        {
-                            label: 'Preflight',
-                            detail: preflightOk ? 'Listing, currency, custody, and route checks are clear.' : 'Review blockers before authorizing the purchase.',
-                            onClick: () => setStep('preflight'),
-                            disabled: !asset,
-                            status: preflightOk ? READ_STATUS.live : asset ? READ_STATUS.partial : READ_STATUS.unavailable,
-                        },
-                        {
-                            label: 'Bridge and buy',
-                            detail: bridgeRouteDone ? 'Funding has reached the hot wallet.' : 'Open withdrawal, bridge, and Courtyard buy steps.',
-                            onClick: () => setStep(bridgeRouteDone ? 'buy_on_courtyard' : 'bridge_usdc_to_hot_wallet'),
-                            disabled: !purchaseAuthorized && !draft.withdrawalAvax,
-                            status: bridgeRouteFailed ? READ_STATUS.error : bridgeRouteDone ? READ_STATUS.live : READ_STATUS.partial,
-                        },
-                        {
-                            label: 'Custody / record',
-                            detail: positionRecorded ? 'Position is recorded on Avalanche.' : 'Move NFT to the Polygon Safe and record the position.',
-                            onClick: () => setStep(positionRecorded ? 'complete' : nftInSafe ? 'record_execution' : 'transfer_nft_to_safe'),
-                            disabled: !asset,
-                            status: positionRecorded ? READ_STATUS.live : nftInSafe ? READ_STATUS.partial : READ_STATUS.unavailable,
-                        },
-                    ]}
-                />
-                <LedgerPanel
-                    title="Acquisition ledger"
-                    caption="Listing, funding, custody, and accounting state for the current Courtyard purchase."
-                    rows={acquisitionLedgerRows}
-                />
-            </OperatorSummaryGrid>
-            <WorkflowTimeline
-                steps={[
-                    { label: 'Resolve listing', status: asset ? READ_STATUS.live : READ_STATUS.unavailable, detail: asset?.title ?? 'Paste a Courtyard asset URL.' },
-                    { label: 'Authorize and withdraw', status: purchaseAuthorized ? READ_STATUS.live : READ_STATUS.partial, detail: purchaseAuthorized ? `Purchase status ${purchaseStatus}` : 'Safe/admin authorization still pending.' },
-                    { label: 'Bridge and buy', status: bridgeRouteDone || hotWalletHasUsdc ? READ_STATUS.live : bridgeRouteFailed ? READ_STATUS.error : READ_STATUS.unavailable, detail: hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC in hot wallet` : 'Waiting for hot wallet USDC.' },
-                    { label: 'Custody and record', status: positionRecorded ? READ_STATUS.live : nftInSafe ? READ_STATUS.partial : READ_STATUS.unavailable, detail: positionRecorded ? 'Position recorded on Avalanche.' : nftOwnerStatus },
-                ]}
+                        <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                            Polygon Hot Wallet
+                            <div className="mt-1 break-all font-mono text-gray-200">{polygonHotWallet}</div>
+                        </div>
+                        <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                            Polygon custody Safe
+                            <div className="mt-1 break-all font-mono text-gray-200">{polygonSafe}</div>
+                        </div>
+                    </div>
+                }
+                steps={STEPS.map((step) => {
+                    const state = stepState(step.id);
+                    const status = state === 'completed'
+                        ? READ_STATUS.live
+                        : state === 'active'
+                            ? READ_STATUS.partial
+                            : READ_STATUS.unavailable;
+                    return {
+                        id: `courtyard-step-${step.id}`,
+                        label: step.title,
+                        detail: state === 'active' ? 'Active step. The controls are shown inside this card.' : state,
+                        onClick: () => setStep(step.id),
+                        active: draft.activeStep === step.id,
+                        status,
+                        children: draft.activeStep === step.id ? (
+                            <>
+                                {error ? (
+                                    <div className="max-h-40 min-w-0 overflow-auto break-words rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100 [overflow-wrap:anywhere]">
+                                        {error}
+                                    </div>
+                                ) : null}
+                                <TxSummary tx={pendingTx} />
+                                {renderStep()}
+                                {asset ? (
+                                    <div className="grid min-w-0 gap-1 text-xs text-gray-500 [overflow-wrap:anywhere]">
+                                        <div>Purchase key hash: {purchaseKey}</div>
+                                        <div>Listing price raw: {asset.listing.priceRaw}</div>
+                                        <div>Detected Hot Wallet USDC: {hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC` : 'Unavailable'}</div>
+                                        <div>Funding AVAX total before buffer: {quotes ? `${quotes.summary.totalAvax} AVAX` : 'Unavailable'}</div>
+                                        <div>Funding AVAX withdrawal with buffer: {quotes ? `${quotes.summary.bufferedAvax} AVAX` : 'Unavailable'}</div>
+                                        <div>Funding confirmed: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
+                                        <div>Bridge source tx: {draft.txHashes.bridge_usdc_to_hot_wallet ? shortHash(draft.txHashes.bridge_usdc_to_hot_wallet) : 'Unavailable'}</div>
+                                    </div>
+                                ) : null}
+                            </>
+                        ) : undefined,
+                    };
+                })}
             />
-            <Panel
-                title="Courtyard purchase steps"
-                description="Guided purchase funding and accounting. The wizard submits Safe/admin transactions, waits for confirmations, funds only Polygon USDC to the Hot Wallet, and waits for NFT custody before recording the final position."
-            >
-                <div className="grid gap-2 md:grid-cols-3">
-                    <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-400">
-                        Avalanche treasury Safe
-                        <div className="mt-1 break-all font-mono text-gray-200">{effectiveTreasuryAddress ?? 'Unavailable'}</div>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-400">
-                        Polygon Hot Wallet
-                        <div className="mt-1 break-all font-mono text-gray-200">{polygonHotWallet}</div>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-400">
-                        Polygon custody Safe
-                        <div className="mt-1 break-all font-mono text-gray-200">{polygonSafe}</div>
-                    </div>
-                </div>
-
-                <div className="grid gap-2 md:grid-cols-4">
-                    {STEPS.map((step) => {
-                        const state = stepState(step.id);
-                        return (
-                            <button
-                                key={step.id}
-                                type="button"
-                                onClick={() => setStep(step.id)}
-                                className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-                                    state === 'active'
-                                        ? 'border-[var(--accent-blue)]/70 bg-[var(--accent-blue)]/15 text-white'
-                                        : state === 'completed'
-                                          ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
-                                          : 'border-white/10 bg-black/20 text-gray-500'
-                                }`}
-                            >
-                                <div className="font-semibold">{step.title}</div>
-                                <div className="mt-1 capitalize">{state}</div>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {error ? (
-                    <div className="mb-4 max-h-40 min-w-0 overflow-auto break-words rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100 [overflow-wrap:anywhere]">
-                        {error}
-                    </div>
-                ) : null}
-
-                <TxSummary tx={pendingTx} />
-                <div className={pendingTx ? 'mt-4' : ''}>{renderStep()}</div>
-
-                {asset ? (
-                    <div className="mt-4 grid min-w-0 gap-1 text-xs text-gray-500 [overflow-wrap:anywhere]">
-                        <div>Purchase key hash: {purchaseKey}</div>
-                        <div>Listing price raw: {asset.listing.priceRaw}</div>
-                        <div>Detected Hot Wallet USDC: {hotWalletUsdc !== undefined ? `${formatUnits(hotWalletUsdc, 6)} USDC` : 'Unavailable'}</div>
-                        <div>Funding AVAX total before buffer: {quotes ? `${quotes.summary.totalAvax} AVAX` : 'Unavailable'}</div>
-                        <div>Funding AVAX withdrawal with buffer: {quotes ? `${quotes.summary.bufferedAvax} AVAX` : 'Unavailable'}</div>
-                        <div>Funding confirmed: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
-                        <div>Bridge source tx: {draft.txHashes.bridge_usdc_to_hot_wallet ? shortHash(draft.txHashes.bridge_usdc_to_hot_wallet) : 'Unavailable'}</div>
-                    </div>
-                ) : null}
-            </Panel>
 
             {draft.withdrawalAvax ? (
                 <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">

@@ -1,5 +1,5 @@
 import { MARKETPLACE_CHECKLIST_ITEMS } from '../data/marketplaceChecklist';
-import { AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid } from '../components/AdminPrimitives';
+import { AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 
 type RoadmapStatus = 'Done' | 'In progress' | 'Blocked' | 'Planned';
@@ -330,11 +330,6 @@ export function RoadmapPanel() {
     const nextBlockedNode = blockedNodes[0];
     const nextPlannedNode = plannedNodes[0];
     const decisionFocus = nextBlockedNode ?? nextPlannedNode;
-    const scrollToNode = (nodeId?: string) => {
-        if (!nodeId) return;
-        document.getElementById(`roadmap-${nodeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    };
-
     return (
         <AdminPage
             eyebrow="Operational roadmap"
@@ -360,38 +355,6 @@ export function RoadmapPanel() {
                     sourceLabel={decisionFocus?.status ?? 'roadmap'}
                     accent={nextBlockedNode ? 'red' : nextPlannedNode ? 'yellow' : 'green'}
                     detail={decisionFocus?.notes ?? 'Every roadmap node is either done or unblocked.'}
-                />
-                <OperatorActionsPanel
-                    title="Roadmap actions"
-                    actions={[
-                        {
-                            label: 'Open top blocker',
-                            detail: nextBlockedNode ? nextBlockedNode.notes : 'No blocked node is currently active.',
-                            onClick: () => scrollToNode(nextBlockedNode?.id),
-                            disabled: !nextBlockedNode,
-                            primary: Boolean(nextBlockedNode),
-                            status: nextBlockedNode ? READ_STATUS.error : READ_STATUS.live,
-                        },
-                        {
-                            label: 'Open next planned',
-                            detail: nextPlannedNode ? nextPlannedNode.notes : 'No planned node remains.',
-                            onClick: () => scrollToNode(nextPlannedNode?.id),
-                            disabled: !nextPlannedNode,
-                            status: nextPlannedNode ? READ_STATUS.partial : READ_STATUS.live,
-                        },
-                        {
-                            label: 'Marketplace gates',
-                            detail: `${MARKETPLACE_CHECKLIST_ITEMS.length} required gates before new venue adapters.`,
-                            onClick: () => scrollToNode('marketplace-checklist'),
-                            status: READ_STATUS.configured,
-                        },
-                        {
-                            label: 'Critical chains',
-                            detail: `${CRITICAL_CHAINS.length} dependency chains define the current operating order.`,
-                            onClick: () => document.getElementById('critical-chains')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-                            status: READ_STATUS.configured,
-                        },
-                    ]}
                 />
                 <LedgerPanel
                     title="Roadmap ledger"

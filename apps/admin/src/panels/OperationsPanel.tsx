@@ -5,7 +5,7 @@ import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchC
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI, TOKENOMICS_CONTROLLER_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Section, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
+import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
@@ -1223,34 +1223,6 @@ export function OperationsPanel() {
                     accent={fundBalance?.value !== undefined ? 'green' : 'yellow'}
                     detail={avaxUsd !== undefined ? `Hard max at ${formatUsdt6(avaxUsdToUsdt6(avaxUsd))}/AVAX. Excludes team wallet, Safe dust, LP, and workflow balances.` : 'Waiting for Chainlink AVAX/USD.'}
                 />
-                <OperatorActionsPanel
-                    title="Operations queue"
-                    actions={[
-                        {
-                            label: 'Buy / source cards',
-                            detail: 'Open the Courtyard setup and purchase controls.',
-                            onClick: () => setMode('courtyard'),
-                            primary: true,
-                        },
-                        {
-                            label: 'Marketplace approvals',
-                            detail: 'Review venue checklist, approvals, and Solana custody setup.',
-                            onClick: () => setMode('marketplace'),
-                            status: courtyardSetupBlockers.length ? READ_STATUS.partial : READ_STATUS.live,
-                        },
-                        {
-                            label: 'Holder claims',
-                            detail: 'Review profit bucket, exclusions, and claimable account state.',
-                            onClick: () => setMode('profit'),
-                        },
-                        {
-                            label: 'LP deployment',
-                            detail: 'Review coordinator reads and liquidity execution controls.',
-                            onClick: () => setMode('lp'),
-                            status: lpReadsStatus,
-                        },
-                    ]}
-                />
                 <LedgerPanel
                     title="Routed balances"
                     caption="Wallets and workflow balances are shown separately so ops funds do not inflate card capacity."
@@ -1277,15 +1249,6 @@ export function OperationsPanel() {
                     { label: 'Tokenomics controller', status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable, detail: tokenomicsController ?? 'Pending V7 controller deployment.' },
                     { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending claim distributor; sale-profit buckets still come from stableAccounting.' },
                     { label: 'Liquidity coordinator', status: liquidityCoordinator ? READ_STATUS.configured : READ_STATUS.unavailable, detail: liquidityCoordinator ?? 'Pending module wiring' },
-                ]}
-            />
-
-            <WorkflowTimeline
-                steps={[
-                    { label: 'Resolve listing', status: autopilotAsset ? READ_STATUS.live : READ_STATUS.unavailable, detail: autopilotAsset?.title ?? 'Paste a Courtyard URL to prefill purchase data.' },
-                    { label: 'Authorize purchase', status: courtyardApproved ? READ_STATUS.live : READ_STATUS.partial, detail: courtyardApproved ? 'Marketplace approval is live.' : 'COURTYARD approval is required.' },
-                    { label: 'Fund hot wallet', status: fundingQuotes?.usdc.enoughOutput ? READ_STATUS.live : READ_STATUS.unavailable, detail: fundingQuotes ? `USDC target ${formatUnits(BigInt(fundingQuotes.usdc.toAmountRaw), 6)}` : 'Resolve quotes before funding.' },
-                    { label: 'Record position', status: polygonSafeConfigured ? READ_STATUS.configured : READ_STATUS.partial, detail: polygonSafeConfigured ? 'Polygon custody Safe matches registry.' : 'Configure Polygon custody Safe first.' },
                 ]}
             />
 

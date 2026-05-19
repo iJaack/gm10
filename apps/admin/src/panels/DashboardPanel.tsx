@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useBalance, useReadContract } from 'wagmi';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { AdminPage, LedgerPanel, MetricCard, OperatorActionsPanel, OperatorSummaryGrid, ReadHealthPanel, ReconciliationTable, liveStatus } from '../components/AdminPrimitives';
+import { AdminPage, LedgerPanel, MetricCard, OperatorSummaryGrid, ReadHealthPanel, ReconciliationTable, liveStatus } from '../components/AdminPrimitives';
 import {
     accountingBucketRows,
     aggregateLpDeployment,
@@ -18,11 +18,6 @@ import {
 } from '../lib/adminMetrics.js';
 import { calculateRoundRouting, getRoundStatus } from '../lib/rounds.js';
 
-type DashboardNavigationTarget = 'Rounds' | 'Operations' | 'Courtyard Wizard' | 'Valuation';
-type DashboardPanelProps = {
-    onNavigate: (tab: DashboardNavigationTarget) => void;
-};
-
 function roundProgressLabel(raised?: bigint, target?: bigint) {
     if (raised === undefined || target === undefined || target === 0n) return 'Unavailable';
     const pct = Number((raised * 10_000n) / target) / 100;
@@ -35,7 +30,7 @@ function roundProgressWidth(raised?: bigint, target?: bigint) {
     return `${Math.max(0, Math.min(100, pct))}%`;
 }
 
-export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
+export function DashboardPanel() {
     const currentRoundRead = useReadContract({
         address: MAINNET.fundProxy,
         abi: FUND_ADMIN_ABI,
@@ -274,31 +269,6 @@ export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
                             {'warning' in cardBuyingBudget && cardBuyingBudget.warning ? <span className="text-amber-100">Warning: {cardBuyingBudget.warning}</span> : null}
                         </div>
                     }
-                />
-                <OperatorActionsPanel
-                    actions={[
-                        {
-                            label: 'Buy / source cards',
-                            detail: 'Open Courtyard listing resolution, funding, custody, and position recording.',
-                            onClick: () => onNavigate('Courtyard Wizard'),
-                            primary: true,
-                        },
-                        {
-                            label: 'Check valuation',
-                            detail: 'Review card marks, evidence, NAV, and public valuation inputs.',
-                            onClick: () => onNavigate('Valuation'),
-                        },
-                        {
-                            label: 'Funding / operations',
-                            detail: 'Review workflow balances, routing gates, and execution readiness.',
-                            onClick: () => onNavigate('Operations'),
-                        },
-                        {
-                            label: 'Round close',
-                            detail: 'Inspect current round status, dust close, finalization, and routing math.',
-                            onClick: () => onNavigate('Rounds'),
-                        },
-                    ]}
                 />
                 <ReadHealthPanel
                     title="Read health"

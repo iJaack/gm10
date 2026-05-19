@@ -3,7 +3,7 @@ import { formatUnits } from 'viem';
 import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { AdminButton, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid } from '../components/AdminPrimitives';
+import { AdminButton, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid } from '../components/AdminPrimitives';
 import { TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -484,10 +484,6 @@ export function ValuationPanel() {
                 : pack
                     ? READ_STATUS.partial
                     : READ_STATUS.unavailable;
-    const scrollToReviewQueue = () => {
-        document.getElementById('valuation-review-queue')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-
     return (
         <AdminPage
             eyebrow="Valuation controls"
@@ -513,39 +509,6 @@ export function ValuationPanel() {
                     sourceLabel={pack ? 'loaded pack' : 'registry'}
                     accent={reviewStatus === READ_STATUS.error ? 'red' : submittableCount > 0 ? 'yellow' : pack ? 'green' : 'blue'}
                     detail={pack ? `Pack ${pack.packId} generated ${formatTimestamp(pack.generatedAt)}.` : 'Run or load a valuation pack before approving marks.'}
-                />
-                <OperatorActionsPanel
-                    title="Valuation actions"
-                    actions={[
-                        {
-                            label: 'Run valuation now',
-                            detail: 'Generate a fresh pack from active positions and provider observations.',
-                            onClick: runValuationNow,
-                            disabled: isSigning || isAuthLoading,
-                            primary: !pack,
-                        },
-                        {
-                            label: 'Load latest pack',
-                            detail: 'Load the latest persisted valuation pack for review.',
-                            onClick: loadLatestPack,
-                            disabled: isSigning || isAuthLoading,
-                            status: pack ? READ_STATUS.live : READ_STATUS.unavailable,
-                        },
-                        {
-                            label: 'Review approvals',
-                            detail: `${needsReviewCount} need review, ${approvedCount} approved, ${submittedCount} submitted.`,
-                            onClick: scrollToReviewQueue,
-                            disabled: !pack,
-                            status: reviewStatus,
-                        },
-                        {
-                            label: 'Submit marks',
-                            detail: `${submittableCount} approved mark${submittableCount === 1 ? '' : 's'} ready for onchain submission.`,
-                            onClick: scrollToReviewQueue,
-                            disabled: !pack || submittableCount === 0,
-                            status: submittableCount > 0 ? READ_STATUS.partial : pack ? READ_STATUS.unavailable : READ_STATUS.unavailable,
-                        },
-                    ]}
                 />
                 <LedgerPanel
                     title="Valuation ledger"

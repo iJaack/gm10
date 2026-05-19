@@ -11,7 +11,7 @@ import {
     WAVAX_ABI,
 } from '../abis';
 import { LIQUIDITY_VENUES, MAINNET, MAINNET_TOKENS } from '../addresses';
-import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
+import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import {
@@ -371,9 +371,6 @@ export function RoundsPanel() {
     const canCreateRound2 = !currentRoundId || currentRoundId < ROUND2_ID;
     const canFinalizeRound2 = Boolean(round2 && !round2Finalized && (round2.raisedAmount >= round2.targetAmount || BigInt(Math.floor(Date.now() / 1000)) > round2.endTime));
     const quoteFreshness = lfjQuote && pharaohSlot0 ? READ_STATUS.live : lfjQuote || pharaohSlot0 ? READ_STATUS.partial : READ_STATUS.unavailable;
-    const scrollToPanel = (panelId: string) => {
-        document.getElementById(panelId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
     const roundCloseRows = [
         {
             label: 'Round 2 raised',
@@ -439,32 +436,6 @@ export function RoundsPanel() {
                     sourceLabel="card acquisition"
                     accent="green"
                     detail="Primary post-close amount retained for card sourcing after team and LP routing."
-                />
-                <OperatorActionsPanel
-                    title="Round close actions"
-                    actions={[
-                        {
-                            label: round2Finalized ? 'Route closed funds' : 'Finalize Round 2',
-                            detail: round2Finalized ? 'Open the routing bucket controls for LP and team transfers.' : 'Open the close controls and verify finalization eligibility.',
-                            onClick: () => scrollToPanel('round-2-routing'),
-                            primary: true,
-                        },
-                        {
-                            label: 'LFJ tranche',
-                            detail: 'Open Legacy Joe tranche quote, swap, approve, and add-liquidity controls.',
-                            onClick: () => scrollToPanel('lfj-tranche'),
-                        },
-                        {
-                            label: 'Pharaoh tranche',
-                            detail: 'Open concentrated liquidity tranche controls and drift guard reads.',
-                            onClick: () => scrollToPanel('pharaoh-tranche'),
-                        },
-                        {
-                            label: 'Start next round',
-                            detail: 'Open the round creation form and Round 2 defaults.',
-                            onClick: () => scrollToPanel('start-new-round'),
-                        },
-                    ]}
                 />
                 <LedgerPanel
                     title="Close ledger"

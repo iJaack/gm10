@@ -12,6 +12,11 @@ type OperatorAction = {
     disabled?: boolean;
     status?: ReadStatus;
 };
+type OperatorFlowStep = OperatorAction & {
+    id?: string;
+    active?: boolean;
+    children?: ReactNode;
+};
 type StatusItem = { label: string; status: ReadStatus };
 
 export type { ReadStatus };
@@ -144,18 +149,31 @@ export function SectionPanel({
     title,
     description,
     children,
+    variant = 'panel',
 }: {
     id?: string;
     title: string;
     description?: ReactNode;
     children: ReactNode;
+    variant?: 'panel' | 'inline';
 }) {
+    const panelClass = variant === 'inline'
+        ? 'min-w-0'
+        : 'min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-4';
+
     return (
-        <section id={id} className="min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <div className="mb-3">
-                <h2 className="text-sm font-semibold text-white">{title}</h2>
-                {description ? <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p> : null}
-            </div>
+        <section id={id} className={panelClass}>
+            {variant === 'inline' ? (
+                <>
+                    <h2 className="sr-only">{title}</h2>
+                    {description ? <p className="mb-3 text-xs leading-5 text-gray-500">{description}</p> : null}
+                </>
+            ) : (
+                <div className="mb-3">
+                    <h2 className="text-sm font-semibold text-white">{title}</h2>
+                    {description ? <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p> : null}
+                </div>
+            )}
             <div className="grid gap-3">{children}</div>
         </section>
     );
@@ -253,46 +271,62 @@ export function LedgerPanel({
     );
 }
 
-export function OperatorActionsPanel({
-    eyebrow = 'Next actions',
-    title = 'Operator shortcuts',
-    actions,
+export function OperatorFlowPanel({
+    eyebrow = 'Operator flow',
+    title,
+    description,
+    steps,
 }: {
     eyebrow?: string;
-    title?: string;
-    actions: OperatorAction[];
+    title: string;
+    description?: ReactNode;
+    steps: OperatorFlowStep[];
 }) {
     return (
         <section className="min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <div className="mb-3">
+            <div className="mb-4">
                 <div className="label-font text-[0.58rem] text-gray-500">{eyebrow}</div>
                 <h2 className="mt-2 text-base font-semibold text-white">{title}</h2>
+                {description ? <div className="mt-1 max-w-4xl text-xs leading-5 text-gray-500">{description}</div> : null}
             </div>
-            <div className="grid gap-2">
-                {actions.map((action) => {
-                    const isInteractive = Boolean(action.onClick);
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {steps.map((step, index) => {
+                    const isInteractive = Boolean(step.onClick);
+                    const expanded = Boolean(step.children);
+                    const highlighted = step.active || step.primary;
                     return (
-                        <button
-                            key={action.label}
-                            type="button"
-                            onClick={action.onClick}
-                            disabled={!isInteractive || action.disabled}
-                            className={`group grid min-w-0 gap-1 rounded-md border px-3 py-2.5 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/60 disabled:cursor-default disabled:opacity-70 ${
-                                action.primary
-                                    ? 'border-[var(--accent)]/60 bg-[var(--accent)] text-[#0b0a14] enabled:hover:bg-[#ffd75b]'
-                                    : 'border-white/10 bg-black/20 text-white enabled:hover:border-white/20 enabled:hover:bg-white/[0.06]'
+                        <article
+                            key={step.id ?? step.label}
+                            id={step.id}
+                            className={`min-w-0 rounded-lg border transition-colors ${
+                                expanded ? 'md:col-span-2 xl:col-span-4' : ''
+                            } ${
+                                highlighted
+                                    ? 'border-[var(--accent-blue)]/55 bg-[var(--accent-blue)]/12'
+                                    : 'border-white/10 bg-black/20'
                             }`}
                         >
-                            <span className="flex min-w-0 items-center justify-between gap-3 text-sm font-semibold">
-                                <span className="min-w-0 break-words [overflow-wrap:anywhere]">{action.label}</span>
-                                {action.status ? (
-                                    <StatusChip status={action.status} />
-                                ) : isInteractive ? (
-                                    <span aria-hidden="true" className="text-base leading-none transition-transform group-hover:translate-x-0.5">{'->'}</span>
-                                ) : null}
-                            </span>
-                            <span className={`min-w-0 break-words text-xs leading-5 [overflow-wrap:anywhere] ${action.primary ? 'text-black/65' : 'text-gray-500'}`}>{action.detail}</span>
-                        </button>
+                            <button
+                                type="button"
+                                onClick={step.onClick}
+                                disabled={!isInteractive || step.disabled}
+                                className="group grid w-full min-w-0 gap-2 px-3 py-3 text-left disabled:cursor-default disabled:opacity-70 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--accent)]/60"
+                            >
+                                <span className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                                    <span className="min-w-0">
+                                        <span className="text-[0.66rem] font-semibold uppercase tracking-[0.06em] text-gray-500">Step {index + 1}</span>
+                                        <span className="mt-1 block min-w-0 break-words text-sm font-semibold text-white [overflow-wrap:anywhere]">{step.label}</span>
+                                    </span>
+                                    {step.status ? <StatusChip status={step.status} /> : null}
+                                </span>
+                                <span className="min-w-0 break-words text-xs leading-5 text-gray-500 [overflow-wrap:anywhere]">{step.detail}</span>
+                            </button>
+                            {step.children ? (
+                                <div className="grid gap-3 border-t border-white/10 px-3 pb-3 pt-4">
+                                    {step.children}
+                                </div>
+                            ) : null}
+                        </article>
                     );
                 })}
             </div>
@@ -355,27 +389,6 @@ export function ReconciliationTable({
                     ))}
                 </tbody>
             </table>
-        </div>
-    );
-}
-
-export function WorkflowTimeline({
-    steps,
-}: {
-    steps: Array<{ label: string; status: ReadStatus; detail?: string }>;
-}) {
-    return (
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            {steps.map((step, index) => (
-                <div key={`${step.label}-${index}`} className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.06em] text-gray-500">Step {index + 1}</span>
-                        <StatusChip status={step.status} />
-                    </div>
-                    <div className="text-sm font-semibold text-white">{step.label}</div>
-                    {step.detail ? <div className="mt-1 text-xs leading-5 text-gray-400">{step.detail}</div> : null}
-                </div>
-            ))}
         </div>
     );
 }

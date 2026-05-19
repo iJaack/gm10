@@ -4,7 +4,7 @@ import { encodeFunctionData, formatUnits, isAddress, keccak256, padHex, parseUni
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Section, WorkflowTimeline } from '../components/AdminPrimitives';
+import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid, SectionPanel as Section } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -504,39 +504,6 @@ export function PhygitalsPanel() {
                     accent={card ? 'green' : 'yellow'}
                     detail="Solana custody, funding, purchase authorization, and position records are shown as separate operator states."
                 />
-                <OperatorActionsPanel
-                    title="Phygitals actions"
-                    actions={[
-                        {
-                            label: 'Resolve card',
-                            detail: 'Load card, listing, custody, purchase, and position defaults.',
-                            onClick: () => void resolveCard(),
-                            disabled: isResolving || !phygitalsUrl.trim(),
-                            primary: !card,
-                        },
-                        {
-                            label: 'Quote funding',
-                            detail: 'Prepare AVAX to Solana USDC route for the listed card price.',
-                            onClick: () => void quoteSolanaUsdcFunding(),
-                            disabled: isFundingLoading || !card || !effectiveTreasuryAddress || !solanaFundingDestination,
-                            status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable,
-                        },
-                        {
-                            label: 'Batch authorize + fund',
-                            detail: 'Submit the Safe batch after marketplace approval and Solana custody are live.',
-                            onClick: () => void submitAuthorizeAndFundBatch(),
-                            disabled: isBatchSubmitting || !safeAppInfo.isSafeApp || safeAppInfo.chainId !== AVALANCHE_CHAIN_ID || !MAINNET.portfolioRegistry || !card || phygitalsApproved !== true || !solanaChainSafe?.enabled,
-                            status: safeBatchHash ? READ_STATUS.live : phygitalsApproved === true && solanaChainSafe?.enabled ? READ_STATUS.partial : READ_STATUS.unavailable,
-                        },
-                        {
-                            label: 'Record position',
-                            detail: positionRecorded ? 'Solana position is recorded.' : 'Submit final collectible position accounting.',
-                            onClick: submitRecordPosition,
-                            disabled: !MAINNET.fundProxy || !card || !position.nonEvmTokenId || positionRecorded,
-                            status: positionRecorded ? READ_STATUS.live : card ? READ_STATUS.partial : READ_STATUS.unavailable,
-                        },
-                    ]}
-                />
                 <LedgerPanel
                     title="Acquisition ledger"
                     caption="Phygitals-specific custody, funding, and accounting state."
@@ -587,15 +554,6 @@ export function PhygitalsPanel() {
                 <MetricCard label="Resolved card" value={card?.title ?? 'Unavailable'} status={card ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={card ? 'Phygitals' : 'pending'} />
                 <MetricCard label="Funding quote" value={fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX` : 'Unavailable'} status={fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={fundingQuote?.usdc.tool || 'LI.FI'} detail={fundingQuote ? `Estimated receive ${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC` : 'Resolve a card before quoting.'} />
             </MetricGrid>
-
-            <WorkflowTimeline
-                steps={[
-                    { label: 'Configure custody', status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable, detail: configuredSolanaDestination },
-                    { label: 'Resolve card', status: card ? READ_STATUS.live : READ_STATUS.unavailable, detail: card?.title ?? 'No card loaded.' },
-                    { label: 'Fund purchase', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable, detail: fundingQuote ? `${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC target` : 'Quote not loaded.' },
-                    { label: 'Record position', status: positionRecorded ? READ_STATUS.live : purchaseAuthorization ? READ_STATUS.partial : READ_STATUS.unavailable, detail: purchaseAuthorization ? statusLabel(purchaseAuthorization.status ?? 0) : 'Authorization unavailable.' },
-                ]}
-            />
 
             <Section title="Setup">
                 <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
