@@ -276,14 +276,18 @@ export function OperatorFlowPanel({
     title,
     description,
     steps,
+    children,
+    className = '',
 }: {
     eyebrow?: string;
     title: string;
     description?: ReactNode;
     steps: OperatorFlowStep[];
+    children?: ReactNode;
+    className?: string;
 }) {
     return (
-        <section className="min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-4">
+        <section className={`min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-4 ${className}`}>
             <div className="mb-4">
                 <div className="label-font text-[0.58rem] text-gray-500">{eyebrow}</div>
                 <h2 className="mt-2 text-base font-semibold text-white">{title}</h2>
@@ -330,6 +334,11 @@ export function OperatorFlowPanel({
                     );
                 })}
             </div>
+            {children ? (
+                <div className="mt-4 grid gap-3 border-t border-white/10 pt-4">
+                    {children}
+                </div>
+            ) : null}
         </section>
     );
 }

@@ -3,7 +3,7 @@ import { formatUnits } from 'viem';
 import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { AdminButton, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid } from '../components/AdminPrimitives';
+import { AdminButton, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorFlowPanel, OperatorSummaryGrid, SectionPanel as Section } from '../components/AdminPrimitives';
 import { TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -254,6 +254,7 @@ export function ValuationPanel() {
     const [approvedCards, setApprovedCards] = useState<Record<string, true>>({});
     const [persistingCards, setPersistingCards] = useState<Record<string, true>>({});
     const [localError, setLocalError] = useState('');
+    const [activeFlowStep, setActiveFlowStep] = useState<'pack' | 'review'>('pack');
     const { address } = useAccount();
     const safeAppInfo = useSafeAppInfo();
     const authAddress = resolveSafeAwareAdminAddress({
@@ -496,6 +497,130 @@ export function ValuationPanel() {
                 { label: localError ? 'local error' : 'no local errors', status: localError ? READ_STATUS.error : READ_STATUS.live },
             ]}
         >
+            <OperatorFlowPanel
+                title="Valuation review flow"
+                description="Generate or load the valuation pack, then approve and submit marks from the active review step."
+                steps={[
+                    {
+                        id: 'valuation-controls',
+                        label: 'Build valuation pack',
+                        detail: pack ? `Loaded ${pack.packId}.` : 'Sign, generate, or load the latest FMV pack.',
+                        status: localError ? READ_STATUS.error : pack ? READ_STATUS.live : activeCards.length ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'pack',
+                        primary: activeFlowStep === 'pack',
+                        onClick: () => setActiveFlowStep('pack'),
+                        children: activeFlowStep === 'pack' ? (
+                            <Section variant="inline" title="Build valuation pack">
+                                <label className="grid gap-2">
+                                    <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Card identity overrides JSON</span>
+                                    <textarea
+                                        value={cardIdentityJson}
+                                        onChange={(event) => setCardIdentityJson(event.target.value)}
+                                        className="min-h-24 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/50 px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--border-strong)]"
+                                        placeholder='{"4":{"title":"Pokemon card title","grade":"psa10","courtyardUrl":"https://courtyard.io/asset/..."}}'
+                                        aria-label="Card identity overrides JSON"
+                                    />
+                                    <span className="text-xs text-[var(--text-tertiary)]">
+                                        Optional. Use this only when a new card is not in custody metadata yet.
+                                    </span>
+                                </label>
+                                <label className="grid gap-2">
+                                    <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Source observations JSON</span>
+                                    <textarea
+                                        value={sourceObservationsJson}
+                                        onChange={(event) => setSourceObservationsJson(event.target.value)}
+                                        className="min-h-28 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/50 px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--border-strong)]"
+                                        placeholder='{"1":[...]}'
+                                        aria-label="Source observations JSON"
+                                    />
+                                    <span className="text-xs text-[var(--text-tertiary)]">
+                                        Optional. Leave empty for PokemonPriceTracker and Courtyard provider discovery.
+                                    </span>
+                                </label>
+
+                                <div className="flex flex-wrap gap-3">
+                                    <AdminButton variant="primary" onClick={runValuationNow} disabled={isSigning || isAuthLoading}>
+                                        {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Run valuation now'}
+                                    </AdminButton>
+                                    <AdminButton onClick={loadLatestPack} disabled={isSigning || isAuthLoading}>
+                                        {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Load latest pack'}
+                                    </AdminButton>
+                                </div>
+
+                                <div className="grid gap-2 text-sm text-[var(--text-secondary)]">
+                                    <div>Active cards: {activeCards.length}</div>
+                                    {pack ? (
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                            <span>Pack {pack.packId}</span>
+                                            <span>Generated {formatTimestamp(pack.generatedAt)}</span>
+                                            <span>Unit {pack.unit}</span>
+                                        </div>
+                                    ) : (
+                                        <div>No valuation pack loaded.</div>
+                                    )}
+                                </div>
+
+                                {localError ? (
+                                    <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
+                                        {localError}
+                                    </div>
+                                ) : null}
+                                {signError ? (
+                                    <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
+                                        {signError.message}
+                                    </div>
+                                ) : null}
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        id: 'valuation-review-queue',
+                        label: 'Review and submit marks',
+                        detail: pack ? `${needsReviewCount} needs review, ${submittableCount} submittable.` : 'Load a valuation pack before review.',
+                        status: reviewStatus,
+                        active: activeFlowStep === 'review',
+                        onClick: () => setActiveFlowStep('review'),
+                        children: activeFlowStep === 'review' ? (
+                            <Section variant="inline" title="Review and submit marks">
+                                {pack ? (
+                                    <div className="grid gap-4">
+                                        {pack.cards.map((card) => {
+                                            const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
+                                            const isCardPersisting = Boolean(persistingCards[String(card.positionId)]);
+                                            const canSubmit =
+                                                approved &&
+                                                card.consensus.status === 'passed' &&
+                                                Boolean(card.consensus.proposedValueUsdc6) &&
+                                                !card.submittedTxHash &&
+                                                !isCardPersisting &&
+                                                !isPending;
+
+                                            return (
+                                                <PackCardView
+                                                    key={card.positionId}
+                                                    card={card}
+                                                    approved={approved}
+                                                    onApprove={() => approveCard(card)}
+                                                    onSubmit={() => submitOnchainMark(card)}
+                                                    canSubmit={canSubmit}
+                                                    isSubmitting={isPending || isCardPersisting || isSigning}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-gray-400">
+                                        No valuation pack loaded. Generate or load a pack in the first step before reviewing card marks.
+                                    </div>
+                                )}
+                            </Section>
+                        ) : null,
+                    },
+                ]}
+            />
+
+            <TxResult hash={txHash} error={txError} />
+
             <OperatorSummaryGrid>
                 <MetricCard
                     label="Valuation decision queue"
@@ -561,97 +686,6 @@ export function ValuationPanel() {
                 <MetricCard label="Submission signer" value={authAddress ? `${authAddress.slice(0, 6)}...${authAddress.slice(-4)}` : 'Unavailable'} status={authAddress ? READ_STATUS.configured : READ_STATUS.unavailable} sourceLabel={safeAppInfo.isSafeApp ? 'Safe app' : 'wallet'} />
             </MetricGrid>
 
-            <div id="valuation-controls" className="admin-card grid gap-4 p-5">
-                <label className="grid gap-2">
-                    <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Card identity overrides JSON</span>
-                    <textarea
-                        value={cardIdentityJson}
-                        onChange={(event) => setCardIdentityJson(event.target.value)}
-                        className="min-h-24 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/50 px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--border-strong)]"
-                        placeholder='{"4":{"title":"Pokemon card title","grade":"psa10","courtyardUrl":"https://courtyard.io/asset/..."}}'
-                        aria-label="Card identity overrides JSON"
-                    />
-                    <span className="text-xs text-[var(--text-tertiary)]">
-                        Optional. Use this only when a new card is not in custody metadata yet.
-                    </span>
-                </label>
-                <label className="grid gap-2">
-                    <span className="label-font" style={{ color: 'var(--text-tertiary)' }}>Source observations JSON</span>
-                    <textarea
-                        value={sourceObservationsJson}
-                        onChange={(event) => setSourceObservationsJson(event.target.value)}
-                        className="min-h-28 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/50 px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--border-strong)]"
-                        placeholder='{"1":[...]}'
-                        aria-label="Source observations JSON"
-                    />
-                    <span className="text-xs text-[var(--text-tertiary)]">
-                        Optional. Leave empty for PokemonPriceTracker and Courtyard provider discovery.
-                    </span>
-                </label>
-
-                <div className="flex flex-wrap gap-3">
-                    <AdminButton variant="primary" onClick={runValuationNow} disabled={isSigning || isAuthLoading}>
-                        {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Run valuation now'}
-                    </AdminButton>
-                    <AdminButton onClick={loadLatestPack} disabled={isSigning || isAuthLoading}>
-                        {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Load latest pack'}
-                    </AdminButton>
-                </div>
-
-                <div className="grid gap-2 text-sm text-[var(--text-secondary)]">
-                    <div>Active cards: {activeCards.length}</div>
-                    {pack ? (
-                        <div className="flex flex-wrap gap-x-4 gap-y-1">
-                            <span>Pack {pack.packId}</span>
-                            <span>Generated {formatTimestamp(pack.generatedAt)}</span>
-                            <span>Unit {pack.unit}</span>
-                        </div>
-                    ) : (
-                        <div>No valuation pack loaded.</div>
-                    )}
-                </div>
-
-                {localError ? (
-                    <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
-                        {localError}
-                    </div>
-                ) : null}
-                {signError ? (
-                    <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
-                        {signError.message}
-                    </div>
-                ) : null}
-            </div>
-
-            {pack ? (
-                <div id="valuation-review-queue" className="grid gap-4">
-                    {pack.cards.map((card) => {
-                        const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
-                        const isCardPersisting = Boolean(persistingCards[String(card.positionId)]);
-                        const canSubmit =
-                            approved &&
-                            card.consensus.status === 'passed' &&
-                            Boolean(card.consensus.proposedValueUsdc6) &&
-                            !card.submittedTxHash &&
-                            !isCardPersisting &&
-                            !isPending;
-
-                        return (
-                            <PackCardView
-                                key={card.positionId}
-                                card={card}
-                                approved={approved}
-                                onApprove={() => approveCard(card)}
-                                onSubmit={() => submitOnchainMark(card)}
-                                canSubmit={canSubmit}
-                                isSubmitting={isPending || isCardPersisting || isSigning}
-                            />
-                        );
-                    })}
-                </div>
-            ) : null}
-
-            <TxResult hash={txHash} error={txError} />
         </AdminPage>
     );
 }

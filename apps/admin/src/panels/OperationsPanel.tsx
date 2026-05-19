@@ -5,7 +5,7 @@ import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchC
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI, TOKENOMICS_CONTROLLER_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
+import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorFlowPanel, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
@@ -1209,91 +1209,117 @@ export function OperationsPanel() {
                 { label: lpReadsStatus === READ_STATUS.live ? 'LP reads live' : 'LP reads degraded', status: lpReadsStatus },
             ]}
         >
-            <OperatorSummaryGrid>
-                <MetricCard
-                    label="Card-buying fund"
-                    value={
-                        <div className="grid gap-2">
-                            <span className="text-3xl tabular-nums">{formatAvax(fundBalance?.value)}</span>
-                            <span className="text-base font-semibold text-gray-300">{formatUsdt6(cardBuyingBudgetUsdt6)}</span>
-                        </div>
-                    }
-                    status={fundBalance?.value !== undefined ? READ_STATUS.live : READ_STATUS.unavailable}
-                    sourceLabel={fundBalance?.value !== undefined ? 'fund contract' : 'unavailable'}
-                    accent={fundBalance?.value !== undefined ? 'green' : 'yellow'}
-                    detail={avaxUsd !== undefined ? `Hard max at ${formatUsdt6(avaxUsdToUsdt6(avaxUsd))}/AVAX. Excludes team wallet, Safe dust, LP, and workflow balances.` : 'Waiting for Chainlink AVAX/USD.'}
+            <div className="order-2 grid gap-6">
+                <OperatorSummaryGrid>
+                    <MetricCard
+                        label="Card-buying fund"
+                        value={
+                            <div className="grid gap-2">
+                                <span className="text-3xl tabular-nums">{formatAvax(fundBalance?.value)}</span>
+                                <span className="text-base font-semibold text-gray-300">{formatUsdt6(cardBuyingBudgetUsdt6)}</span>
+                            </div>
+                        }
+                        status={fundBalance?.value !== undefined ? READ_STATUS.live : READ_STATUS.unavailable}
+                        sourceLabel={fundBalance?.value !== undefined ? 'fund contract' : 'unavailable'}
+                        accent={fundBalance?.value !== undefined ? 'green' : 'yellow'}
+                        detail={avaxUsd !== undefined ? `Hard max at ${formatUsdt6(avaxUsdToUsdt6(avaxUsd))}/AVAX. Excludes team wallet, Safe dust, LP, and workflow balances.` : 'Waiting for Chainlink AVAX/USD.'}
+                    />
+                    <LedgerPanel
+                        title="Routed balances"
+                        caption="Wallets and workflow balances are shown separately so ops funds do not inflate card capacity."
+                        rows={operationsLedgerRows}
+                    />
+                </OperatorSummaryGrid>
+
+                <MetricGrid>
+                    <MetricCard label="Tracked wallet aggregate" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'tracked wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
+                    <MetricCard label="Stored treasury" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting" />
+                    <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
+                    <MetricCard label="LP deployed" value={lpDeployedLabel} status={lpReadsStatus} sourceLabel={lpReadsStatus === READ_STATUS.live ? 'live coordinator' : 'partial/unavailable'} detail={`LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`} />
+                    <MetricCard label="Reference NAV" value={referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'} status={referenceNav !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="fund read" />
+                    <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={tokenomicsController ? 'tokenomics controller' : 'not wired'} />
+                    <MetricCard label="Profit per token" value={cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'} status={cumulativeProfitPerToken !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
+                    <MetricCard label="Total distributed" value={totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'} status={totalProfitDeposited !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
+                </MetricGrid>
+
+                <ActionReadinessPanel
+                    title="Configuration readiness"
+                    rows={[
+                        { label: 'Fund proxy', status: MAINNET.fundProxy ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.fundProxy ?? 'Pending env config' },
+                        { label: 'Portfolio registry', status: MAINNET.portfolioRegistry ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.portfolioRegistry ?? 'Pending env config' },
+                        { label: 'Tokenomics controller', status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable, detail: tokenomicsController ?? 'Pending V7 controller deployment.' },
+                        { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending claim distributor; sale-profit buckets still come from stableAccounting.' },
+                        { label: 'Liquidity coordinator', status: liquidityCoordinator ? READ_STATUS.configured : READ_STATUS.unavailable, detail: liquidityCoordinator ?? 'Pending module wiring' },
+                    ]}
                 />
-                <LedgerPanel
-                    title="Routed balances"
-                    caption="Wallets and workflow balances are shown separately so ops funds do not inflate card capacity."
-                    rows={operationsLedgerRows}
-                />
-            </OperatorSummaryGrid>
 
-            <MetricGrid>
-                <MetricCard label="Tracked wallet aggregate" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'tracked wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
-                <MetricCard label="Stored treasury" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting" />
-                <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
-                <MetricCard label="LP deployed" value={lpDeployedLabel} status={lpReadsStatus} sourceLabel={lpReadsStatus === READ_STATUS.live ? 'live coordinator' : 'partial/unavailable'} detail={`LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`} />
-                <MetricCard label="Reference NAV" value={referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'} status={referenceNav !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="fund read" />
-                <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={tokenomicsController ? 'tokenomics controller' : 'not wired'} />
-                <MetricCard label="Profit per token" value={cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'} status={cumulativeProfitPerToken !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
-                <MetricCard label="Total distributed" value={totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'} status={totalProfitDeposited !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
-            </MetricGrid>
-
-            <ActionReadinessPanel
-                title="Configuration readiness"
-                rows={[
-                    { label: 'Fund proxy', status: MAINNET.fundProxy ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.fundProxy ?? 'Pending env config' },
-                    { label: 'Portfolio registry', status: MAINNET.portfolioRegistry ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.portfolioRegistry ?? 'Pending env config' },
-                    { label: 'Tokenomics controller', status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable, detail: tokenomicsController ?? 'Pending V7 controller deployment.' },
-                    { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending claim distributor; sale-profit buckets still come from stableAccounting.' },
-                    { label: 'Liquidity coordinator', status: liquidityCoordinator ? READ_STATUS.configured : READ_STATUS.unavailable, detail: liquidityCoordinator ?? 'Pending module wiring' },
-                ]}
-            />
-
-            {courtyardSetupBlockers.length ? (
-                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h3 className="text-sm font-semibold text-amber-100">Courtyard authorization setup needed</h3>
-                            <div className="mt-1 text-xs leading-5 text-amber-100/80">
-                                Blocking purchase authorization: {courtyardSetupBlockers.join(', ')}.
+                {courtyardSetupBlockers.length ? (
+                    <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-amber-100">Courtyard authorization setup needed</h3>
+                                <div className="mt-1 text-xs leading-5 text-amber-100/80">
+                                    Blocking purchase authorization: {courtyardSetupBlockers.join(', ')}.
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <AdminButton onClick={() => setMode('courtyard')} variant="warning" className="text-xs">
+                                    Courtyard setup
+                                </AdminButton>
+                                {!courtyardApproved ? (
+                                    <AdminButton onClick={() => setMode('marketplace')} variant="warning" className="text-xs">
+                                        Marketplace approval
+                                    </AdminButton>
+                                ) : null}
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            <AdminButton onClick={() => setMode('courtyard')} variant="warning" className="text-xs">
-                                Courtyard setup
-                            </AdminButton>
-                            {!courtyardApproved ? (
-                                <AdminButton onClick={() => setMode('marketplace')} variant="warning" className="text-xs">
-                                    Marketplace approval
-                                </AdminButton>
-                            ) : null}
-                        </div>
                     </div>
-                </div>
-            ) : null}
+                ) : null}
+            </div>
 
-            <Section title="Execution controls" description="Pick one lane; each lane keeps its own fields, readiness notes, and transaction results in the same layout.">
-                <div className="mb-5 flex flex-wrap gap-2">
-                    <AdminButton onClick={() => setMode('round')} variant={mode === 'round' ? 'primary' : 'secondary'}>
-                        Round 1
-                    </AdminButton>
-                    <AdminButton onClick={() => setMode('profit')} variant={mode === 'profit' ? 'primary' : 'secondary'}>
-                        Holder Claims
-                    </AdminButton>
-                    <AdminButton onClick={() => setMode('marketplace')} variant={mode === 'marketplace' ? 'primary' : 'secondary'}>
-                        Marketplace
-                    </AdminButton>
-                    <AdminButton onClick={() => setMode('courtyard')} variant={mode === 'courtyard' ? 'primary' : 'secondary'}>
-                        Courtyard setup
-                    </AdminButton>
-                    <AdminButton onClick={() => setMode('lp')} variant={mode === 'lp' ? 'primary' : 'secondary'}>
-                        LP
-                    </AdminButton>
-                </div>
-
+            <OperatorFlowPanel
+                className="order-1"
+                title="Operations execution flow"
+                description="Pick one lane; the active controls, readiness notes, and transaction result stay inside this flow."
+                steps={[
+                    {
+                        label: 'Round 1',
+                        detail: round1Status,
+                        status: canFinalizeRound1 ? READ_STATUS.partial : round1?.isFinalized ? READ_STATUS.live : READ_STATUS.unavailable,
+                        active: mode === 'round',
+                        onClick: () => setMode('round'),
+                    },
+                    {
+                        label: 'Holder claims',
+                        detail: tokenomicsController ? 'Manage profit-share exclusions.' : 'Tokenomics controller unavailable.',
+                        status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable,
+                        active: mode === 'profit',
+                        onClick: () => setMode('profit'),
+                    },
+                    {
+                        label: 'Marketplace',
+                        detail: 'Approve venues and configure Solana custody.',
+                        status: MAINNET.portfolioRegistry ? READ_STATUS.configured : READ_STATUS.unavailable,
+                        active: mode === 'marketplace',
+                        onClick: () => setMode('marketplace'),
+                    },
+                    {
+                        label: 'Courtyard setup',
+                        detail: courtyardSetupBlockers.length ? courtyardSetupBlockers.join(', ') : 'Courtyard setup is ready.',
+                        status: courtyardSetupBlockers.length ? READ_STATUS.partial : READ_STATUS.live,
+                        active: mode === 'courtyard',
+                        primary: mode === 'courtyard',
+                        onClick: () => setMode('courtyard'),
+                    },
+                    {
+                        label: 'LP',
+                        detail: 'Review deployed Trader Joe and Pharaoh liquidity.',
+                        status: lpReadsStatus,
+                        active: mode === 'lp',
+                        onClick: () => setMode('lp'),
+                    },
+                ]}
+            >
                 {mode === 'round' ? (
                     <div className="grid gap-4">
                         <p className="text-xs leading-5 text-gray-400">
@@ -1972,7 +1998,7 @@ export function OperationsPanel() {
                 )}
 
                 <TxResult hash={txHash} error={error} />
-            </Section>
+            </OperatorFlowPanel>
         </AdminPage>
     );
 }

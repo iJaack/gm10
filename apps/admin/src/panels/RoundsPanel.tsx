@@ -11,7 +11,7 @@ import {
     WAVAX_ABI,
 } from '../abis';
 import { LIQUIDITY_VENUES, MAINNET, MAINNET_TOKENS } from '../addresses';
-import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
+import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorFlowPanel, OperatorSummaryGrid, SectionPanel as Section, StatusChip, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import {
@@ -119,6 +119,7 @@ export function RoundsPanel() {
     const [pharaohCatchAmount, setPharaohCatchAmount] = useState('');
     const [pharaohWavaxAmount, setPharaohWavaxAmount] = useState('');
     const [pharaohReferenceTick, setPharaohReferenceTick] = useState('');
+    const [activeFlowStep, setActiveFlowStep] = useState<'start' | 'routing' | 'lfj' | 'pharaoh' | 'safety'>('routing');
 
     const contractTx = useWriteContract();
     const teamTransfer = useSendTransaction();
@@ -415,6 +416,12 @@ export function RoundsPanel() {
             detail: `${pharaohTranches.length || 0} tranche${pharaohTranches.length === 1 ? '' : 's'} with drift guard ${pharaohRoutingPaused ? 'paused' : 'clear'}.`,
         },
     ];
+    const routingReadinessRows = [
+        { label: 'Round 2 finalization', status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback, detail: round2Finalized ? 'Routing withdrawals are enabled.' : 'Finalize Round 2 before withdrawing routing buckets.' },
+        { label: 'LFJ quote', status: lfjQuote ? READ_STATUS.live : READ_STATUS.unavailable, detail: lfjQuote ? 'Legacy Joe quote returned for the selected tranche.' : 'Enter or select a tranche before relying on LFJ output.' },
+        { label: 'Pharaoh pool read', status: pharaohSlot0 ? READ_STATUS.live : READ_STATUS.unavailable, detail: pharaohSlot0 ? `Current tick ${pharaohTick}.` : 'Pool tick unavailable; Pharaoh routing is not decision-ready.' },
+        { label: 'Pharaoh drift guard', status: pharaohRoutingPaused ? READ_STATUS.error : READ_STATUS.live, detail: pharaohRoutingPaused ? 'Spot drift exceeded the configured guard.' : 'Spot drift is within the 10% guard.' },
+    ];
 
     return (
         <AdminPage
@@ -428,6 +435,201 @@ export function RoundsPanel() {
                 { label: quoteFreshness === READ_STATUS.live ? 'quotes live' : 'quote reads pending', status: quoteFreshness },
             ]}
         >
+            <OperatorFlowPanel
+                title="Round execution flow"
+                description="Create the round, close it, then route the post-close funds through the same primary flow instead of separate control panels."
+                steps={[
+                    {
+                        id: 'start-new-round',
+                        label: 'Start new round',
+                        detail: canCreateRound2 ? 'Create the configured fundraising round.' : 'The configured round already exists.',
+                        status: canCreateRound2 ? READ_STATUS.partial : READ_STATUS.configured,
+                        active: activeFlowStep === 'start',
+                        onClick: () => setActiveFlowStep('start'),
+                        children: activeFlowStep === 'start' ? (
+                            <Section variant="inline" title="Start new round">
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <Field label="Target AVAX" value={targetAvax} onChange={setTargetAvax} type="number" />
+                                    <Field label="Token price AVAX/CATCH" value={priceAvax} onChange={setPriceAvax} type="number" />
+                                    <Field label="Minimum buy AVAX" value={minAvax} onChange={setMinAvax} type="number" />
+                                    <Field label="Max wallet cap AVAX" value={maxAvax} onChange={setMaxAvax} type="number" />
+                                    <Field label="Start timestamp" value={startIso} onChange={setStartIso} />
+                                    <Field label="End timestamp" value={endIso} onChange={setEndIso} />
+                                </div>
+                                <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-gray-400">
+                                    Prefill: Round 2 opens at {ROUND2_START_AT.toString()} and closes at {ROUND2_END_AT.toString()}.
+                                    Expected full-cap mint is about 1,428,571.4286 CATCH.
+                                </div>
+                                <TxButton onClick={submitCreateRound} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!canCreateRound2}>
+                                    Create Round 2
+                                </TxButton>
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        id: 'round-2-routing',
+                        label: 'Close and route Round 2',
+                        detail: round2Finalized ? 'Finalized; routing bucket can move.' : 'Finalize before routing funds.',
+                        status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback,
+                        active: activeFlowStep === 'routing',
+                        onClick: () => setActiveFlowStep('routing'),
+                        primary: activeFlowStep === 'routing',
+                        children: activeFlowStep === 'routing' ? (
+                            <Section variant="inline" title="Round 2 routing">
+                                <div className="grid gap-2 text-xs text-gray-400">
+                                    <div>Routing unlock: {round2Finalized ? 'Round 2 finalized' : 'Waiting for Round 2 finalization'}</div>
+                                    <div>Raised: {formatAvax(routing.raised)}</div>
+                                    <div>Strategy/card acquisition treasury: {formatAvax(routing.strategyTreasury)}</div>
+                                    <div>Routing withdrawal bucket: {formatAvax(routing.routingBucket)}</div>
+                                    <div>LFJ LP budget: {formatAvax(routing.lfj)}</div>
+                                    <div>Pharaoh LP budget: {formatAvax(routing.pharaoh)}</div>
+                                    <div>Team wallet: {formatAvax(routing.team)} to {MAINNET.teamWallet}</div>
+                                    <div>Treasury CATCH balance: {catchBalance !== undefined ? `${Number(formatEther(catchBalance)).toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH` : 'Unavailable'}</div>
+                                    <div>Treasury WAVAX balance: {wavaxBalance !== undefined ? `${Number(formatEther(wavaxBalance)).toLocaleString('en-US', { maximumFractionDigits: 4 })} WAVAX` : 'Unavailable'}</div>
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    <TxButton onClick={submitFinalizeRound2} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!canFinalizeRound2}>
+                                        Finalize Round 2 if ended
+                                    </TxButton>
+                                    <TxButton onClick={submitRoutingWithdrawal} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || routing.routingBucket <= 0n}>
+                                        Withdraw 15% routing bucket
+                                    </TxButton>
+                                    <TxButton onClick={submitTeamTransfer} txHash={teamTransfer.data} isPending={teamTransfer.isPending} disabled={!round2Finalized || routing.team <= 0n}>
+                                        Send 5% team allocation
+                                    </TxButton>
+                                </div>
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        id: 'lfj-tranche',
+                        label: 'Route LFJ tranche',
+                        detail: lfjTranches.length ? `${lfjTranches.length} tranche${lfjTranches.length === 1 ? '' : 's'} prepared.` : 'No LFJ tranche available yet.',
+                        status: lfjQuote ? READ_STATUS.live : lfjTranches.length ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'lfj',
+                        onClick: () => setActiveFlowStep('lfj'),
+                        children: activeFlowStep === 'lfj' ? (
+                            <Section variant="inline" title="LFJ Legacy Joe tranche">
+                                <Field label="Max tranche AVAX" value={maxTrancheAvax} onChange={setMaxTrancheAvax} type="number" />
+                                <div className="grid gap-2 text-xs text-gray-400">
+                                    <div>Router: {LIQUIDITY_VENUES.legacyJoeRouter}</div>
+                                    <div>Tranche: {lfjTranches.length ? `${lfjTrancheIndex + 1} of ${lfjTranches.length}` : 'Unavailable'}</div>
+                                    <div>Tranche budget: {formatAvax(lfjTranche)}</div>
+                                    <div>Swap half to CATCH: {formatAvax(lfjSwapAvax)}</div>
+                                    <div>Pair AVAX: {formatAvax(lfjPairAvax)}</div>
+                                    <div>Quoted CATCH: {lfjQuotedCatch ? `${formatEther(lfjQuotedCatch)} CATCH` : 'Unavailable'}</div>
+                                    <div>LP token recipient: {LIQUIDITY_VENUES.deadAddress}</div>
+                                </div>
+                                <Field label="CATCH amount to pair" value={lfjCatchAmount} onChange={setLfjCatchAmount} type="number" />
+                                <div className="flex flex-wrap gap-3">
+                                    <AdminButton onClick={() => setLfjTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</AdminButton>
+                                    <AdminButton onClick={() => setLfjTrancheIndex((value) => Math.min(lfjTranches.length - 1, value + 1))}>Next tranche</AdminButton>
+                                    <TxButton onClick={submitLfjSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjSwapAvax <= 0n || lfjQuotedCatch <= 0n}>
+                                        Swap LFJ tranche half
+                                    </TxButton>
+                                    <TxButton onClick={submitApproveJoeCatch} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjCatchDesired <= 0n}>
+                                        Approve CATCH for Joe
+                                    </TxButton>
+                                    <TxButton onClick={submitLfjAddLiquidity} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjCatchDesired <= 0n || lfjPairAvax <= 0n}>
+                                        Add LFJ liquidity and burn LP
+                                    </TxButton>
+                                </div>
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        id: 'pharaoh-tranche',
+                        label: 'Route Pharaoh tranche',
+                        detail: pharaohRoutingPaused ? 'Drift guard paused routing.' : 'Wrap, swap, approve, and mint the CL position.',
+                        status: pharaohRoutingPaused ? READ_STATUS.error : pharaohSlot0 ? READ_STATUS.live : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'pharaoh',
+                        onClick: () => setActiveFlowStep('pharaoh'),
+                        children: activeFlowStep === 'pharaoh' ? (
+                            <Section variant="inline" title="Pharaoh 1% CL tranche">
+                                <div className="grid gap-2 text-xs text-gray-400">
+                                    <div>Swap router: {LIQUIDITY_VENUES.pharaohSwapRouter}</div>
+                                    <div>Position manager: {LIQUIDITY_VENUES.pharaohPositionManager}</div>
+                                    <div>Pool: {LIQUIDITY_VENUES.pharaohPool}</div>
+                                    <div>Tranche: {pharaohTranches.length ? `${pharaohTrancheIndex + 1} of ${pharaohTranches.length}` : 'Unavailable'}</div>
+                                    <div>Tranche budget to wrap: {formatAvax(pharaohTranche)}</div>
+                                    <div>Swap half WAVAX to CATCH: {formatAvax(pharaohSwapWavax)}</div>
+                                    <div>Current tick: {pharaohTick}</div>
+                                    <div>Reference tick: {pharaohReferenceTick.trim() || pharaohTick}</div>
+                                    <div>Spot drift guard: {pharaohSpotDriftBps} bps / max {ROUND2_MAX_SPOT_DRIFT_BPS} bps</div>
+                                    <div>Mint range: {pharaohTicks.lower} to {pharaohTicks.upper}</div>
+                                    <div>Recipient: {effectiveTreasuryAddress}</div>
+                                </div>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <Field label="Reference tick before routing" value={pharaohReferenceTick} onChange={setPharaohReferenceTick} type="number" />
+                                    <Field label="CATCH amount to mint" value={pharaohCatchAmount} onChange={setPharaohCatchAmount} type="number" />
+                                    <Field label="WAVAX amount to mint" value={pharaohWavaxAmount} onChange={setPharaohWavaxAmount} type="number" />
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    <AdminButton onClick={() => setPharaohTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</AdminButton>
+                                    <AdminButton onClick={() => setPharaohTrancheIndex((value) => Math.min(pharaohTranches.length - 1, value + 1))}>Next tranche</AdminButton>
+                                    <TxButton onClick={submitWrapPharaohTranche} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohTranche <= 0n}>
+                                        Wrap Pharaoh tranche AVAX
+                                    </TxButton>
+                                    <TxButton onClick={submitApprovePharaohSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohSwapWavax <= 0n}>
+                                        Approve WAVAX for Pharaoh swap
+                                    </TxButton>
+                                    <TxButton onClick={submitPharaohSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohRoutingPaused || pharaohSwapWavax <= 0n || pharaohCatchDesired <= 0n}>
+                                        Swap Pharaoh half to CATCH
+                                    </TxButton>
+                                    <TxButton onClick={() => submitApprovePharaohPosition(CATCH_ADDRESS, pharaohCatchDesired)} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohCatchDesired <= 0n}>
+                                        Approve CATCH for position
+                                    </TxButton>
+                                    <TxButton onClick={() => submitApprovePharaohPosition(MAINNET_TOKENS.WAVAX, pharaohWavaxDesired)} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohWavaxDesired <= 0n}>
+                                        Approve WAVAX for position
+                                    </TxButton>
+                                    <TxButton onClick={submitPharaohMint} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohRoutingPaused || pharaohCatchDesired <= 0n || pharaohWavaxDesired <= 0n}>
+                                        Mint Pharaoh CL position
+                                    </TxButton>
+                                </div>
+                                {pharaohRoutingPaused ? (
+                                    <div className="rounded-lg border border-red-400/25 bg-red-400/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        Pharaoh routing is paused because spot drift exceeded 10% from the reference tick. Refresh quotes and restart routing from the current spot.
+                                    </div>
+                                ) : null}
+                                <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                    Pharaoh minting uses a 1% fee tier, a 0.25x to 4x range around current spot, 3% minimums,
+                                    and sends the position NFT to the Treasury Safe.
+                                </div>
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        id: 'round-safety',
+                        label: 'Execution safety',
+                        detail: 'Confirm readiness gates, slippage, deadline, and quote freshness before signing.',
+                        status: pharaohRoutingPaused ? READ_STATUS.error : quoteFreshness,
+                        active: activeFlowStep === 'safety',
+                        onClick: () => setActiveFlowStep('safety'),
+                        children: activeFlowStep === 'safety' ? (
+                            <Section variant="inline" title="Execution safety">
+                                <div className="grid gap-2">
+                                    {routingReadinessRows.map((row) => (
+                                        <div key={row.label} className="grid gap-2 rounded-md border border-white/10 bg-black/20 px-3 py-2 sm:grid-cols-[1fr_auto] sm:items-center">
+                                            <div>
+                                                <div className="text-xs font-semibold text-gray-200">{row.label}</div>
+                                                <div className="mt-1 text-[0.7rem] leading-4 text-gray-500">{row.detail}</div>
+                                            </div>
+                                            <StatusChip status={row.status} />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                    Default safety: {ROUND2_SLIPPAGE_BPS.toString()} bps slippage, {ROUND2_DEADLINE_SECONDS / 60} minute deadline.
+                                    Use small tranches and re-check quotes after each transaction.
+                                </div>
+                            </Section>
+                        ) : null,
+                    },
+                ]}
+            />
+
+            <TxResult hash={contractTx.data ?? teamTransfer.data} error={contractTx.error ?? teamTransfer.error} />
+
             <OperatorSummaryGrid>
                 <MetricCard
                     label="Round close treasury"
@@ -451,150 +653,10 @@ export function RoundsPanel() {
                 <MetricCard label="Routing bucket" value={formatAvax(routing.routingBucket)} status={round2 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={round2Finalized ? 'withdrawable' : 'planned'} accent="yellow" />
             </MetricGrid>
 
-            <ActionReadinessPanel
-                title="Routing readiness"
-                rows={[
-                    { label: 'Round 2 finalization', status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback, detail: round2Finalized ? 'Routing withdrawals are enabled.' : 'Finalize Round 2 before withdrawing routing buckets.' },
-                    { label: 'LFJ quote', status: lfjQuote ? READ_STATUS.live : READ_STATUS.unavailable, detail: lfjQuote ? 'Legacy Joe quote returned for the selected tranche.' : 'Enter or select a tranche before relying on LFJ output.' },
-                    { label: 'Pharaoh pool read', status: pharaohSlot0 ? READ_STATUS.live : READ_STATUS.unavailable, detail: pharaohSlot0 ? `Current tick ${pharaohTick}.` : 'Pool tick unavailable; Pharaoh routing is not decision-ready.' },
-                    { label: 'Pharaoh drift guard', status: pharaohRoutingPaused ? READ_STATUS.error : READ_STATUS.live, detail: pharaohRoutingPaused ? 'Spot drift exceeded the configured guard.' : 'Spot drift is within the 10% guard.' },
-                ]}
-            />
-
             <div className="grid gap-4 lg:grid-cols-2">
                 <RoundCard title="Round 1 complete" round={round1 as RoundData | undefined} />
                 <RoundCard title="Round 2" round={round2 as RoundData | undefined} />
             </div>
-
-            <Section id="start-new-round" title="Start new round">
-                <div className="grid gap-3 md:grid-cols-2">
-                    <Field label="Target AVAX" value={targetAvax} onChange={setTargetAvax} type="number" />
-                    <Field label="Token price AVAX/CATCH" value={priceAvax} onChange={setPriceAvax} type="number" />
-                    <Field label="Minimum buy AVAX" value={minAvax} onChange={setMinAvax} type="number" />
-                    <Field label="Max wallet cap AVAX" value={maxAvax} onChange={setMaxAvax} type="number" />
-                    <Field label="Start timestamp" value={startIso} onChange={setStartIso} />
-                    <Field label="End timestamp" value={endIso} onChange={setEndIso} />
-                </div>
-                <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-gray-400">
-                    Prefill: Round 2 opens at {ROUND2_START_AT.toString()} and closes at {ROUND2_END_AT.toString()}.
-                    Expected full-cap mint is about 1,428,571.4286 CATCH.
-                </div>
-                <TxButton onClick={submitCreateRound} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!canCreateRound2}>
-                    Create Round 2
-                </TxButton>
-            </Section>
-
-            <Section id="round-2-routing" title="Round 2 routing">
-                <div className="grid gap-2 text-xs text-gray-400">
-                    <div>Routing unlock: {round2Finalized ? 'Round 2 finalized' : 'Waiting for Round 2 finalization'}</div>
-                    <div>Raised: {formatAvax(routing.raised)}</div>
-                    <div>Strategy/card acquisition treasury: {formatAvax(routing.strategyTreasury)}</div>
-                    <div>Routing withdrawal bucket: {formatAvax(routing.routingBucket)}</div>
-                    <div>LFJ LP budget: {formatAvax(routing.lfj)}</div>
-                    <div>Pharaoh LP budget: {formatAvax(routing.pharaoh)}</div>
-                    <div>Team wallet: {formatAvax(routing.team)} to {MAINNET.teamWallet}</div>
-                    <div>Treasury CATCH balance: {catchBalance !== undefined ? `${Number(formatEther(catchBalance)).toLocaleString('en-US', { maximumFractionDigits: 4 })} CATCH` : 'Unavailable'}</div>
-                    <div>Treasury WAVAX balance: {wavaxBalance !== undefined ? `${Number(formatEther(wavaxBalance)).toLocaleString('en-US', { maximumFractionDigits: 4 })} WAVAX` : 'Unavailable'}</div>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                    <TxButton onClick={submitFinalizeRound2} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!canFinalizeRound2}>
-                        Finalize Round 2 if ended
-                    </TxButton>
-                    <TxButton onClick={submitRoutingWithdrawal} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || routing.routingBucket <= 0n}>
-                        Withdraw 15% routing bucket
-                    </TxButton>
-                    <TxButton onClick={submitTeamTransfer} txHash={teamTransfer.data} isPending={teamTransfer.isPending} disabled={!round2Finalized || routing.team <= 0n}>
-                        Send 5% team allocation
-                    </TxButton>
-                </div>
-            </Section>
-
-            <Section id="lfj-tranche" title="LFJ Legacy Joe tranche">
-                <Field label="Max tranche AVAX" value={maxTrancheAvax} onChange={setMaxTrancheAvax} type="number" />
-                <div className="grid gap-2 text-xs text-gray-400">
-                    <div>Router: {LIQUIDITY_VENUES.legacyJoeRouter}</div>
-                    <div>Tranche: {lfjTranches.length ? `${lfjTrancheIndex + 1} of ${lfjTranches.length}` : 'Unavailable'}</div>
-                    <div>Tranche budget: {formatAvax(lfjTranche)}</div>
-                    <div>Swap half to CATCH: {formatAvax(lfjSwapAvax)}</div>
-                    <div>Pair AVAX: {formatAvax(lfjPairAvax)}</div>
-                    <div>Quoted CATCH: {lfjQuotedCatch ? `${formatEther(lfjQuotedCatch)} CATCH` : 'Unavailable'}</div>
-                    <div>LP token recipient: {LIQUIDITY_VENUES.deadAddress}</div>
-                </div>
-                <Field label="CATCH amount to pair" value={lfjCatchAmount} onChange={setLfjCatchAmount} type="number" />
-                <div className="flex flex-wrap gap-3">
-                    <AdminButton onClick={() => setLfjTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</AdminButton>
-                    <AdminButton onClick={() => setLfjTrancheIndex((value) => Math.min(lfjTranches.length - 1, value + 1))}>Next tranche</AdminButton>
-                    <TxButton onClick={submitLfjSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjSwapAvax <= 0n || lfjQuotedCatch <= 0n}>
-                        Swap LFJ tranche half
-                    </TxButton>
-                    <TxButton onClick={submitApproveJoeCatch} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjCatchDesired <= 0n}>
-                        Approve CATCH for Joe
-                    </TxButton>
-                    <TxButton onClick={submitLfjAddLiquidity} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjCatchDesired <= 0n || lfjPairAvax <= 0n}>
-                        Add LFJ liquidity and burn LP
-                    </TxButton>
-                </div>
-            </Section>
-
-            <Section id="pharaoh-tranche" title="Pharaoh 1% CL tranche">
-                <div className="grid gap-2 text-xs text-gray-400">
-                    <div>Swap router: {LIQUIDITY_VENUES.pharaohSwapRouter}</div>
-                    <div>Position manager: {LIQUIDITY_VENUES.pharaohPositionManager}</div>
-                    <div>Pool: {LIQUIDITY_VENUES.pharaohPool}</div>
-                    <div>Tranche: {pharaohTranches.length ? `${pharaohTrancheIndex + 1} of ${pharaohTranches.length}` : 'Unavailable'}</div>
-                    <div>Tranche budget to wrap: {formatAvax(pharaohTranche)}</div>
-                    <div>Swap half WAVAX to CATCH: {formatAvax(pharaohSwapWavax)}</div>
-                    <div>Current tick: {pharaohTick}</div>
-                    <div>Reference tick: {pharaohReferenceTick.trim() || pharaohTick}</div>
-                    <div>Spot drift guard: {pharaohSpotDriftBps} bps / max {ROUND2_MAX_SPOT_DRIFT_BPS} bps</div>
-                    <div>Mint range: {pharaohTicks.lower} to {pharaohTicks.upper}</div>
-                    <div>Recipient: {effectiveTreasuryAddress}</div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                    <Field label="Reference tick before routing" value={pharaohReferenceTick} onChange={setPharaohReferenceTick} type="number" />
-                    <Field label="CATCH amount to mint" value={pharaohCatchAmount} onChange={setPharaohCatchAmount} type="number" />
-                    <Field label="WAVAX amount to mint" value={pharaohWavaxAmount} onChange={setPharaohWavaxAmount} type="number" />
-                </div>
-                <div className="flex flex-wrap gap-3">
-                    <AdminButton onClick={() => setPharaohTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</AdminButton>
-                    <AdminButton onClick={() => setPharaohTrancheIndex((value) => Math.min(pharaohTranches.length - 1, value + 1))}>Next tranche</AdminButton>
-                    <TxButton onClick={submitWrapPharaohTranche} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohTranche <= 0n}>
-                        Wrap Pharaoh tranche AVAX
-                    </TxButton>
-                    <TxButton onClick={submitApprovePharaohSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohSwapWavax <= 0n}>
-                        Approve WAVAX for Pharaoh swap
-                    </TxButton>
-                    <TxButton onClick={submitPharaohSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohRoutingPaused || pharaohSwapWavax <= 0n || pharaohCatchDesired <= 0n}>
-                        Swap Pharaoh half to CATCH
-                    </TxButton>
-                    <TxButton onClick={() => submitApprovePharaohPosition(CATCH_ADDRESS, pharaohCatchDesired)} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohCatchDesired <= 0n}>
-                        Approve CATCH for position
-                    </TxButton>
-                    <TxButton onClick={() => submitApprovePharaohPosition(MAINNET_TOKENS.WAVAX, pharaohWavaxDesired)} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohWavaxDesired <= 0n}>
-                        Approve WAVAX for position
-                    </TxButton>
-                    <TxButton onClick={submitPharaohMint} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohRoutingPaused || pharaohCatchDesired <= 0n || pharaohWavaxDesired <= 0n}>
-                        Mint Pharaoh CL position
-                    </TxButton>
-                </div>
-                {pharaohRoutingPaused ? (
-                    <div className="rounded-lg border border-red-400/25 bg-red-400/10 px-3 py-2 text-xs leading-5 text-red-100">
-                        Pharaoh routing is paused because spot drift exceeded 10% from the reference tick. Refresh quotes and restart routing from the current spot.
-                    </div>
-                ) : null}
-                <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
-                    Pharaoh minting uses a 1% fee tier, a 0.25x to 4x range around current spot, 3% minimums,
-                    and sends the position NFT to the Treasury Safe.
-                </div>
-            </Section>
-
-            <Section title="Execution safety">
-                <div className="text-xs text-gray-400">
-                    Default safety: {ROUND2_SLIPPAGE_BPS.toString()} bps slippage, {ROUND2_DEADLINE_SECONDS / 60} minute deadline.
-                    Use small tranches and re-check quotes after each transaction.
-                </div>
-                <TxResult hash={contractTx.data ?? teamTransfer.data} error={contractTx.error ?? teamTransfer.error} />
-            </Section>
         </AdminPage>
     );
 }

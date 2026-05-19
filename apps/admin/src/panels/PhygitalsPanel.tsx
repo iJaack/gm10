@@ -4,7 +4,7 @@ import { encodeFunctionData, formatUnits, isAddress, keccak256, padHex, parseUni
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorSummaryGrid, SectionPanel as Section } from '../components/AdminPrimitives';
+import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorFlowPanel, OperatorSummaryGrid, SectionPanel as Section } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -195,6 +195,7 @@ export function PhygitalsPanel() {
     const [safeBatchHash, setSafeBatchHash] = useState<`0x${string}` | undefined>();
     const [safeBatchError, setSafeBatchError] = useState('');
     const [isBatchSubmitting, setIsBatchSubmitting] = useState(false);
+    const [activeFlowStep, setActiveFlowStep] = useState<'setup' | 'resolve' | 'funding' | 'purchase' | 'position'>('resolve');
 
     const purchaseKey = useMemo(() => bytes32FromInput(purchase.purchaseKey), [purchase.purchaseKey]);
     const { writeContract, data: txHash, isPending, error, reset } = useWriteContract();
@@ -490,6 +491,237 @@ export function PhygitalsPanel() {
                 { label: fundingQuote ? 'funding quote live' : 'quote pending', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable },
             ]}
         >
+            <OperatorFlowPanel
+                title="Phygitals acquisition flow"
+                description="Configure custody, resolve the card, fund Solana USDC, authorize the purchase, and record the position from one guided surface."
+                steps={[
+                    {
+                        label: 'Setup custody and venue',
+                        detail: 'Configure the Solana custody Safe and marketplace approval.',
+                        status: phygitalsApproved === true && solanaChainSafe?.enabled ? READ_STATUS.live : phygitalsApproved === true || solanaChainSafe?.enabled ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'setup',
+                        onClick: () => setActiveFlowStep('setup'),
+                        children: activeFlowStep === 'setup' ? (
+                            <Section variant="inline" title="Setup">
+                                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+                                    <Field
+                                        label="Solana Squads multisig"
+                                        value={solanaSafe}
+                                        onChange={(value) => {
+                                            setSolanaSafe(value);
+                                            setSolanaSafeError('');
+                                            setFundingQuote(null);
+                                            setFundingError('');
+                                        }}
+                                        placeholder="Base58 Solana address"
+                                        mono
+                                    />
+                                    <TxButton onClick={submitSolanaSafe} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !solanaSafe.trim()}>
+                                        Configure Solana Safe
+                                    </TxButton>
+                                    <TxButton onClick={submitMarketplaceApproval} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || phygitalsApproved === true}>
+                                        Approve PHYGITALS
+                                    </TxButton>
+                                </div>
+                                {solanaSafeError ? (
+                                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {solanaSafeError}
+                                    </div>
+                                ) : null}
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        label: 'Resolve card',
+                        detail: card ? card.title : 'Load the Phygitals card and prefill purchase fields.',
+                        status: card ? READ_STATUS.live : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'resolve',
+                        onClick: () => setActiveFlowStep('resolve'),
+                        primary: activeFlowStep === 'resolve',
+                        children: activeFlowStep === 'resolve' ? (
+                            <Section variant="inline" title="Resolve card">
+                                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                                    <Field
+                                        label="Phygitals card URL"
+                                        value={phygitalsUrl}
+                                        onChange={(value) => {
+                                            setPhygitalsUrl(value);
+                                            setCard(null);
+                                            setResolveError('');
+                                        }}
+                                        placeholder="https://www.phygitals.com/card/..."
+                                        mono
+                                    />
+                                    <AdminButton
+                                        variant="primary"
+                                        type="button"
+                                        onClick={() => void resolveCard()}
+                                        disabled={isResolving || !phygitalsUrl.trim()}
+                                    >
+                                        {isResolving ? 'Resolving...' : 'Resolve card'}
+                                    </AdminButton>
+                                </div>
+                                {resolveError ? (
+                                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {resolveError}
+                                    </div>
+                                ) : null}
+                                {card ? (
+                                    <div className="grid gap-4 md:grid-cols-[120px_1fr]">
+                                        {card.image ? (
+                                            <img src={card.image} alt={card.title} className="aspect-[3/4] w-full max-w-[120px] rounded-lg object-cover" />
+                                        ) : null}
+                                        <div className="grid gap-1 text-xs text-gray-400">
+                                            <div className="text-sm font-semibold text-white">{card.title}</div>
+                                            <div>Price: {card.listing ? `${card.listing.priceDecimal} ${card.listing.currency.symbol}` : `${card.altFmv ?? '0'} ALT FMV`}</div>
+                                            <div>Marketplace: {card.marketplace}</div>
+                                            <div>Vault: {card.vault || 'Unavailable'}</div>
+                                            <div className="break-all">Asset: {card.assetAddress}</div>
+                                            <div className="break-all">Collection: {card.collectionAddress}</div>
+                                            <div>Token standard: {card.tokenStandard}</div>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        label: 'Fund purchase',
+                        detail: fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX quoted for Solana USDC.` : 'Quote and submit the LI.FI route.',
+                        status: fundingQuote ? READ_STATUS.live : card ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'funding',
+                        onClick: () => setActiveFlowStep('funding'),
+                        children: activeFlowStep === 'funding' ? (
+                            <Section variant="inline" title="Funding transaction">
+                                <div className="grid gap-1 text-xs text-gray-400">
+                                    <div className="break-all">Avalanche treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}</div>
+                                    <div className="break-all">Solana recipient: {solanaFundingDestination || 'Unavailable'}</div>
+                                    <div>Source asset: AVAX on Avalanche</div>
+                                    <div>Destination asset: USDC on Solana</div>
+                                    <div>Target receive: {fundingTargetRaw ? `${formatRawUnits(fundingTargetRaw, 6)} USDC` : 'Resolve a listed card'}</div>
+                                </div>
+                                {fundingQuote ? (
+                                    <div className="grid gap-1 text-xs text-gray-400">
+                                        <div>Route: {fundingQuote.usdc.tool || 'LI.FI'}</div>
+                                        <div>AVAX input: {fundingQuote.usdc.fromAmountAvax}</div>
+                                        <div>Estimated receive: {formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC</div>
+                                        <div>Minimum receive: {formatRawUnits(fundingQuote.usdc.toAmountMinRaw, 6)} USDC</div>
+                                        <div>Estimated source gas: {fundingQuote.usdc.sourceGasAvax} AVAX</div>
+                                    </div>
+                                ) : null}
+                                {fundingError ? (
+                                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {fundingError}
+                                    </div>
+                                ) : null}
+                                {safeBatchError ? (
+                                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {safeBatchError}
+                                    </div>
+                                ) : null}
+                                {safeBatchHash ? (
+                                    <div className="break-all rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs leading-5 text-emerald-100">
+                                        Safe batch submitted: {safeBatchHash}
+                                    </div>
+                                ) : null}
+                                <div className="flex flex-wrap gap-3">
+                                    <AdminButton
+                                        type="button"
+                                        onClick={() => void quoteSolanaUsdcFunding()}
+                                        disabled={isFundingLoading || !card || !effectiveTreasuryAddress || !solanaFundingDestination}
+                                    >
+                                        {isFundingLoading ? 'Quoting...' : 'Refresh LI.FI USDC quote'}
+                                    </AdminButton>
+                                    <TxButton
+                                        onClick={() => void submitSolanaUsdcFunding()}
+                                        txHash={fundingTxHash}
+                                        isPending={isFundingPending || isFundingLoading}
+                                        disabled={!card || !effectiveTreasuryAddress || !solanaFundingDestination}
+                                    >
+                                        Submit LI.FI funding
+                                    </TxButton>
+                                    <AdminButton
+                                        variant="primary"
+                                        type="button"
+                                        onClick={() => void submitAuthorizeAndFundBatch()}
+                                        disabled={
+                                            isBatchSubmitting ||
+                                            isFundingLoading ||
+                                            !safeAppInfo.isSafeApp ||
+                                            safeAppInfo.chainId !== AVALANCHE_CHAIN_ID ||
+                                            !MAINNET.portfolioRegistry ||
+                                            !card ||
+                                            phygitalsApproved !== true ||
+                                            !solanaChainSafe?.enabled
+                                        }
+                                    >
+                                        {isBatchSubmitting ? 'Submitting...' : 'Batch authorize + fund'}
+                                    </AdminButton>
+                                </div>
+                                <TxResult hash={fundingTxHash} error={fundingSendError} />
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        label: 'Authorize and execute',
+                        detail: purchaseStatus > 0 ? statusLabel(purchaseAuthorization?.status ?? 0) : 'Authorize purchase and record execution.',
+                        status: purchaseStatus > 0 ? READ_STATUS.live : card ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'purchase',
+                        onClick: () => setActiveFlowStep('purchase'),
+                        children: activeFlowStep === 'purchase' ? (
+                            <Section variant="inline" title="Purchase workflow">
+                                <div className="grid gap-1 text-xs text-gray-400">
+                                    <div>Purchase key: {purchase.purchaseKey || 'Resolve a card'}</div>
+                                    <div>Authorization status: {purchaseAuthorization ? statusLabel(purchaseAuthorization.status) : 'Unavailable'}</div>
+                                    <div>Max spend: {purchase.maxSpendUsdt || '0'} USDT</div>
+                                    <div>Funding amount: {purchase.releaseAmountUsdt || '0'} USDT</div>
+                                    <div>Confirmed funding: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
+                                    <div className="break-all">Destination Safe: {formatNonEvmSafe(purchaseAuthorization?.destinationSafeAlt)}</div>
+                                </div>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <Field label="Execution ref" value={purchase.executionRef} onChange={(value) => setPurchase((current) => ({ ...current, executionRef: value }))} mono />
+                                    <Field label="Settlement ref" value={purchase.settlementRef} onChange={(value) => setPurchase((current) => ({ ...current, settlementRef: value }))} mono />
+                                    <Field label="Proof ref" value={purchase.proofRef} onChange={(value) => setPurchase((current) => ({ ...current, proofRef: value }))} mono />
+                                    <Field label="Acquisition price (USDT)" value={position.acquisitionPriceUsdt} onChange={(value) => setPosition((current) => ({ ...current, acquisitionPriceUsdt: value }))} type="number" />
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    <TxButton onClick={submitAuthorizePurchase} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !card || phygitalsApproved !== true || !solanaChainSafe?.enabled}>
+                                        Authorize purchase
+                                    </TxButton>
+                                    <TxButton onClick={submitRecordExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !card || !purchase.executionRef}>
+                                        Record execution
+                                    </TxButton>
+                                    <TxButton onClick={submitRecordPosition} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !card || !position.nonEvmTokenId}>
+                                        Record Solana position
+                                    </TxButton>
+                                </div>
+                            </Section>
+                        ) : null,
+                    },
+                    {
+                        label: 'Position fields',
+                        detail: positionRecorded ? 'Position recorded.' : 'Review Solana asset and accounting fields before final record.',
+                        status: positionRecorded ? READ_STATUS.live : card ? READ_STATUS.partial : READ_STATUS.unavailable,
+                        active: activeFlowStep === 'position',
+                        onClick: () => setActiveFlowStep('position'),
+                        children: activeFlowStep === 'position' ? (
+                            <Section variant="inline" title="Position fields">
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <Field label="Collection" value={position.nonEvmCollection} onChange={(value) => setPosition((current) => ({ ...current, nonEvmCollection: value }))} mono />
+                                    <Field label="Asset" value={position.nonEvmTokenId} onChange={(value) => setPosition((current) => ({ ...current, nonEvmTokenId: value }))} mono />
+                                    <Field label="External asset ID" value={position.externalAssetId} onChange={(value) => setPosition((current) => ({ ...current, externalAssetId: value }))} mono />
+                                    <Field label="Marketplace provenance ref" value={position.marketplaceProvenanceRef} onChange={(value) => setPosition((current) => ({ ...current, marketplaceProvenanceRef: value }))} mono />
+                                    <Field label="Metadata ref" value={position.metadataRef} onChange={(value) => setPosition((current) => ({ ...current, metadataRef: value }))} mono />
+                                    <Field label="Position proof ref" value={position.proofRef} onChange={(value) => setPosition((current) => ({ ...current, proofRef: value }))} mono />
+                                </div>
+                            </Section>
+                        ) : null,
+                    },
+                ]}
+            />
+
+            <TxResult hash={txHash} error={error} />
+
             <OperatorSummaryGrid>
                 <MetricCard
                     label="Phygitals acquisition lane"
@@ -555,188 +787,6 @@ export function PhygitalsPanel() {
                 <MetricCard label="Funding quote" value={fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX` : 'Unavailable'} status={fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={fundingQuote?.usdc.tool || 'LI.FI'} detail={fundingQuote ? `Estimated receive ${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC` : 'Resolve a card before quoting.'} />
             </MetricGrid>
 
-            <Section title="Setup">
-                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-                    <Field
-                        label="Solana Squads multisig"
-                        value={solanaSafe}
-                        onChange={(value) => {
-                            setSolanaSafe(value);
-                            setSolanaSafeError('');
-                            setFundingQuote(null);
-                            setFundingError('');
-                        }}
-                        placeholder="Base58 Solana address"
-                        mono
-                    />
-                    <TxButton onClick={submitSolanaSafe} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !solanaSafe.trim()}>
-                        Configure Solana Safe
-                    </TxButton>
-                    <TxButton onClick={submitMarketplaceApproval} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || phygitalsApproved === true}>
-                        Approve PHYGITALS
-                    </TxButton>
-                </div>
-                {solanaSafeError ? (
-                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
-                        {solanaSafeError}
-                    </div>
-                ) : null}
-            </Section>
-
-            <Section title="Resolve card">
-                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-                    <Field
-                        label="Phygitals card URL"
-                        value={phygitalsUrl}
-                        onChange={(value) => {
-                            setPhygitalsUrl(value);
-                            setCard(null);
-                            setResolveError('');
-                        }}
-                        placeholder="https://www.phygitals.com/card/..."
-                        mono
-                    />
-                    <AdminButton
-                        variant="primary"
-                        type="button"
-                        onClick={() => void resolveCard()}
-                        disabled={isResolving || !phygitalsUrl.trim()}
-                    >
-                        {isResolving ? 'Resolving...' : 'Resolve card'}
-                    </AdminButton>
-                </div>
-                {resolveError ? (
-                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
-                        {resolveError}
-                    </div>
-                ) : null}
-                {card ? (
-                    <div className="grid gap-4 md:grid-cols-[120px_1fr]">
-                        {card.image ? (
-                            <img src={card.image} alt={card.title} className="aspect-[3/4] w-full max-w-[120px] rounded-lg object-cover" />
-                        ) : null}
-                        <div className="grid gap-1 text-xs text-gray-400">
-                            <div className="text-sm font-semibold text-white">{card.title}</div>
-                            <div>Price: {card.listing ? `${card.listing.priceDecimal} ${card.listing.currency.symbol}` : `${card.altFmv ?? '0'} ALT FMV`}</div>
-                            <div>Marketplace: {card.marketplace}</div>
-                            <div>Vault: {card.vault || 'Unavailable'}</div>
-                            <div className="break-all">Asset: {card.assetAddress}</div>
-                            <div className="break-all">Collection: {card.collectionAddress}</div>
-                            <div>Token standard: {card.tokenStandard}</div>
-                        </div>
-                    </div>
-                ) : null}
-            </Section>
-
-            <Section title="Funding transaction">
-                <div className="grid gap-1 text-xs text-gray-400">
-                    <div className="break-all">Avalanche treasury Safe: {effectiveTreasuryAddress ?? 'Unavailable'}</div>
-                    <div className="break-all">Solana recipient: {solanaFundingDestination || 'Unavailable'}</div>
-                    <div>Source asset: AVAX on Avalanche</div>
-                    <div>Destination asset: USDC on Solana</div>
-                    <div>Target receive: {fundingTargetRaw ? `${formatRawUnits(fundingTargetRaw, 6)} USDC` : 'Resolve a listed card'}</div>
-                </div>
-                {fundingQuote ? (
-                    <div className="grid gap-1 text-xs text-gray-400">
-                        <div>Route: {fundingQuote.usdc.tool || 'LI.FI'}</div>
-                        <div>AVAX input: {fundingQuote.usdc.fromAmountAvax}</div>
-                        <div>Estimated receive: {formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC</div>
-                        <div>Minimum receive: {formatRawUnits(fundingQuote.usdc.toAmountMinRaw, 6)} USDC</div>
-                        <div>Estimated source gas: {fundingQuote.usdc.sourceGasAvax} AVAX</div>
-                    </div>
-                ) : null}
-                {fundingError ? (
-                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
-                        {fundingError}
-                    </div>
-                ) : null}
-                {safeBatchError ? (
-                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
-                        {safeBatchError}
-                    </div>
-                ) : null}
-                {safeBatchHash ? (
-                    <div className="break-all rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs leading-5 text-emerald-100">
-                        Safe batch submitted: {safeBatchHash}
-                    </div>
-                ) : null}
-                <div className="flex flex-wrap gap-3">
-                    <AdminButton
-                        type="button"
-                        onClick={() => void quoteSolanaUsdcFunding()}
-                        disabled={isFundingLoading || !card || !effectiveTreasuryAddress || !solanaFundingDestination}
-                    >
-                        {isFundingLoading ? 'Quoting...' : 'Refresh LI.FI USDC quote'}
-                    </AdminButton>
-                    <TxButton
-                        onClick={() => void submitSolanaUsdcFunding()}
-                        txHash={fundingTxHash}
-                        isPending={isFundingPending || isFundingLoading}
-                        disabled={!card || !effectiveTreasuryAddress || !solanaFundingDestination}
-                    >
-                        Submit LI.FI funding
-                    </TxButton>
-                    <AdminButton
-                        variant="primary"
-                        type="button"
-                        onClick={() => void submitAuthorizeAndFundBatch()}
-                        disabled={
-                            isBatchSubmitting ||
-                            isFundingLoading ||
-                            !safeAppInfo.isSafeApp ||
-                            safeAppInfo.chainId !== AVALANCHE_CHAIN_ID ||
-                            !MAINNET.portfolioRegistry ||
-                            !card ||
-                            phygitalsApproved !== true ||
-                            !solanaChainSafe?.enabled
-                        }
-                    >
-                        {isBatchSubmitting ? 'Submitting...' : 'Batch authorize + fund'}
-                    </AdminButton>
-                </div>
-                <TxResult hash={fundingTxHash} error={fundingSendError} />
-            </Section>
-
-            <Section title="Purchase workflow">
-                <div className="grid gap-1 text-xs text-gray-400">
-                    <div>Purchase key: {purchase.purchaseKey || 'Resolve a card'}</div>
-                    <div>Authorization status: {purchaseAuthorization ? statusLabel(purchaseAuthorization.status) : 'Unavailable'}</div>
-                    <div>Max spend: {purchase.maxSpendUsdt || '0'} USDT</div>
-                    <div>Funding amount: {purchase.releaseAmountUsdt || '0'} USDT</div>
-                    <div>Confirmed funding: {purchaseAuthorization ? `${formatUnits(purchaseAuthorization.releasedUsdt6, 6)} USDT` : 'Unavailable'}</div>
-                    <div className="break-all">Destination Safe: {formatNonEvmSafe(purchaseAuthorization?.destinationSafeAlt)}</div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                    <Field label="Execution ref" value={purchase.executionRef} onChange={(value) => setPurchase((current) => ({ ...current, executionRef: value }))} mono />
-                    <Field label="Settlement ref" value={purchase.settlementRef} onChange={(value) => setPurchase((current) => ({ ...current, settlementRef: value }))} mono />
-                    <Field label="Proof ref" value={purchase.proofRef} onChange={(value) => setPurchase((current) => ({ ...current, proofRef: value }))} mono />
-                    <Field label="Acquisition price (USDT)" value={position.acquisitionPriceUsdt} onChange={(value) => setPosition((current) => ({ ...current, acquisitionPriceUsdt: value }))} type="number" />
-                </div>
-                <div className="flex flex-wrap gap-3">
-                    <TxButton onClick={submitAuthorizePurchase} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !card || phygitalsApproved !== true || !solanaChainSafe?.enabled}>
-                        Authorize purchase
-                    </TxButton>
-                    <TxButton onClick={submitRecordExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !card || !purchase.executionRef}>
-                        Record execution
-                    </TxButton>
-                    <TxButton onClick={submitRecordPosition} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !card || !position.nonEvmTokenId}>
-                        Record Solana position
-                    </TxButton>
-                </div>
-            </Section>
-
-            <Section title="Position fields">
-                <div className="grid gap-3 md:grid-cols-2">
-                    <Field label="Collection" value={position.nonEvmCollection} onChange={(value) => setPosition((current) => ({ ...current, nonEvmCollection: value }))} mono />
-                    <Field label="Asset" value={position.nonEvmTokenId} onChange={(value) => setPosition((current) => ({ ...current, nonEvmTokenId: value }))} mono />
-                    <Field label="External asset ID" value={position.externalAssetId} onChange={(value) => setPosition((current) => ({ ...current, externalAssetId: value }))} mono />
-                    <Field label="Marketplace provenance ref" value={position.marketplaceProvenanceRef} onChange={(value) => setPosition((current) => ({ ...current, marketplaceProvenanceRef: value }))} mono />
-                    <Field label="Metadata ref" value={position.metadataRef} onChange={(value) => setPosition((current) => ({ ...current, metadataRef: value }))} mono />
-                    <Field label="Position proof ref" value={position.proofRef} onChange={(value) => setPosition((current) => ({ ...current, proofRef: value }))} mono />
-                </div>
-            </Section>
-
-            <TxResult hash={txHash} error={error} />
         </AdminPage>
     );
 }
