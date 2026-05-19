@@ -23,6 +23,8 @@ const pairs: DexPair[] = [
         priceChange: { h24: -0.4 },
     },
 ];
+const CATCH = '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f';
+const WAVAX = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
 
 describe('market data normalization', () => {
     it('selects LFJ and Pharaoh pools from token pairs', () => {
@@ -82,6 +84,60 @@ describe('market data normalization', () => {
         expect(market.status).toBe('available');
         expect(market.spotPriceUsd).toBe(0.0215);
         expect(market.spotPriceSource).toBe('cached');
+    });
+
+    it('uses onchain LFJ reserves when indexed pair data is missing', () => {
+        const market = normalizeCatchMarketData([], {
+            onchain: {
+                catchTokenAddress: CATCH,
+                wavaxAddress: WAVAX,
+                avaxUsd: 20,
+                lfj: {
+                    pairAddress: '0x1111111111111111111111111111111111111111',
+                    token0: CATCH,
+                    token1: WAVAX,
+                    reserve0: 100n * 10n ** 18n,
+                    reserve1: 2n * 10n ** 18n,
+                },
+            },
+        });
+
+        expect(market.status).toBe('available');
+        expect(market.spotPriceUsd).toBeCloseTo(0.4, 6);
+        expect(market.spotPriceSource).toBe('onchain');
+        expect(market.lfj.priceSource).toBe('onchain');
+        expect(market.lfj.liquiditySource).toBe('onchain');
+        expect(market.lfj.liquidityUsd).toBeCloseTo(80, 6);
+    });
+
+    it('uses onchain Pharaoh slot0 and pool balances before indexed liquidity', () => {
+        const market = normalizeCatchMarketData([{
+            chainId: 'avalanche',
+            dexId: 'pharaoh',
+            pairAddress: '0x2222222222222222222222222222222222222222',
+            priceUsd: '0.01',
+            liquidity: { usd: 0 },
+        }], {
+            onchain: {
+                catchTokenAddress: CATCH,
+                wavaxAddress: WAVAX,
+                avaxUsd: 20,
+                pharaoh: {
+                    poolAddress: '0x2222222222222222222222222222222222222222',
+                    token0: CATCH,
+                    token1: WAVAX,
+                    sqrtPriceX96: 2n ** 95n,
+                    catchBalance: 10n * 10n ** 18n,
+                    wavaxBalance: 3n * 10n ** 18n,
+                },
+            },
+        });
+
+        expect(market.spotPriceUsd).toBeCloseTo(5, 6);
+        expect(market.spotPriceSource).toBe('onchain');
+        expect(market.pharaoh.priceSource).toBe('onchain');
+        expect(market.pharaoh.liquiditySource).toBe('onchain');
+        expect(market.pharaoh.liquidityUsd).toBeCloseTo(110, 6);
     });
 
     it('values protocol LP from both the deployed AVAX side and deployed CATCH side', () => {

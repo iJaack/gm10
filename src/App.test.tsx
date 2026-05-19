@@ -37,6 +37,7 @@ vi.mock('wagmi', () => ({
     useBalance: () => ({
         data: wagmiMocks.balanceValue === undefined ? undefined : { value: wagmiMocks.balanceValue },
     }),
+    useReadContract: () => ({ data: undefined }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
     useWriteContract: () => ({
         data: undefined,

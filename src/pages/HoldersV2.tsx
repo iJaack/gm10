@@ -91,6 +91,13 @@ function deriveLivePortfolioNavUsd({
 
 type CatchMarketState = ReturnType<typeof useCatchMarketData>;
 
+function spotSourceLabel(source: CatchMarketState['spotPriceSource']) {
+    if (source === 'onchain') return 'Onchain pool price';
+    if (source === 'indexed') return 'Indexed DEX quote';
+    if (source === 'cached') return 'Cached DEX quote';
+    return 'Market source pending';
+}
+
 function MarketHeader({ market }: { market: CatchMarketState }) {
     const holder = useHolderDashboard();
     const portfolio = useFujiPortfolioPositions();
@@ -101,6 +108,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
     const hasLiveChange = market.spotPriceSource !== 'cached'
         && (market.lfj.priceChange24h !== undefined || market.pharaoh.priceChange24h !== undefined);
     const isUp = change >= 0;
+    const fallbackPriceLabel = market.spotPriceSource === 'cached' ? 'Last known price' : spotSourceLabel(market.spotPriceSource);
 
     const { liveNavUsd } = deriveLivePortfolioNavUsd({
         liquidTreasuryLabel: portfolio.proofSummary.liquidTreasuryLabel,
@@ -150,7 +158,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                             </DataMono>
                         ) : (
                             <DataMono className="text-[1.02rem] uppercase tracking-[0.08em] text-[var(--ink-muted)] md:text-[1.12rem]">
-                                Last known price
+                                {fallbackPriceLabel}
                             </DataMono>
                         )}
                         {liveChartUrl ? (
@@ -164,7 +172,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                             </a>
                         ) : (
                             <DataMono className="text-[0.72rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] md:text-[0.78rem]">
-                                {market.spotPriceSource === 'cached' ? 'Cached DEX quote' : 'Live DEX change'}
+                                {spotSourceLabel(market.spotPriceSource)}
                             </DataMono>
                         )}
                     </div>
@@ -1008,21 +1016,23 @@ function LiquiditySection() {
     const protocolLpSum = lfjProtocol.usd + pharaohProtocol.usd;
 
     // Aggregate view for "All"
+    const hasCombinedLiquidity = lfj.liquidityUsd !== undefined || pharaoh.liquidityUsd !== undefined;
+    const hasCombinedVolume = lfj.volume24hUsd !== undefined || pharaoh.volume24hUsd !== undefined;
     const combined = {
-        liquidityUsd: (lfj.liquidityUsd ?? 0) + (pharaoh.liquidityUsd ?? 0),
+        liquidityUsd: hasCombinedLiquidity ? (lfj.liquidityUsd ?? 0) + (pharaoh.liquidityUsd ?? 0) : undefined,
         protocolLpUsd: protocolLpSum,
-        volume24hUsd: (lfj.volume24hUsd ?? 0) + (pharaoh.volume24hUsd ?? 0),
+        volume24hUsd: hasCombinedVolume ? (lfj.volume24hUsd ?? 0) + (pharaoh.volume24hUsd ?? 0) : undefined,
         priceUsd: lfj.priceUsd ?? pharaoh.priceUsd,
         priceChange24h: lfj.priceChange24h ?? pharaoh.priceChange24h,
     };
 
     const active = tab === 'lfj' ? lfj : tab === 'pharaoh' ? pharaoh : null;
-    const viewLiq = active ? (active.liquidityUsd ?? 0) : combined.liquidityUsd;
+    const viewLiq = active ? active.liquidityUsd : combined.liquidityUsd;
     const viewProtocolLp = active ? resolveProtocolLpValue(active, avaxUsd).usd : combined.protocolLpUsd;
-    const viewVol = active ? (active.volume24hUsd ?? 0) : combined.volume24hUsd;
+    const viewVol = active ? active.volume24hUsd : combined.volume24hUsd;
     const viewPrice = active ? active.priceUsd : combined.priceUsd;
-    const viewChange = active ? active.priceChange24h ?? 0 : combined.priceChange24h ?? 0;
-    const viewUp = viewChange >= 0;
+    const viewChange = active ? active.priceChange24h : combined.priceChange24h;
+    const viewUp = (viewChange ?? 0) >= 0;
 
     const tabs: { id: VenueTab; label: string }[] = [
         { id: 'all', label: 'All venues' },
@@ -1059,7 +1069,7 @@ function LiquiditySection() {
                                 Liquidity &amp; venues
                             </h3>
                             <p className="mt-1 text-[0.78rem] leading-[1.55] text-[var(--ink-muted)]">
-                                How $CATCH trades across the two DEX venues — combined depth, 24h flow, and cumulative AVAX routed to holders since launch. Switch tabs to drill into a single pool.
+                                How $CATCH trades across the two DEX venues — onchain pool depth, optional 24h indexer flow, and cumulative AVAX routed to holders since launch. Switch tabs to drill into a single pool.
                             </p>
                         </div>
                         <DataMono className="shrink-0 text-[0.68rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
@@ -1100,13 +1110,13 @@ function LiquiditySection() {
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                                DEX liquidity
+                                Onchain liquidity
                             </Caption>
                             <div className="mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] text-[var(--text-primary)] tabular-nums">
                                 {formatUsd(viewLiq, 0)}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Dexscreener active pool depth
+                                Pool reserves + balances
                             </DataMono>
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
@@ -1128,7 +1138,7 @@ function LiquiditySection() {
                                 {formatUsd(viewVol, 0)}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Cross-venue trade flow
+                                Indexed trade flow
                             </DataMono>
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
@@ -1136,10 +1146,10 @@ function LiquiditySection() {
                                 24h change
                             </Caption>
                             <div className={`mt-2 text-[1.4rem] font-extrabold tracking-[-0.02em] tabular-nums ${viewUp ? 'v2-up' : 'v2-down'}`}>
-                                {viewUp ? '▲' : '▼'} {Math.abs(viewChange).toFixed(2)}%
+                                {viewChange !== undefined ? `${viewUp ? '▲' : '▼'} ${Math.abs(viewChange).toFixed(2)}%` : '—'}
                             </div>
                             <DataMono className="mt-1 text-[0.72rem] text-[var(--ink-faint)]">
-                                Price momentum
+                                Indexed momentum
                             </DataMono>
                         </div>
                     </div>
@@ -1148,12 +1158,12 @@ function LiquiditySection() {
                     <div className="mt-8 border-t border-[var(--rule)] pt-5">
                         <h4 className="text-[0.78rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">Venue share</h4>
                         <p className="mt-1 text-[0.72rem] leading-[1.5] text-[var(--ink-faint)]">
-                            Shallow depth on either side increases slippage — this is where to top up.
+                            Onchain liquidity is read from pool reserves and token balances. 24h volume is shown only when an indexer reports it.
                         </p>
                         <div className="mt-4 grid gap-6 md:grid-cols-2">
                             <div>
                                 <div className="text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                                    DEX liquidity
+                                    Onchain liquidity
                                 </div>
                                 <div className="mt-3 flex flex-col gap-3">
                                     <SegmentedBar
@@ -1185,8 +1195,18 @@ function LiquiditySection() {
                                     />
                                     <ChartLegend
                                         items={[
-                                            { color: 'var(--accent)', label: 'LFJ', value: fmtUsd0(lfjVol), pct: volumeSum > 0 ? (lfjVol / volumeSum) * 100 : 0 },
-                                            { color: 'var(--accent-blue)', label: 'Pharaoh', value: fmtUsd0(pharaohVol), pct: volumeSum > 0 ? (pharaohVol / volumeSum) * 100 : 0 },
+                                            {
+                                                color: 'var(--accent)',
+                                                label: 'LFJ',
+                                                value: lfj.volume24hUsd !== undefined ? fmtUsd0(lfjVol) : '—',
+                                                pct: volumeSum > 0 ? (lfjVol / volumeSum) * 100 : undefined,
+                                            },
+                                            {
+                                                color: 'var(--accent-blue)',
+                                                label: 'Pharaoh',
+                                                value: pharaoh.volume24hUsd !== undefined ? fmtUsd0(pharaohVol) : '—',
+                                                pct: volumeSum > 0 ? (pharaohVol / volumeSum) * 100 : undefined,
+                                            },
                                         ]}
                                     />
                                 </div>
@@ -1310,7 +1330,7 @@ function LiquiditySection() {
                                     <span>Venue</span>
                                     <span>Pair</span>
                                     <span>Quote</span>
-                                    <span className="text-right">DEX liquidity</span>
+                                    <span className="text-right">Onchain liquidity</span>
                                     <span className="text-right">Protocol LP</span>
                                     <span className="text-right">24H Vol</span>
                                     <span className="text-right">24H</span>

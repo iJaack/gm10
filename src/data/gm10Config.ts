@@ -63,6 +63,9 @@ const tokenomicsControllerAddress = parseAddress(
 const catchTokenAddress = parseAddress(
     import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,
 );
+const wavaxAddress = parseAddress(
+    import.meta.env.VITE_GM10_WAVAX_ADDRESS || '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7',
+);
 const liquidityCoordinatorAddress = parseAddress(
     import.meta.env.VITE_GM10_LIQUIDITY_COORDINATOR_ADDRESS || '0xA6e71aB7CFE09D9C0bef4051366169FB2aC698a9',
 );
@@ -124,6 +127,7 @@ export const GM10_POSITION_IDS = [1, 2] as const;
 
 export const GM10_MARKET_CONFIG = {
     catchTokenAddress,
+    wavaxAddress,
     liquidityCoordinatorAddress,
     avaxUsdFeedAddress,
     lfjPairAddress,

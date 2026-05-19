@@ -292,3 +292,63 @@ export const GM10_LIQUIDITY_COORDINATOR_ABI = [
         type: 'function',
     },
 ] as const;
+
+export const GM10_LFJ_PAIR_ABI = [
+    {
+        inputs: [],
+        name: 'token0',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'token1',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'getReserves',
+        outputs: [
+            { name: 'reserve0', type: 'uint112' },
+            { name: 'reserve1', type: 'uint112' },
+            { name: 'blockTimestampLast', type: 'uint32' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
+export const GM10_PHARAOH_POOL_ABI = [
+    {
+        inputs: [],
+        name: 'token0',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'token1',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'slot0',
+        outputs: [
+            { name: 'sqrtPriceX96', type: 'uint160' },
+            { name: 'tick', type: 'int24' },
+            { name: 'observationIndex', type: 'uint16' },
+            { name: 'observationCardinality', type: 'uint16' },
+            { name: 'observationCardinalityNext', type: 'uint16' },
+            { name: 'feeProtocol', type: 'uint8' },
+            { name: 'unlocked', type: 'bool' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;

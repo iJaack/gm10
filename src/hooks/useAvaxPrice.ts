@@ -1,35 +1,24 @@
-import { useEffect, useState } from 'react';
+import { formatUnits } from 'viem';
+import { useReadContract } from 'wagmi';
+import { CHAINLINK_AGGREGATOR_V3_ABI } from '../data/contracts';
+import { GM10_MARKET_CONFIG } from '../data/gm10Config';
 
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd';
 const FALLBACK_PRICE = 9.5;
-const REFRESH_MS = 60_000; // 1 minute
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export function useAvaxPrice() {
-    const [price, setPrice] = useState(FALLBACK_PRICE);
+    const { data } = useReadContract({
+        address: GM10_MARKET_CONFIG.avaxUsdFeedAddress ?? ZERO_ADDRESS,
+        abi: CHAINLINK_AGGREGATOR_V3_ABI,
+        functionName: 'latestRoundData',
+        query: { enabled: Boolean(GM10_MARKET_CONFIG.avaxUsdFeedAddress) },
+    });
+    const answer = data?.[1];
 
-    useEffect(() => {
-        let cancelled = false;
+    if (answer !== undefined && answer > 0n) {
+        const price = Number(formatUnits(answer, 8));
+        if (Number.isFinite(price) && price > 0) return price;
+    }
 
-        let warned = false;
-        async function fetchPrice() {
-            try {
-                const res = await fetch(COINGECKO_URL, { cache: 'no-cache' });
-                if (!res.ok) {
-                    if (!warned) { console.warn('[useAvaxPrice] CoinGecko non-200, using fallback', res.status); warned = true; }
-                    return;
-                }
-                const data = await res.json();
-                const usd = data?.['avalanche-2']?.usd;
-                if (typeof usd === 'number' && !cancelled) setPrice(usd);
-            } catch (err) {
-                if (!warned) { console.warn('[useAvaxPrice] CoinGecko fetch failed, using fallback', err); warned = true; }
-            }
-        }
-
-        fetchPrice();
-        const interval = setInterval(fetchPrice, REFRESH_MS);
-        return () => { cancelled = true; clearInterval(interval); };
-    }, []);
-
-    return price;
+    return FALLBACK_PRICE;
 }
