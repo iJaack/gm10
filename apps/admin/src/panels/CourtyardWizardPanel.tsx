@@ -6,6 +6,7 @@ import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { EXPLORER_TX_BASE_URL, LZ_EID, MAINNET } from '../addresses';
 import { AdminButton, AdminField as Field, AdminPage, OperatorFlowPanel, SectionPanel as Panel } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
+import { getPurchaseFundingConfirmationIssues } from '../lib/purchaseFunding.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
 const BYTES32_RE = /^0x[a-fA-F0-9]{64}$/;
@@ -262,6 +263,14 @@ function parseUsdt6Input(value: string): bigint {
     return parseUnits(value.trim() || '0', 6);
 }
 
+function tryParseUsdt6Input(value: string): bigint | undefined {
+    try {
+        return parseUsdt6Input(value);
+    } catch {
+        return undefined;
+    }
+}
+
 function parseUintInput(value: string): bigint {
     return BigInt(value.trim() || '0');
 }
@@ -351,6 +360,12 @@ export function CourtyardWizardPanel() {
         query: { enabled: Boolean(MAINNET.fundProxy) },
     });
     const effectiveTreasuryAddress = (treasuryAddress ?? MAINNET.treasurySafe) as `0x${string}` | undefined;
+    const { data: stableAccounting } = useReadContract({
+        address: MAINNET.fundProxy as `0x${string}`,
+        abi: FUND_ADMIN_ABI,
+        functionName: 'stableAccounting',
+        query: { enabled: Boolean(MAINNET.fundProxy) },
+    });
 
     const { data: polygonChainSafe } = useReadContract({
         address: MAINNET.portfolioRegistry as `0x${string}`,
@@ -472,7 +487,23 @@ export function CourtyardWizardPanel() {
 
     const purchaseStatus = Number(purchaseAuthorization?.status ?? 0);
     const purchaseAuthorized = purchaseStatus >= 1;
-    const purchaseReleased = purchaseStatus >= 3 || (purchaseAuthorization?.releasedUsdt6 ?? 0n) >= parseUsdt6Input(draft.purchase.releaseAmountUsdt);
+    const confirmFundingAmountUsdt6 = useMemo(() => tryParseUsdt6Input(draft.purchase.releaseAmountUsdt), [draft.purchase.releaseAmountUsdt]);
+    const purchaseReleased = purchaseStatus >= 3 || (
+        confirmFundingAmountUsdt6 !== undefined &&
+        confirmFundingAmountUsdt6 > 0n &&
+        (purchaseAuthorization?.releasedUsdt6 ?? 0n) >= confirmFundingAmountUsdt6
+    );
+    const fundingConfirmationIssues = useMemo(() => getPurchaseFundingConfirmationIssues({
+        purchase: draft.purchase,
+        authorization: purchaseAuthorization,
+        polygonSafe,
+        fundingToken: POLYGON_USDC,
+        destinationChainEid: LZ_EID.POLYGON_MAINNET,
+        amountUsdt6: confirmFundingAmountUsdt6,
+        liquidTreasuryUsdt6: stableAccounting?.[2],
+        holderDistributionAccruedUsdt6: stableAccounting?.[6],
+    }), [confirmFundingAmountUsdt6, draft.purchase, polygonSafe, purchaseAuthorization, stableAccounting]);
+    const canConfirmFunding = fundingConfirmationIssues.length === 0;
     const purchaseExecuted = purchaseStatus >= 4;
     const positionRecorded = purchaseStatus >= 5;
     const hotWalletHasUsdc = (hotWalletUsdc ?? 0n) >= targetUsdcRaw && targetUsdcRaw > 0n;
@@ -728,6 +759,10 @@ export function CourtyardWizardPanel() {
     }
 
     async function submitConfirmFunding() {
+        if (!canConfirmFunding) {
+            setError(`Cannot confirm funding yet: ${fundingConfirmationIssues.join(' ')}`);
+            return;
+        }
         await submitContractStep('confirm_funding', 'Confirming purchase funding', () =>
             writeContractAsync({
                 address: MAINNET.fundProxy,
@@ -1004,8 +1039,18 @@ export function CourtyardWizardPanel() {
                     <Panel variant="inline" title="Confirm purchase funding">
                         <Field label="Confirmed funding amount (USDT)" value={draft.purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} type="number" />
                         <div className="text-xs text-gray-400">Confirm this only after Polygon USDC is visible in the Hot Wallet. Funding buffer is not added to accounting.</div>
+                        <div className="grid gap-1 text-xs text-gray-400">
+                            <div>Settlement ref: {draft.purchase.settlementRef || 'Missing'}</div>
+                            <div>Proof ref: {draft.purchase.proofRef || 'Missing'}</div>
+                            <div>Stored treasury: {stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Checking...'}</div>
+                        </div>
+                        {fundingConfirmationIssues.length ? (
+                            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                Cannot confirm funding yet: {fundingConfirmationIssues.join(' ')}
+                            </div>
+                        ) : null}
                         <StoredTxSummary hash={draft.txHashes.confirm_funding} label="Stored funding confirmation transaction" />
-                        <AdminButton variant="primary" onClick={submitConfirmFunding} disabled={purchaseReleased || isContractPending || !isAddress(polygonSafe)}>
+                        <AdminButton variant="primary" onClick={submitConfirmFunding} disabled={purchaseReleased || isContractPending || !isAddress(polygonSafe) || !canConfirmFunding}>
                             {purchaseReleased ? 'Already confirmed' : 'Confirm funding'}
                         </AdminButton>
                         {draft.txHashes.confirm_funding ? (

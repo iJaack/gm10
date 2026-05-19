@@ -8,6 +8,7 @@ import { LZ_EID, MAINNET } from '../addresses';
 import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorFlowPanel, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
+import { getPurchaseFundingConfirmationIssues } from '../lib/purchaseFunding.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -261,6 +262,14 @@ function avaxWeiToUsdt6(balanceWei: bigint, avaxUsd: number) {
 
 function parseUsdt6Input(value: string): bigint {
     return parseUnits(value.trim() || '0', 6);
+}
+
+function tryParseUsdt6Input(value: string): bigint | undefined {
+    try {
+        return parseUsdt6Input(value);
+    } catch {
+        return undefined;
+    }
 }
 
 function parseUintInput(value: string): bigint {
@@ -567,6 +576,18 @@ export function OperationsPanel() {
         args: [purchaseKey],
         query: { enabled: Boolean(MAINNET.portfolioRegistry) && Boolean(purchase.key.trim()) },
     });
+    const confirmFundingAmountUsdt6 = useMemo(() => tryParseUsdt6Input(purchase.releaseAmountUsdt), [purchase.releaseAmountUsdt]);
+    const fundingConfirmationIssues = useMemo(() => getPurchaseFundingConfirmationIssues({
+        purchase,
+        authorization: purchaseAuthorization,
+        polygonSafe,
+        fundingToken: POLYGON_USDC,
+        destinationChainEid: LZ_EID.POLYGON_MAINNET,
+        amountUsdt6: confirmFundingAmountUsdt6,
+        liquidTreasuryUsdt6: stableAccounting?.[2],
+        holderDistributionAccruedUsdt6: stableAccounting?.[6],
+    }), [confirmFundingAmountUsdt6, polygonSafe, purchase, purchaseAuthorization, stableAccounting]);
+    const canConfirmPurchaseFunding = fundingConfirmationIssues.length === 0;
 
     const { data: saleAuthorization } = useReadContract({
         address: MAINNET.portfolioRegistry as `0x${string}`,
@@ -979,6 +1000,7 @@ export function OperationsPanel() {
 
     function submitConfirmPurchaseFunding() {
         if (!MAINNET.fundProxy || !purchase.key.trim()) return;
+        if (!canConfirmPurchaseFunding) return;
         reset();
         writeContract({
             address: MAINNET.fundProxy,
@@ -1841,17 +1863,21 @@ export function OperationsPanel() {
                                 </TxButton>
                             </div>
 
-                            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-                                <Field label="Confirmed funding amount (USDT)" value={purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} placeholder="80" type="number" />
-                                <TxButton onClick={submitConfirmPurchaseFunding} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !purchase.key.trim() || !ADDRESS_RE.test(polygonSafe)}>
-                                    Confirm purchase funding
-                                </TxButton>
-                            </div>
-
                             <div className="grid gap-3 md:grid-cols-3">
                                 <Field label="Execution ref" value={purchase.executionRef} onChange={(value) => updatePurchase('executionRef', value)} placeholder="Courtyard buy tx or 0x..." mono />
                                 <Field label="Settlement ref" value={purchase.settlementRef} onChange={(value) => updatePurchase('settlementRef', value)} placeholder="settlement ref or 0x..." mono />
                                 <Field label="Proof ref" value={purchase.proofRef} onChange={(value) => updatePurchase('proofRef', value)} placeholder="proof hash or 0x..." mono />
+                            </div>
+                            {fundingConfirmationIssues.length ? (
+                                <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                    Cannot confirm funding yet: {fundingConfirmationIssues.join(' ')}
+                                </div>
+                            ) : null}
+                            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                                <Field label="Confirmed funding amount (USDT)" value={purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} placeholder="80" type="number" />
+                                <TxButton onClick={submitConfirmPurchaseFunding} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !purchase.key.trim() || !ADDRESS_RE.test(polygonSafe) || !canConfirmPurchaseFunding}>
+                                    Confirm purchase funding
+                                </TxButton>
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <TxButton onClick={submitRecordPurchaseExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !purchase.key.trim()}>
