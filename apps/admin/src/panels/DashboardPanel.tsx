@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useBalance, useReadContract } from 'wagmi';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, ReadHealthPanel, ReconciliationTable, StatusStrip, liveStatus } from '../components/AdminPrimitives';
+import { AdminPage, LedgerPanel, MetricCard, OperatorActionsPanel, OperatorSummaryGrid, ReadHealthPanel, ReconciliationTable, liveStatus } from '../components/AdminPrimitives';
 import {
     accountingBucketRows,
     aggregateLpDeployment,
@@ -249,15 +249,13 @@ export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
     ];
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Operator console"
-                title="Admin dashboard"
-                description="Spendable card budget, routed funds, round-close math, and read health in one first-screen view."
-            />
-            <StatusStrip items={statusItems} />
-
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.85fr)_minmax(22rem,0.9fr)]">
+        <AdminPage
+            eyebrow="Operator console"
+            title="Admin dashboard"
+            description="Spendable card budget, routed funds, round-close math, and read health in one first-screen view."
+            statusItems={statusItems}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Card buying budget"
                     value={
@@ -312,7 +310,7 @@ export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
                         { label: 'LP venue reads', value: lpDeployment.sourceLabel, status: lpDeployment.status, detail: `LFJ ${formatAvax(lpDeployment.traderJoe)} / Pharaoh ${formatAvax(lpDeployment.pharaoh)}` },
                     ]}
                 />
-            </div>
+            </OperatorSummaryGrid>
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                 <LedgerPanel
@@ -336,6 +334,6 @@ export function DashboardPanel({ onNavigate }: DashboardPanelProps) {
                 sourceLabel={stableAccountingRead.data ? 'stableAccounting' : 'unavailable'}
                 detail={`Holder claims ${formatToken6(stableAccountingRead.data?.[6])} · LP buy ${formatToken6(stableAccountingRead.data?.[4])} · LP AVAX side ${formatToken6(stableAccountingRead.data?.[5])}`}
             />
-        </div>
+        </AdminPage>
     );
 }

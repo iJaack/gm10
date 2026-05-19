@@ -19,8 +19,16 @@ import { SafeAppBootstrap } from './components/SafeAppBootstrap';
 
 const queryClient = new QueryClient();
 
-const TABS = ['Dashboard', 'Rounds', 'Operations', 'Phygitals', 'Courtyard Wizard', 'Valuation', 'Roadmap'] as const;
-type Tab = typeof TABS[number];
+const TABS = [
+    { id: 'Dashboard', label: 'Dashboard', detail: 'Operator console' },
+    { id: 'Rounds', label: 'Rounds', detail: 'Close and route' },
+    { id: 'Operations', label: 'Operations', detail: 'Readiness gates' },
+    { id: 'Phygitals', label: 'Phygitals', detail: 'Solana cards' },
+    { id: 'Courtyard Wizard', label: 'Courtyard', detail: 'Buy workflow' },
+    { id: 'Valuation', label: 'Valuation', detail: 'Marks and NAV' },
+    { id: 'Roadmap', label: 'Roadmap', detail: 'Dependencies' },
+] as const;
+type Tab = typeof TABS[number]['id'];
 
 function AdminApp() {
     const [tab, setTab] = useState<Tab>('Dashboard');
@@ -32,7 +40,7 @@ function AdminApp() {
             <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--bg-primary)]/85 backdrop-blur-xl">
                 <div className="mx-auto flex max-w-[120rem] items-center justify-between px-6 py-4">
                     <div className="flex items-baseline gap-2">
-                        <span className="text-base font-extrabold tracking-[-0.01em] text-[var(--accent-blue)]">GM10</span>
+                        <span className="text-base font-extrabold text-[var(--accent-blue)]">GM10</span>
                         <span className="label-font text-[0.62rem]" style={{ color: 'var(--text-tertiary)' }}>Admin</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -50,22 +58,24 @@ function AdminApp() {
 
             {/* Nav tabs */}
             <div className="border-b border-[var(--border)]">
-                <div className="mx-auto flex max-w-[120rem] gap-1 overflow-x-auto px-6">
-                    {TABS.map(t => (
+                <nav aria-label="Admin sections" className="mx-auto flex max-w-[120rem] gap-1 overflow-x-auto px-6">
+                    {TABS.map(({ id, label, detail }) => (
                         <button
-                            key={t}
+                            key={id}
                             type="button"
-                            onClick={() => setTab(t)}
-                            className={`px-4 py-3 text-sm font-medium tracking-[-0.01em] transition-colors ${
-                                tab === t
-                                    ? 'border-b-2 border-[var(--accent)] text-[var(--text-primary)]'
+                            onClick={() => setTab(id)}
+                            aria-current={tab === id ? 'page' : undefined}
+                            className={`grid shrink-0 gap-0.5 border-b-2 px-4 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 focus:ring-offset-0 ${
+                                tab === id
+                                    ? 'border-[var(--accent)] text-[var(--text-primary)]'
                                     : 'border-b-2 border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                             }`}
                         >
-                            {t}
+                            <span className="text-sm font-semibold">{label}</span>
+                            <span className={`hidden text-[0.66rem] leading-4 lg:block ${tab === id ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`}>{detail}</span>
                         </button>
                     ))}
-                </div>
+                </nav>
             </div>
 
             {/* Content */}

@@ -1,10 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import SafeAppsSDK from '@safe-global/safe-apps-sdk';
 import { encodeFunctionData, formatUnits, isAddress, keccak256, padHex, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, WorkflowTimeline } from '../components/AdminPrimitives';
+import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Section, WorkflowTimeline } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -95,44 +95,6 @@ type FundingQuote = {
 type SolanaUsdcFundingQuote = {
     usdc: FundingQuote;
 };
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-    return (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-white">{title}</h3>
-            <div className="grid gap-3">{children}</div>
-        </div>
-    );
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    placeholder,
-    mono,
-    type = 'text',
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    mono?: boolean;
-    type?: string;
-}) {
-    return (
-        <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-400">{label}</span>
-            <input
-                className={`rounded bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0] ${mono ? 'font-mono' : ''}`}
-                placeholder={placeholder}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                type={type}
-            />
-        </label>
-    );
-}
 
 function bytes32FromInput(value: string, emptyValue: Bytes32 = zeroHash): Bytes32 {
     const trimmed = value.trim();
@@ -517,22 +479,18 @@ export function PhygitalsPanel() {
     }
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Phygitals workflow"
-                title="Phygitals adapter"
-                description="Resolve Solana-backed cards, configure custody, fund purchases, and record positions through a visible readiness flow."
-            />
-            <StatusStrip
-                items={[
-                    { label: phygitalsApproved === true ? 'marketplace approved' : 'approval pending', status: phygitalsApproved === true ? READ_STATUS.live : READ_STATUS.partial },
-                    { label: solanaChainSafe?.enabled ? 'Solana custody enabled' : 'custody not enabled', status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: card ? 'card resolved' : 'card pending', status: card ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: fundingQuote ? 'funding quote live' : 'quote pending', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable },
-                ]}
-            />
-
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+        <AdminPage
+            eyebrow="Phygitals workflow"
+            title="Phygitals adapter"
+            description="Resolve Solana-backed cards, configure custody, fund purchases, and record positions through a visible readiness flow."
+            statusItems={[
+                { label: phygitalsApproved === true ? 'marketplace approved' : 'approval pending', status: phygitalsApproved === true ? READ_STATUS.live : READ_STATUS.partial },
+                { label: solanaChainSafe?.enabled ? 'Solana custody enabled' : 'custody not enabled', status: solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: card ? 'card resolved' : 'card pending', status: card ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: fundingQuote ? 'funding quote live' : 'quote pending', status: fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable },
+            ]}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Phygitals acquisition lane"
                     value={
@@ -621,14 +579,14 @@ export function PhygitalsPanel() {
                         },
                     ]}
                 />
-            </div>
+            </OperatorSummaryGrid>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricGrid>
                 <MetricCard label="Marketplace" value={phygitalsApproved === undefined ? 'Unavailable' : phygitalsApproved ? 'Approved' : 'Not approved'} status={phygitalsApproved ? READ_STATUS.live : phygitalsApproved === false ? READ_STATUS.partial : READ_STATUS.unavailable} sourceLabel="registry read" detail={<span className="break-all font-mono">{PHYGITALS_MARKETPLACE_ID}</span>} />
                 <MetricCard label="Solana custody" value={solanaChainSafe?.enabled ? 'Enabled' : 'Unavailable'} status={solanaChainSafe?.enabled ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={`EID ${LZ_EID.SOLANA_MAINNET}`} detail={<span className="break-all">{formatNonEvmSafe(solanaChainSafe?.nonEvmSafe)}</span>} />
                 <MetricCard label="Resolved card" value={card?.title ?? 'Unavailable'} status={card ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={card ? 'Phygitals' : 'pending'} />
                 <MetricCard label="Funding quote" value={fundingQuote ? `${fundingQuote.usdc.fromAmountAvax} AVAX` : 'Unavailable'} status={fundingQuote ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={fundingQuote?.usdc.tool || 'LI.FI'} detail={fundingQuote ? `Estimated receive ${formatRawUnits(fundingQuote.usdc.toAmountRaw, 6)} USDC` : 'Resolve a card before quoting.'} />
-            </div>
+            </MetricGrid>
 
             <WorkflowTimeline
                 steps={[
@@ -680,14 +638,14 @@ export function PhygitalsPanel() {
                         placeholder="https://www.phygitals.com/card/..."
                         mono
                     />
-                    <button
+                    <AdminButton
+                        variant="primary"
                         type="button"
                         onClick={() => void resolveCard()}
                         disabled={isResolving || !phygitalsUrl.trim()}
-                        className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {isResolving ? 'Resolving...' : 'Resolve card'}
-                    </button>
+                    </AdminButton>
                 </div>
                 {resolveError ? (
                     <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
@@ -745,14 +703,13 @@ export function PhygitalsPanel() {
                     </div>
                 ) : null}
                 <div className="flex flex-wrap gap-3">
-                    <button
+                    <AdminButton
                         type="button"
                         onClick={() => void quoteSolanaUsdcFunding()}
                         disabled={isFundingLoading || !card || !effectiveTreasuryAddress || !solanaFundingDestination}
-                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-white/10 disabled:opacity-50"
                     >
                         {isFundingLoading ? 'Quoting...' : 'Refresh LI.FI USDC quote'}
-                    </button>
+                    </AdminButton>
                     <TxButton
                         onClick={() => void submitSolanaUsdcFunding()}
                         txHash={fundingTxHash}
@@ -761,7 +718,8 @@ export function PhygitalsPanel() {
                     >
                         Submit LI.FI funding
                     </TxButton>
-                    <button
+                    <AdminButton
+                        variant="primary"
                         type="button"
                         onClick={() => void submitAuthorizeAndFundBatch()}
                         disabled={
@@ -774,10 +732,9 @@ export function PhygitalsPanel() {
                             phygitalsApproved !== true ||
                             !solanaChainSafe?.enabled
                         }
-                        className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] hover:bg-[#70bce8] disabled:opacity-50"
                     >
                         {isBatchSubmitting ? 'Submitting...' : 'Batch authorize + fund'}
-                    </button>
+                    </AdminButton>
                 </div>
                 <TxResult hash={fundingTxHash} error={fundingSendError} />
             </Section>
@@ -822,6 +779,6 @@ export function PhygitalsPanel() {
             </Section>
 
             <TxResult hash={txHash} error={error} />
-        </div>
+        </AdminPage>
     );
 }

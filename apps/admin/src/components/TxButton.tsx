@@ -1,5 +1,6 @@
 import { useWaitForTransactionReceipt } from 'wagmi';
 import { EXPLORER_TX_BASE_URL } from '../addresses';
+import { AdminButton } from './AdminPrimitives';
 
 type TxButtonProps = {
     onClick: () => void;
@@ -23,18 +24,14 @@ export function TxButton({ onClick, txHash, isPending, disabled, children, class
     else if (isSuccess && txHash) label = '✓ Done';
 
     return (
-        <button
-            type="button"
+        <AdminButton
             onClick={onClick}
             disabled={disabled || isActive}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
-                isSuccess && txHash
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-[#4fa8e0] text-[#0b0a14] hover:bg-[#70bce8]'
-            } ${className}`}
+            variant={isSuccess && txHash ? 'success' : 'primary'}
+            className={className}
         >
             {label}
-        </button>
+        </AdminButton>
     );
 }
 
@@ -46,7 +43,7 @@ type TxResultProps = {
 export function TxResult({ hash, error }: TxResultProps) {
     if (error) {
         return (
-            <p className="mt-2 rounded bg-red-900/30 px-3 py-2 text-xs text-red-400">
+            <p className="mt-2 rounded-md border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
                 {error.message.slice(0, 200)}
             </p>
         );

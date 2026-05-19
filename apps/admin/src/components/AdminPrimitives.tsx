@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import { STATUS_DOT_STYLES, STATUS_STYLES, statusLabel } from '../lib/adminStatus.js';
 
@@ -12,6 +12,7 @@ type OperatorAction = {
     disabled?: boolean;
     status?: ReadStatus;
 };
+type StatusItem = { label: string; status: ReadStatus };
 
 export type { ReadStatus };
 
@@ -51,12 +52,52 @@ export function PageHeader({
     );
 }
 
-export function StatusStrip({ items }: { items: Array<{ label: string; status: ReadStatus }> }) {
+export function AdminPage({
+    title,
+    eyebrow,
+    description,
+    actions,
+    statusItems,
+    children,
+}: {
+    title: string;
+    eyebrow?: string;
+    description: string;
+    actions?: ReactNode;
+    statusItems?: StatusItem[];
+    children: ReactNode;
+}) {
+    return (
+        <div className="grid gap-6">
+            <PageHeader title={title} eyebrow={eyebrow} description={description} actions={actions} />
+            {statusItems?.length ? <StatusStrip items={statusItems} /> : null}
+            {children}
+        </div>
+    );
+}
+
+export function StatusStrip({ items }: { items: StatusItem[] }) {
     return (
         <div className="flex flex-wrap gap-2">
             {items.map((item) => (
                 <StatusChip key={`${item.label}-${item.status}`} status={item.status}>{item.label}</StatusChip>
             ))}
+        </div>
+    );
+}
+
+export function OperatorSummaryGrid({ children }: { children: ReactNode }) {
+    return (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+            {children}
+        </div>
+    );
+}
+
+export function MetricGrid({ children }: { children: ReactNode }) {
+    return (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {children}
         </div>
     );
 }
@@ -95,6 +136,87 @@ export function MetricCard({
             </div>
             {detail ? <div className="mt-3 text-xs leading-5 text-gray-400">{detail}</div> : null}
         </div>
+    );
+}
+
+export function SectionPanel({
+    id,
+    title,
+    description,
+    children,
+}: {
+    id?: string;
+    title: string;
+    description?: ReactNode;
+    children: ReactNode;
+}) {
+    return (
+        <section id={id} className="min-w-0 rounded-lg border border-white/10 bg-white/[0.045] p-4">
+            <div className="mb-3">
+                <h2 className="text-sm font-semibold text-white">{title}</h2>
+                {description ? <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p> : null}
+            </div>
+            <div className="grid gap-3">{children}</div>
+        </section>
+    );
+}
+
+export function AdminField({
+    label,
+    value,
+    onChange,
+    placeholder,
+    mono,
+    type = 'text',
+    disabled,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    mono?: boolean;
+    type?: InputHTMLAttributes<HTMLInputElement>['type'];
+    disabled?: boolean;
+}) {
+    return (
+        <label className="flex flex-col gap-1">
+            <span className="text-xs text-gray-400">{label}</span>
+            <input
+                className={`rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder-gray-600 transition-colors focus:border-[var(--accent-blue)]/60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)]/20 disabled:cursor-not-allowed disabled:opacity-60 ${mono ? 'font-mono' : ''}`}
+                placeholder={placeholder}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                type={type}
+                disabled={disabled}
+            />
+        </label>
+    );
+}
+
+export function AdminButton({
+    children,
+    className = '',
+    variant = 'secondary',
+    ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: 'primary' | 'secondary' | 'success' | 'warning';
+}) {
+    const variantClass = variant === 'primary'
+        ? 'border-[var(--accent)] bg-[var(--accent)] text-[#0b0a14] hover:bg-[#ffd75b]'
+        : variant === 'success'
+            ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-50 hover:bg-emerald-400/25'
+            : variant === 'warning'
+                ? 'border-amber-300/30 bg-amber-300/15 text-amber-50 hover:bg-amber-300/25'
+                : 'border-white/10 bg-white/[0.055] text-gray-200 hover:border-white/20 hover:bg-white/[0.085]';
+
+    return (
+        <button
+            type="button"
+            {...props}
+            className={`inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 disabled:cursor-not-allowed disabled:opacity-50 ${variantClass} ${className}`}
+        >
+            {children}
+        </button>
     );
 }
 

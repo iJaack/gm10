@@ -30,7 +30,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
         return (
             <GateShell>
                 <div className="label-font">GM10 Admin</div>
-                <h1 className="mt-4 text-2xl font-extrabold tracking-[-0.02em] text-[var(--text-primary)]">
+                <h1 className="mt-4 text-2xl font-extrabold text-[var(--text-primary)]">
                     Treasury control surface
                 </h1>
                 <p className="mt-4 text-[0.92rem] leading-[1.6] text-[var(--text-secondary)]">
@@ -81,7 +81,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
         return (
             <GateShell>
                 <div className="label-font" style={{ color: 'var(--accent-red)' }}>Wrong Safe network</div>
-                <h1 className="mt-4 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">
+                <h1 className="mt-4 text-xl font-bold text-[var(--text-primary)]">
                     Switch to Avalanche
                 </h1>
                 <p className="mt-4 text-[0.92rem] leading-[1.6] text-[var(--text-secondary)]">
@@ -90,7 +90,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
                 </p>
                 <div className="mt-8">
                     <a
-                        className="admin-cta"
+                        className="inline-flex items-center justify-center rounded-md border border-[var(--accent)] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[#0b0a14] transition-colors hover:bg-[#ffd75b] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
                         href="https://app.safe.global/apps/open?safe=avax:0x39971795266a794a8156271729A07994952a6FAD&appUrl=https%3A%2F%2Fadmin.gm10.xyz"
                         target="_blank"
                         rel="noreferrer"

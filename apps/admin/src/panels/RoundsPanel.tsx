@@ -11,7 +11,7 @@ import {
     WAVAX_ABI,
 } from '../abis';
 import { LIQUIDITY_VENUES, MAINNET, MAINNET_TOKENS } from '../addresses';
-import { ActionReadinessPanel, LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, liveStatus } from '../components/AdminPrimitives';
+import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Section, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import {
@@ -78,7 +78,7 @@ function RoundCard({ title, round }: { title: string; round?: RoundData }) {
     const dustClose = round ? getExactDustCloseAmount(round) : undefined;
 
     return (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+        <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
                 <h3 className="text-lg font-bold text-white">{title}</h3>
                 <span className="rounded-full bg-black/30 px-3 py-1 text-xs text-[#4fa8e0]">{status}</span>
@@ -102,39 +102,6 @@ function RoundCard({ title, round }: { title: string; round?: RoundData }) {
                 </div>
             ) : null}
         </div>
-    );
-}
-
-function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
-    return (
-        <div id={id} className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <h3 className="mb-4 text-lg font-bold text-white">{title}</h3>
-            <div className="grid gap-4">{children}</div>
-        </div>
-    );
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    type = 'text',
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    type?: string;
-}) {
-    return (
-        <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-400">{label}</span>
-            <input
-                className="rounded bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0]"
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                type={type}
-            />
-        </label>
     );
 }
 
@@ -453,22 +420,18 @@ export function RoundsPanel() {
     ];
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Round operations"
-                title="Rounds"
-                description="Create, close, and route fundraising rounds with explicit finalization and quote-readiness gates."
-            />
-            <StatusStrip
-                items={[
-                    { label: `Current round ${currentRoundId?.toString() ?? 'unavailable'}`, status: currentRoundId !== undefined ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: getRoundStatus(round2), status: round2 ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: round2Finalized ? 'routing unlocked' : 'finalization required', status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback },
-                    { label: quoteFreshness === READ_STATUS.live ? 'quotes live' : 'quote reads pending', status: quoteFreshness },
-                ]}
-            />
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(20rem,0.9fr)]">
+        <AdminPage
+            eyebrow="Round operations"
+            title="Rounds"
+            description="Create, close, and route fundraising rounds with explicit finalization and quote-readiness gates."
+            statusItems={[
+                { label: `Current round ${currentRoundId?.toString() ?? 'unavailable'}`, status: currentRoundId !== undefined ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: getRoundStatus(round2), status: round2 ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: round2Finalized ? 'routing unlocked' : 'finalization required', status: round2Finalized ? READ_STATUS.live : READ_STATUS.fallback },
+                { label: quoteFreshness === READ_STATUS.live ? 'quotes live' : 'quote reads pending', status: quoteFreshness },
+            ]}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Round close treasury"
                     value={formatAvax(routing.strategyTreasury)}
@@ -508,14 +471,14 @@ export function RoundsPanel() {
                     caption="Round 2 money split and readiness, using the same routing math as execution."
                     rows={roundCloseRows}
                 />
-            </div>
+            </OperatorSummaryGrid>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricGrid>
                 <MetricCard label="Fund balance" value={formatAvax(fundBalance?.value)} status={liveStatus(fundBalance?.value)} sourceLabel={fundBalance ? 'live balance' : 'unavailable'} />
                 <MetricCard label="Treasury Safe dust" value={formatAvax(treasuryBalance?.value)} status={liveStatus(treasuryBalance?.value)} sourceLabel="configured Safe" detail={<span className="break-all font-mono">{effectiveTreasuryAddress}</span>} />
                 <MetricCard label="Raised" value={formatAvax(round2?.raisedAmount)} status={round2 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="Round 2" accent="blue" />
                 <MetricCard label="Routing bucket" value={formatAvax(routing.routingBucket)} status={round2 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={round2Finalized ? 'withdrawable' : 'planned'} accent="yellow" />
-            </div>
+            </MetricGrid>
 
             <ActionReadinessPanel
                 title="Routing readiness"
@@ -588,8 +551,8 @@ export function RoundsPanel() {
                 </div>
                 <Field label="CATCH amount to pair" value={lfjCatchAmount} onChange={setLfjCatchAmount} type="number" />
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" className="rounded-lg bg-black/30 px-4 py-2 text-sm text-gray-200" onClick={() => setLfjTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</button>
-                    <button type="button" className="rounded-lg bg-black/30 px-4 py-2 text-sm text-gray-200" onClick={() => setLfjTrancheIndex((value) => Math.min(lfjTranches.length - 1, value + 1))}>Next tranche</button>
+                    <AdminButton onClick={() => setLfjTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</AdminButton>
+                    <AdminButton onClick={() => setLfjTrancheIndex((value) => Math.min(lfjTranches.length - 1, value + 1))}>Next tranche</AdminButton>
                     <TxButton onClick={submitLfjSwap} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || lfjSwapAvax <= 0n || lfjQuotedCatch <= 0n}>
                         Swap LFJ tranche half
                     </TxButton>
@@ -622,8 +585,8 @@ export function RoundsPanel() {
                     <Field label="WAVAX amount to mint" value={pharaohWavaxAmount} onChange={setPharaohWavaxAmount} type="number" />
                 </div>
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" className="rounded-lg bg-black/30 px-4 py-2 text-sm text-gray-200" onClick={() => setPharaohTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</button>
-                    <button type="button" className="rounded-lg bg-black/30 px-4 py-2 text-sm text-gray-200" onClick={() => setPharaohTrancheIndex((value) => Math.min(pharaohTranches.length - 1, value + 1))}>Next tranche</button>
+                    <AdminButton onClick={() => setPharaohTrancheIndex((value) => Math.max(0, value - 1))}>Previous tranche</AdminButton>
+                    <AdminButton onClick={() => setPharaohTrancheIndex((value) => Math.min(pharaohTranches.length - 1, value + 1))}>Next tranche</AdminButton>
                     <TxButton onClick={submitWrapPharaohTranche} txHash={contractTx.data} isPending={contractTx.isPending} disabled={!round2Finalized || pharaohTranche <= 0n}>
                         Wrap Pharaoh tranche AVAX
                     </TxButton>
@@ -654,13 +617,13 @@ export function RoundsPanel() {
                 </div>
             </Section>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+            <Section title="Execution safety">
                 <div className="text-xs text-gray-400">
                     Default safety: {ROUND2_SLIPPAGE_BPS.toString()} bps slippage, {ROUND2_DEADLINE_SECONDS / 60} minute deadline.
                     Use small tranches and re-check quotes after each transaction.
                 </div>
                 <TxResult hash={contractTx.data ?? teamTransfer.data} error={contractTx.error ?? teamTransfer.error} />
-            </div>
-        </div>
+            </Section>
+        </AdminPage>
     );
 }

@@ -3,7 +3,7 @@ import { formatUnits } from 'viem';
 import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
-import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip } from '../components/AdminPrimitives';
+import { AdminButton, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid } from '../components/AdminPrimitives';
 import { TxResult } from '../components/TxButton';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 import { READ_STATUS } from '../lib/adminMetrics.js';
@@ -228,22 +228,19 @@ function PackCardView({
                     {submittedTxHash ? <> · Tx {submittedTxHash}</> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        className="admin-cta-secondary"
+                    <AdminButton
                         onClick={onApprove}
                         disabled={!passed || approved || isSubmitting}
                     >
                         Approve mark
-                    </button>
-                    <button
-                        type="button"
-                        className="admin-cta"
+                    </AdminButton>
+                    <AdminButton
+                        variant="primary"
                         onClick={onSubmit}
                         disabled={!canSubmit || isSubmitting}
                     >
                         Submit onchain mark
-                    </button>
+                    </AdminButton>
                 </div>
             </div>
         </div>
@@ -492,21 +489,18 @@ export function ValuationPanel() {
     };
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Valuation controls"
-                title="Valuation workflow"
-                description="Run weekly FMV consensus, review provider evidence, and submit approved marks with explicit signing and readiness states."
-            />
-            <StatusStrip
-                items={[
-                    { label: activeCards.length ? `${activeCards.length} active positions` : 'positions unavailable', status: activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: pack ? 'pack loaded' : 'pack not loaded', status: pack ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: isAuthLoading ? 'Safe context loading' : 'Safe context ready', status: isAuthLoading ? READ_STATUS.partial : READ_STATUS.live },
-                    { label: localError ? 'local error' : 'no local errors', status: localError ? READ_STATUS.error : READ_STATUS.live },
-                ]}
-            />
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+        <AdminPage
+            eyebrow="Valuation controls"
+            title="Valuation workflow"
+            description="Run weekly FMV consensus, review provider evidence, and submit approved marks with explicit signing and readiness states."
+            statusItems={[
+                { label: activeCards.length ? `${activeCards.length} active positions` : 'positions unavailable', status: activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: pack ? 'pack loaded' : 'pack not loaded', status: pack ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: isAuthLoading ? 'Safe context loading' : 'Safe context ready', status: isAuthLoading ? READ_STATUS.partial : READ_STATUS.live },
+                { label: localError ? 'local error' : 'no local errors', status: localError ? READ_STATUS.error : READ_STATUS.live },
+            ]}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Valuation decision queue"
                     value={
@@ -595,14 +589,14 @@ export function ValuationPanel() {
                         },
                     ]}
                 />
-            </div>
+            </OperatorSummaryGrid>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricGrid>
                 <MetricCard label="Active cards" value={activeCards.length.toString()} status={activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="registry" />
                 <MetricCard label="Valuation pack" value={pack?.packId ?? 'Unavailable'} status={pack ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={pack ? 'loaded' : 'not loaded'} detail={pack ? `Generated ${formatTimestamp(pack.generatedAt)}` : 'Run or load a pack.'} />
                 <MetricCard label="Approved cards" value={approvedCount.toString()} status={approvedCount > 0 ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="local review" />
                 <MetricCard label="Submission signer" value={authAddress ? `${authAddress.slice(0, 6)}...${authAddress.slice(-4)}` : 'Unavailable'} status={authAddress ? READ_STATUS.configured : READ_STATUS.unavailable} sourceLabel={safeAppInfo.isSafeApp ? 'Safe app' : 'wallet'} />
-            </div>
+            </MetricGrid>
 
             <div id="valuation-controls" className="admin-card grid gap-4 p-5">
                 <label className="grid gap-2">
@@ -633,12 +627,12 @@ export function ValuationPanel() {
                 </label>
 
                 <div className="flex flex-wrap gap-3">
-                    <button type="button" className="admin-cta" onClick={runValuationNow} disabled={isSigning || isAuthLoading}>
+                    <AdminButton variant="primary" onClick={runValuationNow} disabled={isSigning || isAuthLoading}>
                         {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Run valuation now'}
-                    </button>
-                    <button type="button" className="admin-cta-secondary" onClick={loadLatestPack} disabled={isSigning || isAuthLoading}>
+                    </AdminButton>
+                    <AdminButton onClick={loadLatestPack} disabled={isSigning || isAuthLoading}>
                         {isAuthLoading ? 'Loading Safe context' : isSigning ? 'Sign valuation request' : 'Load latest pack'}
-                    </button>
+                    </AdminButton>
                 </div>
 
                 <div className="grid gap-2 text-sm text-[var(--text-secondary)]">
@@ -695,6 +689,6 @@ export function ValuationPanel() {
             ) : null}
 
             <TxResult hash={txHash} error={txError} />
-        </div>
+        </AdminPage>
     );
 }

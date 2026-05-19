@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatUnits, isAddress, keccak256, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useReadContract, useSendTransaction, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { EXPLORER_TX_BASE_URL, LZ_EID, MAINNET } from '../addresses';
-import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
+import { AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Panel, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 
 const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
@@ -283,86 +283,6 @@ function shortHash(hash: string) {
 
 function sameAddress(left?: string, right?: string) {
     return Boolean(left && right && left.toLowerCase() === right.toLowerCase());
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    placeholder,
-    mono,
-    type = 'text',
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    mono?: boolean;
-    type?: string;
-}) {
-    return (
-        <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-400">{label}</span>
-            <input
-                className={`rounded bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0] ${mono ? 'font-mono' : ''}`}
-                placeholder={placeholder}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                type={type}
-            />
-        </label>
-    );
-}
-
-function Panel({ title, children }: { title: string; children: ReactNode }) {
-    return (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-white">{title}</h3>
-            <div className="grid gap-3">{children}</div>
-        </div>
-    );
-}
-
-function PrimaryButton({
-    children,
-    onClick,
-    disabled,
-}: {
-    children: ReactNode;
-    onClick: () => void;
-    disabled?: boolean;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled}
-            className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] transition-colors hover:bg-[#70bce8] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-            {children}
-        </button>
-    );
-}
-
-function SecondaryButton({
-    children,
-    onClick,
-    disabled,
-}: {
-    children: ReactNode;
-    onClick: () => void;
-    disabled?: boolean;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled}
-            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-            {children}
-        </button>
-    );
 }
 
 function TxSummary({ tx }: { tx: PendingTx | null }) {
@@ -952,10 +872,10 @@ export function CourtyardWizardPanel() {
                             mono
                         />
                         <div className="flex flex-wrap gap-3">
-                            <PrimaryButton onClick={resolveListing} disabled={isResolving || !draft.courtyardUrl.trim()}>
+                            <AdminButton variant="primary" onClick={resolveListing} disabled={isResolving || !draft.courtyardUrl.trim()}>
                                 {isResolving ? 'Resolving...' : 'Resolve and quote funding'}
-                            </PrimaryButton>
-                            <SecondaryButton onClick={resetWizard}>Reset</SecondaryButton>
+                            </AdminButton>
+                            <AdminButton onClick={resetWizard}>Reset</AdminButton>
                         </div>
                     </Panel>
                 );
@@ -995,10 +915,10 @@ export function CourtyardWizardPanel() {
                             </div>
                         ) : null}
                         <div className="flex flex-wrap gap-3">
-                            <PrimaryButton onClick={() => completeStep('preflight', 'authorize_purchase')} disabled={!preflightOk}>
+                            <AdminButton variant="primary" onClick={() => completeStep('preflight', 'authorize_purchase')} disabled={!preflightOk}>
                                 Continue to authorization
-                            </PrimaryButton>
-                            <SecondaryButton onClick={resolveListing} disabled={isResolving}>Refresh quote</SecondaryButton>
+                            </AdminButton>
+                            <AdminButton onClick={resolveListing} disabled={isResolving}>Refresh quote</AdminButton>
                         </div>
                     </Panel>
                 );
@@ -1013,13 +933,13 @@ export function CourtyardWizardPanel() {
                         <Field label="Withdrawal amount (AVAX)" value={draft.withdrawalAvax} onChange={(value) => updateDraft((current) => ({ ...current, withdrawalAvax: value }))} type="number" />
                         <Field label="Reason" value={draft.withdrawalReason} onChange={(value) => updateDraft((current) => ({ ...current, withdrawalReason: value }))} />
                         <StoredTxSummary hash={draft.txHashes.withdraw_avax} label="Stored withdrawal transaction" />
-                        <PrimaryButton onClick={submitWithdraw} disabled={!MAINNET.fundProxy || !effectiveTreasuryAddress || !draft.withdrawalAvax || isContractPending}>
+                        <AdminButton variant="primary" onClick={submitWithdraw} disabled={!MAINNET.fundProxy || !effectiveTreasuryAddress || !draft.withdrawalAvax || isContractPending}>
                             {isContractPending || (pendingTx?.step === 'withdraw_avax' && contractReceipt.isLoading) ? 'Waiting...' : 'Submit withdrawal'}
-                        </PrimaryButton>
+                        </AdminButton>
                         {draft.txHashes.withdraw_avax ? (
-                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('withdraw_avax')}>
+                            <AdminButton onClick={() => void continueAfterSafeConfirmation('withdraw_avax')}>
                                 I confirmed this in Safe
-                            </SecondaryButton>
+                            </AdminButton>
                         ) : null}
                     </Panel>
                 );
@@ -1038,10 +958,10 @@ export function CourtyardWizardPanel() {
                                 Open LI.FI route
                             </a>
                         ) : null}
-                        <PrimaryButton onClick={submitBridgeUsdc} disabled={!quotes?.usdc.transactionRequest?.to || isBridgePending || bridgeRouteDone}>
+                        <AdminButton variant="primary" onClick={submitBridgeUsdc} disabled={!quotes?.usdc.transactionRequest?.to || isBridgePending || bridgeRouteDone}>
                             {isBridgePending || (pendingTx?.step === 'bridge_usdc_to_hot_wallet' && !bridgeRouteDone) ? 'Waiting...' : 'Submit LI.FI bridge'}
-                        </PrimaryButton>
-                        <SecondaryButton
+                        </AdminButton>
+                        <AdminButton
                             onClick={() => {
                                 setError('');
                                 void refreshBridgeQuote().catch((caught) => {
@@ -1051,8 +971,8 @@ export function CourtyardWizardPanel() {
                             disabled={!asset || isBridgePending}
                         >
                             Refresh LI.FI route
-                        </SecondaryButton>
-                        <SecondaryButton onClick={() => void refetchHotWalletUsdc()}>Refresh Hot Wallet balance</SecondaryButton>
+                        </AdminButton>
+                        <AdminButton onClick={() => void refetchHotWalletUsdc()}>Refresh Hot Wallet balance</AdminButton>
                     </Panel>
                 );
             case 'authorize_purchase':
@@ -1069,13 +989,13 @@ export function CourtyardWizardPanel() {
                                 Authorization is blocked until preflight passes: {preflightBlockers.map((check) => check.label).join(', ')}.
                             </div>
                         ) : null}
-                        <PrimaryButton onClick={submitAuthorize} disabled={!preflightOk || purchaseAuthorized || isContractPending}>
+                        <AdminButton variant="primary" onClick={submitAuthorize} disabled={!preflightOk || purchaseAuthorized || isContractPending}>
                             {purchaseAuthorized ? 'Already authorized' : 'Submit authorization'}
-                        </PrimaryButton>
+                        </AdminButton>
                         {draft.txHashes.authorize_purchase ? (
-                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('authorize_purchase')}>
+                            <AdminButton onClick={() => void continueAfterSafeConfirmation('authorize_purchase')}>
                                 I confirmed this in Safe
-                            </SecondaryButton>
+                            </AdminButton>
                         ) : null}
                     </Panel>
                 );
@@ -1085,13 +1005,13 @@ export function CourtyardWizardPanel() {
                         <Field label="Confirmed funding amount (USDT)" value={draft.purchase.releaseAmountUsdt} onChange={(value) => updatePurchase('releaseAmountUsdt', value)} type="number" />
                         <div className="text-xs text-gray-400">Confirm this only after Polygon USDC is visible in the Hot Wallet. Funding buffer is not added to accounting.</div>
                         <StoredTxSummary hash={draft.txHashes.confirm_funding} label="Stored funding confirmation transaction" />
-                        <PrimaryButton onClick={submitConfirmFunding} disabled={purchaseReleased || isContractPending || !isAddress(polygonSafe)}>
+                        <AdminButton variant="primary" onClick={submitConfirmFunding} disabled={purchaseReleased || isContractPending || !isAddress(polygonSafe)}>
                             {purchaseReleased ? 'Already confirmed' : 'Confirm funding'}
-                        </PrimaryButton>
+                        </AdminButton>
                         {draft.txHashes.confirm_funding ? (
-                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('confirm_funding')}>
+                            <AdminButton onClick={() => void continueAfterSafeConfirmation('confirm_funding')}>
                                 I confirmed this in Safe
-                            </SecondaryButton>
+                            </AdminButton>
                         ) : null}
                     </Panel>
                 );
@@ -1105,13 +1025,13 @@ export function CourtyardWizardPanel() {
                             <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
                         {asset ? (
-                            <a href={asset.sourceUrl} target="_blank" rel="noreferrer" className="w-fit rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14]">
+                            <a href={asset.sourceUrl} target="_blank" rel="noreferrer" className="w-fit rounded-md border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#0b0a14] transition-colors hover:bg-[#ffd75b]">
                                 Open Courtyard listing
                             </a>
                         ) : null}
-                        <SecondaryButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
+                        <AdminButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
                             {isNftOwnerFetching ? 'Checking ownership...' : 'Check NFT ownership now'}
-                        </SecondaryButton>
+                        </AdminButton>
                     </Panel>
                 );
             case 'detect_hot_wallet_nft':
@@ -1122,9 +1042,9 @@ export function CourtyardWizardPanel() {
                             <div>Detected owner: {nftOwnerStatus}</div>
                             <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
-                        <SecondaryButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
+                        <AdminButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
                             {isNftOwnerFetching ? 'Checking ownership...' : 'Refresh ownership now'}
-                        </SecondaryButton>
+                        </AdminButton>
                     </Panel>
                 );
             case 'transfer_nft_to_safe':
@@ -1139,9 +1059,9 @@ export function CourtyardWizardPanel() {
                             <div>Detected owner: {nftOwnerStatus}</div>
                             <div>Ownership check: polling Polygon every {NFT_OWNERSHIP_POLL_INTERVAL_MS / 1_000}s</div>
                         </div>
-                        <SecondaryButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
+                        <AdminButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>
                             {isNftOwnerFetching ? 'Checking ownership...' : 'Refresh ownership now'}
-                        </SecondaryButton>
+                        </AdminButton>
                     </Panel>
                 );
             case 'record_execution':
@@ -1153,13 +1073,13 @@ export function CourtyardWizardPanel() {
                             <Field label="Proof ref" value={draft.purchase.proofRef} onChange={(value) => updatePurchase('proofRef', value)} mono />
                         </div>
                         <StoredTxSummary hash={draft.txHashes.record_execution} label="Stored execution record transaction" />
-                        <PrimaryButton onClick={submitRecordExecution} disabled={purchaseExecuted || isContractPending}>
+                        <AdminButton variant="primary" onClick={submitRecordExecution} disabled={purchaseExecuted || isContractPending}>
                             {purchaseExecuted ? 'Already recorded' : 'Submit execution record'}
-                        </PrimaryButton>
+                        </AdminButton>
                         {draft.txHashes.record_execution ? (
-                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('record_execution')}>
+                            <AdminButton onClick={() => void continueAfterSafeConfirmation('record_execution')}>
                                 I confirmed this in Safe
-                            </SecondaryButton>
+                            </AdminButton>
                         ) : null}
                     </Panel>
                 );
@@ -1185,13 +1105,13 @@ export function CourtyardWizardPanel() {
                             <Field label="Proof ref" value={draft.position.proofRef} onChange={(value) => updatePosition('proofRef', value)} mono />
                         </div>
                         <StoredTxSummary hash={draft.txHashes.record_position} label="Stored position record transaction" />
-                        <PrimaryButton onClick={submitRecordPosition} disabled={!nftInSafe || positionRecorded || isContractPending}>
+                        <AdminButton variant="primary" onClick={submitRecordPosition} disabled={!nftInSafe || positionRecorded || isContractPending}>
                             {positionRecorded ? 'Position recorded' : nftInSafe ? 'Submit position record' : 'Waiting for Polygon Safe custody'}
-                        </PrimaryButton>
+                        </AdminButton>
                         {draft.txHashes.record_position ? (
-                            <SecondaryButton onClick={() => void continueAfterSafeConfirmation('record_position')}>
+                            <AdminButton onClick={() => void continueAfterSafeConfirmation('record_position')}>
                                 I confirmed this in Safe
-                            </SecondaryButton>
+                            </AdminButton>
                         ) : null}
                     </Panel>
                 );
@@ -1204,7 +1124,7 @@ export function CourtyardWizardPanel() {
                             <div>NFT owner: {nftOwner ?? 'Unavailable'}</div>
                             <div>Hot Wallet USDC: {hotWalletUsdc !== undefined ? formatUnits(hotWalletUsdc, 6) : 'Unavailable'}</div>
                         </div>
-                        <SecondaryButton onClick={resetWizard}>Start another purchase</SecondaryButton>
+                        <AdminButton onClick={resetWizard}>Start another purchase</AdminButton>
                     </Panel>
                 );
             default:
@@ -1258,23 +1178,20 @@ export function CourtyardWizardPanel() {
     ];
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Guided execution"
-                title="Courtyard Wizard"
-                description="Resolve listings, fund Polygon USDC, verify custody, and record accounting through a source-labeled execution timeline."
-                actions={<SecondaryButton onClick={resetWizard}>Reset</SecondaryButton>}
-            />
-            <StatusStrip
-                items={[
-                    { label: `current ${currentStepTitle}`, status: READ_STATUS.configured },
-                    { label: asset ? 'listing resolved' : 'listing pending', status: asset ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: purchaseAuthorized ? 'purchase authorized' : 'authorization pending', status: purchaseAuthorized ? READ_STATUS.live : READ_STATUS.partial },
-                    { label: bridgeRouteFailed ? 'bridge failed' : bridgeRouteDone ? 'bridge done' : 'bridge waiting', status: bridgeRouteFailed ? READ_STATUS.error : bridgeRouteDone ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: nftInSafe ? 'NFT in Safe' : nftInHotWallet ? 'NFT in hot wallet' : 'ownership waiting', status: nftInSafe ? READ_STATUS.live : nftInHotWallet ? READ_STATUS.partial : READ_STATUS.unavailable },
-                ]}
-            />
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+        <AdminPage
+            eyebrow="Guided execution"
+            title="Courtyard Wizard"
+            description="Resolve listings, fund Polygon USDC, verify custody, and record accounting through a source-labeled execution timeline."
+            actions={<AdminButton onClick={resetWizard}>Reset</AdminButton>}
+            statusItems={[
+                { label: `current ${currentStepTitle}`, status: READ_STATUS.configured },
+                { label: asset ? 'listing resolved' : 'listing pending', status: asset ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: purchaseAuthorized ? 'purchase authorized' : 'authorization pending', status: purchaseAuthorized ? READ_STATUS.live : READ_STATUS.partial },
+                { label: bridgeRouteFailed ? 'bridge failed' : bridgeRouteDone ? 'bridge done' : 'bridge waiting', status: bridgeRouteFailed ? READ_STATUS.error : bridgeRouteDone ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: nftInSafe ? 'NFT in Safe' : nftInHotWallet ? 'NFT in hot wallet' : 'ownership waiting', status: nftInSafe ? READ_STATUS.live : nftInHotWallet ? READ_STATUS.partial : READ_STATUS.unavailable },
+            ]}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Acquisition lane"
                     value={
@@ -1325,7 +1242,7 @@ export function CourtyardWizardPanel() {
                     caption="Listing, funding, custody, and accounting state for the current Courtyard purchase."
                     rows={acquisitionLedgerRows}
                 />
-            </div>
+            </OperatorSummaryGrid>
             <WorkflowTimeline
                 steps={[
                     { label: 'Resolve listing', status: asset ? READ_STATUS.live : READ_STATUS.unavailable, detail: asset?.title ?? 'Paste a Courtyard asset URL.' },
@@ -1334,17 +1251,11 @@ export function CourtyardWizardPanel() {
                     { label: 'Custody and record', status: positionRecorded ? READ_STATUS.live : nftInSafe ? READ_STATUS.partial : READ_STATUS.unavailable, detail: positionRecorded ? 'Position recorded on Avalanche.' : nftOwnerStatus },
                 ]}
             />
-            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-bold text-white">Courtyard Purchase Wizard</h2>
-                        <p className="mt-2 max-w-3xl text-xs leading-5 text-gray-400">
-                            Guided purchase funding and accounting. The wizard submits Safe/admin transactions, waits for confirmations, funds only Polygon USDC to the Hot Wallet, and waits for NFT custody before recording the final position.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="mb-5 grid gap-2 md:grid-cols-3">
+            <Panel
+                title="Courtyard purchase steps"
+                description="Guided purchase funding and accounting. The wizard submits Safe/admin transactions, waits for confirmations, funds only Polygon USDC to the Hot Wallet, and waits for NFT custody before recording the final position."
+            >
+                <div className="grid gap-2 md:grid-cols-3">
                     <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-400">
                         Avalanche treasury Safe
                         <div className="mt-1 break-all font-mono text-gray-200">{effectiveTreasuryAddress ?? 'Unavailable'}</div>
@@ -1359,7 +1270,7 @@ export function CourtyardWizardPanel() {
                     </div>
                 </div>
 
-                <div className="mb-6 grid gap-2 md:grid-cols-4">
+                <div className="grid gap-2 md:grid-cols-4">
                     {STEPS.map((step) => {
                         const state = stepState(step.id);
                         return (
@@ -1369,7 +1280,7 @@ export function CourtyardWizardPanel() {
                                 onClick={() => setStep(step.id)}
                                 className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
                                     state === 'active'
-                                        ? 'border-[#4fa8e0] bg-[#4fa8e0]/15 text-white'
+                                        ? 'border-[var(--accent-blue)]/70 bg-[var(--accent-blue)]/15 text-white'
                                         : state === 'completed'
                                           ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
                                           : 'border-white/10 bg-black/20 text-gray-500'
@@ -1402,13 +1313,13 @@ export function CourtyardWizardPanel() {
                         <div>Bridge source tx: {draft.txHashes.bridge_usdc_to_hot_wallet ? shortHash(draft.txHashes.bridge_usdc_to_hot_wallet) : 'Unavailable'}</div>
                     </div>
                 ) : null}
-            </div>
+            </Panel>
 
             {draft.withdrawalAvax ? (
                 <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
                     Prepared withdrawal: {draft.withdrawalAvax} AVAX. Current route accounting excludes POL funding. Connected chain: {chainId ?? 'unknown'}. Purchase status: {purchaseStatus}. Funded USDC target: {asset ? formatUnits(targetUsdcRaw, 6) : '0'} USDC.
                 </div>
             ) : null}
-        </div>
+        </AdminPage>
     );
 }

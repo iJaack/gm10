@@ -1,11 +1,11 @@
-import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { ChainType, type WidgetConfig } from '@lifi/widget';
 import { formatEther, formatUnits, isAddress, keccak256, padHex, parseEther, parseUnits, stringToHex, zeroHash } from 'viem';
 import { useAccount, useBalance, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { MARKETPLACE_CHECKLIST_ITEMS, summarizeMarketplaceChecklist } from '../data/marketplaceChecklist';
 import { CHAINLINK_AGGREGATOR_V3_ABI, FUND_ADMIN_ABI, LIQUIDITY_COORDINATOR_ABI, PROFIT_DISTRIBUTOR_ABI, REGISTRY_ABI, TOKENOMICS_CONTROLLER_ABI } from '../abis';
 import { LZ_EID, MAINNET } from '../addresses';
-import { ActionReadinessPanel, LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
+import { ActionReadinessPanel, AdminButton, AdminField as Field, AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid, SectionPanel as Section, WorkflowTimeline, liveStatus } from '../components/AdminPrimitives';
 import { TxButton, TxResult } from '../components/TxButton';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 import { bytes32ToSolanaAddress, nonEvmSafeInputToBytes32 } from '../lib/solanaAddress.js';
@@ -270,44 +270,6 @@ function parseUintInput(value: string): bigint {
 function statusLabel(labels: readonly string[], value: unknown) {
     const index = typeof value === 'bigint' ? Number(value) : typeof value === 'number' ? value : -1;
     return labels[index] ?? 'Unknown';
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-    return (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-white">{title}</h3>
-            <div className="grid gap-3">{children}</div>
-        </div>
-    );
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    placeholder,
-    mono,
-    type = 'text',
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    mono?: boolean;
-    type?: string;
-}) {
-    return (
-        <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-400">{label}</span>
-            <input
-                className={`rounded bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#4fa8e0] ${mono ? 'font-mono' : ''}`}
-                placeholder={placeholder}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                type={type}
-            />
-        </label>
-    );
 }
 
 export function OperationsPanel() {
@@ -1236,22 +1198,18 @@ export function OperationsPanel() {
     ];
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Workflow hub"
-                title="Operations"
-                description="Coordinate profit buckets, marketplace setup, Courtyard execution, and LP deployment with explicit readiness gates."
-            />
-            <StatusStrip
-                items={[
-                    { label: `mode ${mode}`, status: READ_STATUS.configured },
-                    { label: courtyardSetupBlockers.length ? `${courtyardSetupBlockers.length} Courtyard blocker${courtyardSetupBlockers.length === 1 ? '' : 's'}` : 'Courtyard ready', status: courtyardSetupBlockers.length ? READ_STATUS.partial : READ_STATUS.live },
-                    { label: autopilotReady ? 'autopilot ready' : 'autopilot waiting', status: autopilotReady ? READ_STATUS.live : READ_STATUS.unavailable },
-                    { label: lpReadsStatus === READ_STATUS.live ? 'LP reads live' : 'LP reads degraded', status: lpReadsStatus },
-                ]}
-            />
-
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+        <AdminPage
+            eyebrow="Workflow hub"
+            title="Operations"
+            description="Coordinate profit buckets, marketplace setup, Courtyard execution, and LP deployment with explicit readiness gates."
+            statusItems={[
+                { label: `mode ${mode}`, status: READ_STATUS.configured },
+                { label: courtyardSetupBlockers.length ? `${courtyardSetupBlockers.length} Courtyard blocker${courtyardSetupBlockers.length === 1 ? '' : 's'}` : 'Courtyard ready', status: courtyardSetupBlockers.length ? READ_STATUS.partial : READ_STATUS.live },
+                { label: autopilotReady ? 'autopilot ready' : 'autopilot waiting', status: autopilotReady ? READ_STATUS.live : READ_STATUS.unavailable },
+                { label: lpReadsStatus === READ_STATUS.live ? 'LP reads live' : 'LP reads degraded', status: lpReadsStatus },
+            ]}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Card-buying fund"
                     value={
@@ -1298,9 +1256,9 @@ export function OperationsPanel() {
                     caption="Wallets and workflow balances are shown separately so ops funds do not inflate card capacity."
                     rows={operationsLedgerRows}
                 />
-            </div>
+            </OperatorSummaryGrid>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricGrid>
                 <MetricCard label="Tracked wallet aggregate" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'tracked wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
                 <MetricCard label="Stored treasury" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting" />
                 <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
@@ -1309,7 +1267,7 @@ export function OperationsPanel() {
                 <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={tokenomicsController ? 'tokenomics controller' : 'not wired'} />
                 <MetricCard label="Profit per token" value={cumulativeProfitPerToken !== undefined ? `${formatEther(cumulativeProfitPerToken)} AVAX` : 'Unavailable'} status={cumulativeProfitPerToken !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
                 <MetricCard label="Total distributed" value={totalProfitDeposited !== undefined ? `${formatEther(totalProfitDeposited)} AVAX` : 'Unavailable'} status={totalProfitDeposited !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={profitDistributor ? 'distributor' : 'not wired'} />
-            </div>
+            </MetricGrid>
 
             <ActionReadinessPanel
                 title="Configuration readiness"
@@ -1341,64 +1299,36 @@ export function OperationsPanel() {
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setMode('courtyard')}
-                                className="rounded-lg border border-amber-300/30 bg-amber-300/15 px-3 py-2 text-xs font-semibold text-amber-50 hover:bg-amber-300/25"
-                            >
+                            <AdminButton onClick={() => setMode('courtyard')} variant="warning" className="text-xs">
                                 Courtyard setup
-                            </button>
+                            </AdminButton>
                             {!courtyardApproved ? (
-                                <button
-                                    type="button"
-                                    onClick={() => setMode('marketplace')}
-                                    className="rounded-lg border border-amber-300/30 bg-amber-300/15 px-3 py-2 text-xs font-semibold text-amber-50 hover:bg-amber-300/25"
-                                >
+                                <AdminButton onClick={() => setMode('marketplace')} variant="warning" className="text-xs">
                                     Marketplace approval
-                                </button>
+                                </AdminButton>
                             ) : null}
                         </div>
                     </div>
                 </div>
             ) : null}
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+            <Section title="Execution controls" description="Pick one lane; each lane keeps its own fields, readiness notes, and transaction results in the same layout.">
                 <div className="mb-5 flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setMode('round')}
-                        className={`rounded-lg px-3 py-2 text-sm ${mode === 'round' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
-                    >
+                    <AdminButton onClick={() => setMode('round')} variant={mode === 'round' ? 'primary' : 'secondary'}>
                         Round 1
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setMode('profit')}
-                        className={`rounded-lg px-3 py-2 text-sm ${mode === 'profit' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
-                    >
+                    </AdminButton>
+                    <AdminButton onClick={() => setMode('profit')} variant={mode === 'profit' ? 'primary' : 'secondary'}>
                         Holder Claims
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setMode('marketplace')}
-                        className={`rounded-lg px-3 py-2 text-sm ${mode === 'marketplace' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
-                    >
+                    </AdminButton>
+                    <AdminButton onClick={() => setMode('marketplace')} variant={mode === 'marketplace' ? 'primary' : 'secondary'}>
                         Marketplace
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setMode('courtyard')}
-                        className={`rounded-lg px-3 py-2 text-sm ${mode === 'courtyard' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
-                    >
+                    </AdminButton>
+                    <AdminButton onClick={() => setMode('courtyard')} variant={mode === 'courtyard' ? 'primary' : 'secondary'}>
                         Courtyard setup
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setMode('lp')}
-                        className={`rounded-lg px-3 py-2 text-sm ${mode === 'lp' ? 'bg-[#4fa8e0] text-[#0b0a14]' : 'bg-black/30 text-gray-300'}`}
-                    >
+                    </AdminButton>
+                    <AdminButton onClick={() => setMode('lp')} variant={mode === 'lp' ? 'primary' : 'secondary'}>
                         LP
-                    </button>
+                    </AdminButton>
                 </div>
 
                 {mode === 'round' ? (
@@ -1566,16 +1496,15 @@ export function OperationsPanel() {
                                     {solanaSafeError}
                                 </div>
                             ) : null}
-                            <button
-                                type="button"
+                            <AdminButton
                                 onClick={() => {
                                     setMarketplaceLabel('PHYGITALS');
                                     setMarketplaceApproved(true);
                                 }}
-                                className="w-fit rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-white/10"
+                                className="w-fit text-xs"
                             >
                                 Prepare PHYGITALS approval
-                            </button>
+                            </AdminButton>
 
                             <div className="border-t border-white/10 pt-3">
                                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
@@ -1590,14 +1519,13 @@ export function OperationsPanel() {
                                         placeholder="https://www.phygitals.com/card/..."
                                         mono
                                     />
-                                    <button
-                                        type="button"
+                                    <AdminButton
+                                        variant="primary"
                                         onClick={() => void resolvePhygitalsCard()}
                                         disabled={phygitalsLoading || !phygitalsUrl.trim()}
-                                        className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         {phygitalsLoading ? 'Resolving...' : 'Resolve Phygitals card'}
-                                    </button>
+                                    </AdminButton>
                                 </div>
                                 {phygitalsError ? (
                                     <div className="mt-3 rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
@@ -1703,14 +1631,12 @@ export function OperationsPanel() {
                                     </div>
                                 ) : null}
                                 <div className="mt-3 flex flex-wrap gap-3">
-                                    <button
-                                        type="button"
+                                    <AdminButton
                                         onClick={() => void quoteSolanaFunding()}
                                         disabled={solanaFundingLoading || !effectiveTreasuryAddress || !solanaFundingAmountAvax.trim() || !solanaFundingDestination.trim()}
-                                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-white/10 disabled:opacity-50"
                                     >
                                         {solanaFundingLoading ? 'Quoting...' : 'Refresh LI.FI SOL quote'}
-                                    </button>
+                                    </AdminButton>
                                     <TxButton
                                         onClick={() => void submitSolanaFunding()}
                                         txHash={solanaFundingTxHash}
@@ -1741,14 +1667,13 @@ export function OperationsPanel() {
                                     placeholder="https://courtyard.io/asset/..."
                                     mono
                                 />
-                                <button
-                                    type="button"
+                                <AdminButton
+                                    variant="primary"
                                     onClick={resolveCourtyardAutopilot}
                                     disabled={autopilotLoading || !courtyardUrl.trim() || !effectiveTreasuryAddress || !ADDRESS_RE.test(polygonSafe) || !ADDRESS_RE.test(polygonHotWallet)}
-                                    className="rounded-lg bg-[#4fa8e0] px-4 py-2 text-sm font-semibold text-[#0b0a14] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {autopilotLoading ? 'Preparing...' : 'Resolve listing'}
-                                </button>
+                                </AdminButton>
                             </div>
                             {autopilotError ? (
                                 <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
@@ -2084,7 +2009,7 @@ export function OperationsPanel() {
                 )}
 
                 <TxResult hash={txHash} error={error} />
-            </div>
-        </div>
+            </Section>
+        </AdminPage>
     );
 }

@@ -1,5 +1,5 @@
 import { MARKETPLACE_CHECKLIST_ITEMS } from '../data/marketplaceChecklist';
-import { LedgerPanel, MetricCard, OperatorActionsPanel, PageHeader, StatusStrip } from '../components/AdminPrimitives';
+import { AdminPage, LedgerPanel, MetricCard, MetricGrid, OperatorActionsPanel, OperatorSummaryGrid } from '../components/AdminPrimitives';
 import { READ_STATUS } from '../lib/adminMetrics.js';
 
 type RoadmapStatus = 'Done' | 'In progress' | 'Blocked' | 'Planned';
@@ -336,21 +336,18 @@ export function RoadmapPanel() {
     };
 
     return (
-        <div className="grid gap-6">
-            <PageHeader
-                eyebrow="Operational roadmap"
-                title="Execution dependency map"
-                description="Track marketplace rollout, valuation data truth, holder claims, LP deployment, tokenomics, and governance as operational readiness states."
-            />
-            <StatusStrip
-                items={[
-                    { label: `${completed} done`, status: READ_STATUS.live },
-                    { label: `${blocked} blocked`, status: blocked ? READ_STATUS.error : READ_STATUS.live },
-                    { label: `${total} total nodes`, status: READ_STATUS.configured },
-                    { label: `${MARKETPLACE_CHECKLIST_ITEMS.length} marketplace gates`, status: READ_STATUS.configured },
-                ]}
-            />
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)_minmax(0,1.05fr)]">
+        <AdminPage
+            eyebrow="Operational roadmap"
+            title="Execution dependency map"
+            description="Track marketplace rollout, valuation data truth, holder claims, LP deployment, tokenomics, and governance as operational readiness states."
+            statusItems={[
+                { label: `${completed} done`, status: READ_STATUS.live },
+                { label: `${blocked} blocked`, status: blocked ? READ_STATUS.error : READ_STATUS.live },
+                { label: `${total} total nodes`, status: READ_STATUS.configured },
+                { label: `${MARKETPLACE_CHECKLIST_ITEMS.length} marketplace gates`, status: READ_STATUS.configured },
+            ]}
+        >
+            <OperatorSummaryGrid>
                 <MetricCard
                     label="Decision queue"
                     value={
@@ -414,13 +411,13 @@ export function RoadmapPanel() {
                         })),
                     ]}
                 />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            </OperatorSummaryGrid>
+            <MetricGrid>
                 <MetricCard label="Done" value={`${completed} / ${total}`} status={READ_STATUS.live} sourceLabel="roadmap" accent="green" />
                 <MetricCard label="Blocked" value={blocked.toString()} status={blocked ? READ_STATUS.error : READ_STATUS.live} sourceLabel="readiness" accent={blocked ? 'red' : 'green'} />
                 <MetricCard label="Marketplace gates" value={MARKETPLACE_CHECKLIST_ITEMS.length.toString()} status={READ_STATUS.configured} sourceLabel="checklist" />
                 <MetricCard label="In progress" value={inProgressNodes.length.toString()} status={inProgressNodes.length ? READ_STATUS.partial : READ_STATUS.unavailable} sourceLabel="operator queue" detail={inProgressNodes.length ? inProgressNodes.map((node) => node.title).join(', ') : 'No in-progress roadmap node is marked.'} />
-            </div>
+            </MetricGrid>
 
             <section id="critical-chains" className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -477,6 +474,6 @@ export function RoadmapPanel() {
                     </div>
                 </div>
             </section>
-        </div>
+        </AdminPage>
     );
 }
