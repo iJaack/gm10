@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  fetchOpenSeaCourtyardAsset,
   fetchCourtyardEvidenceObservation,
   fetchCourtyardTokenMetadataIdentity,
+  normalizeOpenSeaCourtyardAsset,
   normalizeCourtyardAsset,
   normalizeCourtyardEvidenceObservation,
   normalizeCourtyardTokenMetadataIdentity,
   parseCourtyardAssetId,
+  parseOpenSeaCourtyardListing,
 } from '../server/lib/courtyard.js';
 
 const now = Date.parse('2026-04-15T19:00:00Z');
@@ -51,6 +54,84 @@ test('parses Courtyard asset URLs and raw ids', () => {
   );
   assert.equal(parseCourtyardAssetId('1b2115dde17bb90872264342530b288c9c4fc6b6bc11e44e07dccc89edad6008'), '1b2115dde17bb90872264342530b288c9c4fc6b6bc11e44e07dccc89edad6008');
   assert.throws(() => parseCourtyardAssetId('https://example.com/nope'), /Courtyard asset URL/);
+});
+
+function openSeaListing(overrides = {}) {
+  return {
+    order_hash: '0x405cf68ef1b79461634fb67c849ca0bedde0830a9c32427d98a9c6ef8de3b07e',
+    price: { current: { currency: 'USDC', decimals: 6, value: '6000000' } },
+    protocol_data: {
+      parameters: {
+        offerer: '0xd684c1e59808a6849ec62aa0bd23ec34f6d15e94',
+        endTime: '1781687476',
+        consideration: [{ token: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174' }],
+      },
+    },
+    ...overrides,
+  };
+}
+
+function openSeaNft(overrides = {}) {
+  return {
+    identifier: '25043976234190055590601260383950715875219064639637600832759536856631367823548',
+    name: "Destined Rivals #104/182 Cynthia's Garchomp ex",
+    metadata_url: 'https://api.courtyard.io/index/token/polygon/0x251/0x375e/metadata.json',
+    opensea_url: 'https://opensea.io/assets/polygon/0x251be3a17af4892035c37ebf5890f4a4d889dcad/25043976234190055590601260383950715875219064639637600832759536856631367823548',
+    image_url: 'https://example.com/card.png',
+    traits: [
+      { trait_type: 'Category', value: 'Pokémon' },
+      { trait_type: 'Grade', value: '10 GEM MINT' },
+    ],
+    ...overrides,
+  };
+}
+
+test('parses OpenSea Courtyard item URLs', () => {
+  assert.deepEqual(parseOpenSeaCourtyardListing('https://opensea.io/item/polygon/0x251be3a17af4892035c37ebf5890f4a4d889dcad/123'), {
+    contract: '0x251be3a17af4892035c37ebf5890f4a4d889dcad',
+    tokenId: '123',
+  });
+  assert.throws(() => parseOpenSeaCourtyardListing('https://example.com/nope'), /OpenSea Courtyard item URL/);
+});
+
+test('normalizes an OpenSea Courtyard listing into wizard prefill data', () => {
+  const normalized = normalizeOpenSeaCourtyardAsset({
+    contract: '0x251be3a17af4892035c37ebf5890f4a4d889dcad',
+    tokenId: openSeaNft().identifier,
+    nft: openSeaNft(),
+    listing: openSeaListing(),
+    nowMs: now,
+  });
+
+  assert.equal(normalized.assetId, openSeaNft().identifier);
+  assert.equal(normalized.listing.orderId, '0x405cf68ef1b79461634fb67c849ca0bedde0830a9c32427d98a9c6ef8de3b07e');
+  assert.equal(normalized.listing.priceDecimal, '6');
+  assert.equal(normalized.listing.priceRaw, '6000000');
+  assert.equal(normalized.listing.currency.contract, '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174');
+  assert.equal(normalized.prefill.purchaseKey, `opensea:${openSeaNft().identifier}:0x405cf68ef1b79461634fb67c849ca0bedde0830a9c32427d98a9c6ef8de3b07e`);
+  assert.equal(normalized.prefill.releaseAmountUsdt, '6');
+  assert.equal(normalized.prefill.marketplaceProvenanceRef, 'opensea:order:0x405cf68ef1b79461634fb67c849ca0bedde0830a9c32427d98a9c6ef8de3b07e');
+});
+
+test('fetches OpenSea NFT and best listing for Courtyard wizard resolution', async () => {
+  const seen = [];
+  const asset = await fetchOpenSeaCourtyardAsset({
+    input: `https://opensea.io/item/polygon/0x251be3a17af4892035c37ebf5890f4a4d889dcad/${openSeaNft().identifier}`,
+    openSeaApiKey: 'test-key',
+    fetchImpl: async (url, init = {}) => {
+      seen.push(String(url));
+      assert.equal(init.headers['x-api-key'], 'test-key');
+      if (String(url).includes('/listings/')) {
+        return { ok: true, json: async () => openSeaListing() };
+      }
+      return { ok: true, json: async () => ({ nft: openSeaNft() }) };
+    },
+    nowMs: now,
+  });
+
+  assert.equal(asset.title, openSeaNft().name);
+  assert.equal(asset.sourceUrl, openSeaNft().opensea_url);
+  assert.equal(seen.length, 2);
 });
 
 test('normalizes the current Gengar listing shape', () => {

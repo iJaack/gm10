@@ -71,6 +71,26 @@ type CourtyardAsset = {
     };
 };
 
+type CourtyardDeal = {
+    assetId: string;
+    assetUrl: string;
+    title: string;
+    category: string;
+    grade?: string;
+    image: string;
+    priceUsd: number;
+    priceUsdt6: string;
+    fmvUsd?: number;
+    upsideUsd?: number;
+    discountPct?: number;
+    confidence: number;
+    seller: string;
+    serialNumber: string;
+    marketplace?: string;
+    fitStatus: 'fits' | 'over_budget';
+    blockedReason: string;
+};
+
 type LifiTransactionRequest = {
     to?: `0x${string}`;
     data?: `0x${string}`;
@@ -294,6 +314,16 @@ function sameAddress(left?: string, right?: string) {
     return Boolean(left && right && left.toLowerCase() === right.toLowerCase());
 }
 
+function formatUsd(value?: number) {
+    if (!Number.isFinite(value)) return 'n/a';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value as number);
+}
+
+function formatPct(value?: number) {
+    if (!Number.isFinite(value)) return 'n/a';
+    return `${(value as number).toFixed(1)}%`;
+}
+
 function TxSummary({ tx }: { tx: PendingTx | null }) {
     if (!tx) return null;
     return (
@@ -332,6 +362,9 @@ export function CourtyardWizardPanel() {
     const quotes = draft.quotes;
     const polygonSafe = MAINNET.polygonCourtyardSafe;
     const polygonHotWallet = MAINNET.polygonCourtyardHotWallet;
+    const listingFundingToken = (asset?.listing.currency.contract && isAddress(asset.listing.currency.contract)
+        ? asset.listing.currency.contract
+        : POLYGON_USDC) as `0x${string}`;
     const purchaseKey = useMemo(() => bytes32FromInput(draft.purchase.key), [draft.purchase.key]);
     const targetUsdcRaw = asset ? BigInt(asset.listing.priceRaw) : 0n;
     const positionTokenId = tryParseUintInput(draft.position.tokenId);
@@ -366,6 +399,25 @@ export function CourtyardWizardPanel() {
         functionName: 'stableAccounting',
         query: { enabled: Boolean(MAINNET.fundProxy) },
     });
+    const dealBudgetUsdt6 = useMemo(() => {
+        if (!stableAccounting) return undefined;
+        return (stableAccounting[2] > stableAccounting[6] ? stableAccounting[2] - stableAccounting[6] : 0n).toString();
+    }, [stableAccounting]);
+    const dealBudgetLabel = dealBudgetUsdt6 !== undefined ? `${formatUnits(BigInt(dealBudgetUsdt6), 6)} USDT` : 'Loading...';
+    const courtyardDeals = useQuery({
+        queryKey: ['courtyard-deals', dealBudgetUsdt6],
+        queryFn: async () => {
+            const params = new URLSearchParams({ limit: '25' });
+            if (dealBudgetUsdt6 !== undefined) params.set('budgetUsdt6', dealBudgetUsdt6);
+            const response = await fetch(`/api/courtyard-deals?${params.toString()}`);
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Unable to scan Courtyard deals');
+            return payload as { source: string; deals: CourtyardDeal[] };
+        },
+        enabled: dealBudgetUsdt6 !== undefined,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
 
     const { data: polygonChainSafe } = useReadContract({
         address: MAINNET.portfolioRegistry as `0x${string}`,
@@ -392,7 +444,7 @@ export function CourtyardWizardPanel() {
     });
 
     const { data: hotWalletUsdc, refetch: refetchHotWalletUsdc } = useReadContract({
-        address: POLYGON_USDC,
+        address: listingFundingToken,
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [polygonHotWallet],
@@ -508,12 +560,12 @@ export function CourtyardWizardPanel() {
         purchase: draft.purchase,
         authorization: purchaseAuthorization,
         polygonSafe,
-        fundingToken: POLYGON_USDC,
+        fundingToken: listingFundingToken,
         destinationChainEid: LZ_EID.POLYGON_MAINNET,
         amountUsdt6: confirmFundingAmountUsdt6,
         liquidTreasuryUsdt6: stableAccounting?.[2],
         holderDistributionAccruedUsdt6: stableAccounting?.[6],
-    }), [confirmFundingAmountUsdt6, draft.purchase, polygonSafe, purchaseAuthorization, stableAccounting]);
+    }), [confirmFundingAmountUsdt6, draft.purchase, listingFundingToken, polygonSafe, purchaseAuthorization, stableAccounting]);
     const canConfirmFunding = fundingConfirmationIssues.length === 0;
     const purchaseExecuted = purchaseStatus >= 4;
     const positionRecorded = purchaseStatus >= 5;
@@ -608,6 +660,7 @@ export function CourtyardWizardPanel() {
             usdcRaw: resolvedAsset.listing.priceRaw,
             fromAddress: effectiveTreasuryAddress,
             toAddress: polygonHotWallet,
+            toToken: resolvedAsset.listing.currency.contract,
         });
         const quoteResponse = await fetch(`/api/lifi-quotes?${quoteParams.toString()}`);
         const quotePayload = await quoteResponse.json();
@@ -630,12 +683,14 @@ export function CourtyardWizardPanel() {
         return freshQuotes;
     }
 
-    async function resolveListing() {
+    async function resolveListing(inputUrl = draft.courtyardUrl) {
         setError('');
         setIsResolving(true);
         try {
             if (!effectiveTreasuryAddress) throw new Error('Avalanche treasury Safe is unavailable.');
-            const assetResponse = await fetch(`/api/courtyard-asset?url=${encodeURIComponent(draft.courtyardUrl.trim())}`);
+            const resolvedUrl = inputUrl.trim();
+            if (!resolvedUrl) throw new Error('Enter a Courtyard asset URL first.');
+            const assetResponse = await fetch(`/api/courtyard-asset?url=${encodeURIComponent(resolvedUrl)}`);
             const assetPayload = await assetResponse.json();
             if (!assetResponse.ok) throw new Error(assetPayload.error || 'Unable to resolve Courtyard listing');
             const resolvedAsset = assetPayload as CourtyardAsset;
@@ -643,6 +698,7 @@ export function CourtyardWizardPanel() {
 
             updateDraft((current) => ({
                 ...current,
+                courtyardUrl: resolvedUrl,
                 activeStep: 'preflight',
                 completed: { resolve: true },
                 asset: resolvedAsset,
@@ -680,6 +736,15 @@ export function CourtyardWizardPanel() {
         } finally {
             setIsResolving(false);
         }
+    }
+
+    async function useDealInWizard(deal: CourtyardDeal) {
+        updateDraft((current) => ({ ...current, courtyardUrl: deal.assetUrl }));
+        await resolveListing(deal.assetUrl);
+    }
+
+    function canResolveDealInWizard(deal: CourtyardDeal) {
+        return deal.fitStatus === 'fits';
     }
 
     async function ensureAvalanche() {
@@ -770,7 +835,7 @@ export function CourtyardWizardPanel() {
                     LZ_EID.POLYGON_MAINNET,
                     COURTYARD_MARKETPLACE_ID,
                     bytes32FromInput(draft.purchase.assetRef),
-                    POLYGON_USDC,
+                    listingFundingToken,
                     parseUsdt6Input(draft.purchase.maxSpendUsdt),
                     bytes32FromInput(draft.purchase.mandateRef),
                 ],
@@ -790,7 +855,7 @@ export function CourtyardWizardPanel() {
                 functionName: 'confirmPurchaseFunding',
                 args: [
                     purchaseKey,
-                    POLYGON_USDC,
+                    listingFundingToken,
                     parseUsdt6Input(draft.purchase.releaseAmountUsdt),
                     LZ_EID.POLYGON_MAINNET,
                     polygonSafe as `0x${string}`,
@@ -919,6 +984,63 @@ export function CourtyardWizardPanel() {
             case 'resolve':
                 return (
                     <Panel variant="inline" title="Resolve Courtyard listing">
+                        <div className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <div className="text-sm font-semibold text-white">Best Courtyard deals</div>
+                                    <div className="mt-1 text-xs leading-5 text-gray-400">
+                                        Pokemon only, grades 10 GEM MINT and 10 PRISTINE, ranked against current liquid treasury budget: {dealBudgetLabel}.
+                                    </div>
+                                </div>
+                                <AdminButton onClick={() => void courtyardDeals.refetch()} disabled={courtyardDeals.isFetching || dealBudgetUsdt6 === undefined} className="text-xs">
+                                    {courtyardDeals.isFetching ? 'Scanning...' : 'Refresh deals'}
+                                </AdminButton>
+                            </div>
+                            {courtyardDeals.isError ? (
+                                <div className="rounded-md border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                                    {courtyardDeals.error instanceof Error ? courtyardDeals.error.message : 'Deal feed unavailable.'}
+                                </div>
+                            ) : null}
+                            {courtyardDeals.isLoading ? (
+                                <div className="text-xs text-gray-400">Scanning catalog...</div>
+                            ) : null}
+                            {courtyardDeals.data?.deals.length === 0 ? (
+                                <div className="text-xs text-gray-400">No matching high-grade Pokemon deals fit the current filters.</div>
+                            ) : null}
+                            {courtyardDeals.data?.deals.length ? (
+                                <div className="grid gap-2">
+                                    {courtyardDeals.data.deals.slice(0, 5).map((deal) => (
+                                        <div key={`${deal.assetId}-${deal.priceUsdt6}`} className="grid gap-3 rounded-md border border-white/10 bg-black/20 p-3 md:grid-cols-[64px_minmax(0,1fr)_auto] md:items-center">
+                                            {deal.image ? <img src={deal.image} alt={deal.title} className="aspect-[3/4] w-16 rounded-md object-cover" /> : <div className="aspect-[3/4] w-16 rounded-md bg-white/5" />}
+                                            <div className="min-w-0">
+                                                <div className="min-w-0 truncate text-sm font-semibold text-white">{deal.title}</div>
+                                                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400">
+                                                    <span>{deal.grade ?? 'grade n/a'}</span>
+                                                    <span>Price {formatUsd(deal.priceUsd)}</span>
+                                                    <span>FMV {formatUsd(deal.fmvUsd)}</span>
+                                                    <span className={(deal.upsideUsd ?? 0) > 0 ? 'text-emerald-300' : 'text-gray-400'}>Upside {formatUsd(deal.upsideUsd)}</span>
+                                                    <span>Discount {formatPct(deal.discountPct)}</span>
+                                                    <span>Confidence {(deal.confidence * 100).toFixed(0)}%</span>
+                                                    {deal.marketplace ? <span>{deal.marketplace}</span> : null}
+                                                </div>
+                                                {!deal.assetUrl.includes('courtyard.io/asset/') ? (
+                                                    <div className="mt-1 text-xs text-gray-400">Marketplace listing found; the wizard will prepare an OpenSea hot-wallet buy for the same Courtyard-vaulted NFT.</div>
+                                                ) : null}
+                                                {deal.blockedReason ? <div className="mt-1 text-xs text-amber-200">{deal.blockedReason}</div> : null}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 md:justify-end">
+                                                <a href={deal.assetUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-white/20 hover:bg-white/[0.085]">
+                                                    Open
+                                                </a>
+                                                <AdminButton variant="primary" className="text-xs" onClick={() => void useDealInWizard(deal)} disabled={!canResolveDealInWizard(deal) || isResolving}>
+                                                    Use in wizard
+                                                </AdminButton>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
                         <Field
                             label="Courtyard asset URL"
                             value={draft.courtyardUrl}
@@ -927,7 +1049,7 @@ export function CourtyardWizardPanel() {
                             mono
                         />
                         <div className="flex flex-wrap gap-3">
-                            <AdminButton variant="primary" onClick={resolveListing} disabled={isResolving || !draft.courtyardUrl.trim()}>
+                            <AdminButton variant="primary" onClick={() => void resolveListing()} disabled={isResolving || !draft.courtyardUrl.trim()}>
                                 {isResolving ? 'Resolving...' : 'Resolve and quote funding'}
                             </AdminButton>
                             <AdminButton onClick={resetWizard}>Reset</AdminButton>
@@ -974,7 +1096,7 @@ export function CourtyardWizardPanel() {
                             <AdminButton variant="primary" onClick={() => completeStep('preflight', 'authorize_purchase')} disabled={!preflightOk}>
                                 Continue to authorization
                             </AdminButton>
-                            <AdminButton onClick={resolveListing} disabled={isResolving}>Refresh quote</AdminButton>
+                            <AdminButton onClick={() => void resolveListing()} disabled={isResolving}>Refresh quote</AdminButton>
                         </div>
                     </Panel>
                 );
@@ -1104,7 +1226,7 @@ export function CourtyardWizardPanel() {
                         </div>
                         {asset ? (
                             <a href={asset.sourceUrl} target="_blank" rel="noreferrer" className="w-fit rounded-md border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#0b0a14] transition-colors hover:bg-[#ffd75b]">
-                                Open Courtyard listing
+                                Open marketplace listing
                             </a>
                         ) : null}
                         <AdminButton onClick={() => void refetchNftOwner()} disabled={isNftOwnerFetching}>

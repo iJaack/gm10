@@ -106,6 +106,10 @@ function assertAvaxAddress(value) {
   if (!ADDRESS_RE.test(String(value ?? ''))) throw new Error('Missing Avalanche Safe address for LI.FI quote');
 }
 
+function assertEvmAddress(value, label) {
+  if (!ADDRESS_RE.test(String(value ?? ''))) throw new Error(`Missing ${label} address for LI.FI quote`);
+}
+
 function assertSolanaAddress(value) {
   solanaAddressToBytes32(String(value ?? ''));
 }
@@ -183,9 +187,10 @@ async function fetchLiFiTargetQuote(kind, params, targetRaw, preferredFromAmount
   return fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmountRaw, fetchImpl);
 }
 
-export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress }, fetchImpl = fetch) {
+export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress, toToken = POLYGON_USDC }, fetchImpl = fetch) {
   if (!/^\d+$/.test(String(usdcRaw ?? ''))) throw new Error('Missing USDC raw target amount');
   if (!fromAddress || !toAddress) throw new Error('Missing Safe address for LI.FI quote');
+  assertEvmAddress(toToken, 'Polygon funding token');
 
   const base = {
     fromChain: AVALANCHE_CHAIN_ID,
@@ -200,7 +205,7 @@ export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress }, fe
 
   const usdcRawQuote = await fetchLiFiTargetQuote(
     'polygonUsdc',
-    { ...base, toToken: POLYGON_USDC },
+    { ...base, toToken },
     usdcRaw,
     usdcPreferredFromAmountRaw(usdcRaw),
     fetchImpl,

@@ -1,7 +1,10 @@
 import { parseUsdc6 } from './valuation.js';
 
 const COURTYARD_ASSET_RE = /courtyard\.io\/asset\/([a-zA-Z0-9]+)/;
+const OPENSEA_COURTYARD_RE = /opensea\.io\/(?:assets|item)\/polygon\/(0x[a-fA-F0-9]{40})\/([0-9]+)/;
 const POLYGON_USDC = '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359';
+const OPENSEA_COURTYARD_COLLECTION = 'courtyard-nft';
+const OPENSEA_COURTYARD_CHAIN = 'matic';
 const COURTYARD_SOURCE_NAME = 'Courtyard';
 
 function cleanString(value) {
@@ -41,6 +44,43 @@ function tokenIdToHex(tokenId) {
   return `0x${raw.toString(16).padStart(64, '0')}`;
 }
 
+function decimalFromRaw(rawValue, decimals = 6) {
+  const raw = BigInt(String(rawValue ?? '0'));
+  const scale = 10n ** BigInt(decimals);
+  const whole = raw / scale;
+  const fraction = (raw % scale).toString().padStart(decimals, '0').replace(/0+$/, '');
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+function traitValue(payload, traitType) {
+  const wanted = String(traitType).toLowerCase();
+  return cleanString(payload?.traits?.find?.((trait) => String(trait?.trait_type ?? trait?.name ?? '').toLowerCase() === wanted)?.value);
+}
+
+function openseaTokenFromInput(input) {
+  const value = String(input ?? '').trim();
+  const match = value.match(OPENSEA_COURTYARD_RE);
+  if (!match) return undefined;
+  return {
+    contract: match[1],
+    tokenId: match[2],
+  };
+}
+
+async function fetchOpenSeaJson(path, { apiKey = process.env.OPENSEA_API_KEY, fetchImpl = fetch } = {}) {
+  if (!apiKey) throw new Error('Set OPENSEA_API_KEY before resolving OpenSea Courtyard listings.');
+  const response = await fetchImpl(`https://api.opensea.io${path}`, {
+    headers: {
+      accept: 'application/json',
+      'x-api-key': apiKey,
+      'user-agent': 'gm10-admin-courtyard-wizard',
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.errors?.[0] ?? payload?.error ?? payload?.message ?? `OpenSea returned ${response.status}`);
+  return payload;
+}
+
 export function parseCourtyardAssetId(input) {
   const value = String(input ?? '').trim();
   if (!value) throw new Error('Missing Courtyard asset URL');
@@ -48,6 +88,12 @@ export function parseCourtyardAssetId(input) {
   if (match?.[1]) return match[1];
   if (/^[a-zA-Z0-9]{32,}$/.test(value)) return value;
   throw new Error('Use a Courtyard asset URL like https://courtyard.io/asset/<id>');
+}
+
+export function parseOpenSeaCourtyardListing(input) {
+  const parsed = openseaTokenFromInput(input);
+  if (!parsed) throw new Error('Use an OpenSea Courtyard item URL like https://opensea.io/item/polygon/<contract>/<tokenId>');
+  return parsed;
 }
 
 export function normalizeCourtyardTokenMetadataIdentity(payload) {
@@ -182,6 +228,99 @@ export function normalizeCourtyardAsset(assetId, payload, nowMs = Date.now()) {
       proofRef: `courtyard:proof:${assetId}:${orderId}:${expiration}`,
     },
   };
+}
+
+export function normalizeOpenSeaCourtyardAsset({ contract, tokenId, nft, listing, nowMs = Date.now() }) {
+  const price = listing?.price?.current;
+  const symbol = String(price?.currency ?? '').toUpperCase();
+  const decimals = Number(price?.decimals);
+  const priceRaw = String(price?.value ?? '');
+  if (symbol !== 'USDC' || !Number.isFinite(decimals) || !priceRaw) throw new Error('OpenSea listing is missing a USDC price');
+  if (!listing?.order_hash) throw new Error('OpenSea listing is missing an order hash');
+
+  const params = listing?.protocol_data?.parameters ?? {};
+  const expiration = params.endTime ? new Date(Number(params.endTime) * 1000).toISOString() : '';
+  const expiresAtMs = Date.parse(expiration);
+  const expiresSoon = Number.isFinite(expiresAtMs) && expiresAtMs - nowMs <= 24 * 60 * 60 * 1000;
+  const sourceUrl = cleanString(nft?.opensea_url) ?? `https://opensea.io/item/polygon/${contract}/${tokenId}`;
+  const priceDecimal = decimalFromRaw(priceRaw, decimals);
+  const orderId = String(listing.order_hash);
+  const title = cleanString(nft?.name) ?? `Courtyard token ${tokenId}`;
+  const metadataUrl = cleanString(nft?.metadata_url) ?? sourceUrl;
+  const proofRef = `opensea:proof:${tokenId}:${orderId}:${expiration}`;
+
+  return {
+    assetId: tokenId,
+    sourceUrl,
+    title,
+    image: cleanString(nft?.display_image_url ?? nft?.image_url ?? nft?.original_image_url) ?? '',
+    collectionName: 'Courtyard.io',
+    collectionContract: contract,
+    tokenId: String(tokenId),
+    collectibleId: tokenId,
+    metadataUrl,
+    chain: 'polygon',
+    attributes: nft?.traits ?? [],
+    listing: {
+      orderId,
+      side: 'sell',
+      priceDecimal,
+      priceRaw,
+      currency: {
+        symbol,
+        decimals,
+        contract: cleanString(params.consideration?.[0]?.token) ?? '',
+      },
+      maker: cleanString(params.offerer) ?? '',
+      kind: 'seaport',
+      source: 'OpenSea',
+      expiration,
+      expiresSoon,
+    },
+    prefill: {
+      purchaseKey: `opensea:${tokenId}:${orderId}`,
+      assetRef: `opensea:asset:${tokenId}`,
+      maxSpendUsdt: priceDecimal,
+      releaseAmountUsdt: priceDecimal,
+      mandateRef: `opensea:buy:${tokenId}:${orderId}:${priceDecimal}:${expiration}`,
+      custodyMode: '0',
+      tokenStandard: 'ERC721',
+      evmCollection: contract,
+      tokenId: String(tokenId),
+      nonEvmCollection: '',
+      nonEvmTokenId: '',
+      externalAssetId: String(tokenId),
+      categoryId: traitValue(nft, 'Category') === 'Pokémon' ? 'POKEMON_CARD' : 'COLLECTIBLE',
+      marketplaceProvenanceRef: `opensea:order:${orderId}`,
+      acquisitionPriceUsdt: priceDecimal,
+      metadataRef: metadataUrl,
+      proofRef,
+    },
+  };
+}
+
+export async function fetchOpenSeaCourtyardAsset({
+  input,
+  contract,
+  tokenId,
+  openSeaApiKey = process.env.OPENSEA_API_KEY,
+  fetchImpl = fetch,
+  nowMs = Date.now(),
+} = {}) {
+  const parsed = tokenId ? { contract, tokenId } : parseOpenSeaCourtyardListing(input);
+  const resolvedContract = parsed.contract;
+  const resolvedTokenId = parsed.tokenId;
+  const [nftPayload, listing] = await Promise.all([
+    fetchOpenSeaJson(`/api/v2/chain/${OPENSEA_COURTYARD_CHAIN}/contract/${resolvedContract}/nfts/${resolvedTokenId}`, { apiKey: openSeaApiKey, fetchImpl }),
+    fetchOpenSeaJson(`/api/v2/listings/collection/${OPENSEA_COURTYARD_COLLECTION}/nfts/${resolvedTokenId}/best`, { apiKey: openSeaApiKey, fetchImpl }),
+  ]);
+  return normalizeOpenSeaCourtyardAsset({
+    contract: resolvedContract,
+    tokenId: resolvedTokenId,
+    nft: nftPayload?.nft,
+    listing,
+    nowMs,
+  });
 }
 
 function missingCourtyardEvidenceObservation({ assetId, cardKey, reason, fetchedAt }) {

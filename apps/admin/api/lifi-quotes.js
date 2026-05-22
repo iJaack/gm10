@@ -6,6 +6,7 @@ export default async function handler(request, response) {
       usdcRaw: request.query?.usdcRaw,
       fromAddress: request.query?.fromAddress,
       toAddress: request.query?.toAddress,
+      toToken: request.query?.toToken,
     });
     response.setHeader('Cache-Control', 'no-store');
     response.status(200).json(quotes);

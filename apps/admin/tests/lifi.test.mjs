@@ -46,8 +46,10 @@ test('normalizes exact-output quote and source gas', () => {
 });
 
 test('builds one USDC route with a 0.1 percent AVAX buffer', async () => {
+  const seenToTokens = [];
   const fetchImpl = async (url) => {
     const parsed = new URL(url);
+    seenToTokens.push(parsed.searchParams.get('toToken'));
     const toAmount = parsed.searchParams.get('toAmount');
     return {
       ok: true,
@@ -71,6 +73,32 @@ test('builds one USDC route with a 0.1 percent AVAX buffer', async () => {
   assert.equal(result.summary.totalAvax, '1.01');
   assert.equal(result.summary.bufferedAvax, '1.01101');
   assert.equal(result.summary.bufferBps, 10);
+  assert.deepEqual(seenToTokens, ['0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359']);
+});
+
+test('builds a Polygon route to the listing currency token', async () => {
+  let seenToToken = '';
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    seenToToken = parsed.searchParams.get('toToken');
+    return {
+      ok: true,
+      async json() {
+        return quote({
+          fromAmount: '1000000000000000000',
+          toAmount: parsed.searchParams.get('toAmount'),
+          gasAmount: '10000000000000000',
+        });
+      },
+    };
+  };
+  await buildFundingQuotes({
+    usdcRaw: '6000000',
+    fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    toAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    toToken: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+  }, fetchImpl);
+  assert.equal(seenToToken, '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174');
 });
 
 test('falls back to exact-source LI.FI quotes when exact-output routing is unavailable', async () => {
