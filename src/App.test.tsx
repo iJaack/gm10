@@ -380,7 +380,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/wallet accounting/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /preview continuous commit/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /mint new \$CATCH/i })).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
 
@@ -500,7 +500,7 @@ describe('page compression regressions', () => {
         fireEvent.change(await screen.findByRole('combobox', { name: /source token/i }), { target: { value: 'usdc-base' } });
         const amountInput = await screen.findByLabelText(/commit amount in USDC/i);
         fireEvent.change(amountInput, { target: { value: '100' } });
-        fireEvent.click(screen.getByRole('button', { name: /preview continuous commit/i }));
+        fireEvent.click(screen.getByRole('button', { name: /mint new \$CATCH/i }));
 
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
         expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
