@@ -8,8 +8,10 @@
  *   4. Holdings   — horizontal marquee of portfolio cards → /portfolio
  */
 
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { formatEther } from 'viem';
+import { formatEther, formatUnits } from 'viem';
+import { usePublicClient } from 'wagmi';
 import { Web3Providers } from '../components/Web3Providers';
 import {
     DataMono,
@@ -23,18 +25,86 @@ import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiPr
 import { useTheme } from '../hooks/useTheme';
 import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
+import { GM10_FUND_ABI } from '../data/contracts';
+import { GM10_PRIMARY_DEPLOYMENT } from '../data/gm10Config';
 
 /* ─────────────────────────────────────────────── */
 /*  1. HERO                                         */
 /* ─────────────────────────────────────────────── */
 
+const CAPITAL_REFRESH_INTERVAL_MS = 15_000;
+const CAPITAL_EVENT_BLOCK_CHUNK = 2_000n;
+const CAPITAL_EVENT_BATCH_SIZE = 12;
+const CONTINUOUS_EVENTS_FROM_BLOCK = 85_856_585n;
+const FALLBACK_ROUND_1_RAISED_AVAX = 500;
+
+function useContinuousSettlementTotalUsdt6() {
+    const publicClient = usePublicClient();
+    const [totalUsdt6, setTotalUsdt6] = useState<bigint | undefined>(undefined);
+    const proxyAddress = GM10_PRIMARY_DEPLOYMENT.proxy.address;
+
+    useEffect(() => {
+        if (!publicClient || !proxyAddress) return undefined;
+        const client = publicClient;
+        let cancelled = false;
+
+        async function refresh() {
+            try {
+                const latestBlock = await client.getBlockNumber();
+                const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+                let fromBlock = BigInt(ROUND_2_CLOSE_LEDGER.finalizedBlock);
+                if (CONTINUOUS_EVENTS_FROM_BLOCK > fromBlock) fromBlock = CONTINUOUS_EVENTS_FROM_BLOCK;
+                while (fromBlock <= latestBlock) {
+                    const toBlock = fromBlock + CAPITAL_EVENT_BLOCK_CHUNK > latestBlock
+                        ? latestBlock
+                        : fromBlock + CAPITAL_EVENT_BLOCK_CHUNK;
+                    ranges.push({ fromBlock, toBlock });
+                    fromBlock = toBlock + 1n;
+                }
+                const events = [];
+                for (let i = 0; i < ranges.length; i += CAPITAL_EVENT_BATCH_SIZE) {
+                    const batch = ranges.slice(i, i + CAPITAL_EVENT_BATCH_SIZE);
+                    events.push(...(await Promise.all(batch.map((range) => client.getContractEvents({
+                        address: proxyAddress,
+                        abi: GM10_FUND_ABI,
+                        eventName: 'ContinuousMintSettled',
+                        fromBlock: range.fromBlock,
+                        toBlock: range.toBlock,
+                    })))).flat());
+                }
+                if (cancelled) return;
+                setTotalUsdt6(events.reduce((sum, event) => (
+                    sum + (event.args.settlementAmountUsdt6 ?? 0n)
+                ), 0n));
+            } catch {
+                if (!cancelled) setTotalUsdt6(undefined);
+            }
+        }
+
+        void refresh();
+        const interval = window.setInterval(refresh, CAPITAL_REFRESH_INTERVAL_MS);
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, [publicClient, proxyAddress]);
+
+    return totalUsdt6;
+}
 
 function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
     const avaxUsd = useAvaxPrice();
-    const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : 500;
-    const totalRaisedAvax = archiveRaisedAvax + ROUND_2_CLOSE_LEDGER.raisedAvax;
+    const continuousSettlementTotalUsdt6 = useContinuousSettlementTotalUsdt6();
+    const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : FALLBACK_ROUND_1_RAISED_AVAX;
+    const roundRaisedAvax = round.roundSource === 'onchain' && round.round
+        ? Number(formatEther(round.round.raisedAmount))
+        : ROUND_2_CLOSE_LEDGER.raisedAvax;
+    const continuousRaisedAvax = continuousSettlementTotalUsdt6 !== undefined && avaxUsd > 0
+        ? Number(formatUnits(continuousSettlementTotalUsdt6, 6)) / avaxUsd
+        : 0;
+    const totalRaisedAvax = archiveRaisedAvax + roundRaisedAvax + continuousRaisedAvax;
     const totalRaisedUsd = totalRaisedAvax * avaxUsd;
     const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', {
         minimumFractionDigits: 0,
@@ -129,11 +199,11 @@ function Hero() {
                                 {totalRaisedLabel}
                             </div>
                             <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
-                                {totalRaisedUsdLabel} raised across finalized rounds, before continuous commits.
+                                {totalRaisedUsdLabel} total raised across recorded rounds, including live continuous commits.
                             </div>
                             <div className="mt-4 grid grid-cols-3 gap-2">
                                 {[
-                                    ['No cap clock', 'Continuous'],
+                                    ['Live source', continuousSettlementTotalUsdt6 === undefined ? 'Loading' : 'Onchain logs'],
                                     ['Per commit', 'NAV mint'],
                                     ['Proof live', `Block ${ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}`],
                                 ].map(([label, value], index) => (

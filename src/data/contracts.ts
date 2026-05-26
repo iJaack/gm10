@@ -1,5 +1,17 @@
 export const GM10_FUND_ABI = [
     {
+        anonymous: false,
+        inputs: [
+            { indexed: true, name: 'commitId', type: 'bytes32' },
+            { indexed: true, name: 'buyer', type: 'address' },
+            { indexed: false, name: 'settlementAmountUsdt6', type: 'uint256' },
+            { indexed: false, name: 'buyerCatch18', type: 'uint256' },
+            { indexed: false, name: 'segmentCatchEach18', type: 'uint256' },
+        ],
+        name: 'ContinuousMintSettled',
+        type: 'event',
+    },
+    {
         inputs: [{ name: '_roundId', type: 'uint256' }],
         name: 'invest',
         outputs: [],
