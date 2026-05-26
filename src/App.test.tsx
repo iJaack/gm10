@@ -569,6 +569,8 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/dynamic supply expands when successful commits mint from settled value/i)).toBeInTheDocument();
         expect(screen.getAllByText(/total minted/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/excluded system supply/i).length).toBeGreaterThan(0);
+        const profitEligibleHero = screen.getAllByText(/174,421\.1693 CATCH/i)[0].closest('.relative');
+        expect(profitEligibleHero).toHaveClass('h-28');
         expect(screen.queryByText(/no fixed cap/i)).not.toBeInTheDocument();
         expect(screen.getByText(/liquidity & venues/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^LFJ$/).length).toBeGreaterThan(0);
