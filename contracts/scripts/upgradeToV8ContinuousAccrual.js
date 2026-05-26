@@ -181,6 +181,7 @@ async function main() {
   const signerAddress = await signer.getAddress();
   const network = hre.network.name;
   const deploymentKey = process.env.DEPLOYMENT_KEY || network;
+  const shouldExecute = process.env.EXECUTE !== "false";
   const { deploymentsPath, deployments } = loadDeployments();
   const deployment = deployments[deploymentKey] || deployments[network] || {};
   const proxy = optionalAddress("FUND_PROXY_ADDRESS") || (deployment.proxy ? ethers.getAddress(deployment.proxy) : "");
@@ -202,6 +203,9 @@ async function main() {
     (deployment.tokenomicsController ? ethers.getAddress(deployment.tokenomicsController) : "");
   if (controllerAddress) {
     console.log("  Controller         :", controllerAddress, "(reused)");
+  } else if (!shouldExecute) {
+    controllerAddress = signerAddress;
+    console.log("  Controller         :", controllerAddress, "(validation placeholder)");
   } else {
     const segmentWallets = resolveSegmentWallets(deployment, signerAddress, network);
     console.log("  Segment wallets    :", segmentWallets.join(", "));
@@ -224,6 +228,11 @@ async function main() {
   await validateUpgrade(proxy, FundV8, upgradeOptions, currentContractName);
   console.log("  Upgrade validation : ok");
 
+  if (!shouldExecute) {
+    console.log("  EXECUTE=false; skipping controller, implementation, and upgrade transactions.");
+    return;
+  }
+
   let implementationV8 = optionalAddress("IMPLEMENTATION_V8_ADDRESS");
   if (implementationV8) {
     console.log("  Implementation V8  :", implementationV8, "(reused)");
@@ -238,12 +247,6 @@ async function main() {
   const initData = fundV8Interface.encodeFunctionData("initializeV8", []);
   const executionMode = process.env.EXECUTION_MODE || (process.env.SAFE_ADDRESS ? "safe" : "direct");
   console.log("  Execution mode     :", executionMode);
-
-  if (process.env.EXECUTE === "false") {
-    console.log("  EXECUTE=false; skipping upgrade transaction.");
-    console.log("  Initialize data    :", initData);
-    return;
-  }
 
   const tx = executionMode === "safe"
     ? await executeSafeUpgrade({
