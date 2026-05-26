@@ -14,6 +14,7 @@
  *   IMPLEMENTATION_V8_ADDRESS=0x...
  *   EXECUTION_MODE=direct|safe
  *   EXECUTE=false
+ *   UNSAFE_ALLOW_RENAMES=true
  *   SAFE_ADDRESS=0x...
  *   CORE_TEAM_WALLET=0x...
  *   GOVERNANCE_TREASURY_WALLET=0x...
@@ -221,6 +222,7 @@ async function main() {
   const upgradeOptions = {
     kind: "uups",
     unsafeAllow,
+    unsafeAllowRenames: process.env.UNSAFE_ALLOW_RENAMES === "true",
     constructorArgs: [controllerAddress],
   };
   const currentContractName = resolveCurrentContractName(deployment);
