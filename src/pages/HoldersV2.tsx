@@ -323,9 +323,8 @@ function CompositionDonut() {
     const flowRows = [
         {
             label: 'Market-support reserve',
-            detail: 'Sale-profit funds reserved for buyback-burn execution and LP support; no APR/APY claim is advertised.',
+            detail: 'Sale-profit funds reserved for buyback-burn execution and LP support.',
             value: holder.labels.holderProfitsClaimableClaimed,
-            hint: holder.labels.holderProfitApr,
         },
     ];
 

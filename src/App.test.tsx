@@ -575,6 +575,8 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/^Pharaoh$/).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
         expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
+        expect(screen.queryByText(/no apr \/ apy/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/apr\/apy/i)).not.toBeInTheDocument();
     });
 
     it('uses live NAV for connected wallet reference value', async () => {
