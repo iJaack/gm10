@@ -10,6 +10,7 @@ const wagmiMocks = vi.hoisted(() => ({
     },
     balanceValue: undefined as bigint | undefined,
     roundState: undefined as any,
+    contractEvents: [] as any[],
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
     reset: vi.fn(),
@@ -36,6 +37,10 @@ vi.mock('wagmi', () => ({
     useAccount: () => wagmiMocks.account,
     useBalance: () => ({
         data: wagmiMocks.balanceValue === undefined ? undefined : { value: wagmiMocks.balanceValue },
+    }),
+    usePublicClient: () => ({
+        getBlockNumber: vi.fn(async () => 85856585n),
+        getContractEvents: vi.fn(async () => wagmiMocks.contractEvents),
     }),
     useReadContract: () => ({ data: undefined }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
@@ -292,6 +297,7 @@ afterEach(() => {
     wagmiMocks.account = { address: undefined, isConnected: false };
     wagmiMocks.balanceValue = undefined;
     wagmiMocks.roundState = undefined;
+    wagmiMocks.contractEvents = [];
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
     wagmiMocks.reset.mockClear();
@@ -342,14 +348,28 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
         expect(screen.getAllByText(/continuous round/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/raised across finalized rounds/i)).toBeInTheDocument();
+        expect(screen.getByText(/5,499\.9996 AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/total raised across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
+        expect(screen.queryByText(/raised across finalized rounds/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Continuous commits are the current entry mode/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/legacy raise of .* cap/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /mint new \$CATCH/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
         expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
+    });
+
+    it('adds live continuous settlement logs to the homepage strategy capital total', async () => {
+        wagmiMocks.contractEvents = [
+            { args: { settlementAmountUsdt6: 950_000_000n } },
+        ];
+
+        renderAt('/');
+
+        await waitFor(() => {
+            expect(screen.getByText(/5,599\.9996 AVAX/i)).toBeInTheDocument();
+        });
+        expect(screen.getByText(/onchain logs/i)).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', async () => {

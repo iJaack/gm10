@@ -31,6 +31,7 @@ const MAX_PUBLIC_POSITIONS = 40;
 const DEFAULT_PLATFORM_NAV: PlatformNavState = { status: 'unavailable' };
 const AVAX_WEI = 10n ** 18n;
 const PUBLIC_VALUATION_REFRESH_INTERVAL_MS = 30_000;
+const ROUND_STATE_REFRESH_INTERVAL_MS = 15_000;
 
 const ROUND_2_PLANNED_ROUND = {
     roundId: BigInt(BUY_PAGE_DEFAULTS.roundId),
@@ -308,7 +309,7 @@ export function useFujiRoundState() {
         address: proxyAddress ?? ZERO_ADDRESS,
         abi: GM10_FUND_ABI,
         functionName: 'currentRoundId',
-        query: { enabled: Boolean(proxyAddress) },
+        query: { enabled: Boolean(proxyAddress), refetchInterval: ROUND_STATE_REFRESH_INTERVAL_MS },
     });
 
     const { data: round2 } = useReadContract({
@@ -316,7 +317,7 @@ export function useFujiRoundState() {
         abi: GM10_FUND_ABI,
         functionName: 'getRound',
         args: [BigInt(BUY_PAGE_DEFAULTS.roundId)],
-        query: { enabled: Boolean(proxyAddress) },
+        query: { enabled: Boolean(proxyAddress), refetchInterval: ROUND_STATE_REFRESH_INTERVAL_MS },
     });
 
     const { data: round1Archive } = useReadContract({
@@ -324,7 +325,7 @@ export function useFujiRoundState() {
         abi: GM10_FUND_ABI,
         functionName: 'getRound',
         args: [1n],
-        query: { enabled: Boolean(proxyAddress) },
+        query: { enabled: Boolean(proxyAddress), refetchInterval: ROUND_STATE_REFRESH_INTERVAL_MS },
     });
 
     const derivedRound = deriveFujiRoundState({
