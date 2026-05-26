@@ -66,7 +66,7 @@ export const ROUND_PROCEEDS_ALLOCATION = {
             detail: 'Sent to the team wallet after Round 2 finalizes and used for bootstrapping expenses.',
         },
     ],
-    realizedProfitWaterfall: 'Separate from realized sale profit, which later follows the sale waterfall: 25% treasury reinvestment, 40% holder claim bucket, and 35% LP replenishment. The LP bucket is split in half: one half market-buys $CATCH, the other half buys or retains AVAX, then the resulting CATCH/AVAX liquidity is added 50/50 to LFJ and Pharaoh, with LFJ LP burned.',
+    realizedProfitWaterfall: 'Separate from realized sale profit. Future sale profit routes dynamically by market snapshot: most profit preserves card-buying power, a bounded share supports LP depth, and discount conditions can reserve budget for CATCH buyback-and-burn. Routine holder claims are disabled.',
 } as const;
 
 export const ROUND_2_CLOSE_LEDGER = {
@@ -200,7 +200,7 @@ export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     },
     {
         title: '📊 $CATCH tracks it all',
-        body: 'One token tracks every round contribution, holding, realized exit, LP replenishment, holder claim buckets, and reference NAV as the strategy evolves.',
+        body: 'One token tracks every commit, holding, realized exit, market-support reserve, and conservative reference NAV as the strategy evolves.',
     },
 ] as const;
 
@@ -209,53 +209,53 @@ export const TOKEN_ALLOCATION = [
         label: 'Round buyers',
         percent: 95.24,
         color: 'from-sky-500 to-cyan-400',
-        detail: 'Every finalized round mints buyer tokens from actual sold allocation. There is no max supply reserve.',
+        detail: 'Every successful continuous commit mints buyer tokens from settled value. There is no max supply reserve.',
     },
     {
         label: 'Core Team',
         percent: 0.95,
         color: 'from-red-500 to-orange-400',
-        detail: 'Minted as 1% of each finalized round’s sold buyer tokens and excluded from profit share at the wallet level.',
+        detail: 'Minted as 1% of each successful commit’s buyer tokens and excluded from circulating holder supply at the wallet level.',
     },
     {
         label: 'Governance Treasury',
         percent: 0.95,
         color: 'from-indigo-500 to-blue-500',
-        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for audits, legal, integrations, and operations.',
+        detail: 'Minted as 1% of each successful commit’s buyer tokens for audits, legal, integrations, and operations.',
     },
     {
         label: 'Community & Ecosystem',
         percent: 0.95,
         color: 'from-emerald-500 to-teal-400',
-        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for collector campaigns and community activations.',
+        detail: 'Minted as 1% of each successful commit’s buyer tokens for collector campaigns and community activations.',
     },
     {
         label: 'Advisors',
         percent: 0.95,
         color: 'from-fuchsia-500 to-pink-400',
-        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for specialist contributors.',
+        detail: 'Minted as 1% of each successful commit’s buyer tokens for specialist contributors.',
     },
     {
         label: 'Strategic Partnerships',
         percent: 0.95,
         color: 'from-violet-500 to-purple-400',
-        detail: 'Minted as 1% of each finalized round’s sold buyer tokens for marketplace, ecosystem, and growth partnerships.',
+        detail: 'Minted as 1% of each successful commit’s buyer tokens for marketplace, ecosystem, and growth partnerships.',
     },
 ] as const;
 
 export const TOKEN_RELEASE_RULES = [
-    ['Round buyers', 'Minted from actual sold round allocation.'],
-    ['Core Team', '1% of buyer tokens minted at each finalized round.'],
-    ['Governance Treasury', '1% of buyer tokens minted at each finalized round.'],
-    ['Community & Ecosystem', '1% of buyer tokens minted at each finalized round.'],
-    ['Advisors', '1% of buyer tokens minted at each finalized round.'],
-    ['Strategic Partnerships', '1% of buyer tokens minted at each finalized round.'],
+    ['Commit buyers', 'Minted from settled continuous commit value.'],
+    ['Core Team', '1% of buyer tokens minted at each successful commit.'],
+    ['Governance Treasury', '1% of buyer tokens minted at each successful commit.'],
+    ['Community & Ecosystem', '1% of buyer tokens minted at each successful commit.'],
+    ['Advisors', '1% of buyer tokens minted at each successful commit.'],
+    ['Strategic Partnerships', '1% of buyer tokens minted at each successful commit.'],
 ] as const;
 
 export const WATERFALL = [
-    { label: 'Treasury reinvestment', percent: 25, color: 'from-sky-400 to-blue-500' },
-    { label: 'Holder claim bucket', percent: 40, color: 'from-cyan-400 to-sky-500' },
-    { label: 'LP replenishment', percent: 35, color: 'from-emerald-400 to-teal-500' },
+    { label: 'Buying power', percent: 70, color: 'from-sky-400 to-blue-500' },
+    { label: 'LP support', percent: 20, color: 'from-emerald-400 to-teal-500' },
+    { label: 'Buyback-burn reserve', percent: 10, color: 'from-cyan-400 to-sky-500' },
 ] as const;
 
 export const PURCHASE_FLOW = [
@@ -292,7 +292,7 @@ export const SALE_FLOW = [
     },
     {
         title: 'Principal first, profit next',
-        detail: 'Once principal is restored, realized profit is forced into treasury, holder claim, and LP replenishment buckets.',
+        detail: 'Once principal is restored, realized profit preserves buying power first, then routes bounded support to LP or buyback-burn budgets when market conditions justify it.',
     },
 ] as const;
 

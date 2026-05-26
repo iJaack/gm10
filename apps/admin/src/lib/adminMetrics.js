@@ -174,6 +174,6 @@ export function accountingBucketRows(stableAccounting) {
     { label: 'Outstanding purchase releases', value: stableAccounting?.[3], source: 'stableAccounting[3]' },
     { label: 'LP CATCH market-buy', value: stableAccounting?.[4], source: 'stableAccounting[4]' },
     { label: 'LP AVAX pairing', value: stableAccounting?.[5], source: 'stableAccounting[5]' },
-    { label: 'Holder claim bucket', value: stableAccounting?.[6], source: 'stableAccounting[6]' },
+    { label: 'Legacy holder bucket', value: stableAccounting?.[6], source: 'stableAccounting[6]' },
   ];
 }

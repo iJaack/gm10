@@ -302,7 +302,7 @@ export function DashboardPanel() {
                 value={formatToken6(stableAccountingRead.data?.[2])}
                 status={stableAccountingRead.data ? READ_STATUS.live : READ_STATUS.unavailable}
                 sourceLabel={stableAccountingRead.data ? 'stableAccounting' : 'unavailable'}
-                detail={`Holder claims ${formatToken6(stableAccountingRead.data?.[6])} · LP buy ${formatToken6(stableAccountingRead.data?.[4])} · LP AVAX side ${formatToken6(stableAccountingRead.data?.[5])}`}
+                detail={`Legacy holder bucket ${formatToken6(stableAccountingRead.data?.[6])} · LP buy ${formatToken6(stableAccountingRead.data?.[4])} · LP AVAX side ${formatToken6(stableAccountingRead.data?.[5])}`}
             />
         </AdminPage>
     );

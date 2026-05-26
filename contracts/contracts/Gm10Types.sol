@@ -168,4 +168,56 @@ library Gm10Types {
         int256 realizedPnlUsdt6;
         int256 unrealizedPnlUsdt6;
     }
+
+    struct ContinuousCommit {
+        bytes32 commitId;
+        bytes32 providerRouteId;
+        uint256 sourceChainId;
+        address sourceToken;
+        address settlementToken;
+        address buyer;
+        uint256 minSettlementAmount;
+        uint256 settledAmount;
+        uint256 mintedBuyerCatch18;
+        uint256 mintedSegmentCatch18;
+        uint64 quoteExpiresAt;
+        bool consumed;
+        bool deliveryRequested;
+        bool deliveryCompleted;
+    }
+
+    struct MarketSnapshot {
+        int256 spotPremiumBps;
+        uint256 lpCoverageBps;
+        uint256 protocolLpCoverageBps;
+        uint256 slippageDepthScoreBps;
+        uint256 liquidTreasuryRatioBps;
+        uint256 saleRoiBps;
+        bytes32 proofHash;
+        uint64 observedAt;
+    }
+
+    struct SaleProfitRoute {
+        uint256 reinvestBps;
+        uint256 lpSupportBps;
+        uint256 buybackBurnBps;
+    }
+
+    struct BuybackBurnExecution {
+        address venue;
+        address tokenIn;
+        uint256 amountIn;
+        uint256 minCatchOut;
+        uint256 deadline;
+        bytes32 proofHash;
+    }
+
+    struct LpSupportExecution {
+        address venue;
+        uint256 catchAmount;
+        uint256 pairedAvaxAmount;
+        uint8 custodyMode;
+        uint256 deadline;
+        bytes32 proofHash;
+    }
 }

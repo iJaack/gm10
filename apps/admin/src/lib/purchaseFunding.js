@@ -42,7 +42,7 @@ export function getFundingCapacityIssue({
     return 'Stored treasury accounting has not loaded yet.';
   }
   if (liquidTreasury < amount + holderDistribution) {
-    return 'Stored liquid treasury is below confirmed funding plus the holder claim bucket.';
+    return 'Stored liquid treasury is below confirmed funding plus the legacy reserved bucket. Run liquid treasury reconciliation before confirming funding.';
   }
   return '';
 }

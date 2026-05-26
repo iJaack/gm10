@@ -225,7 +225,7 @@ vi.mock('./hooks/useHolderDashboard', () => ({
         isConnected: false,
         claimState: {
             canClaim: false,
-            reason: 'Connect a wallet to check realized profit.',
+            reason: 'Connect a wallet to inspect CATCH accounting.',
         },
         labels: {
             totalSupply: '183,333.3333 CATCH',
@@ -240,9 +240,12 @@ vi.mock('./hooks/useHolderDashboard', () => ({
             claimedProfit: 'Connect wallet',
             totalProfitDeposited: '0 AVAX',
             holderProfitsClaimableClaimed: '$0.00',
-            holderProfitApr: 'APR unavailable',
+            holderProfitApr: 'No APR / APY',
             liquidTreasury: '$3,528.60',
             holderDistributionAccrued: '$0.00',
+            marketSupportReserve: '$0.00',
+            buybackBurnAccrued: '$0.00',
+            lpSupportAccrued: '$0.00',
             liquidityCatchBuyAccrued: '$0.00',
             liquidityAvaxPairingAccrued: '$0.00',
         },
@@ -435,7 +438,7 @@ describe('page compression regressions', () => {
 
         expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
         expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
-        expect(screen.getByText(/excluded from profit claims/i)).toBeInTheDocument();
+        expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
         expect(screen.getByText(/total raised/i)).toBeInTheDocument();
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/Across Rounds 1-2/i)).toBeInTheDocument();
@@ -555,10 +558,10 @@ describe('page compression regressions', () => {
         expect(liquidity?.detail).toMatch(/250 AVAX to LFJ LP and 250 AVAX to Pharaoh LP/i);
         expect(team?.detail).toMatch(/bootstrapping expenses/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Separate from realized sale profit/i);
-        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/25% treasury reinvestment/i);
-        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/40% holder claim bucket/i);
-        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/35% LP replenishment/i);
-        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/market-buys \$CATCH/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/card-buying power/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/LP depth/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/buyback-and-burn/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Routine holder claims are disabled/i);
     });
 
     it('renders the portfolio gallery with live positions and activity', async () => {
@@ -587,9 +590,9 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/connect a wallet to see your \$CATCH/i)).toBeInTheDocument();
         expect(screen.getByText(/protocol accounting/i)).toBeInTheDocument();
         expect(screen.getByText(/supply composition/i)).toBeInTheDocument();
-        expect(screen.getByText(/dynamic supply expands when finalized rounds mint actual sold tokens/i)).toBeInTheDocument();
+        expect(screen.getByText(/dynamic supply expands when successful commits mint from settled value/i)).toBeInTheDocument();
         expect(screen.getAllByText(/total minted/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/excluded from profit claims/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/excluded system supply/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/no fixed cap/i)).not.toBeInTheDocument();
         expect(screen.getByText(/liquidity & venues/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^LFJ$/).length).toBeGreaterThan(0);
@@ -615,9 +618,12 @@ describe('page compression regressions', () => {
                 claimedProfit: '0 AVAX',
                 totalProfitDeposited: '0 AVAX',
                 holderProfitsClaimableClaimed: '$0.00',
-                holderProfitApr: 'APR unavailable',
+                holderProfitApr: 'No APR / APY',
                 liquidTreasury: '$100.00',
                 holderDistributionAccrued: '$0.00',
+                marketSupportReserve: '$0.00',
+                buybackBurnAccrued: '$0.00',
+                lpSupportAccrued: '$0.00',
                 liquidityCatchBuyAccrued: '$0.00',
                 liquidityAvaxPairingAccrued: '$0.00',
             },

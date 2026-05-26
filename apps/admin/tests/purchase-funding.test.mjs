@@ -81,7 +81,7 @@ test('funding capacity issue explains insufficient stored liquid treasury', () =
     amountUsdt6: 4_500_000_000n,
     liquidTreasuryUsdt6: 1_813_075_955n,
     holderDistributionAccruedUsdt6: 0n,
-  }), 'Stored liquid treasury is below confirmed funding plus the holder claim bucket.');
+  }), 'Stored liquid treasury is below confirmed funding plus the legacy reserved bucket. Run liquid treasury reconciliation before confirming funding.');
 
   assert.equal(getFundingCapacityIssue({
     amountUsdt6: 4_500_000_000n,
@@ -110,5 +110,5 @@ test('purchase funding confirmation blocks mismatched authorization and insuffic
   assert.match(issues.join(' '), /Approved before funding/);
   assert.match(issues.join(' '), /destination Safe does not match/);
   assert.match(issues.join(' '), /exceeds the authorized max spend/);
-  assert.match(issues.join(' '), /Stored liquid treasury is below/);
+  assert.match(issues.join(' '), /Run liquid treasury reconciliation/);
 });

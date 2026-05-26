@@ -127,16 +127,16 @@ const ROADMAP_NODES: RoadmapNode[] = [
         status: 'Done',
         area: 'Governance',
         stage: 'distribution',
-        notes: 'Realized-profit split is reconciled across contract accounting, public copy, and admin copy: 25% treasury, 40% holder claim bucket, 35% LP replenishment.',
-        detail: 'The LP bucket is split between a $CATCH market-buy half and an AVAX pairing half before adding LFJ and Pharaoh liquidity 50/50.',
+        notes: 'Realized-profit routing is reconciled across contract accounting, public copy, and admin copy: buying power first, bounded LP support, and conditional buyback-burn reserve.',
+        detail: 'Protocol-owned LP is tracked as market support and excluded from conservative NAV.',
     },
     {
         id: 'claim-dashboard',
-        title: 'Read-only claim dashboard',
+        title: 'Read-only accrual dashboard',
         status: 'Done',
         area: 'Holders',
         stage: 'distribution',
-        notes: 'Holder pages show claimability, excluded status, lifetime deposited profit, and claimable amounts when available.',
+        notes: 'Holder pages show supply, NAV, market-support reserves, and public-claim-disabled status.',
     },
     {
         id: 'gauge-spec',
@@ -163,7 +163,7 @@ const ROADMAP_NODES: RoadmapNode[] = [
         status: 'In progress',
         area: 'Tokenomics',
         stage: 'tokenomics',
-        notes: 'V7 replaces fixed-cap language with no max supply, round-based buyer mints, and five 1% segment allocations per finalized round.',
+        notes: 'V8 replaces fixed-cap language with no max supply, continuous buyer mints, and five 1% segment allocations per successful commit.',
         blockedBy: ['public-proof'],
     },
     {
@@ -334,7 +334,7 @@ export function RoadmapPanel() {
         <AdminPage
             eyebrow="Operational roadmap"
             title="Execution dependency map"
-            description="Track marketplace rollout, valuation data truth, holder claims, LP deployment, tokenomics, and governance as operational readiness states."
+            description="Track marketplace rollout, valuation data truth, market support, LP deployment, tokenomics, and governance as operational readiness states."
             statusItems={[
                 { label: `${completed} done`, status: READ_STATUS.live },
                 { label: `${blocked} blocked`, status: blocked ? READ_STATUS.error : READ_STATUS.live },

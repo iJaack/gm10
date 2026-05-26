@@ -93,6 +93,34 @@ export const GM10_FUND_ABI = [
     },
     {
         inputs: [],
+        name: 'buybackBurnAccruedUsdt6',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'lpSupportAccruedUsdt6',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'continuousMintPaused',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'redemptionsPermanentlyDisabled',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
         name: 'stableAccounting',
         outputs: [
             { name: 'canonicalPortfolioValue', type: 'uint256' },

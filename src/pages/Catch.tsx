@@ -35,7 +35,7 @@ const WATERFALL_CODE_REFERENCE = [
         label: 'Card sells',
         detail: 'Sale event triggers the onchain flow',
         color: 'var(--accent)',
-        source: 'GemMintStrategyFundV3.sol',
+        source: 'GemMintStrategyFundV8.sol',
         code: `function finalizeSale(bytes32 _saleKey) external onlyRole(MANAGER_ROLE) {
     (, uint256 markedValueUsdt6, uint256 costBasisUsdt6, uint256 netProceedsUsdt6) =
         IGm10PortfolioRegistry(portfolioRegistry).finalizeSale(_saleKey);`,
@@ -61,22 +61,20 @@ uint256 liquidityAvaxPairingAllocationUsdt6;`,
     treasuryAllocationUsdt6 = netProceedsUsdt6;
 } else {
     uint256 realizedProfitUsdt6 = netProceedsUsdt6 - costBasisUsdt6;
-    uint256 treasuryProfitShareUsdt6 = Math.mulDiv(realizedProfitUsdt6, 2500, WORKFLOW_BPS);
-    treasuryAllocationUsdt6 = costBasisUsdt6 + treasuryProfitShareUsdt6;
+    liquidTreasuryUsdt6 += costBasisUsdt6;
 }`,
     },
     {
         emoji: '📊',
-        label: 'Realized profit distributes',
-        detail: 'Splits automatically — four buckets, no discretion',
+        label: 'Realized profit routes',
+        detail: 'Dynamic route: buying power first, then LP or buyback-burn when conditions justify it',
         color: 'var(--accent)',
-        source: 'GemMintStrategyFundV3.sol',
-        code: `holderDistributionAllocationUsdt6 = Math.mulDiv(realizedProfitUsdt6, 4000, WORKFLOW_BPS);
-uint256 liquidityAllocationUsdt6 =
-    realizedProfitUsdt6 - treasuryProfitShareUsdt6 - holderDistributionAllocationUsdt6;
-liquidityCatchBuyAllocationUsdt6 = liquidityAllocationUsdt6 / 2;
-liquidityAvaxPairingAllocationUsdt6 =
-    liquidityAllocationUsdt6 - liquidityCatchBuyAllocationUsdt6;`,
+        source: 'GemMintStrategyFundV8.sol',
+        code: `SaleProfitRoute memory route =
+    IGm10ContinuousSaleRouter(saleRouter).previewSaleProfitRoute(realizedProfitUsdt6, snapshot);
+liquidTreasuryUsdt6 += route.reinvestUsdt6;
+lpSupportAccruedUsdt6 += route.lpSupportUsdt6;
+buybackBurnAccruedUsdt6 += route.buybackBurnUsdt6;`,
     },
 ] as const;
 
@@ -363,7 +361,7 @@ function CatchContent() {
                     {[
                         { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Round-based issuance' },
                         { emoji: '💰', label: 'Buyer mint', value: 'Sold round tokens', unit: 'Minted to buyers' },
-                        { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded from profit claims' },
+                        { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded from circulating supply' },
                         { emoji: '📊', label: 'Total raised', value: totalRaisedLabel, unit: `Across Rounds 1-${roundState.roundId}` },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
@@ -412,7 +410,7 @@ function CatchContent() {
                         Where the supply goes.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        There is no max supply. Each finalized round mints buyer tokens from actual sold allocation, then mints 1% each to the five configured segment wallets.
+                        There is no max supply. Each successful continuous commit mints buyer tokens from settled value, then mints 1% each to the five configured segment wallets.
                     </p>
                 </ScrollReveal>
 
@@ -472,7 +470,7 @@ function CatchContent() {
                         What happens when a card sells.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        Sale proceeds return onchain first. Principal is restored, then realized profit splits into four buckets — automatically, with no discretion.
+                        Sale proceeds return onchain first. Principal is restored, then realized profit is routed by the current market snapshot into buying power, LP support, or buyback-burn reserve.
                     </p>
                     <p className="mt-2 hidden text-[0.75rem] uppercase tracking-[0.16em] text-[var(--text-tertiary)] md:block">
                         hover any step to inspect the matching contract branch
@@ -502,9 +500,9 @@ function CatchContent() {
                             <div className="absolute top-0 left-[16.666%] right-[16.666%] h-px bg-[var(--border-strong)]" />
                             <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-3">
                                 {([
-                                    { label: 'Treasury reinvestment', percent: 25, color: '#0ea5e9', desc: 'Future card buying power' },
-                                    { label: 'Holder claim bucket', percent: 40, color: '#6366f1', desc: 'Claimable AVAX from realized profit' },
-                                    { label: 'LP replenishment', percent: 35, color: '#10b981', desc: 'Half $CATCH market-buy, half AVAX pairing' },
+                                    { label: 'Buying power', percent: 70, color: '#0ea5e9', desc: 'More cards plus liquid execution capacity' },
+                                    { label: 'LP support', percent: 20, color: '#10b981', desc: 'Bounded protocol liquidity support' },
+                                    { label: 'Buyback-burn', percent: 10, color: '#6366f1', desc: 'Conditional CATCH supply reduction' },
                                 ] as const).map((out) => (
                                     <div key={out.label} className="flex flex-col items-center">
                                         <div className="h-5 w-px bg-[var(--border-strong)]" />

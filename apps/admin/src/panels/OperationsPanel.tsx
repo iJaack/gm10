@@ -1256,7 +1256,7 @@ export function OperationsPanel() {
                 <MetricGrid>
                     <MetricCard label="Tracked wallet aggregate" value={formatUsdt6(liveLiquidTreasuryUsdt6)} status={liveLiquidTreasuryUsdt6 !== undefined ? READ_STATUS.live : READ_STATUS.partial} sourceLabel={liveLiquidTreasuryUsdt6 !== undefined ? 'tracked wallets' : 'fallback pending'} detail={liveLiquidTreasuryDetail} />
                     <MetricCard label="Stored treasury" value={stableAccounting ? `${formatUnits(stableAccounting[2], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting" />
-                    <MetricCard label="Holder claim bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stored bucket" />
+                    <MetricCard label="Legacy holder bucket" value={stableAccounting ? `${formatUnits(stableAccounting[6], 6)} USDT` : 'Unavailable'} status={stableAccounting ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="stableAccounting[6]" detail="Kept visible for migration checks; V8 sale-profit routing does not add routine holder claims." />
                     <MetricCard label="LP deployed" value={lpDeployedLabel} status={lpReadsStatus} sourceLabel={lpReadsStatus === READ_STATUS.live ? 'live coordinator' : 'partial/unavailable'} detail={`LFJ ${traderJoeAvaxLp !== undefined ? formatEther(traderJoeAvaxLp) : 'Unavailable'} / Pharaoh ${pharaohAvaxLp !== undefined ? formatEther(pharaohAvaxLp) : 'Unavailable'}`} />
                     <MetricCard label="Reference NAV" value={referenceNav !== undefined ? `${formatUnits(referenceNav, 6)} USDT` : 'Unavailable'} status={referenceNav !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel="fund read" />
                     <MetricCard label="Profit eligible supply" value={eligibleSupply !== undefined ? `${formatUnits(eligibleSupply, 18)} CATCH` : 'Unavailable'} status={eligibleSupply !== undefined ? READ_STATUS.live : READ_STATUS.unavailable} sourceLabel={tokenomicsController ? 'tokenomics controller' : 'not wired'} />
@@ -1270,7 +1270,7 @@ export function OperationsPanel() {
                         { label: 'Fund proxy', status: MAINNET.fundProxy ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.fundProxy ?? 'Pending env config' },
                         { label: 'Portfolio registry', status: MAINNET.portfolioRegistry ? READ_STATUS.configured : READ_STATUS.unavailable, detail: MAINNET.portfolioRegistry ?? 'Pending env config' },
                         { label: 'Tokenomics controller', status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable, detail: tokenomicsController ?? 'Pending V7 controller deployment.' },
-                        { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Pending claim distributor; sale-profit buckets still come from stableAccounting.' },
+                        { label: 'Profit distributor', status: profitDistributor ? READ_STATUS.live : READ_STATUS.unavailable, detail: profitDistributor ?? 'Routine holder claims disabled in V8; sale-profit support is tracked in market-support buckets.' },
                         { label: 'Liquidity coordinator', status: liquidityCoordinator ? READ_STATUS.configured : READ_STATUS.unavailable, detail: liquidityCoordinator ?? 'Pending module wiring' },
                     ]}
                 />
@@ -1312,8 +1312,8 @@ export function OperationsPanel() {
                         onClick: () => setMode('round'),
                     },
                     {
-                        label: 'Holder claims',
-                        detail: tokenomicsController ? 'Manage profit-share exclusions.' : 'Tokenomics controller unavailable.',
+                        label: 'Exclusions',
+                        detail: tokenomicsController ? 'Manage wallets excluded from holder-facing supply analytics.' : 'Tokenomics controller unavailable.',
                         status: tokenomicsController ? READ_STATUS.live : READ_STATUS.unavailable,
                         active: mode === 'profit',
                         onClick: () => setMode('profit'),
@@ -1370,7 +1370,7 @@ export function OperationsPanel() {
                 ) : mode === 'profit' ? (
                     <div className="grid gap-4">
                         <p className="text-xs leading-5 text-gray-400">
-                            Exclude protocol-controlled wallets from the 40% holder claim bucket. Circulating holders stay eligible by default.
+                            Exclude protocol-controlled wallets from holder-facing circulating-supply analytics. Routine holder claims are disabled in V8.
                         </p>
                         <label className="flex flex-col gap-1">
                             <span className="text-xs text-gray-400">Wallet address</span>
@@ -1388,11 +1388,11 @@ export function OperationsPanel() {
                                 onChange={(event) => setExcluded(event.target.checked)}
                                 className="h-4 w-4 accent-[#4fa8e0]"
                             />
-                            Excluded from profit share
+                            Excluded from circulating-supply analytics
                         </label>
                         <div className="grid gap-1 text-xs text-gray-400">
                             <div>Current exclusion: {exclusionState === undefined ? 'Unknown' : exclusionState ? 'Excluded' : 'Eligible'}</div>
-                            <div>Current claimable AVAX: {accountClaimable !== undefined ? formatEther(accountClaimable) : 'Unavailable'}</div>
+                            <div>Legacy distributor AVAX: {accountClaimable !== undefined ? formatEther(accountClaimable) : 'Unavailable'}</div>
                         </div>
                         <div className="flex flex-wrap gap-3">
                             <TxButton onClick={submitExclusion} txHash={txHash} isPending={isPending} disabled={!tokenomicsController || !/^0x[a-fA-F0-9]{40}$/.test(exclusionAddress)}>
