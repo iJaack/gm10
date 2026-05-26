@@ -46,7 +46,8 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
     await fund.mintForTest(owner.address, ethers.parseEther("100"));
     await fund.setStableAccountingForTest(100_000_000n, 0n, 0n, 0n, 0n, 0n);
     await fund.syncStableNavForTest();
-    await fund.setContinuousMintPausedForTest(false);
+    await fund.grantGovernanceForTest(owner.address);
+    await fund.setContinuousAccrualControls(false, true, true, -500);
     await fund.grantManagerForTest(owner.address);
 
     const commitId = ethers.id("settled-route-1");

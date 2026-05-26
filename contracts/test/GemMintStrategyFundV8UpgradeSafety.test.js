@@ -180,6 +180,58 @@ describe("GemMintStrategyFundV8 upgrade", function () {
       .to.be.revertedWithCustomError(fund, "RedemptionsDisabled");
   });
 
+  it("lets governance update continuous-accrual controls", async function () {
+    const signers = await ethers.getSigners();
+    const [deployer] = signers;
+    const Controller = await ethers.getContractFactory("Gm10TokenomicsV7Controller");
+    const controller = await Controller.deploy(
+      deployer.address,
+      signers[1].address,
+      signers[2].address,
+      signers[3].address,
+      signers[4].address,
+      signers[5].address
+    );
+    await controller.waitForDeployment();
+
+    const Fund = await ethers.getContractFactory("MockGemMintStrategyFundV8");
+    const fund = await Fund.deploy(await controller.getAddress());
+    await fund.waitForDeployment();
+    await fund.initializeV8();
+    await fund.grantGovernanceForTest(deployer.address);
+
+    await expect(fund.connect(deployer).setContinuousAccrualControls(false, false, false, -500))
+      .to.emit(fund, "ContinuousAccrualControlsUpdated")
+      .withArgs(false, false, false, -500);
+
+    expect(await fund.continuousMintPaused()).to.equal(false);
+    expect(await fund.buybackPaused()).to.equal(false);
+    expect(await fund.lpSupportPaused()).to.equal(false);
+    expect(await fund.mintSpreadBps()).to.equal(-500n);
+
+    await expect(fund.connect(deployer).setContinuousAccrualControls(false, false, false, -10_000))
+      .to.be.revertedWithCustomError(fund, "InvalidParameters");
+  });
+
+  it("keeps continuous-accrual controls governance-gated after upgrade", async function () {
+    const ctx = await loadFixture(deployV7ProxyFixture);
+    const proxyAddress = await ctx.fund.getAddress();
+    const FundV8 = await ethers.getContractFactory("GemMintStrategyFundV8", ctx.governance);
+    const fund = await upgrades.upgradeProxy(proxyAddress, FundV8, {
+      kind: "uups",
+      unsafeAllow: ["constructor", "state-variable-immutable"],
+      constructorArgs: [await ctx.controller.getAddress()],
+      call: { fn: "initializeV8", args: [] },
+    });
+    await fund.waitForDeployment();
+
+    await expect(fund.connect(ctx.ops).setContinuousAccrualControls(false, false, false, -500))
+      .to.be.reverted;
+    await expect(fund.connect(ctx.governance).setContinuousAccrualControls(false, false, false, -500))
+      .to.emit(fund, "ContinuousAccrualControlsUpdated")
+      .withArgs(false, false, false, -500);
+  });
+
   it("validates and initializes the V7 proxy upgrade path", async function () {
     const ctx = await loadFixture(deployV7ProxyFixture);
     const proxyAddress = await ctx.fund.getAddress();

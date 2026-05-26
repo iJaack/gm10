@@ -80,6 +80,12 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         bytes32 proofHash
     );
     event LpVenueCustodyModeUpdated(address indexed venue, uint8 mode);
+    event ContinuousAccrualControlsUpdated(
+        bool continuousMintPaused,
+        bool buybackPaused,
+        bool lpSupportPaused,
+        int256 mintSpreadBps
+    );
 
     /// @custom:oz-upgrades-unsafe-allow constructor state-variable-immutable
     constructor(address _tokenomicsController) {
@@ -142,10 +148,30 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         emit LpVenueCustodyModeUpdated(venue, mode);
     }
 
+    function setContinuousAccrualControls(
+        bool _continuousMintPaused,
+        bool _buybackPaused,
+        bool _lpSupportPaused,
+        int256 _mintSpreadBps
+    ) external onlyRole(GOVERNANCE_ROLE) {
+        if (_mintSpreadBps <= -10_000) revert InvalidParameters();
+        continuousMintPaused = _continuousMintPaused;
+        buybackPaused = _buybackPaused;
+        lpSupportPaused = _lpSupportPaused;
+        mintSpreadBps = _mintSpreadBps;
+        emit ContinuousAccrualControlsUpdated(
+            continuousMintPaused,
+            buybackPaused,
+            lpSupportPaused,
+            mintSpreadBps
+        );
+    }
+
     function executeBuybackBurn(Gm10Types.BuybackBurnExecution calldata execution)
         external
         onlyRole(MANAGER_ROLE)
     {
+        if (buybackPaused) revert EnforcedPause();
         if (execution.deadline < block.timestamp || execution.proofHash == bytes32(0)) revert InvalidParameters();
         if (execution.amountIn == 0 || execution.amountIn > buybackBurnAccruedUsdt6) revert InsufficientFreeBalance();
         buybackBurnAccruedUsdt6 -= execution.amountIn;
@@ -157,6 +183,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         external
         onlyRole(MANAGER_ROLE)
     {
+        if (lpSupportPaused) revert EnforcedPause();
         if (
             execution.deadline < block.timestamp ||
             execution.proofHash == bytes32(0) ||

@@ -30,6 +30,7 @@ async function deployMockV8() {
   await fund.waitForDeployment();
   await fund.initializeV8();
   await fund.grantManagerForTest(owner.address);
+  await fund.grantGovernanceForTest(owner.address);
 
   return { fund, owner, lfj, pharaoh };
 }
@@ -47,6 +48,11 @@ describe("GemMintStrategyFundV8 buyback and LP execution", function () {
       deadline: BigInt((await ethers.provider.getBlock("latest")).timestamp + 300),
       proofHash: ethers.id("buyback-proof"),
     };
+
+    await expect(fund.executeBuybackBurn(valid))
+      .to.be.revertedWithCustomError(fund, "EnforcedPause");
+
+    await fund.setContinuousAccrualControls(true, false, true, -500);
 
     await expect(fund.executeBuybackBurn(valid))
       .to.emit(fund, "BuybackBurnExecuted")
@@ -73,6 +79,11 @@ describe("GemMintStrategyFundV8 buyback and LP execution", function () {
       deadline: BigInt((await ethers.provider.getBlock("latest")).timestamp + 300),
       proofHash: ethers.id("lp-proof"),
     };
+
+    await expect(fund.executeLpSupport(valid))
+      .to.be.revertedWithCustomError(fund, "EnforcedPause");
+
+    await fund.setContinuousAccrualControls(true, true, false, -500);
 
     await expect(fund.executeLpSupport(valid))
       .to.emit(fund, "LpSupportExecuted")

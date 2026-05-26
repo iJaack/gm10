@@ -63,6 +63,10 @@ contract MockGemMintStrategyFundV8 is GemMintStrategyFundV8 {
         _grantRole(MANAGER_ROLE, account);
     }
 
+    function grantGovernanceForTest(address account) external {
+        _grantRole(GOVERNANCE_ROLE, account);
+    }
+
     function settleContinuousMintForTest(bytes32 commitId, address buyer, uint256 settlementAmountUsdt6)
         external
         returns (uint256)
