@@ -345,7 +345,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/raised across finalized rounds/i)).toBeInTheDocument();
         expect(screen.queryByText(/legacy raise of .* cap/i)).not.toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /open continuous round/i }).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('link', { name: /mint new \$CATCH/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
         expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
@@ -609,7 +609,7 @@ describe('page compression regressions', () => {
 
         const nextSection = screen.getByText(/ready to act on it\?/i).closest('section');
         expect(nextSection).not.toBeNull();
-        expect(within(nextSection!).getByRole('link', { name: /open continuous round/i })).toBeInTheDocument();
+        expect(within(nextSection!).getByRole('link', { name: /mint new \$CATCH/i })).toBeInTheDocument();
         expect(within(nextSection!).getByRole('link', { name: /inspect the proof/i })).toBeInTheDocument();
     });
 });

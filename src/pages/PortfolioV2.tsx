@@ -362,7 +362,7 @@ function PortfolioContent() {
                     </Display>
                     <div className="mt-6 flex flex-wrap gap-6">
                         <Link to="/fundraising" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
-                            → Open Continuous Round
+                            → Mint new $CATCH
                         </Link>
                         <Link to="/holders" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--ink-muted)] hover:text-[var(--text-primary)]">
                             → Holder dashboard

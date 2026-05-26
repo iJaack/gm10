@@ -115,7 +115,7 @@ function Hero() {
                             className="pixel-menu-link pixel-menu-link-active"
                         >
                             <span className="pixel-menu-cursor" aria-hidden>↗</span>
-                            <span>Open Continuous Round</span>
+                            <span>Mint new $CATCH</span>
                         </Link>
                         <Link
                             to="/portfolio"
