@@ -438,7 +438,7 @@ function FundraisingContent() {
                             <div className="mt-4 border border-[var(--rule-strong)] bg-[var(--bg-secondary)] px-4 shadow-[0_0_0_1px_var(--accent-muted)]">
                                 <div className="flex items-baseline justify-between border-b border-[var(--rule)] py-3">
                                     <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
-                                        SOURCE · <span className="text-[var(--text-primary)]">LI.FI / Mobula route</span>
+                                        SOURCE · <span className="text-[var(--text-primary)]">From virtually any chain</span>
                                     </DataMono>
                                     <DataMono className="text-[0.88rem] font-semibold text-[var(--text-primary)]">
                                         Avalanche settlement
