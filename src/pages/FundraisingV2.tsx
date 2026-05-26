@@ -339,6 +339,9 @@ function FundraisingContent() {
         query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address && settlementAmountUsdt6 > 0n) },
     });
 
+    const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : 500;
+    const totalRaisedAvax = archiveRaisedAvax + ROUND_2_CLOSE_LEDGER.raisedAvax;
+    const totalRaisedLabel = `${fmtAvax(totalRaisedAvax, 4)} AVAX`;
     const buyerCatch = fmtCatch(continuousPreview?.[0]);
     const segmentCatch = fmtCatch(continuousPreview?.[1]);
     const mintPriceLabel = continuousPreview?.[2] !== undefined
@@ -465,8 +468,8 @@ function FundraisingContent() {
                                 <span className="v2-mono text-right text-[var(--text-primary)]">{lpSupportPaused === true ? 'Paused until deployment' : 'Live'}</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Legacy close</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{ROUND_2_CLOSE_LEDGER.raisedLabel} finalized</span>,
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Total raised</Caption>,
+                                <span className="v2-mono text-right text-[var(--text-primary)]">{totalRaisedLabel}</span>,
                             ]} />
                         </div>
 
