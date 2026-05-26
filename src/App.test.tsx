@@ -361,7 +361,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/^mint spread$/i)).toBeInTheDocument();
         expect(screen.getByText(/^settlement$/i)).toBeInTheDocument();
         expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
-        expect(screen.getByText(/LI\.FI \/ Mobula route/i)).toBeInTheDocument();
+        expect(screen.getByText(/from virtually any chain/i)).toBeInTheDocument();
         expect(screen.getByText(/every continuous commit has an immediate route/i)).toBeInTheDocument();
         expect(screen.getAllByText(/strategy buying power/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LP support reserve/i).length).toBeGreaterThan(0);
