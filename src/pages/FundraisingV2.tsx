@@ -578,7 +578,7 @@ function FundraisingContent() {
                                         disabled={!amount || settlementAmountUsdt6 <= 0n || sourceAmountExceedsBalance}
                                         className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                     >
-                                        Preview continuous commit
+                                        Mint new $CATCH
                                     </button>
                                 </div>
 
