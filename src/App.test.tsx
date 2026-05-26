@@ -624,9 +624,12 @@ describe('page compression regressions', () => {
         const marketSupportRow = screen.getByText(/market-support reserve/i).closest('.grid') as HTMLElement | null;
         expect(marketSupportRow).not.toBeNull();
         expect(within(marketSupportRow!).getByText('$0.00')).toHaveClass('text-[1.75rem]');
-        expect(screen.getByText(/Round 1 plus finalized Round 2 proceeds/i)).toBeInTheDocument();
+        expect(screen.getByText(/\$CATCH market-buy reserve from all proceeds/i)).toBeInTheDocument();
+        expect(screen.getByText(/Round 1 and finalized Round 2 round-proceeds market buys/i)).toBeInTheDocument();
         expect(screen.getByText(/92\.6992 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/5% of 1,853\.98 AVAX raised/i)).toBeInTheDocument();
+        expect(screen.getByText(/Sale proceeds \$0\.00 .* rounds .* 5% of 1,853\.98 AVAX raised/i)).toBeInTheDocument();
+        expect(screen.queryByText(/\$CATCH market-buy reserve from sale proceeds/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Buyback from round proceeds/i)).not.toBeInTheDocument();
     });
 
     it('uses live NAV for connected wallet reference value', async () => {

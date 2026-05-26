@@ -1231,6 +1231,9 @@ function LiquiditySection() {
                         const combinedRaisedAvax = round1RaisedAvax + (round.isClosed ? round2RaisedAvax : 0);
                         const roundBuybackExecuted = round1BuybackExecuted + round2BuybackExecuted;
                         const roundBuybackLabel = `${roundBuybackExecuted.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
+                        const roundBuybackHint = roundBuybackExecuted > 0
+                            ? `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued} · rounds ≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
+                            : `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued}`;
                         return (
                             <div className="mt-8 border-t border-[var(--rule)] pt-5">
                                 <h4 className="text-[0.78rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">Capital deployment</h4>
@@ -1307,19 +1310,12 @@ function LiquiditySection() {
                                 {/* Buyback rows */}
                                 <div className="mt-6">
                                     <StatRowItem row={{
-                                        label: '$CATCH market-buy reserve from sale proceeds',
-                                        detail: 'Half of the 35% LP replenishment bucket market-buys $CATCH before adding LFJ and Pharaoh liquidity',
-                                        value: holder.labels.liquidityCatchBuyAccrued,
-                                    }} />
-                                    <StatRowItem row={{
-                                        label: 'Buyback from round proceeds',
+                                        label: '$CATCH market-buy reserve from all proceeds',
                                         detail: round.isClosed
-                                            ? 'Round 1 plus finalized Round 2 proceeds: 10% of each raise went to LP; half of that allocation market-bought $CATCH and half paired with it as LP.'
-                                            : 'Round 1 buyback is included. Continuous-round support accrues through the V8 reserve path, then deploys only after the coordinator executes market support.',
+                                            ? 'Includes sale-proceeds reserves plus Round 1 and finalized Round 2 round-proceeds market buys. Each finalized round routed 10% to LP; half market-bought $CATCH before pairing.'
+                                            : 'Includes sale-proceeds reserves plus the archived Round 1 market buy. Continuous-round support accrues through the V8 reserve path before deployment.',
                                         value: roundBuybackLabel,
-                                        hint: round.isClosed && roundBuybackExecuted > 0
-                                            ? `≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
-                                            : undefined,
+                                        hint: roundBuybackHint,
                                     }} />
                                 </div>
                             </div>
