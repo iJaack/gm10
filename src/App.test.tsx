@@ -381,6 +381,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /mint new \$CATCH/i })).toBeInTheDocument();
+        expect(screen.queryByText(/unfilled legacy cap/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
 

@@ -339,10 +339,6 @@ function FundraisingContent() {
         query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address && settlementAmountUsdt6 > 0n) },
     });
 
-    const legacyTarget = ROUND_2_CLOSE_LEDGER.targetAvax;
-    const legacyRaised = ROUND_2_CLOSE_LEDGER.raisedAvax;
-    const legacyRemaining = Math.max(0, legacyTarget - legacyRaised);
-    const legacyProgress = Math.min((legacyRaised / legacyTarget) * 100, 100);
     const buyerCatch = fmtCatch(continuousPreview?.[0]);
     const segmentCatch = fmtCatch(continuousPreview?.[1]);
     const mintPriceLabel = continuousPreview?.[2] !== undefined
@@ -588,39 +584,6 @@ function FundraisingContent() {
                                     </div>
                                 ) : null}
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Legacy close bar */}
-                    <div className="mt-12">
-                        <div className="relative h-24 w-full overflow-hidden rounded-2xl bg-[var(--bg-tertiary)]">
-                            <div
-                                className="absolute inset-y-0 left-0 transition-all duration-700 ease-out"
-                                style={{
-                                    width: `${legacyProgress}%`,
-                                    background: 'linear-gradient(90deg, var(--accent), var(--accent-blue))',
-                                }}
-                            />
-
-                            <div className="absolute inset-y-0 left-0 flex flex-col justify-center pl-5 z-10" style={{ maxWidth: `${legacyProgress}%` }}>
-                                <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[rgba(15,14,20,0.7)]">Raised</Caption>
-                                <div className="text-[1.45rem] font-extrabold leading-tight tracking-[-0.02em] text-[#0f0e13] whitespace-nowrap">
-                                    {fmtAvax(legacyRaised, 4)} <span className="text-[0.9rem] font-semibold opacity-75">AVAX</span>
-                                </div>
-                            </div>
-
-                            <div className="absolute inset-y-0 right-0 flex flex-col justify-center pr-5 text-right z-10" style={{ maxWidth: `${100 - legacyProgress}%` }}>
-                                <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Unfilled legacy cap</Caption>
-                                <div className="text-[1.45rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--text-primary)] whitespace-nowrap">
-                                    {fmtAvax(legacyRemaining)} <span className="text-[0.9rem] font-semibold text-[var(--text-secondary)]">AVAX</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 flex items-baseline justify-between text-[0.78rem] text-[var(--text-tertiary)]">
-                            <span>0</span>
-                            <span className="text-[1.05rem] font-bold tabular-nums text-[var(--accent)]">{legacyProgress.toFixed(1)}%</span>
-                            <span>{fmtAvax(legacyTarget)}</span>
                         </div>
                     </div>
 
