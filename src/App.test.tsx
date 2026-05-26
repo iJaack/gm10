@@ -382,6 +382,9 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /mint new \$CATCH/i })).toBeInTheDocument();
         expect(screen.queryByText(/unfilled legacy cap/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/^total raised$/i)).toBeInTheDocument();
+        expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
+        expect(screen.queryByText(/1,353\.9836 AVAX finalized/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
 
