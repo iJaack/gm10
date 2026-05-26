@@ -22,7 +22,7 @@ import {
     SectionLabel,
 } from '../components/v2/primitives';
 import { useCourtyardProfileNav } from '../hooks/useCourtyardProfileNav';
-import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
+import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
 import type { Gm10PortfolioPosition } from '../hooks/useFujiProof';
 
 /* ── Summary strip ─────────────────────────────────────── */
@@ -242,7 +242,6 @@ function PortfolioContent() {
         status: platformNav.status,
         netWorthUsd: platformNav.netWorthUsd,
     });
-    const round = useFujiRoundState();
     const [view, setView] = useState<ViewMode>('grid');
 
     const summaryStats = [
@@ -357,13 +356,13 @@ function PortfolioContent() {
             {/* Closer */}
             <section className="px-4 py-12 md:py-14 border-t border-[var(--rule)]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                    <SectionLabel>{round.isClosed ? 'Post-close sourcing' : 'Next window'}</SectionLabel>
+                    <SectionLabel>Continuous sourcing</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.5rem,3vw,2.2rem)] max-w-[32ch]">
-                        More lots will be acquired from Round {round.roundId} capital.
+                        More lots will be acquired from strategy capital and continuous commit settlement.
                     </Display>
                     <div className="mt-6 flex flex-wrap gap-6">
                         <Link to="/fundraising" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
-                            → {round.isRoundOpen ? `Join Round ${round.roundId}` : `Review Round ${round.roundId} close`}
+                            → Open Continuous Round
                         </Link>
                         <Link to="/holders" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--ink-muted)] hover:text-[var(--text-primary)]">
                             → Holder dashboard

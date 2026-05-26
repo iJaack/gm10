@@ -191,8 +191,8 @@ export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
 
 export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     {
-        title: '🪙 Review the closed round',
-        body: 'Round 2 finalized on Avalanche mainnet. The public page now shows the raise, routing, and proof surface instead of an open buy window.',
+        title: '🪙 Commit continuously',
+        body: 'The fixed raise is archived. New entry uses the continuous round: supported routes settle on Avalanche, then $CATCH mints per commit at the live NAV-derived price.',
     },
     {
         title: '🃏 We acquire the cards',
@@ -206,7 +206,7 @@ export const EXPOSURE_STEPS: readonly ExposureStep[] = [
 
 export const TOKEN_ALLOCATION = [
     {
-        label: 'Round buyers',
+        label: 'Commit buyers',
         percent: 95.24,
         color: 'from-sky-500 to-cyan-400',
         detail: 'Every successful continuous commit mints buyer tokens from settled value. There is no max supply reserve.',
@@ -260,8 +260,8 @@ export const WATERFALL = [
 
 export const PURCHASE_FLOW = [
     {
-        title: 'The round finalizes onchain',
-        detail: 'Round 2 closed on Avalanche mainnet. The finalized raise, minting, and routing stay inspectable from the public proof surface.',
+        title: 'A commit settles on Avalanche',
+        detail: 'Continuous commits do not wait for a close. Supported source-chain routes settle first, then the per-commit mint and routing stay inspectable from the public proof surface.',
     },
     {
         title: 'Card targets get greenlit',
@@ -375,11 +375,11 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'What is live today versus planned later?',
-        answer: 'Round 2 is finalized on Avalanche mainnet. Live buying is closed; public proof links, token accounting, liquidity routing, holder dashboards, and reference NAV reporting remain inspectable.',
+        answer: 'The continuous round is the current entry mechanic. Round 2 is finalized and archived; public proof links, token accounting, liquidity routing, holder dashboards, and reference NAV reporting remain inspectable.',
     },
     {
-        question: 'How are Round 2 proceeds used?',
-        answer: 'Round 2 finalized at 1,353.9836 AVAX. The actual routing was 85% to the strategy/card acquisition treasury, 10% to liquidity split across LFJ and Pharaoh, and 5% to the team wallet for bootstrapping expenses. This is separate from the realized sale-profit waterfall.',
+        question: 'How do continuous commits route value?',
+        answer: 'Each verified commit settles as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and routes settled value into strategy buying power plus bounded LP support. Round 2 finalized at 1,353.9836 AVAX and remains an archive item.',
     },
     {
         question: 'Does GM10 guarantee returns?',
@@ -394,12 +394,12 @@ export type SiteNavItem = {
 
 export const GLOBAL_CTA_ROUTE = '/fundraising' as const;
 
-export function getRoundPrimaryCtaLabel(isRoundOpen: boolean) {
-    return isRoundOpen ? 'Join the Round' : 'View Round Status';
+export function getRoundPrimaryCtaLabel(_isRoundOpen: boolean) {
+    return 'Open Continuous Round';
 }
 
 export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
-    { to: '/fundraising', label: 'Round Status' },
+    { to: '/fundraising', label: 'Continuous Round' },
     { to: '/catch', label: 'How It Works' },
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/holders', label: 'Holders' },
@@ -414,7 +414,7 @@ export const FOOTER_EXPLORE_LINKS: readonly SiteNavItem[] = [
 ] as const;
 
 export const FOOTER_PROOF_LINKS: readonly SiteNavItem[] = [
-    { to: '/fundraising', label: 'Round status' },
+    { to: '/fundraising', label: 'Continuous round' },
     { to: '/fundraising#proof', label: 'Live proof' },
 ] as const;
 
@@ -426,8 +426,8 @@ export const HOME_PROOF_STRIP = [
     },
     {
         label: 'Public mechanics',
-        value: 'Mainnet round logic',
-        detail: 'Round accounting, contract links, and proof surfaces are designed to stay inspectable on Avalanche mainnet.',
+        value: 'Continuous mint logic',
+        detail: 'Per-commit accounting, contract links, and proof surfaces are designed to stay inspectable on Avalanche mainnet.',
     },
     {
         label: 'Execution layer',
@@ -462,7 +462,7 @@ export const HOME_GM10_ADVANTAGES = [
     },
     {
         title: 'Keep the strategy inspectable',
-        body: 'Round state, contracts, holdings, and fund mechanics live on Avalanche so diligence does not stop at a PDF deck.',
+        body: 'Commit state, contracts, holdings, and fund mechanics live on Avalanche so diligence does not stop at a PDF deck.',
     },
 ] as const;
 
@@ -477,7 +477,7 @@ export const HOME_INVESTOR_OBJECTIONS = [
     },
     {
         question: 'What proves the system is ready for mainnet?',
-        answer: 'Round 2 finalized on mainnet with public proof links, contract-enforced timing, and onchain routing. Inspect the contracts on Snowtrace.',
+        answer: 'The V8 continuous round is verified on mainnet, while the finalized Round 2 close remains public proof of contract-enforced routing. Inspect the contracts on Snowtrace.',
     },
     {
         question: 'Why does Avalanche matter here?',
@@ -487,9 +487,9 @@ export const HOME_INVESTOR_OBJECTIONS = [
 
 export const SUPPORT_PAGE_COPY = {
     fundraising: {
-        eyebrow: 'Round status',
-        title: 'Round 2 is closed. The proof stays live.',
-        body: 'Review the finalized raise, post-close routing, and Avalanche mainnet proof for the latest completed round.',
+        eyebrow: 'Continuous round',
+        title: 'Commit continuously. The proof stays live.',
+        body: 'Preview the NAV-derived mint, review the value routing, and inspect Avalanche mainnet proof for the active continuous round.',
         primaryCtaTo: '/fundraising',
         secondaryCtaTo: '/fundraising#proof',
     },
@@ -510,7 +510,7 @@ export const SUPPORT_PAGE_COPY = {
     faq: {
         eyebrow: 'FAQ',
         title: 'The investor questions that need short answers.',
-        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how the rounds operate on mainnet.',
+        body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how the continuous round operates on mainnet.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',
     },

@@ -296,8 +296,8 @@ const NAV_RULES = [
 
 const SYSTEM_FLOW_STEPS = [
     {
-        title: 'Contribute through the round',
-        body: 'The round module is the entry point. Capital enters on Avalanche rails and the system records the contribution against the active round.',
+        title: 'Commit through the continuous round',
+        body: 'The continuous round is the entry point. Supported routes settle on Avalanche and the system records each commit as its own mint event.',
     },
     {
         title: 'GM10 acquires and marks positions',
@@ -335,7 +335,7 @@ function CatchContent() {
                         <span>·</span>
                         <span className="text-[var(--text-primary)]">How it works</span>
                         <span>·</span>
-                        <span>Round {roundState.roundId} {roundState.isRoundOpen ? 'live' : roundState.status.toLowerCase()}</span>
+                        <span>Continuous round</span>
                     </div>
                     <div className="mt-10">
                         <SectionLabel>{pageCopy.eyebrow}</SectionLabel>
@@ -359,10 +359,10 @@ function CatchContent() {
                 {/* Quick stats */}
                 <div className="mt-8 grid gap-3 sm:grid-cols-4">
                     {[
-                        { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Round-based issuance' },
-                        { emoji: '💰', label: 'Buyer mint', value: 'Sold round tokens', unit: 'Minted to buyers' },
+                        { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
+                        { emoji: '💰', label: 'Buyer mint', value: 'Continuous commit', unit: 'Minted to buyers' },
                         { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded from circulating supply' },
-                        { emoji: '📊', label: 'Total raised', value: totalRaisedLabel, unit: `Across Rounds 1-${roundState.roundId}` },
+                        { emoji: '📊', label: 'Archived raises', value: totalRaisedLabel, unit: 'Round 1 plus finalized Round 2' },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">

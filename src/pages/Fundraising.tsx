@@ -169,7 +169,7 @@ function FundraisingContent() {
                         {continuousMintPaused === false ? 'Continuous commits live' : 'Continuous commits paused'}
                     </PixelLabel>
                     <PixelLabel tone="warning">{GM10_NETWORK_LABEL}</PixelLabel>
-                    <PixelLabel tone="base">Round 2 finalized</PixelLabel>
+                    <PixelLabel tone="base">Legacy raise finalized</PixelLabel>
                     <PixelLabel tone="live">V8 verified on Snowtrace</PixelLabel>
                     <PixelLabel tone={buybackPaused === true ? 'base' : 'warning'}>Buyback {buybackPaused === true ? 'paused' : 'live'}</PixelLabel>
                     <PixelLabel tone={lpSupportPaused === true ? 'base' : 'warning'}>LP {lpSupportPaused === true ? 'paused' : 'live'}</PixelLabel>
@@ -330,15 +330,15 @@ function FundraisingContent() {
                 </ScrollReveal>
             </section>
 
-            {/* ── ROUND 2 ALLOCATION ── */}
-            <section id="round-2-allocation" className="mt-10 scroll-mt-28">
+            {/* ── CONTINUOUS ROUND ALLOCATION ── */}
+            <section id="continuous-round-allocation" className="mt-10 scroll-mt-28">
                 <ScrollReveal>
-                    <div className="label-font">Round 2 proceeds allocation</div>
+                    <div className="label-font">Continuous round value routing</div>
                     <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
-                        Every AVAX raised has a defined route after finalization.
+                        Every verified settlement has a defined route.
                     </h2>
                     <p className="mt-2 max-w-3xl text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        The percentages apply to actual AVAX raised in Round 2. If the full {ROUND_PROCEEDS_ALLOCATION.fullCapAvax.toLocaleString('en-US')} AVAX cap is reached, the round auto-finalizes onchain and the routing uses the full-cap example below.
+                        Fixed-window proceeds are archive material. The active surface is continuous: settled value mints buyer $CATCH immediately, preserves strategy buying power, and accrues bounded market-support reserves.
                     </p>
                 </ScrollReveal>
 
@@ -368,7 +368,7 @@ function FundraisingContent() {
 
                 <ScrollReveal delay={2}>
                     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
-                        <div className="label-font">Full-cap example</div>
+                        <div className="label-font">Legacy full-cap example</div>
                         <p className="mt-2 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">
                             At 5,000 AVAX raised: 4,250 AVAX goes to the strategy/card acquisition treasury, 250 AVAX goes to LFJ LP, 250 AVAX goes to Pharaoh LP, and 250 AVAX goes to the team wallet for bootstrapping expenses.
                         </p>
@@ -399,7 +399,7 @@ function FundraisingContent() {
                                     Round 1 archive
                                 </h2>
                                 <p className="mt-2 max-w-2xl text-[0.88rem] leading-[1.7] text-[var(--text-secondary)]">
-                                    Round 1 is historical context only. The active decision surface on this page is Round 2; archived Round 1 data stays here for auditability and proof review.
+                                    Round 1 is historical context only. The active decision surface on this page is the continuous round; archived Round 1 data stays here for auditability and proof review.
                                 </p>
                             </div>
                             <PixelMenuLink to="/fundraising#proof">
@@ -423,12 +423,12 @@ function FundraisingContent() {
                                     {archiveRound?.isFinalized || archiveProgress >= 100 ? 'Finalized' : 'Closed'}
                                 </div>
                                 <div className="mt-1 text-[0.74rem] text-[var(--text-tertiary)]">
-                                    Archive only, not a current buy window
+                                    Archive only; continuous commits are current
                                 </div>
                             </div>
                             <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] p-4">
                                 <div className="label-font text-[0.58rem]">Current focus</div>
-                                <div className="mt-2 text-lg font-bold text-[var(--text-primary)]">Round 2</div>
+                                <div className="mt-2 text-lg font-bold text-[var(--text-primary)]">Continuous round</div>
                                 <div className="mt-1 text-[0.74rem] text-[var(--text-tertiary)]">
                                     5,000 AVAX cap, 500 AVAX max wallet
                                 </div>

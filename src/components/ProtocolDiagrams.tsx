@@ -188,8 +188,8 @@ export function RoundOneChart() {
 export function TestnetProofTimeline() {
     const steps = [
         'Mainnet fund proxy deployed and verified',
-        'Round 2 created with locked start and end timestamps',
-        'Round stays closed until the opening block window',
+        'V8 continuous commit controls verified on mainnet',
+        'Each backed settlement mints CATCH per commit at NAV-derived pricing',
         'Proof links expose fund, registry, and investor accounting',
         'Acquired cards appear after fundraising finalization',
     ] as const;

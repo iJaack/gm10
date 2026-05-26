@@ -1217,8 +1217,8 @@ function LiquiditySection() {
                     {(() => {
                         const lfjPct = protocolLiquiditySum > 0 ? (lfjProtocolLiq / protocolLiquiditySum) * 100 : 0;
                         const pharaohPct = 100 - lfjPct;
-                        // Round 2 LP allocation: 10% of raised → LP, half of that will be used to market-buy $CATCH
-                        // Executes only after the round closes; until then, nothing has been bought.
+                        // Legacy raise LP allocation: 10% of raised → LP, half of that will be used to market-buy $CATCH.
+                        // Continuous-round market support is tracked separately from sale-profit reserves.
                         const raisedAvax = Number(formatEther(round.round?.raisedAmount ?? 0n));
                         const roundBuybackAvax = raisedAvax * 0.10 * 0.5;
                         const roundBuybackExecuted = round.isClosed ? roundBuybackAvax : 0;
@@ -1306,8 +1306,8 @@ function LiquiditySection() {
                                     <StatRowItem row={{
                                         label: 'Buyback from round proceeds',
                                         detail: round.isClosed
-                                            ? '10% of Round 2 proceeds went to LP, split 50/50 across LFJ & Pharaoh — half of each allocation market-bought $CATCH, the other half paired with it as LP'
-                                            : `Not executed yet — triggers at Round ${round.round?.roundId ?? 2} close. 10% of proceeds will be reserved for LP, split 50/50 across LFJ & Pharaoh, with half of each allocation market-buying $CATCH.`,
+                                            ? '10% of the finalized raise went to LP, split 50/50 across LFJ & Pharaoh — half of each allocation market-bought $CATCH, the other half paired with it as LP'
+                                            : 'Continuous-round support accrues through the V8 reserve path, then deploys only after the coordinator executes market support.',
                                         value: roundBuybackLabel,
                                         hint: round.isClosed && roundBuybackExecuted > 0
                                             ? `≈ 5% of ${raisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`

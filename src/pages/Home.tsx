@@ -88,9 +88,9 @@ function HomeContent() {
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
                     <ScrollReveal>
                         <div>
-                            <div className="label-font">How a round works</div>
+                            <div className="label-font">How continuous commits work</div>
                             <h2 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.5rem]">
-                                One round opens the door to the entire strategy.
+                                One verified commit opens the door to the entire strategy.
                             </h2>
                         </div>
                     </ScrollReveal>
@@ -141,10 +141,10 @@ function HomeContent() {
                         <div className="rounded-3xl border border-[var(--border)] bg-[var(--bg-secondary)] px-6 py-12 text-center shadow-[var(--shadow-sm)]">
                             <div className="label-font">Next step</div>
                             <h2 className="mx-auto mt-4 max-w-[18ch] text-[2.1rem] font-bold tracking-[-0.03em] text-[var(--text-primary)] md:text-[2.6rem]">
-                                Move from the story to the live round and proof.
+                                Move from the story to the continuous round and proof.
                             </h2>
                             <p className="mx-auto mt-4 max-w-[42rem] text-[0.98rem] leading-[1.75] text-[var(--text-secondary)]">
-                                The round page is where GM10 turns into a decision: see status, review what the position represents, and inspect the live Avalanche proof in one place.
+                                The continuous round page is where GM10 turns into a decision: preview the mint, review what the position represents, and inspect the live Avalanche proof in one place.
                             </p>
                             <div className="mt-8 flex flex-wrap justify-center gap-3">
                                 <PixelMenuLink to="/fundraising" active>
