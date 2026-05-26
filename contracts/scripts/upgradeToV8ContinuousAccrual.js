@@ -12,9 +12,11 @@
  *   CURRENT_CONTRACT_NAME=GemMintStrategyFundV3
  *   TOKENOMICS_CONTROLLER_ADDRESS=0x...
  *   IMPLEMENTATION_V8_ADDRESS=0x...
- *   EXECUTION_MODE=direct|safe
+ *   EXECUTION_MODE=direct|safe|timelock
  *   EXECUTE=false
  *   UNSAFE_ALLOW_RENAMES=true
+ *   TIMELOCK_ADDRESS=0x...
+ *   ALLOW_TIMELOCK_PROPOSER_GRANT=true
  *   SAFE_ADDRESS=0x...
  *   CORE_TEAM_WALLET=0x...
  *   GOVERNANCE_TREASURY_WALLET=0x...
@@ -34,6 +36,19 @@ const SAFE_ABI = [
   "function getThreshold() view returns (uint256)",
   "function nonce() view returns (uint256)",
   "function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures) payable returns (bool success)",
+];
+const TIMELOCK_ABI = [
+  "function DEFAULT_ADMIN_ROLE() view returns (bytes32)",
+  "function PROPOSER_ROLE() view returns (bytes32)",
+  "function hasRole(bytes32 role,address account) view returns (bool)",
+  "function grantRole(bytes32 role,address account)",
+  "function getMinDelay() view returns (uint256)",
+  "function hashOperation(address target,uint256 value,bytes data,bytes32 predecessor,bytes32 salt) view returns (bytes32)",
+  "function isOperationDone(bytes32 id) view returns (bool)",
+  "function isOperationPending(bytes32 id) view returns (bool)",
+  "function isOperationReady(bytes32 id) view returns (bool)",
+  "function schedule(address target,uint256 value,bytes data,bytes32 predecessor,bytes32 salt,uint256 delay)",
+  "function execute(address target,uint256 value,bytes payload,bytes32 predecessor,bytes32 salt) payable",
 ];
 
 function requireAddress(name) {
@@ -175,6 +190,66 @@ async function executeDirectUpgrade({ signer, signerAddress, proxy, implementati
   return fund.upgradeToAndCall(implementationV8, initData);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function executeTimelockUpgrade({
+  timelockAddress,
+  signer,
+  signerAddress,
+  proxy,
+  implementationV8,
+  initData,
+}) {
+  const timelock = new ethers.Contract(timelockAddress, TIMELOCK_ABI, signer);
+  const proposerRole = await timelock.PROPOSER_ROLE();
+  const adminRole = await timelock.DEFAULT_ADMIN_ROLE();
+  const hasProposer = await timelock.hasRole(proposerRole, signerAddress);
+  if (!hasProposer) {
+    const hasAdmin = await timelock.hasRole(adminRole, signerAddress);
+    if (!hasAdmin || process.env.ALLOW_TIMELOCK_PROPOSER_GRANT !== "true") {
+      throw new Error(
+        `Signer ${signerAddress} needs PROPOSER_ROLE on ${timelockAddress}; set ALLOW_TIMELOCK_PROPOSER_GRANT=true if it is timelock admin.`
+      );
+    }
+    const grantTx = await timelock.grantRole(proposerRole, signerAddress);
+    console.log("  Timelock grant tx  :", grantTx.hash);
+    await grantTx.wait();
+  }
+
+  const upgradeInterface = new ethers.Interface([
+    "function upgradeToAndCall(address newImplementation, bytes data)",
+  ]);
+  const upgradeData = upgradeInterface.encodeFunctionData("upgradeToAndCall", [implementationV8, initData]);
+  const predecessor = ethers.ZeroHash;
+  const salt = process.env.TIMELOCK_SALT
+    ? ethers.id(process.env.TIMELOCK_SALT)
+    : ethers.id(`gm10-v8-continuous-accrual:${implementationV8}`);
+  const minDelay = await timelock.getMinDelay();
+  const operationId = await timelock.hashOperation(proxy, 0, upgradeData, predecessor, salt);
+  console.log("  Timelock           :", timelockAddress);
+  console.log("  Timelock min delay :", minDelay.toString(), "seconds");
+  console.log("  Timelock operation :", operationId);
+
+  if (await timelock.isOperationDone(operationId)) {
+    throw new Error("Timelock operation is already done");
+  }
+  if (!(await timelock.isOperationPending(operationId))) {
+    const scheduleTx = await timelock.schedule(proxy, 0, upgradeData, predecessor, salt, minDelay);
+    console.log("  Timelock schedule  :", scheduleTx.hash);
+    await scheduleTx.wait();
+  }
+
+  while (!(await timelock.isOperationReady(operationId))) {
+    console.log("  Waiting for timelock readiness...");
+    await sleep(15_000);
+  }
+
+  await timelock.execute.staticCall(proxy, 0, upgradeData, predecessor, salt);
+  return timelock.execute(proxy, 0, upgradeData, predecessor, salt);
+}
+
 async function main() {
   const [signer] = await ethers.getSigners();
   if (!signer) throw new Error("No signer configured. Set LEDGER_ADDRESS or PRIVATE_KEY.");
@@ -259,7 +334,17 @@ async function main() {
         implementationV8,
         initData,
       })
-    : await executeDirectUpgrade({ signer, signerAddress, proxy, implementationV8, initData });
+    : executionMode === "timelock"
+      ? await executeTimelockUpgrade({
+          timelockAddress: optionalAddress("TIMELOCK_ADDRESS") ||
+            (deployment.timelock ? ethers.getAddress(deployment.timelock) : ""),
+          signer,
+          signerAddress,
+          proxy,
+          implementationV8,
+          initData,
+        })
+      : await executeDirectUpgrade({ signer, signerAddress, proxy, implementationV8, initData });
 
   console.log("  Upgrade tx         :", tx.hash);
   const receipt = await tx.wait();
