@@ -395,7 +395,7 @@ export type SiteNavItem = {
 export const GLOBAL_CTA_ROUTE = '/fundraising' as const;
 
 export function getRoundPrimaryCtaLabel(_isRoundOpen: boolean) {
-    return 'Open Continuous Round';
+    return 'Mint new $CATCH';
 }
 
 export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
