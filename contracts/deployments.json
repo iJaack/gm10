@@ -171,6 +171,19 @@
         "mintSpreadBps": "-500",
         "redemptionsPermanentlyDisabled": true
       }
+    },
+    "lastContinuousAccrualControlsUpdate": {
+      "timestamp": "2026-05-26T16:34:32.248Z",
+      "blockNumber": 86432453,
+      "tx": "0xd1b5dbcfb41e71b1f4d1522dbe3dfd50fcc26c85f5e208b75a124ebff63fd784",
+      "safe": "0x39971795266a794a8156271729A07994952a6FAD",
+      "controls": {
+        "continuousMintPaused": false,
+        "buybackPaused": true,
+        "lpSupportPaused": true,
+        "mintSpreadBps": "-500",
+        "redemptionsPermanentlyDisabled": true
+      }
     }
   },
   "fujiPurchaseTest": {
