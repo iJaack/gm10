@@ -615,6 +615,10 @@ describe('page compression regressions', () => {
         expect(profitEligibleHero).toHaveClass('h-28');
         expect(screen.queryByText(/no fixed cap/i)).not.toBeInTheDocument();
         expect(screen.getByText(/liquidity & venues/i)).toBeInTheDocument();
+        expect(screen.queryByText(/switch tabs/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^all venues$/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^lfj$/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^pharaoh$/i })).not.toBeInTheDocument();
         expect(screen.getAllByText(/^LFJ$/).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/^Pharaoh$/).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
