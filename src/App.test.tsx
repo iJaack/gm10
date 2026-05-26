@@ -376,6 +376,31 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/onchain logs/i)).toBeInTheDocument();
     });
 
+    it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                raisedAmount: 0n,
+                isActive: false,
+                isFinalized: false,
+            },
+            status: 'Round 2 setup in progress',
+            isRoundOpen: false,
+            isClosed: false,
+            isPlanned: true,
+            roundSource: 'planned',
+            archiveRound: {
+                raisedAmount: 500000000000000000000n,
+            },
+        };
+
+        renderAt('/');
+
+        expect(screen.getByText(/^500 AVAX$/i)).toBeInTheDocument();
+        expect(screen.queryByText(/1,853\.9836 AVAX/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/5,499\.9996 AVAX/i)).not.toBeInTheDocument();
+    });
+
     it('merges buy and live proof into the fundraising route', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         renderAt('/fundraising');
