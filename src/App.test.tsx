@@ -383,7 +383,7 @@ describe('page compression regressions', () => {
         expect(screen.getByRole('button', { name: /mint new \$CATCH/i })).toBeInTheDocument();
         expect(screen.queryByText(/unfilled legacy cap/i)).not.toBeInTheDocument();
         expect(screen.getByText(/^total raised$/i)).toBeInTheDocument();
-        expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/1,853\.9836 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/1,353\.9836 AVAX finalized/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
@@ -424,11 +424,13 @@ describe('page compression regressions', () => {
 
         expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
         expect(screen.queryByText(/post-close ledger/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/buying closed · proof live/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/1,353\.9836 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/finalized rounds · proof live/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/1,853\.9836 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/1,650\.8861 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LFJ liquidity route/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Pharaoh liquidity route/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/Round 2 is archived, not the current purchase mechanic/i)).toBeInTheDocument();
+        expect(screen.getByText(/Round 1 and Round 2 totals are archived, not the current purchase mechanic/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Round 1 and Round 2 closed and finalized/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/Fixed-window buys are closed/i)).toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();

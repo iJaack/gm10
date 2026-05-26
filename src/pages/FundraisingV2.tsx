@@ -208,31 +208,62 @@ function Proof() {
 
 /* ── Post-close ledger ───────────────────────────────── */
 
-function PostCloseLedger({ avaxUsd }: { avaxUsd: number }) {
-    const raisedUsd = ROUND_2_CLOSE_LEDGER.raisedAvax * avaxUsd;
+function PostCloseLedger({ archiveRaisedAvax, avaxUsd }: { archiveRaisedAvax: number; avaxUsd: number }) {
+    const totalRaisedAvax = archiveRaisedAvax + ROUND_2_CLOSE_LEDGER.raisedAvax;
+    const totalRaisedUsd = totalRaisedAvax * avaxUsd;
+    const round2StrategyAvax = ROUND_2_CLOSE_LEDGER.raisedAvax * 0.85;
+    const round2LiquidityRouteAvax = ROUND_2_CLOSE_LEDGER.raisedAvax * 0.05;
+    const totalStrategyAvax = archiveRaisedAvax + round2StrategyAvax;
+    const totalRows = [
+        {
+            label: 'Total finalized raise',
+            value: `${fmtAvax(totalRaisedAvax, 4)} AVAX`,
+            detail: 'Round 1 and Round 2 closed and finalized on Avalanche mainnet.',
+        },
+        {
+            label: 'Strategy treasury',
+            value: `${fmtAvax(totalStrategyAvax, 4)} AVAX`,
+            detail: 'Round 1 plus 85% of Round 2 proceeds stayed with the strategy for card sourcing and execution.',
+        },
+        {
+            label: 'LFJ liquidity route',
+            value: `${fmtAvax(round2LiquidityRouteAvax, 4)} AVAX`,
+            detail: 'Round 2 routed one half of the liquidity bucket into LFJ.',
+        },
+        {
+            label: 'Pharaoh liquidity route',
+            value: `${fmtAvax(round2LiquidityRouteAvax, 4)} AVAX`,
+            detail: 'Round 2 routed one half of the liquidity bucket into Pharaoh.',
+        },
+        {
+            label: 'Team allocation',
+            value: `${fmtAvax(round2LiquidityRouteAvax, 4)} AVAX`,
+            detail: 'Round 2 bootstrap allocation sent to the team wallet.',
+        },
+    ] as const;
 
     return (
         <div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 sm:p-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <DataMono className="block text-[0.68rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
-                        Buying closed · Proof live
+                        Finalized rounds · Proof live
                     </DataMono>
                     <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
                         Finalized {ROUND_2_CLOSE_LEDGER.finalizedAtLabel}
                     </DataMono>
                 </div>
                 <p className="mt-2 text-[0.82rem] leading-[1.45] text-[var(--ink-muted)]">
-                    Direct buys are closed. The close, routing, and contract proof remain public.
+                    Direct buys are closed. Round 1 and Round 2 close, routing, and contract proof remain public.
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-4 border-y border-[var(--rule)] py-3">
                     <div>
                         <Caption className="block text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--ink-faint)]">Raised</Caption>
                         <DataMono className="mt-1 block text-[1.12rem] font-bold text-[var(--text-primary)]">
-                            {ROUND_2_CLOSE_LEDGER.raisedLabel}
+                            {fmtAvax(totalRaisedAvax, 4)} AVAX
                         </DataMono>
                         <DataMono className="text-[0.72rem] font-semibold text-[var(--ink-muted)]">
-                            ~${raisedUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                            ~${totalRaisedUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                         </DataMono>
                     </div>
                     <div className="text-right">
@@ -246,7 +277,7 @@ function PostCloseLedger({ avaxUsd }: { avaxUsd: number }) {
                     </div>
                 </div>
                 <div className="mt-2 border-t border-[var(--rule)]">
-                    {ROUND_2_CLOSE_LEDGER.rows.map((row) => (
+                    {totalRows.map((row) => (
                         <div key={row.label}>
                             <div className="md:hidden border-b border-[var(--rule)] py-3">
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>
@@ -658,12 +689,12 @@ function FundraisingContent() {
 
             <section className="px-4 py-16 border-t border-[var(--rule)]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                    <SectionLabel>Legacy close archive</SectionLabel>
+                    <SectionLabel>Finalized raise archive</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[56ch]">
-                        Round 2 is archived, not the current purchase mechanic.
+                        Round 1 and Round 2 totals are archived, not the current purchase mechanic.
                     </Display>
                     <div className="mt-8">
-                        <PostCloseLedger avaxUsd={avaxUsd} />
+                        <PostCloseLedger archiveRaisedAvax={archiveRaisedAvax} avaxUsd={avaxUsd} />
                     </div>
                 </div>
             </section>
