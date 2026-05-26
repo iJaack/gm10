@@ -53,6 +53,32 @@ function fmtSpread(spread?: bigint) {
     return 'At NAV';
 }
 
+type SourceTokenBalance = {
+    id: string;
+    chain: string;
+    symbol: string;
+    balance: number;
+    priceUsdc?: number;
+    usesAvaxPrice?: boolean;
+};
+
+const SOURCE_TOKEN_BALANCES = [
+    { id: 'avax-avalanche', chain: 'Avalanche', symbol: 'AVAX', balance: 12.42, usesAvaxPrice: true },
+    { id: 'usdc-base', chain: 'Base', symbol: 'USDC', balance: 2480, priceUsdc: 1 },
+    { id: 'eth-mainnet', chain: 'Ethereum', symbol: 'ETH', balance: 0.86, priceUsdc: 3820 },
+    { id: 'sol-solana', chain: 'Solana', symbol: 'SOL', balance: 51.75, priceUsdc: 168 },
+] as const satisfies readonly SourceTokenBalance[];
+
+type SourceTokenId = typeof SOURCE_TOKEN_BALANCES[number]['id'];
+
+function fmtTokenAmount(value: number) {
+    return value.toLocaleString('en-US', { maximumFractionDigits: value >= 10 ? 2 : 4 });
+}
+
+function getSourceTokenUsdcRate(token: SourceTokenBalance, avaxUsd: number) {
+    return token.usesAvaxPrice ? avaxUsd : token.priceUsdc ?? 1;
+}
+
 /* ── Round 1 archive ─────────────────────────────────── */
 
 function Round1Archive() {
@@ -250,11 +276,24 @@ function PostCloseLedger({ avaxUsd }: { avaxUsd: number }) {
 
 function FundraisingContent() {
     const [amount, setAmount] = useState('');
+    const [sourceTokenId, setSourceTokenId] = useState<SourceTokenId>(SOURCE_TOKEN_BALANCES[0].id);
     const [txError, setTxError] = useState<string | null>(null);
     const round = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
-    const settlementAmountUsdt6 = useMemo(() => parseUsdt6(amount), [amount]);
+    const selectedSourceToken = useMemo(
+        () => SOURCE_TOKEN_BALANCES.find((token) => token.id === sourceTokenId) ?? SOURCE_TOKEN_BALANCES[0],
+        [sourceTokenId],
+    );
+    const sourceAmount = amount ? Number(amount) : 0;
+    const validSourceAmount = Number.isFinite(sourceAmount) && sourceAmount > 0 ? sourceAmount : 0;
+    const selectedTokenUsdcRate = getSourceTokenUsdcRate(selectedSourceToken, avaxUsd);
+    const settledUsdcAmount = validSourceAmount * selectedTokenUsdcRate;
+    const settlementAmountUsdt6 = useMemo(
+        () => parseUsdt6(settledUsdcAmount > 0 ? settledUsdcAmount.toFixed(6) : ''),
+        [settledUsdcAmount],
+    );
+    const sourceAmountExceedsBalance = validSourceAmount > selectedSourceToken.balance;
 
     const { data: navPerTokenUsdt6 } = useReadContract({
         address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
@@ -311,7 +350,7 @@ function FundraisingContent() {
         : navPerTokenUsdt6 !== undefined && mintSpreadBps !== undefined
             ? 'Enter an amount'
             : 'Unavailable';
-    const amountUsd = amount ? Number(amount) : 0;
+    const amountUsd = settledUsdcAmount;
 
     const continuousAllocationRows = [
         {
@@ -343,7 +382,11 @@ function FundraisingContent() {
             return;
         }
         if (!amount || settlementAmountUsdt6 <= 0n) {
-            setTxError('Enter a valid USDC-equivalent amount.');
+            setTxError('Enter a valid source-token amount.');
+            return;
+        }
+        if (sourceAmountExceedsBalance) {
+            setTxError(`Selected amount exceeds the detected ${selectedSourceToken.symbol} balance.`);
             return;
         }
         if (continuousMintPaused) {
@@ -446,10 +489,39 @@ function FundraisingContent() {
                                 </div>
 
                                 <div className="py-4">
-                                    <div className="flex items-baseline justify-between">
-                                        <Caption className="block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">Settled amount</Caption>
+                                    <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                                        <div>
+                                            <label
+                                                htmlFor="source-token-select"
+                                                className="v2-mono block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]"
+                                            >
+                                                Source token
+                                            </label>
+                                            <select
+                                                id="source-token-select"
+                                                value={sourceTokenId}
+                                                onChange={(event) => {
+                                                    setSourceTokenId(event.target.value as SourceTokenId);
+                                                    setAmount('');
+                                                    setTxError(null);
+                                                }}
+                                                className="mt-2 h-11 w-full border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 v2-mono text-[0.86rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
+                                            >
+                                                {SOURCE_TOKEN_BALANCES.map((token) => (
+                                                    <option key={token.id} value={token.id}>
+                                                        {token.symbol} on {token.chain} - {fmtTokenAmount(token.balance)} available
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <DataMono className="text-left text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)] sm:text-right">
+                                            Balance {fmtTokenAmount(selectedSourceToken.balance)} {selectedSourceToken.symbol}
+                                        </DataMono>
+                                    </div>
+                                    <div className="mt-4 flex items-baseline justify-between">
+                                        <Caption className="block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">Commit amount</Caption>
                                         <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
-                                            USDC equivalent
+                                            {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
                                         </DataMono>
                                     </div>
                                     <div className="mt-2 flex items-baseline gap-3 border-b border-[var(--rule-strong)] pb-2">
@@ -459,11 +531,22 @@ function FundraisingContent() {
                                                 setAmount(e.target.value);
                                                 setTxError(null);
                                             }}
-                                            placeholder="100.00"
+                                            aria-label={`Commit amount in ${selectedSourceToken.symbol}`}
+                                            placeholder={selectedSourceToken.symbol === 'USDC' ? '100.00' : '1.00'}
                                             inputMode="decimal"
                                             className="w-full min-w-0 bg-transparent v2-mono text-[clamp(1.6rem,2.6vw,2rem)] font-bold tracking-[-0.02em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
                                         />
-                                        <DataMono className="shrink-0 text-[0.9rem] font-semibold text-[var(--ink-muted)]">USDC</DataMono>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAmount(String(selectedSourceToken.balance));
+                                                setTxError(null);
+                                            }}
+                                            className="v2-mono shrink-0 border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                        >
+                                            Max
+                                        </button>
+                                        <DataMono className="shrink-0 text-[0.9rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken.symbol}</DataMono>
                                     </div>
                                 </div>
 
@@ -471,7 +554,7 @@ function FundraisingContent() {
                                     <div>
                                         <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Route settles</Caption>
                                         <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--text-primary)]">
-                                            {amount || '0.00'} <span className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">USDC</span>
+                                            {settledUsdcAmount > 0 ? settledUsdcAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0.00'} <span className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">USDC</span>
                                         </DataMono>
                                         <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
                                             ~${amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}
@@ -492,7 +575,7 @@ function FundraisingContent() {
                                     <button
                                         type="button"
                                         onClick={handlePreviewCommit}
-                                        disabled={!amount || settlementAmountUsdt6 <= 0n}
+                                        disabled={!amount || settlementAmountUsdt6 <= 0n || sourceAmountExceedsBalance}
                                         className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                     >
                                         Preview continuous commit
