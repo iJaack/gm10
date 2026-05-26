@@ -40,7 +40,7 @@ function HomeFujiSectionContent() {
                         The strategy already has a public proof surface.
                     </h2>
                     <p className="mt-4 max-w-[44rem] text-[1rem] leading-[1.7] text-[var(--text-secondary)]">
-                        GM10 exposes round state, verifiable contracts, and post-round portfolio reporting on Avalanche mainnet so visitors can inspect the mechanics directly.
+                        GM10 exposes continuous commit state, verifiable contracts, and portfolio reporting on Avalanche mainnet so visitors can inspect the mechanics directly.
                     </p>
                 </ScrollReveal>
 
@@ -49,12 +49,12 @@ function HomeFujiSectionContent() {
                         {
                             label: 'Already raised',
                             value: alreadyRaisedLabel,
-                            detail: 'Round 1 capital already closed. Portfolio proof and accounting stay inspectable.',
+                            detail: 'Archived raise capital already closed. Portfolio proof and accounting stay inspectable.',
                         },
                         {
-                            label: 'Round 2 raise target',
-                            value: `Up to ${roundState.targetLabel}`,
-                            detail: `${roundState.raisedLabel} raised so far in Round 2. Status: ${roundState.status}.`,
+                            label: 'Continuous round',
+                            value: 'Per-commit minting',
+                            detail: `${roundState.raisedLabel} legacy Round 2 close remains archived. New commits use live NAV-derived pricing.`,
                         },
                         {
                             label: 'Marked portfolio value',

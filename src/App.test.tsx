@@ -309,7 +309,7 @@ describe('route simplification', () => {
             link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
-        expect(labels).toEqual(['Round Status', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
+        expect(labels).toEqual(['Continuous Round', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
     });
 
     it.each([
@@ -341,8 +341,8 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/record public sale/i)).toBeInTheDocument();
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/round 2 .* live/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByRole('link', { name: /join round|join the round/i }).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/continuous round/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('link', { name: /open continuous round/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
         expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
@@ -351,17 +351,17 @@ describe('page compression regressions', () => {
     it('merges buy and live proof into the fundraising route', async () => {
         renderAt('/fundraising');
 
-        expect(await screen.findByRole('heading', { name: /round 02/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
         expect(screen.queryByText(/you're not buying one card/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^target$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^price$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^window$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^trading terminal$/i)).toBeInTheDocument();
-        expect(screen.getByText(/wallet disconnected/i)).toBeInTheDocument();
-        expect(screen.getByText(/how the 5,000 avax raised so far will split/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/4,250 AVAX/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/500 AVAX/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/250 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/^nav$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^mint spread$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^settlement$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
+        expect(screen.getByText(/LI\.FI \/ Mobula route/i)).toBeInTheDocument();
+        expect(screen.getByText(/every continuous commit has an immediate route/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/strategy buying power/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/LP support reserve/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/segment token mints/i).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /round 1 closed early/i })).toBeInTheDocument();
         expect(screen.queryByText(/round 1 complete/i)).not.toBeInTheDocument();
         expect(screen.getByText(/proof surface/i)).toBeInTheDocument();
@@ -369,7 +369,8 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/portfolio registry/i)).toBeInTheDocument();
         expect(screen.getByText(/wallet accounting/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
-        expect(screen.getAllByRole('button', { name: /connect wallet/i }).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /preview continuous commit/i })).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });
 
@@ -407,14 +408,14 @@ describe('page compression regressions', () => {
 
         renderAt('/fundraising');
 
-        expect(await screen.findByRole('heading', { name: /round 02/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
         expect(screen.queryByText(/post-close ledger/i)).not.toBeInTheDocument();
         expect(screen.getByText(/buying closed · proof live/i)).toBeInTheDocument();
         expect(screen.getAllByText(/1,353\.9836 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LFJ liquidity route/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Pharaoh liquidity route/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/Finalized · proof live/i)).toBeInTheDocument();
-        expect(screen.getByText(/Round 2 is closed for new buys/i)).toBeInTheDocument();
+        expect(screen.getByText(/Round 2 is archived, not the current purchase mechanic/i)).toBeInTheDocument();
+        expect(screen.getByText(/Fixed-window buys are closed/i)).toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
     });
@@ -439,9 +440,9 @@ describe('page compression regressions', () => {
         expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
         expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
-        expect(screen.getByText(/total raised/i)).toBeInTheDocument();
+        expect(screen.getByText(/archived raises/i)).toBeInTheDocument();
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/Across Rounds 1-2/i)).toBeInTheDocument();
+        expect(screen.getByText(/Round 1 plus finalized Round 2/i)).toBeInTheDocument();
     });
 
     it('shows planned round 2 setup as in progress during the configured window', async () => {
@@ -478,65 +479,20 @@ describe('page compression regressions', () => {
 
         renderAt('/fundraising');
 
-        expect((await screen.findAllByText(/round 2 setup in progress/i)).length).toBeGreaterThan(0);
-        expect(screen.getByText(/setup in progress\./i)).toBeInTheDocument();
+        expect((await screen.findAllByText(/continuous round/i)).length).toBeGreaterThan(0);
+        expect(screen.getByText(/per-commit minting at live NAV/i)).toBeInTheDocument();
         expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
 
-    it('preflights round 2 buys against the exact remaining cap before submitting', async () => {
-        wagmiMocks.account = {
-            address: '0x1234567890123456789012345678901234567890',
-            isConnected: true,
-        };
-        wagmiMocks.balanceValue = 10n * 10n ** 18n;
+    it('previews continuous commits without submitting the legacy invest flow', async () => {
         renderAt('/fundraising');
 
-        const amountInput = await screen.findByPlaceholderText('0.00');
-        fireEvent.change(amountInput, { target: { value: '0.1' } });
-        fireEvent.click(screen.getByRole('button', { name: /commit now/i }));
+        const amountInput = await screen.findByPlaceholderText('100.00');
+        fireEvent.change(amountInput, { target: { value: '100' } });
+        fireEvent.click(screen.getByRole('button', { name: /preview continuous commit/i }));
 
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
-        expect(screen.getByText(/only 0\.0004 AVAX remains/i)).toBeInTheDocument();
-    });
-
-    it('submits the round 2 buy when the amount exactly closes the remaining cap', async () => {
-        wagmiMocks.account = {
-            address: '0x1234567890123456789012345678901234567890',
-            isConnected: true,
-        };
-        wagmiMocks.balanceValue = 10n * 10n ** 18n;
-        renderAt('/fundraising');
-
-        const amountInput = await screen.findByPlaceholderText('0.00');
-        fireEvent.change(amountInput, { target: { value: '0.0004' } });
-        fireEvent.click(screen.getByRole('button', { name: /commit now/i }));
-
-        expect(wagmiMocks.writeContract).toHaveBeenCalledTimes(1);
-        expect(wagmiMocks.writeContract).toHaveBeenCalledWith(expect.objectContaining({
-            functionName: 'invest',
-            args: [2n],
-            value: 400000000000000n,
-        }));
-    });
-
-    it('normalizes the validated round 2 amount before submitting', async () => {
-        wagmiMocks.account = {
-            address: '0x1234567890123456789012345678901234567890',
-            isConnected: true,
-        };
-        wagmiMocks.balanceValue = 10n * 10n ** 18n;
-        renderAt('/fundraising');
-
-        const amountInput = await screen.findByPlaceholderText('0.00');
-        fireEvent.change(amountInput, { target: { value: '4e-4' } });
-        fireEvent.click(screen.getByRole('button', { name: /commit now/i }));
-
-        expect(wagmiMocks.writeContract).toHaveBeenCalledTimes(1);
-        expect(wagmiMocks.writeContract).toHaveBeenCalledWith(expect.objectContaining({
-            functionName: 'invest',
-            args: [2n],
-            value: 400000000000000n,
-        }));
+        expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
     });
 
     it('keeps round 2 allocation constants aligned with the full-cap example', () => {
@@ -646,11 +602,11 @@ describe('page compression regressions', () => {
 
         expect(await screen.findByRole('heading', { name: /the investor questions that need short answers/i })).toBeInTheDocument();
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
-        expect(screen.getByRole('button', { name: /how are round 2 proceeds used/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /how do continuous commits route value/i })).toBeInTheDocument();
 
         const nextSection = screen.getByText(/ready to act on it\?/i).closest('section');
         expect(nextSection).not.toBeNull();
-        expect(within(nextSection!).getByRole('link', { name: /join the round/i })).toBeInTheDocument();
+        expect(within(nextSection!).getByRole('link', { name: /open continuous round/i })).toBeInTheDocument();
         expect(within(nextSection!).getByRole('link', { name: /inspect the proof/i })).toBeInTheDocument();
     });
 });
