@@ -9,6 +9,7 @@
  */
 
 import { Link } from 'react-router-dom';
+import { formatEther } from 'viem';
 import { Web3Providers } from '../components/Web3Providers';
 import {
     DataMono,
@@ -21,6 +22,7 @@ import {
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useTheme } from '../hooks/useTheme';
 import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
+import { useAvaxPrice } from '../hooks/useAvaxPrice';
 
 /* ─────────────────────────────────────────────── */
 /*  1. HERO                                         */
@@ -30,7 +32,19 @@ import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
+    const avaxUsd = useAvaxPrice();
     const isPostRound2Close = round.isClosed && round.roundId === ROUND_2_CLOSE_LEDGER.roundId;
+    const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : 500;
+    const totalRaisedAvax = archiveRaisedAvax + ROUND_2_CLOSE_LEDGER.raisedAvax;
+    const totalRaisedUsd = totalRaisedAvax * avaxUsd;
+    const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 4,
+    })} AVAX`;
+    const totalRaisedUsdLabel = `~$${totalRaisedUsd.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    })}`;
     const roundStatusSentence = isPostRound2Close
         ? `Continuous commits are the current entry mode; Round ${round.roundId} finalized at ${ROUND_2_CLOSE_LEDGER.raisedLabel} on Avalanche mainnet.`
         : 'Continuous commits are the current entry mode on Avalanche mainnet.';
@@ -112,29 +126,41 @@ function Hero() {
                         </Link>
                     </div>
 
-                    {/* Round callout */}
+                    {/* Continuous capital callout */}
                     <div className="mt-6 max-w-[42rem] lg:max-w-[42%]">
                         <div
                             className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/85 backdrop-blur-sm px-5 py-4"
                         >
                             <div className="label-font">
-                                {isPostRound2Close ? 'Legacy close' : 'Continuous round'}
+                                Strategy capital
                             </div>
-                            <div className="mt-2 text-[1.15rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
-                                Continuous round · per-commit minting
+                            <div className="mt-2 text-[1.65rem] font-extrabold leading-tight tracking-[-0.035em] text-[var(--text-primary)]">
+                                {totalRaisedLabel}
                             </div>
-                            <div className="mt-1 text-[0.88rem] text-[var(--text-secondary)]">
-                                {round.raisedLabel} legacy raise of {round.targetLabel} cap · {round.progress.toFixed(1)}%
-                                {isPostRound2Close ? ` · block ${ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}` : ''}
+                            <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
+                                {totalRaisedUsdLabel} raised across finalized rounds, before continuous commits.
                             </div>
-                            <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                                <div
-                                    className="h-full rounded-full transition-all duration-700 ease-out"
-                                    style={{
-                                        width: `${round.progress}%`,
-                                        background: 'linear-gradient(90deg, var(--accent), var(--accent-blue))',
-                                    }}
-                                />
+                            <div className="mt-4 grid grid-cols-3 gap-2">
+                                {[
+                                    ['No cap clock', 'Continuous'],
+                                    ['Per commit', 'NAV mint'],
+                                    ['Proof live', `Block ${ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}`],
+                                ].map(([label, value], index) => (
+                                    <div key={label} className="rounded-xl border border-[var(--rule)] bg-[var(--bg-primary)]/50 px-3 py-2">
+                                        <div className="flex items-center gap-1.5">
+                                            <span
+                                                className={`h-1.5 w-1.5 rounded-full ${index === 0 ? 'bg-[var(--accent-brass)]' : 'bg-[var(--ink-muted)]'}`}
+                                                aria-hidden
+                                            />
+                                            <DataMono className="text-[0.58rem] uppercase tracking-[0.08em] text-[var(--ink-faint)]">
+                                                {label}
+                                            </DataMono>
+                                        </div>
+                                        <div className="mt-1 text-[0.74rem] font-semibold leading-tight text-[var(--text-primary)]">
+                                            {value}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
