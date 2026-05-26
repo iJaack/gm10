@@ -41,7 +41,7 @@ async function deployMockV8() {
 }
 
 describe("GemMintStrategyFundV8 continuous mint", function () {
-  it("mints buyer escrow and segment allocations for each settled commit", async function () {
+  it("mints buyer and segment allocations for each settled commit", async function () {
     const { fund, owner, controller } = await deployMockV8();
     await fund.mintForTest(owner.address, ethers.parseEther("100"));
     await fund.setStableAccountingForTest(100_000_000n, 0n, 0n, 0n, 0n, 0n);
@@ -56,8 +56,8 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
     const [firstBuyerCatch18, firstSegmentCatchEach18] = await fund.previewContinuousMint(101_000_000n);
     await fund.settleContinuousMint(commitId, buyer, 101_000_000n);
 
-    expect(await fund.balanceOf(await fund.getAddress())).to.equal(firstBuyerCatch18);
-    expect(await fund.balanceOf(buyer)).to.equal(0n);
+    expect(await fund.balanceOf(await fund.getAddress())).to.equal(0n);
+    expect(await fund.balanceOf(buyer)).to.equal(firstBuyerCatch18);
 
     for (let segment = 0; segment < 5; segment += 1) {
       const recipient = await controller.segmentRecipient(segment);
@@ -73,8 +73,8 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
     const [secondBuyerCatch18, secondSegmentCatchEach18] = await fund.previewContinuousMint(202_000_000n);
     await fund.settleContinuousMint(secondCommitId, secondBuyer, 202_000_000n);
 
-    expect(await fund.balanceOf(await fund.getAddress())).to.equal(firstBuyerCatch18 + secondBuyerCatch18);
-    expect(await fund.balanceOf(secondBuyer)).to.equal(0n);
+    expect(await fund.balanceOf(await fund.getAddress())).to.equal(0n);
+    expect(await fund.balanceOf(secondBuyer)).to.equal(secondBuyerCatch18);
 
     for (let segment = 0; segment < 5; segment += 1) {
       const recipient = await controller.segmentRecipient(segment);

@@ -251,7 +251,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         commit.mintedSegmentCatch18 = segmentCatchEach18;
         commit.consumed = true;
 
-        _mint(address(this), buyerCatch18);
+        _mint(buyer, buyerCatch18);
         _mintSegmentAllocations(segmentCatchEach18);
 
         uint256 treasuryShare = Math.mulDiv(settlementAmountUsdt6, 9_000, 10_000);

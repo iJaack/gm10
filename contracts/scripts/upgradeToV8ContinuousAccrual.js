@@ -129,7 +129,18 @@ function resolveSegmentWallets(deployment, signerAddress, network) {
   throw new Error("Set all five segment wallet env vars or TOKENOMICS_CONTROLLER_ADDRESS.");
 }
 
-async function validateUpgrade(proxy, FundV8, upgradeOptions, currentContractName) {
+function currentContractImportOptions(currentContractName, controllerAddress) {
+  if (currentContractName === "GemMintStrategyFundV7" || currentContractName === "GemMintStrategyFundV8") {
+    return {
+      kind: "uups",
+      unsafeAllow: ["constructor", "state-variable-immutable"],
+      constructorArgs: [controllerAddress],
+    };
+  }
+  return { kind: "uups" };
+}
+
+async function validateUpgrade(proxy, FundV8, upgradeOptions, currentContractName, controllerAddress) {
   try {
     await upgrades.validateUpgrade(proxy, FundV8, upgradeOptions);
   } catch (error) {
@@ -138,7 +149,7 @@ async function validateUpgrade(proxy, FundV8, upgradeOptions, currentContractNam
     }
     console.log(`  Existing proxy is not in the local manifest; importing as ${currentContractName}.`);
     const CurrentFund = await ethers.getContractFactory(currentContractName);
-    await upgrades.forceImport(proxy, CurrentFund, { kind: "uups" });
+    await upgrades.forceImport(proxy, CurrentFund, currentContractImportOptions(currentContractName, controllerAddress));
     await upgrades.validateUpgrade(proxy, FundV8, upgradeOptions);
   }
 }
@@ -302,7 +313,7 @@ async function main() {
   };
   const currentContractName = resolveCurrentContractName(deployment);
   console.log("  Current contract   :", currentContractName);
-  await validateUpgrade(proxy, FundV8, upgradeOptions, currentContractName);
+  await validateUpgrade(proxy, FundV8, upgradeOptions, currentContractName, controllerAddress);
   console.log("  Upgrade validation : ok");
 
   if (!shouldExecute) {
