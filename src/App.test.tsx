@@ -578,6 +578,21 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
     });
 
+    it('does not gate commit preview on static source-token balance fixtures', async () => {
+        wagmiMocks.readContractData.continuousMintPaused = false;
+        renderAt('/fundraising');
+
+        const amountInput = await screen.findByLabelText(/commit amount in AVAX/i);
+        fireEvent.change(amountInput, { target: { value: '20' } });
+        const previewButton = screen.getByRole('button', { name: /mint new \$CATCH/i });
+
+        expect(previewButton).toBeEnabled();
+        fireEvent.click(previewButton);
+
+        expect(screen.queryByText(/exceeds the detected/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
+    });
+
     it('keeps round 2 allocation constants aligned with the full-cap example', () => {
         expect(BUY_PAGE_DEFAULTS).toMatchObject({
             roundId: 2,

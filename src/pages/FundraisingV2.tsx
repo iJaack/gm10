@@ -324,7 +324,6 @@ function FundraisingContent() {
         () => parseUsdt6(settledUsdcAmount > 0 ? settledUsdcAmount.toFixed(6) : ''),
         [settledUsdcAmount],
     );
-    const sourceAmountExceedsBalance = validSourceAmount > selectedSourceToken.balance;
 
     const { data: navPerTokenUsdt6 } = useReadContract({
         address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
@@ -413,10 +412,6 @@ function FundraisingContent() {
         }
         if (!amount || settlementAmountUsdt6 <= 0n) {
             setTxError('Enter a valid source-token amount.');
-            return;
-        }
-        if (sourceAmountExceedsBalance) {
-            setTxError(`Selected amount exceeds the detected ${selectedSourceToken.symbol} balance.`);
             return;
         }
         if (continuousMintPaused !== false) {
@@ -609,7 +604,7 @@ function FundraisingContent() {
                                     <button
                                         type="button"
                                         onClick={handlePreviewCommit}
-                                        disabled={!amount || settlementAmountUsdt6 <= 0n || sourceAmountExceedsBalance}
+                                        disabled={!amount || settlementAmountUsdt6 <= 0n}
                                         className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                     >
                                         Mint new $CATCH
