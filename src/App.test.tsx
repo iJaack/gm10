@@ -362,6 +362,12 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/^settlement$/i)).toBeInTheDocument();
         expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.getByText(/from virtually any chain/i)).toBeInTheDocument();
+        const sourceTokenSelect = screen.getByRole('combobox', { name: /source token/i }) as HTMLSelectElement;
+        expect(sourceTokenSelect.value).toBe('avax-avalanche');
+        expect(screen.getByText(/balance 12\.42 AVAX/i)).toBeInTheDocument();
+        fireEvent.change(sourceTokenSelect, { target: { value: 'usdc-base' } });
+        expect(screen.getByText(/balance 2,480 USDC/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/commit amount in USDC/i)).toBeInTheDocument();
         expect(screen.getByText(/every continuous commit has an immediate route/i)).toBeInTheDocument();
         expect(screen.getAllByText(/strategy buying power/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LP support reserve/i).length).toBeGreaterThan(0);
@@ -491,7 +497,8 @@ describe('page compression regressions', () => {
     it('previews continuous commits without submitting the legacy invest flow', async () => {
         renderAt('/fundraising');
 
-        const amountInput = await screen.findByPlaceholderText('100.00');
+        fireEvent.change(await screen.findByRole('combobox', { name: /source token/i }), { target: { value: 'usdc-base' } });
+        const amountInput = await screen.findByLabelText(/commit amount in USDC/i);
         fireEvent.change(amountInput, { target: { value: '100' } });
         fireEvent.click(screen.getByRole('button', { name: /preview continuous commit/i }));
 
