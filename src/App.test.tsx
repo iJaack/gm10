@@ -344,6 +344,7 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/continuous round/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/raised across finalized rounds/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Continuous commits are the current entry mode/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/legacy raise of .* cap/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /mint new \$CATCH/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);

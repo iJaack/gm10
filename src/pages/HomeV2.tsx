@@ -33,7 +33,6 @@ function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
     const avaxUsd = useAvaxPrice();
-    const isPostRound2Close = round.isClosed && round.roundId === ROUND_2_CLOSE_LEDGER.roundId;
     const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : 500;
     const totalRaisedAvax = archiveRaisedAvax + ROUND_2_CLOSE_LEDGER.raisedAvax;
     const totalRaisedUsd = totalRaisedAvax * avaxUsd;
@@ -45,10 +44,6 @@ function Hero() {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     })}`;
-    const roundStatusSentence = isPostRound2Close
-        ? `Continuous commits are the current entry mode; Round ${round.roundId} finalized at ${ROUND_2_CLOSE_LEDGER.raisedLabel} on Avalanche mainnet.`
-        : 'Continuous commits are the current entry mode on Avalanche mainnet.';
-    const roundProofSentence = 'Public proof links, NAV accounting, and verified contracts stay inspectable on Snowtrace.';
 
     const onPhoto = {
         primary: theme === 'dark' ? '#ffffff' : '#0f0e0a',
@@ -102,10 +97,6 @@ function Hero() {
                     >
                         <p className="text-[1.08rem] leading-[1.72] sm:text-[1.14rem]" style={{ color: onPhoto.secondary }}>
                             GM10 turns sourcing, diligence, custody, valuation, and exits into one managed onchain strategy, so a single position can track the full portfolio.
-                        </p>
-                        <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
-                            {roundStatusSentence}
-                            {roundProofSentence ? ` ${roundProofSentence}` : null}
                         </p>
                     </div>
 
