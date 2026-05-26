@@ -100,7 +100,9 @@ function Hero() {
     const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : FALLBACK_ROUND_1_RAISED_AVAX;
     const roundRaisedAvax = round.roundSource === 'onchain' && round.round
         ? Number(formatEther(round.round.raisedAmount))
-        : ROUND_2_CLOSE_LEDGER.raisedAvax;
+        : round.roundSource === 'published'
+            ? ROUND_2_CLOSE_LEDGER.raisedAvax
+            : 0;
     const continuousRaisedAvax = continuousSettlementTotalUsdt6 !== undefined && avaxUsd > 0
         ? Number(formatUnits(continuousSettlementTotalUsdt6, 6)) / avaxUsd
         : 0;
