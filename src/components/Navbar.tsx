@@ -1,28 +1,60 @@
 import { useEffect, useState } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Link, useLocation } from 'react-router-dom';
-import { GLOBAL_CTA_ROUTE, PUBLIC_NAV_LINKS, getRoundPrimaryCtaLabel } from '../data/protocol';
+import { PUBLIC_NAV_LINKS } from '../data/protocol';
 import { useTheme } from '../hooks/useTheme';
-import { useFujiRoundState } from '../hooks/useFujiProof';
 import Logo from './Logo';
 import { Web3Providers } from './Web3Providers';
-import { getRoundScheduleShortLabel } from './RoundTimingCallout';
 
-function NavbarRoundCta({ mobile = false }: { mobile?: boolean }) {
-    const roundState = useFujiRoundState();
+function shortenAddress(address?: string) {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
+function NavbarWalletCta({ mobile = false }: { mobile?: boolean }) {
     return (
-        <Link
-            to={GLOBAL_CTA_ROUTE}
-            className={`pixel-menu-link pixel-menu-link-active ${mobile ? 'w-full justify-center' : ''}`.trim()}
-        >
-            <span className="pixel-menu-cursor" aria-hidden>↗</span>
-            <span className="flex flex-col leading-tight">
-                <span>{getRoundPrimaryCtaLabel(roundState.isRoundOpen)}</span>
-                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.08em] opacity-75">
-                    {getRoundScheduleShortLabel(roundState)}
-                </span>
-            </span>
-        </Link>
+        <ConnectButton.Custom>
+            {({ account, chain, mounted, openAccountModal, openChainModal, openConnectModal }) => {
+                const connected = mounted && account && chain;
+                const isWrongNetwork = Boolean(connected && chain.unsupported);
+                const label = !connected
+                    ? 'Connect wallet'
+                    : isWrongNetwork
+                        ? 'Switch network'
+                        : account.displayName || shortenAddress(account.address);
+                const detail = !connected ? 'Wallet' : isWrongNetwork ? 'Network' : chain.name || 'Connected';
+
+                const handleClick = () => {
+                    if (!connected) {
+                        openConnectModal();
+                        return;
+                    }
+
+                    if (isWrongNetwork) {
+                        openChainModal();
+                        return;
+                    }
+
+                    openAccountModal();
+                };
+
+                return (
+                    <button
+                        type="button"
+                        onClick={handleClick}
+                        className={`pixel-menu-link pixel-menu-link-active ${mobile ? 'w-full justify-center' : ''}`.trim()}
+                    >
+                        <span className="pixel-menu-cursor" aria-hidden>↗</span>
+                        <span className="flex flex-col leading-tight">
+                            <span>{label}</span>
+                            <span className="text-[0.58rem] font-semibold uppercase tracking-[0.08em] opacity-75">
+                                {detail}
+                            </span>
+                        </span>
+                    </button>
+                );
+            }}
+        </ConnectButton.Custom>
     );
 }
 
@@ -109,7 +141,7 @@ export default function Navbar() {
 
                             <div className="hidden lg:block">
                                 <Web3Providers>
-                                    <NavbarRoundCta />
+                                    <NavbarWalletCta />
                                 </Web3Providers>
                             </div>
 
@@ -155,7 +187,7 @@ export default function Navbar() {
                     </div>
                     <div className="mt-4 border-t border-[var(--border)] pt-4">
                         <Web3Providers>
-                            <NavbarRoundCta mobile />
+                            <NavbarWalletCta mobile />
                         </Web3Providers>
                     </div>
                 </div>
