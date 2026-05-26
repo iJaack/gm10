@@ -459,6 +459,9 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/total raised to date/i)).toBeInTheDocument();
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/Round 1 plus finalized Round 2/i)).toBeInTheDocument();
+        expect(screen.queryByText(/investor p&l/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/your position, always visible/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/example investor view/i)).not.toBeInTheDocument();
     });
 
     it('shows planned round 2 setup as in progress during the configured window', async () => {
