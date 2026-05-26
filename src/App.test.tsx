@@ -9,6 +9,7 @@ const wagmiMocks = vi.hoisted(() => ({
         isConnected: false,
     },
     balanceValue: undefined as bigint | undefined,
+    balanceReads: {} as Record<string, bigint | undefined>,
     roundState: undefined as any,
     contractEvents: [] as any[],
     readContractData: {} as Record<string, unknown>,
@@ -36,9 +37,15 @@ vi.mock('./components/Web3Providers', () => ({
 
 vi.mock('wagmi', () => ({
     useAccount: () => wagmiMocks.account,
-    useBalance: () => ({
-        data: wagmiMocks.balanceValue === undefined ? undefined : { value: wagmiMocks.balanceValue },
-    }),
+    useBalance: ({ chainId, token }: { chainId?: number; token?: `0x${string}` } = {}) => {
+        const key = `${chainId ?? 'default'}:${token ? token.toLowerCase() : 'native'}`;
+        const value = wagmiMocks.balanceReads[key] ?? (chainId || token ? undefined : wagmiMocks.balanceValue);
+        return {
+            data: value === undefined ? undefined : { value },
+            isError: false,
+            isLoading: false,
+        };
+    },
     usePublicClient: () => ({
         getBlockNumber: vi.fn(async () => 85856585n),
         getContractEvents: vi.fn(async () => wagmiMocks.contractEvents),
@@ -295,10 +302,23 @@ function renderAt(path: string) {
     return render(<App />);
 }
 
+function mockSourceTokenBalances() {
+    wagmiMocks.account = {
+        address: '0x1234567890123456789012345678901234567890',
+        isConnected: true,
+    };
+    wagmiMocks.balanceReads = {
+        '43114:native': 12420000000000000000n,
+        '8453:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': 2480000000n,
+        '1:native': 860000000000000000n,
+    };
+}
+
 afterEach(() => {
     cleanup();
     wagmiMocks.account = { address: undefined, isConnected: false };
     wagmiMocks.balanceValue = undefined;
+    wagmiMocks.balanceReads = {};
     wagmiMocks.roundState = undefined;
     wagmiMocks.contractEvents = [];
     wagmiMocks.readContractData = {};
@@ -403,6 +423,7 @@ describe('page compression regressions', () => {
 
     it('merges buy and live proof into the fundraising route', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
         renderAt('/fundraising');
 
         expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
@@ -418,6 +439,7 @@ describe('page compression regressions', () => {
         fireEvent.change(sourceTokenSelect, { target: { value: 'usdc-base' } });
         expect(screen.getByText(/balance 2,480 USDC/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/commit amount in USDC/i)).toBeInTheDocument();
+        expect(screen.queryByText(/SOL on Solana/i)).not.toBeInTheDocument();
         expect(screen.getByText(/every continuous commit has an immediate route/i)).toBeInTheDocument();
         expect(screen.getAllByText(/strategy buying power/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LP support reserve/i).length).toBeGreaterThan(0);
@@ -567,6 +589,7 @@ describe('page compression regressions', () => {
 
     it('previews continuous commits without submitting the legacy invest flow', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
         renderAt('/fundraising');
 
         fireEvent.change(await screen.findByRole('combobox', { name: /source token/i }), { target: { value: 'usdc-base' } });
@@ -580,6 +603,7 @@ describe('page compression regressions', () => {
 
     it('does not gate commit preview on static source-token balance fixtures', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
         renderAt('/fundraising');
 
         const amountInput = await screen.findByLabelText(/commit amount in AVAX/i);
@@ -591,6 +615,29 @@ describe('page compression regressions', () => {
 
         expect(screen.queryByText(/exceeds the detected/i)).not.toBeInTheDocument();
         expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
+    });
+
+    it('shows source token balances from connected wallet reads, not static fixtures', async () => {
+        wagmiMocks.readContractData.continuousMintPaused = false;
+        wagmiMocks.account = {
+            address: '0x1234567890123456789012345678901234567890',
+            isConnected: true,
+        };
+        wagmiMocks.balanceReads = {
+            '43114:native': 3330000000000000000n,
+            '8453:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': 42000000n,
+            '1:native': 120000000000000000n,
+        };
+
+        renderAt('/fundraising');
+
+        expect(await screen.findByText(/balance 3\.33 AVAX/i)).toBeInTheDocument();
+        expect(screen.queryByText(/balance 12\.42 AVAX/i)).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByRole('combobox', { name: /source token/i }), { target: { value: 'usdc-base' } });
+
+        expect(screen.getByText(/balance 42 USDC/i)).toBeInTheDocument();
+        expect(screen.queryByText(/balance 2,480 USDC/i)).not.toBeInTheDocument();
     });
 
     it('keeps round 2 allocation constants aligned with the full-cap example', () => {
