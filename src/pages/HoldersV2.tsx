@@ -9,7 +9,7 @@
  *   5. Liquidity      — data table: venue / pair / price / volume / liquidity / 24h / link
  */
 
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { formatEther, formatUnits } from 'viem';
 import { Link } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -1002,14 +1002,11 @@ function PoolRow({ pool, avaxUsd }: { pool: MarketPool; avaxUsd: number }) {
     );
 }
 
-type VenueTab = 'all' | 'lfj' | 'pharaoh';
-
 function LiquiditySection() {
     const market = useCatchMarketData();
     const holder = useHolderDashboard();
     const round = useFujiRoundState();
     const avaxUsd = useAvaxPrice();
-    const [tab, setTab] = useState<VenueTab>('all');
 
     const lfj = market.lfj;
     const pharaoh = market.pharaoh;
@@ -1017,7 +1014,6 @@ function LiquiditySection() {
     const pharaohProtocol = resolveProtocolLpValue(pharaoh, avaxUsd);
     const protocolLpSum = lfjProtocol.usd + pharaohProtocol.usd;
 
-    // Aggregate view for "All"
     const hasCombinedLiquidity = lfj.liquidityUsd !== undefined || pharaoh.liquidityUsd !== undefined;
     const hasCombinedVolume = lfj.volume24hUsd !== undefined || pharaoh.volume24hUsd !== undefined;
     const combined = {
@@ -1028,19 +1024,12 @@ function LiquiditySection() {
         priceChange24h: lfj.priceChange24h ?? pharaoh.priceChange24h,
     };
 
-    const active = tab === 'lfj' ? lfj : tab === 'pharaoh' ? pharaoh : null;
-    const viewLiq = active ? active.liquidityUsd : combined.liquidityUsd;
-    const viewProtocolLp = active ? resolveProtocolLpValue(active, avaxUsd).usd : combined.protocolLpUsd;
-    const viewVol = active ? active.volume24hUsd : combined.volume24hUsd;
-    const viewPrice = active ? active.priceUsd : combined.priceUsd;
-    const viewChange = active ? active.priceChange24h : combined.priceChange24h;
+    const viewLiq = combined.liquidityUsd;
+    const viewProtocolLp = combined.protocolLpUsd;
+    const viewVol = combined.volume24hUsd;
+    const viewPrice = combined.priceUsd;
+    const viewChange = combined.priceChange24h;
     const viewUp = (viewChange ?? 0) >= 0;
-
-    const tabs: { id: VenueTab; label: string }[] = [
-        { id: 'all', label: 'All venues' },
-        { id: 'lfj', label: 'LFJ' },
-        { id: 'pharaoh', label: 'Pharaoh' },
-    ];
 
     // Shares for the venue-split chart
     const lfjLiq = lfj.liquidityUsd ?? 0;
@@ -1071,7 +1060,7 @@ function LiquiditySection() {
                                 Liquidity &amp; venues
                             </h3>
                             <p className="mt-1 text-[0.78rem] leading-[1.55] text-[var(--ink-muted)]">
-                                How $CATCH trades across the two DEX venues — onchain pool depth, optional 24h indexer flow, and cumulative AVAX routed to holders since launch. Switch tabs to drill into a single pool.
+                                How $CATCH trades across the two DEX venues — onchain pool depth, optional 24h indexer flow, and cumulative AVAX routed to holders since launch.
                             </p>
                         </div>
                         <DataMono className="shrink-0 text-[0.68rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
@@ -1079,25 +1068,6 @@ function LiquiditySection() {
                         </DataMono>
                     </header>
 
-                    {/* Pill tabs */}
-                    <div className="mt-5 flex flex-wrap gap-2">
-                        {tabs.map((t) => (
-                            <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => setTab(t.id)}
-                                className={`rounded-full px-4 py-1.5 text-[0.82rem] font-medium tracking-[-0.01em] transition-colors ${
-                                    tab === t.id
-                                        ? 'bg-[var(--accent)] text-[#0f0e13]'
-                                        : 'border border-[var(--border)] text-[var(--ink-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
-                                }`}
-                            >
-                                {t.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* KPI cards — reflect selected venue or aggregate */}
                     <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
@@ -1322,46 +1292,25 @@ function LiquiditySection() {
                         );
                     })()}
 
-                    {/* Pool table / single-pair detail */}
-                    {tab === 'all' ? (
-                        <div className="mt-8 overflow-x-auto border-t border-[var(--rule)] pt-5">
-                            <div className="min-w-[920px]">
-                                <div
-                                    className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
-                                    style={{ gridTemplateColumns: '120px 140px 1fr 150px 150px 140px 110px 80px' }}
-                                >
-                                    <span>Venue</span>
-                                    <span>Pair</span>
-                                    <span>Quote</span>
-                                    <span className="text-right">Onchain liquidity</span>
-                                    <span className="text-right">Protocol LP</span>
-                                    <span className="text-right">24H Vol</span>
-                                    <span className="text-right">24H</span>
-                                    <span className="text-right">Link</span>
-                                </div>
-                                <PoolRow pool={lfj} avaxUsd={avaxUsd} />
-                                <PoolRow pool={pharaoh} avaxUsd={avaxUsd} />
+                    <div className="mt-8 overflow-x-auto border-t border-[var(--rule)] pt-5">
+                        <div className="min-w-[920px]">
+                            <div
+                                className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
+                                style={{ gridTemplateColumns: '120px 140px 1fr 150px 150px 140px 110px 80px' }}
+                            >
+                                <span>Venue</span>
+                                <span>Pair</span>
+                                <span>Quote</span>
+                                <span className="text-right">Onchain liquidity</span>
+                                <span className="text-right">Protocol LP</span>
+                                <span className="text-right">24H Vol</span>
+                                <span className="text-right">24H</span>
+                                <span className="text-right">Link</span>
                             </div>
+                            <PoolRow pool={lfj} avaxUsd={avaxUsd} />
+                            <PoolRow pool={pharaoh} avaxUsd={avaxUsd} />
                         </div>
-                    ) : (
-                        <div className="mt-6 flex items-center justify-between border-t border-[var(--rule)] pt-4 text-[0.82rem]">
-                            <DataMono className="text-[var(--ink-faint)]">
-                                PAIR · <span className="text-[var(--text-primary)]">{shortAddr((active ?? lfj).pairAddress)}</span>
-                                {' · '}
-                                <span className="text-[var(--text-primary)]">{(active ?? lfj).quoteToken ?? '—'}</span>
-                            </DataMono>
-                            {(active ?? lfj).url ? (
-                                <a
-                                    href={(active ?? lfj).url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="v2-mono text-[0.88rem] tracking-[0.03em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors"
-                                >
-                                    → Open pool on {tab === 'lfj' ? 'LFJ' : 'Pharaoh'}
-                                </a>
-                            ) : null}
-                        </div>
-                    )}
+                    </div>
                 </section>
             </div>
         </section>
