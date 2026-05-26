@@ -319,11 +319,11 @@ function CompositionDonut() {
         return { d, color: slice.color, pct: (slice.value / total) * 100, label: slice.label, value: slice.value };
     });
 
-    // Flow-to-holders metrics — live alongside the composition donut
+    // Market-support metrics — live alongside the composition donut
     const flowRows = [
         {
-            label: 'Holder profits claimable / claimed',
-            detail: 'USD reserved for holder claims plus paid distributions; APR appears once realized profit exists',
+            label: 'Market-support reserve',
+            detail: 'Sale-profit funds reserved for buyback-burn execution and LP support; no APR/APY claim is advertised.',
             value: holder.labels.holderProfitsClaimableClaimed,
             hint: holder.labels.holderProfitApr,
         },
@@ -667,7 +667,7 @@ function ProtocolStats() {
         <div>
             <SubHead
                 title="Supply composition"
-                detail="Dynamic supply expands when finalized rounds mint actual sold tokens. Profit-eligible supply excludes segment, liquidity, treasury, and operations wallets."
+                detail="Dynamic supply expands when successful commits mint from settled value. Profit-eligible supply excludes segment, liquidity, treasury, and operations wallets."
             />
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
                 <div className="flex flex-wrap items-end justify-between gap-4">
@@ -679,7 +679,7 @@ function ProtocolStats() {
                             {fmtCatch(totalSupplyNum)}
                         </DataMono>
                         <DataMono className="mt-1 block text-[0.76rem] text-[var(--ink-faint)]">
-                            Current circulating supply after finalized rounds
+                            Current circulating supply after settled commits
                         </DataMono>
                     </div>
                     <div className="text-right">
@@ -698,8 +698,8 @@ function ProtocolStats() {
                             { label: 'Profit-eligible holders', value: Math.max(eligibleSupplyNum, 0), color: 'var(--accent-blue)' },
                             { label: 'Excluded system wallets', value: excludedSupplyNum, color: 'var(--accent)' },
                         ]}
-                        caption="Eligible holders participate in realized-profit claims; excluded system wallets do not."
-                        ariaLabel={`Supply split. ${fmtCatch(eligibleSupplyNum)} is profit-eligible and ${fmtCatch(excludedSupplyNum)} is excluded from profit claims.`}
+                        caption="Circulating holders remain the public supply base; system wallets are shown separately."
+                        ariaLabel={`Supply split. ${fmtCatch(eligibleSupplyNum)} is circulating holder supply and ${fmtCatch(excludedSupplyNum)} is excluded system supply.`}
                     />
                 </div>
                 <div className="mt-3 grid gap-2 text-[0.76rem] md:grid-cols-2">
@@ -710,7 +710,7 @@ function ProtocolStats() {
                         </DataMono>
                     </div>
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2">
-                        <DataMono className="block text-[var(--ink-faint)]">Excluded from profit claims</DataMono>
+                        <DataMono className="block text-[var(--ink-faint)]">Excluded system supply</DataMono>
                         <DataMono className="mt-1 block font-semibold text-[var(--text-primary)]">
                             {fmtCatch(excludedSupplyNum)} · {fmtPct(excludedPct)}
                         </DataMono>
@@ -727,8 +727,8 @@ function ProtocolStats() {
                     totalLabel="Buyer mint"
                     totalValue="95.24%"
                     size={220}
-                    caption="Recurring per-round model; segment wallets are excluded from profit claims."
-                    ariaLabel={`Token allocation model chart. Buyer tokens receive 95.24 percent of each finalized round mint, with segment wallets receiving the remaining 4.76 percent.`}
+                    caption="Recurring per-commit model; segment wallets are excluded from circulating holder supply."
+                    ariaLabel={`Token allocation model chart. Buyer tokens receive 95.24 percent of each successful commit mint, with segment wallets receiving the remaining 4.76 percent.`}
                 />
                 <ChartLegend
                     items={TOKEN_ALLOCATION.map((b, i) => ({
@@ -843,10 +843,10 @@ function AccountSection() {
                         <div className="min-w-0">
                             <SectionLabel>Your position</SectionLabel>
                             <div className="mt-2 text-[1.25rem] md:text-[1.4rem] font-extrabold tracking-[-0.01em] text-[var(--text-primary)]">
-                                Connect a wallet to see your $CATCH, claimable profit, and live P/L.
+                                Connect a wallet to see your $CATCH, reference value, and live P/L.
                             </div>
                             <p className="mt-2 max-w-[60ch] text-[0.82rem] leading-[1.55] text-[var(--ink-muted)]">
-                                Read-only — no signatures required. We pull balances, cost basis and claim state from Avalanche directly.
+                                Read-only — no signatures required. We pull balances, cost basis, and reference NAV from Avalanche directly.
                             </p>
                         </div>
                         <ConnectButton.Custom>
@@ -913,17 +913,17 @@ function AccountSection() {
                         <LedgerRow
                             columns="200px 1fr 240px"
                             cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Claimable profit</Caption>,
-                                <span className="text-[var(--ink-faint)]">Realised sale proceeds only</span>,
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Public claims</Caption>,
+                                <span className="text-[var(--ink-faint)]">Disabled under the continuous accrual model</span>,
                                 <span className="text-right text-[var(--text-primary)]">{holder.labels.claimableProfit}</span>,
                             ]}
                         />
                         <LedgerRow
                             columns="200px 1fr 240px"
                             cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Already claimed</Caption>,
-                                <span className="text-[var(--ink-faint)]">AVAX distributions to date</span>,
-                                <span className="text-right text-[var(--text-primary)]">{holder.labels.claimedProfit}</span>,
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Market support</Caption>,
+                                <span className="text-[var(--ink-faint)]">Buyback-burn and LP reserve</span>,
+                                <span className="text-right text-[var(--text-primary)]">{holder.labels.marketSupportReserve}</span>,
                             ]}
                         />
                     </div>
@@ -938,25 +938,24 @@ function AccountSection() {
 function ClaimRow() {
     const holder = useHolderDashboard();
     if (!holder.isConnected) return null;
-    const canClaim = holder.claimState.canClaim;
 
     return (
         <section className="px-4 pt-8 pb-16 border-t border-[var(--rule)]">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] flex flex-wrap items-baseline gap-6 justify-between">
                 <div>
-                    <SectionLabel>Claim status</SectionLabel>
+                    <SectionLabel>Accrual status</SectionLabel>
                     <DataMono className="mt-2 block text-[1.05rem] text-[var(--text-primary)]">
-                        {canClaim ? 'READY' : 'LOCKED'} · {holder.labels.claimableProfit}
+                        BUYBACK / LP SUPPORT · {holder.labels.marketSupportReserve}
                     </DataMono>
                     <p className="mt-2 max-w-[56ch] text-[0.82rem] leading-[1.6] text-[var(--ink-muted)]">
-                        {holder.claimState.reason}
+                        Realized sale profits are reserved for card buying power, CATCH buyback-burn execution, and LP support instead of routine holder claim distributions.
                     </p>
                 </div>
                 <span
                     aria-disabled
-                    className={`v2-mono text-[0.92rem] tracking-[0.05em] ${canClaim ? 'text-[var(--accent-brass)]' : 'text-[var(--ink-faint)] cursor-not-allowed'}`}
+                    className="v2-mono cursor-not-allowed text-[0.92rem] tracking-[0.05em] text-[var(--ink-faint)]"
                 >
-                    {canClaim ? '→ Claim AVAX (disabled on the public site — use the admin flow)' : '◯ Claim disabled'}
+                    ◯ Public claims disabled
                 </span>
             </div>
         </section>

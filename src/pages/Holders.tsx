@@ -86,9 +86,6 @@ function HoldersContent() {
     const pnlIsPositive = typeof pnlValue === 'string' && !pnlValue.startsWith('-') && pnlValue !== 'Unavailable' && pnlValue !== '—';
     const pnlIsNegative = typeof pnlValue === 'string' && pnlValue.startsWith('-');
 
-    const claimableRaw = holder.labels.claimableProfit;
-    const hasClaimable = typeof claimableRaw === 'string' && claimableRaw !== '$0.00' && claimableRaw !== 'Unavailable' && claimableRaw !== '—';
-
     return (
         <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
             {/* Header */}
@@ -96,8 +93,8 @@ function HoldersContent() {
                 <ScrollReveal>
                     <div className="flex flex-wrap items-center gap-2">
                         <PixelLabel tone="live">$CATCH</PixelLabel>
-                        <PixelLabel tone={holder.claimState.canClaim ? 'profit' : 'warning'}>
-                            {holder.claimState.canClaim ? 'Claim ready' : 'Claim gated'}
+                        <PixelLabel tone="warning">
+                            Claims disabled
                         </PixelLabel>
                     </div>
                     <div className="mt-5 max-w-3xl">
@@ -106,7 +103,7 @@ function HoldersContent() {
                             Holder dashboard
                         </h1>
                         <p className="mt-3 text-[0.98rem] leading-[1.7] text-[var(--text-secondary)]">
-                            Track $CATCH accounting, live market liquidity, and realized AVAX profit. Card NAV is exposure; only completed sale proceeds become claimable.
+                            Track $CATCH accounting, live market liquidity, and realized sale-profit accrual. Card NAV is exposure; completed sale proceeds now reinforce buying power, buybacks, and LP support.
                         </p>
                     </div>
                 </ScrollReveal>
@@ -166,8 +163,8 @@ function HoldersContent() {
                                     <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{portfolio.proofSummary.liquidTreasuryLabel}</div>
                                 </div>
                                 <div>
-                                    <div className="label-font text-[0.58rem]">Holder claim bucket</div>
-                                    <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.holderDistributionAccrued}</div>
+                                    <div className="label-font text-[0.58rem]">Market support reserve</div>
+                                    <div className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.marketSupportReserve}</div>
                                 </div>
                             </div>
                         </div>
@@ -185,7 +182,7 @@ function HoldersContent() {
                             <div>
                                 <p className="text-lg font-semibold text-[var(--text-primary)]">Connect your wallet to view your position</p>
                                 <p className="mt-1 text-[0.88rem] text-[var(--text-secondary)]">
-                                    See your CATCH balance, cost basis, unrealized P/L, and claimable profit.
+                                    See your CATCH balance, cost basis, unrealized P/L, and reference NAV.
                                 </p>
                             </div>
                             <ConnectButton />
@@ -246,11 +243,11 @@ function HoldersContent() {
                             <ScrollReveal delay={2}>
                                 <div
                                     className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5"
-                                    style={hasClaimable ? { borderLeft: '2px solid var(--accent-green)' } : undefined}
+                                    style={{ borderLeft: '2px solid var(--accent)' }}
                                 >
-                                    <div className="label-font text-[0.58rem]">Already claimed</div>
-                                    <div className="mt-2 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.claimedProfit}</div>
-                                    <div className="mt-1 text-[0.76rem] text-[var(--text-tertiary)]">AVAX distributions</div>
+                                    <div className="label-font text-[0.58rem]">Market support</div>
+                                    <div className="mt-2 text-xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.marketSupportReserve}</div>
+                                    <div className="mt-1 text-[0.76rem] text-[var(--text-tertiary)]">Buyback-burn and LP support</div>
                                 </div>
                             </ScrollReveal>
                         </div>
@@ -260,32 +257,24 @@ function HoldersContent() {
                 {/* Claim status — full width row */}
                 <ScrollReveal delay={1}>
                     <div
-                        className={`mt-4 rounded-2xl border bg-[var(--bg-secondary)] p-5 ${
-                            hasClaimable
-                                ? 'border-[var(--accent-green)]'
-                                : 'border-[var(--border)]'
-                        }`}
+                        className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5"
                     >
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex-1">
-                                <div className="label-font text-[0.58rem]">Claimable realized profit</div>
-                                <div className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.claimableProfit}</div>
-                                <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{holder.claimState.reason}</p>
+                                <div className="label-font text-[0.58rem]">Continuous accrual</div>
+                                <div className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.marketSupportReserve}</div>
+                                <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">Routine holder claims are disabled. Realized sale profits preserve liquid card-buying power and fund market support.</p>
                             </div>
                             <div className="flex flex-col gap-2 sm:items-end">
                                 <button
                                     type="button"
                                     disabled
-                                    className={`rounded-2xl px-6 py-3 text-[0.88rem] font-semibold transition-opacity ${
-                                        holder.claimState.canClaim
-                                            ? 'cursor-not-allowed bg-[var(--accent)] text-[var(--bg-primary)] opacity-50'
-                                            : 'cursor-not-allowed bg-[var(--surface-active)] text-[var(--text-tertiary)]'
-                                    }`}
+                                    className="cursor-not-allowed rounded-2xl bg-[var(--surface-active)] px-6 py-3 text-[0.88rem] font-semibold text-[var(--text-tertiary)] transition-opacity"
                                 >
-                                    Claim AVAX disabled
+                                    Public claims disabled
                                 </button>
                                 <p className="max-w-xs text-right text-[0.72rem] leading-[1.5] text-[var(--text-tertiary)]">
-                                    Claim writes stay disabled until a verified profit distributor function is configured.
+                                    Sale profit accrues through reinvestment, buyback-burn execution, and LP support.
                                 </p>
                             </div>
                         </div>

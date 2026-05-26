@@ -9,7 +9,7 @@ describe('claim eligibility state', () => {
             hasClaimAction: true,
         })).toEqual({
             canClaim: false,
-            reason: 'Connect a wallet to check realized profit.',
+            reason: 'Connect a wallet to inspect CATCH accounting.',
         });
     });
 
@@ -25,7 +25,7 @@ describe('claim eligibility state', () => {
         expect(state.reason).toMatch(/excluded/i);
     });
 
-    it('blocks zero claimable profit', () => {
+    it('blocks zero public claim amount', () => {
         const state = getClaimEligibilityState({
             isConnected: true,
             claimableProfitWei: 0n,
@@ -33,7 +33,7 @@ describe('claim eligibility state', () => {
         });
 
         expect(state.canClaim).toBe(false);
-        expect(state.reason).toMatch(/no realized sale profit/i);
+        expect(state.reason).toMatch(/routine holder claims are disabled/i);
     });
 
     it('blocks missing claim action even when profit is positive', () => {

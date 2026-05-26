@@ -65,9 +65,9 @@ export function ProfitWaterfallDiagram() {
                             <div className="grid gap-2 md:grid-cols-[auto_1fr] md:items-start">
                                 <div className="text-2xl font-bold text-[var(--accent-blue)]">{slice.percent}%</div>
                                 <div className="text-sm leading-7 text-[var(--text-secondary)]">
-                                    {slice.label === 'Treasury reinvestment' && 'Returned to the strategy and future card buying power.'}
-                                    {slice.label === 'Holder claim bucket' && 'Realized profit routed into claimable AVAX distributions for eligible circulating holders.'}
-                                    {slice.label === 'LP replenishment' && 'Half market-buys $CATCH, half buys or retains AVAX, then liquidity is added 50/50 to LFJ and Pharaoh.'}
+                                    {slice.label === 'Buying power' && 'Returned to the strategy so realized profits can buy more cards and keep liquid execution capacity.'}
+                                    {slice.label === 'LP support' && 'Reserved for bounded liquidity support without counting protocol-owned LP in conservative NAV.'}
+                                    {slice.label === 'Buyback-burn reserve' && 'Reserved under discount conditions to buy CATCH and remove it from supply.'}
                                 </div>
                             </div>
                         </div>

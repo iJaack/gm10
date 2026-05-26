@@ -549,7 +549,7 @@ export function CourtyardWizardPanel() {
         ? confirmFundingAmountUsdt6 + stableAccounting[6]
         : undefined;
     const fundingCapacityDetail = stableAccounting && requiredFundingCapacityUsdt6 !== undefined
-        ? `Stored liquid treasury: ${formatUnits(stableAccounting[2], 6)} USDT. Required: ${formatUnits(requiredFundingCapacityUsdt6, 6)} USDT including the holder claim bucket.`
+        ? `Stored liquid treasury: ${formatUnits(stableAccounting[2], 6)} USDT. Required: ${formatUnits(requiredFundingCapacityUsdt6, 6)} USDT including the legacy reserved bucket.`
         : 'Stored liquid treasury accounting is still loading.';
     const purchaseReleased = purchaseStatus >= 3 || (
         confirmFundingAmountUsdt6 !== undefined &&

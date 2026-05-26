@@ -231,7 +231,7 @@ function FundraisingContent() {
                         <div className="grid gap-3">
                             {[
                                 ['🕒', 'Round window', roundWindowLabel],
-                                ['💸', 'Profit share', 'Profitable exits route 40% of realized profit into claimable AVAX distributions for eligible holders.'],
+                                ['💸', 'Sale-profit accrual', 'Profitable exits preserve card-buying power and can route bounded support to LP or CATCH buyback-and-burn.'],
                             ].map(([emoji, title, body]) => (
                                 <div key={title} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
                                     <span className="shrink-0 text-lg" aria-hidden>{emoji}</span>

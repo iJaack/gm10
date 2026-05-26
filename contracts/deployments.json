@@ -3,7 +3,7 @@
     "network": "fuji",
     "chainId": "43113",
     "proxy": "0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C",
-    "implementation": "0x938B90f0b53a69Ab8d08feef077F5a96D15A3c4c",
+    "implementation": "0xb5FFa11124bdA2453EA9A9d27c4c640149D6F26F",
     "treasury": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
     "managementFee": 100,
     "performanceFee": 1000,
@@ -35,6 +35,52 @@
       "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
       "deployedAt": "2026-02-19T00:24:20.537Z",
       "blockNumber": 51925198
+    },
+    "implementationV8": "0xb5FFa11124bdA2453EA9A9d27c4c640149D6F26F",
+    "tokenomicsController": "0x395cd213183E13ED52bfffb8255d32A7de8A0aE4",
+    "lastContinuousAccrualUpgrade": {
+      "to": "0xb5FFa11124bdA2453EA9A9d27c4c640149D6F26F",
+      "controller": "0x395cd213183E13ED52bfffb8255d32A7de8A0aE4",
+      "timestamp": "2026-05-26T15:26:59.082Z",
+      "blockNumber": 55800965,
+      "tx": "0x384179a9ada6b0d5ec132b1717ff89d3485ec227cc24454e072e4ef9fd20b351",
+      "controls": {
+        "continuousMintPaused": true,
+        "buybackPaused": true,
+        "lpSupportPaused": true,
+        "mintSpreadBps": "-500",
+        "redemptionsPermanentlyDisabled": true
+      }
+    },
+    "lastContinuousAccrualSmoke": {
+      "timestamp": "2026-05-26T15:41:00.000Z",
+      "controlsBefore": {
+        "continuousMintPaused": true,
+        "buybackPaused": true,
+        "lpSupportPaused": true,
+        "mintSpreadBps": "-500"
+      },
+      "previewContinuousMint1Usdt6": {
+        "buyerCatch18": "252716704574172352792",
+        "segmentCatchEach18": "2527167045741723527",
+        "mintPriceUsdt6": "3957"
+      },
+      "redeemReverted": true,
+      "timelock": "0x73cBa10f55251da73423c7Ea76EC4743F5F583d3",
+      "temporaryProposer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
+      "grantProposerTx": "0xd3e3460ff5609fd8f58f22d12280e6a947f4bdcda4d7e4178d728ac5a8e6b10d",
+      "scheduleSpreadMinus499Tx": "0xf547a60a0a5e621664f16ce4f695a92bbc94b252bcb1c3ae09a93fb2515dcfcd",
+      "scheduleRestoreMinus500Tx": "0x27603fdf45b983bb81d4c6ab2af3b047b0a6a40d8d06b03bbe55f88f62d5409e",
+      "executeSpreadMinus499Tx": "0xea4d0d882dd39e79732b1ed9362e1f12506e09b821a593a84e36e24b9c27229f",
+      "executeRestoreMinus500Tx": "0xd7e68b21b8af6721ce56502083915f21f7fbcee80a86ac82d66cfd246d80e4be",
+      "revokeProposerTx": "0x1551456864512e12677efa8608e1a192ce1ada1d8372cb3851540ea376c7c403",
+      "controlsAfter": {
+        "continuousMintPaused": true,
+        "buybackPaused": true,
+        "lpSupportPaused": true,
+        "mintSpreadBps": "-500"
+      },
+      "ledgerHasProposerRoleAfter": false
     }
   },
   "avalanche": {

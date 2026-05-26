@@ -9,7 +9,7 @@ import {
     GM10_INVESTOR_ACCOUNTING_ABI,
     GM10_TOKENOMICS_CONTROLLER_ABI,
 } from '../data/contracts';
-import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS, ROUND_1_START_AT } from '../data/gm10Config';
+import { GM10_MARKET_CONFIG, GM10_TREASURY_WALLETS } from '../data/gm10Config';
 import { resolveHolderAccounting } from '../data/holderAccounting';
 import { resolveLiquidTreasuryUsdt6 } from '../data/treasuryMath';
 import { useFujiContracts } from './useFujiProof';
@@ -43,34 +43,6 @@ function formatAvax(value?: bigint) {
     return `${Number(formatEther(value)).toLocaleString('en-US', { maximumFractionDigits: 6 })} AVAX`;
 }
 
-function weiToUsdt6(value: bigint, avaxUsd: number) {
-    if (avaxUsd <= 0) return 0n;
-    return value * BigInt(Math.round(avaxUsd * 1_000_000)) / 10n ** 18n;
-}
-
-function formatApr(value?: number) {
-    if (value === undefined || !Number.isFinite(value)) return 'APR unavailable';
-    return `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}% APR`;
-}
-
-function resolveHolderProfitAprPct({
-    holderProfitsUsdt6,
-    profitEligibleSupply,
-    navPerToken,
-}: {
-    holderProfitsUsdt6?: bigint;
-    profitEligibleSupply?: bigint;
-    navPerToken?: bigint;
-}) {
-    if (!holderProfitsUsdt6 || holderProfitsUsdt6 <= 0n) return undefined;
-    if (!profitEligibleSupply || profitEligibleSupply <= 0n || !navPerToken || navPerToken <= 0n) return undefined;
-    const eligibleValueUsdt6 = Number(profitEligibleSupply * navPerToken / 10n ** 18n);
-    if (eligibleValueUsdt6 <= 0) return undefined;
-    const elapsedSeconds = Math.max(1, Math.floor(Date.now() / 1000) - ROUND_1_START_AT);
-    const annualization = (365 * 24 * 60 * 60) / elapsedSeconds;
-    return (Number(holderProfitsUsdt6) / eligibleValueUsdt6) * annualization * 100;
-}
-
 export function useHolderDashboard() {
     const { address, isConnected } = useAccount();
     const contracts = useFujiContracts();
@@ -94,6 +66,18 @@ export function useHolderDashboard() {
         address: contracts.proxyAddress ?? ZERO_ADDRESS,
         abi: GM10_FUND_ABI,
         functionName: 'stableAccounting',
+        query: { enabled: Boolean(contracts.proxyAddress) },
+    });
+    const { data: buybackBurnAccruedUsdt6 } = useReadContract({
+        address: contracts.proxyAddress ?? ZERO_ADDRESS,
+        abi: GM10_FUND_ABI,
+        functionName: 'buybackBurnAccruedUsdt6',
+        query: { enabled: Boolean(contracts.proxyAddress) },
+    });
+    const { data: lpSupportAccruedUsdt6 } = useReadContract({
+        address: contracts.proxyAddress ?? ZERO_ADDRESS,
+        abi: GM10_FUND_ABI,
+        functionName: 'lpSupportAccruedUsdt6',
         query: { enabled: Boolean(contracts.proxyAddress) },
     });
     const { data: avaxUsdRoundData } = useReadContract({
@@ -224,17 +208,10 @@ export function useHolderDashboard() {
         teamWalletBalance?.value,
         treasurySafeBalance?.value,
     ]);
-    const totalProfitDepositedUsdt6 = holderAccounting.totalProfitDeposited !== undefined
-        ? weiToUsdt6(holderAccounting.totalProfitDeposited, avaxUsd)
-        : undefined;
-    const holderProfitsUsdt6 = stableAccounting && totalProfitDepositedUsdt6 !== undefined
-        ? stableAccounting[6] + totalProfitDepositedUsdt6
-        : stableAccounting?.[6] ?? totalProfitDepositedUsdt6;
-    const holderProfitAprPct = resolveHolderProfitAprPct({
-        holderProfitsUsdt6,
-        profitEligibleSupply: holderAccounting.profitEligibleSupply,
-        navPerToken,
-    });
+    const legacyMarketSupportUsdt6 = stableAccounting ? stableAccounting[4] + stableAccounting[5] : undefined;
+    const marketSupportReserveUsdt6 = buybackBurnAccruedUsdt6 !== undefined || lpSupportAccruedUsdt6 !== undefined
+        ? (buybackBurnAccruedUsdt6 ?? 0n) + (lpSupportAccruedUsdt6 ?? 0n)
+        : legacyMarketSupportUsdt6;
 
     return {
         account: address,
@@ -246,16 +223,19 @@ export function useHolderDashboard() {
             referenceNav: formatUsdt6(holderAccounting.referenceNav),
             navPerToken: formatUsdt6(navPerToken),
             catchBalance: isConnected ? formatCatch(catchBalance) : 'Connect wallet',
-            claimableProfit: isConnected ? formatAvax(claimableProfit) : 'Connect wallet',
+            claimableProfit: isConnected ? 'Disabled' : 'Connect wallet',
             claimedProfit: isConnected ? formatAvax(investorPnl?.claimedProfitWei) : 'Connect wallet',
             totalProfitDeposited: formatAvax(holderAccounting.totalProfitDeposited),
-            holderProfitsClaimableClaimed: formatUsdt6(holderProfitsUsdt6),
-            holderProfitApr: formatApr(holderProfitAprPct),
+            holderProfitsClaimableClaimed: formatUsdt6(marketSupportReserveUsdt6),
+            holderProfitApr: 'No APR / APY',
             currentReferenceValue: isConnected ? formatUsdt6(investorPnl?.currentReferenceValueUsdt6) : 'Connect wallet',
             unrealizedReferencePnl: isConnected ? formatSignedUsdt6(investorPnl?.unrealizedReferencePnlUsdt6) : 'Connect wallet',
             remainingCostBasis: isConnected ? formatUsdt6(investorPnl?.remainingCostBasisUsdt6) : 'Connect wallet',
             liquidTreasury: formatUsdt6(liquidTreasuryUsdt6),
             holderDistributionAccrued: stableAccounting ? formatUsdt6(stableAccounting[6]) : 'Unavailable',
+            marketSupportReserve: formatUsdt6(marketSupportReserveUsdt6),
+            buybackBurnAccrued: formatUsdt6(buybackBurnAccruedUsdt6),
+            lpSupportAccrued: formatUsdt6(lpSupportAccruedUsdt6),
             // stableAccounting[4] = liquidityCatchBuyAccrued — sale-profit funds reserved to market-buy $CATCH for LP.
             liquidityCatchBuyAccrued: stableAccounting ? formatUsdt6(stableAccounting[4]) : 'Unavailable',
             // stableAccounting[5] = liquidityAvaxPairingAccrued — sale-profit funds reserved for the AVAX side of LP.
@@ -269,8 +249,7 @@ export function useHolderDashboard() {
             referenceNav: holderAccounting.referenceNav,
             navPerToken,
             excludedSupply: holderAccounting.excludedSupply,
-            holderProfitsUsdt6,
-            holderProfitAprPct,
+            marketSupportReserveUsdt6,
         },
     };
 }

@@ -31,6 +31,7 @@ import {
     ROUND_2_CLOSE_LEDGER,
     ROUND_PROCEEDS_ALLOCATION,
 } from '../data/protocol';
+import { CONTINUOUS_COMMIT_RAILS } from '../data/continuousAccrual';
 import {
     GM10_PRIMARY_DEPLOYMENT,
     ROUND_2_END_AT,
@@ -787,6 +788,28 @@ function FundraisingContent() {
                             ? `Round ${round.roundId} is closed for new buys. It finalized at ${fmtAvax(raised, 4)} AVAX, with the remaining cap left unfilled and the proof surface kept public.`
                             : `Round ${round.roundId} stays open until ${fmtUtc(round.endsAt ?? ROUND_2_END_AT)} UTC — or earlier if the ${fmtAvax(target)} AVAX cap fills first. $CATCH starts moving freely once the round closes.`}
                     </p>
+                </div>
+            </section>
+
+            {/* Continuous commit rail */}
+            <section className="px-4 py-16 border-t border-[var(--rule)]">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                    <SectionLabel>Continuous round</SectionLabel>
+                    <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[58ch]">
+                        The next commit flow is infinite: every settled route mints immediately.
+                    </Display>
+                    <p className="mt-2 max-w-[72ch] text-[0.84rem] leading-[1.7] text-[var(--ink-muted)]">
+                        Users commit from any LI.FI or Mobula-supported chain and token. The route settles on Avalanche first, then CATCH is minted per commit and delivered back through the prepared LayerZero OFT path when supported.
+                    </p>
+                    <div className="mt-8 grid gap-3 md:grid-cols-4">
+                        {CONTINUOUS_COMMIT_RAILS.map((rail, index) => (
+                            <div key={rail.label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                                <DataMono className="text-[0.72rem] text-[var(--accent-brass)]">0{index + 1}</DataMono>
+                                <h3 className="mt-3 text-[0.95rem] font-bold text-[var(--text-primary)]">{rail.label}</h3>
+                                <p className="mt-2 text-[0.78rem] leading-[1.55] text-[var(--ink-muted)]">{rail.detail}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </section>
 

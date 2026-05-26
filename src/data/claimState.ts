@@ -12,19 +12,19 @@ export type ClaimEligibilityState = {
 
 export function getClaimEligibilityState(input: ClaimEligibilityInput): ClaimEligibilityState {
     if (!input.isConnected) {
-        return { canClaim: false, reason: 'Connect a wallet to check realized profit.' };
+        return { canClaim: false, reason: 'Connect a wallet to inspect CATCH accounting.' };
     }
 
     if (input.isExcluded) {
-        return { canClaim: false, reason: 'This account is excluded from profit share.' };
+        return { canClaim: false, reason: 'This account is excluded from circulating holder supply analytics.' };
     }
 
     if (input.claimableProfitWei === undefined) {
-        return { canClaim: false, reason: 'Claimable profit is still loading.' };
+        return { canClaim: false, reason: 'Public claim accounting is disabled in the continuous model.' };
     }
 
     if (input.claimableProfitWei <= 0n) {
-        return { canClaim: false, reason: 'No realized sale profit is claimable for this account.' };
+        return { canClaim: false, reason: 'Routine holder claims are disabled; realized profit accrues through buying power and market support.' };
     }
 
     if (!input.hasClaimAction) {

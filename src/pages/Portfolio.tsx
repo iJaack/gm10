@@ -116,7 +116,7 @@ function PortfolioContent() {
                                 Card portfolio
                             </h1>
                             <p className="mt-3 text-[0.98rem] leading-[1.7] text-[var(--text-secondary)]">
-                                Cost basis is recorded acquisition price. Current NAV is the latest platform or registry mark. Claimable profit only comes from realized sale proceeds.
+                                Cost basis is recorded acquisition price. Current NAV is the latest platform or registry mark. Realized sale proceeds preserve buying power and can route to market support.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-3">
