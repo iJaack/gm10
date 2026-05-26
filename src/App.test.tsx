@@ -11,6 +11,7 @@ const wagmiMocks = vi.hoisted(() => ({
     balanceValue: undefined as bigint | undefined,
     roundState: undefined as any,
     contractEvents: [] as any[],
+    readContractData: {} as Record<string, unknown>,
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
     reset: vi.fn(),
@@ -42,7 +43,9 @@ vi.mock('wagmi', () => ({
         getBlockNumber: vi.fn(async () => 85856585n),
         getContractEvents: vi.fn(async () => wagmiMocks.contractEvents),
     }),
-    useReadContract: () => ({ data: undefined }),
+    useReadContract: ({ functionName }: { functionName?: string }) => ({
+        data: functionName ? wagmiMocks.readContractData[functionName] : undefined,
+    }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
     useWriteContract: () => ({
         data: undefined,
@@ -298,6 +301,7 @@ afterEach(() => {
     wagmiMocks.balanceValue = undefined;
     wagmiMocks.roundState = undefined;
     wagmiMocks.contractEvents = [];
+    wagmiMocks.readContractData = {};
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
     wagmiMocks.reset.mockClear();
@@ -373,6 +377,7 @@ describe('page compression regressions', () => {
     });
 
     it('merges buy and live proof into the fundraising route', async () => {
+        wagmiMocks.readContractData.continuousMintPaused = false;
         renderAt('/fundraising');
 
         expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
@@ -406,6 +411,18 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/1,853\.9836 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/1,353\.9836 AVAX finalized/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
+    });
+
+    it('blocks continuous commit preview until the mint pause state is known', async () => {
+        renderAt('/fundraising');
+
+        expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText(/commit amount in AVAX/i), { target: { value: '1' } });
+        fireEvent.click(screen.getByRole('button', { name: /mint new \$CATCH/i }));
+
+        expect(await screen.findByText(/pause state is still loading/i)).toBeInTheDocument();
+        expect(screen.queryByText(/preview is ready/i)).not.toBeInTheDocument();
+        expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
     });
 
     it('shows the post-Round 2 close ledger instead of wallet prompts when the round is finalized', async () => {
@@ -524,6 +541,7 @@ describe('page compression regressions', () => {
     });
 
     it('previews continuous commits without submitting the legacy invest flow', async () => {
+        wagmiMocks.readContractData.continuousMintPaused = false;
         renderAt('/fundraising');
 
         fireEvent.change(await screen.findByRole('combobox', { name: /source token/i }), { target: { value: 'usdc-base' } });

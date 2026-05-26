@@ -28,6 +28,13 @@ function requireAddress(name) {
   return ethers.getAddress(value);
 }
 
+function optionalAddress(name) {
+  const value = process.env[name];
+  if (value === undefined || value === "") return undefined;
+  if (!ethers.isAddress(value)) throw new Error(`${name} must be a valid address`);
+  return ethers.getAddress(value);
+}
+
 function parseBool(name, fallback) {
   const value = process.env[name];
   if (value === undefined || value === "") return fallback;
@@ -79,9 +86,7 @@ async function main() {
   const deploymentKey = process.env.DEPLOYMENT_KEY || "avalanche";
   const { deploymentsPath, deployments } = loadDeployments();
   const deployment = deployments[deploymentKey] || {};
-  const proxy = process.env.FUND_PROXY_ADDRESS && ethers.isAddress(process.env.FUND_PROXY_ADDRESS)
-    ? ethers.getAddress(process.env.FUND_PROXY_ADDRESS)
-    : ethers.getAddress(deployment.proxy);
+  const proxy = optionalAddress("FUND_PROXY_ADDRESS") || ethers.getAddress(deployment.proxy);
 
   const nextControls = {
     continuousMintPaused: parseBool("CONTINUOUS_MINT_PAUSED", false),

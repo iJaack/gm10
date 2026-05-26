@@ -146,8 +146,12 @@ function FundraisingContent() {
             return;
         }
 
-        if (continuousMintPaused) {
-            setTxError('Continuous commits are still paused onchain. The preview is live, but settlement cannot mint yet.');
+        if (continuousMintPaused !== false) {
+            setTxError(
+                continuousMintPaused === true
+                    ? 'Continuous commits are still paused onchain. The preview is live, but settlement cannot mint yet.'
+                    : 'Continuous commit pause state is still loading. Wait for the onchain control read before previewing the route.',
+            );
             return;
         }
 
