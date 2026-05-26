@@ -33,6 +33,8 @@ import { ChartLegend, ComparisonBars, DonutChart, SegmentedBar } from '../compon
 
 /* ── Helpers ──────────────────────────────────────────── */
 
+const ROUND_1_FINALIZED_RAISED_AVAX = 500;
+
 function formatUsd(value?: number, digits = 2) {
     if (value === undefined || !isFinite(value)) return '—';
     return new Intl.NumberFormat('en-US', {
@@ -1218,11 +1220,16 @@ function LiquiditySection() {
                     {(() => {
                         const lfjPct = protocolLiquiditySum > 0 ? (lfjProtocolLiq / protocolLiquiditySum) * 100 : 0;
                         const pharaohPct = 100 - lfjPct;
-                        // Legacy raise LP allocation: 10% of raised → LP, half of that will be used to market-buy $CATCH.
+                        // Legacy raise LP allocation: 10% of each finalized raise → LP, half of that market-bought $CATCH.
                         // Continuous-round market support is tracked separately from sale-profit reserves.
-                        const raisedAvax = Number(formatEther(round.round?.raisedAmount ?? 0n));
-                        const roundBuybackAvax = raisedAvax * 0.10 * 0.5;
-                        const roundBuybackExecuted = round.isClosed ? roundBuybackAvax : 0;
+                        const round1RaisedAvax = round.archiveRound
+                            ? Number(formatEther(round.archiveRound.raisedAmount))
+                            : ROUND_1_FINALIZED_RAISED_AVAX;
+                        const round2RaisedAvax = Number(formatEther(round.round?.raisedAmount ?? 0n));
+                        const round1BuybackExecuted = round1RaisedAvax * 0.10 * 0.5;
+                        const round2BuybackExecuted = round.isClosed ? round2RaisedAvax * 0.10 * 0.5 : 0;
+                        const combinedRaisedAvax = round1RaisedAvax + (round.isClosed ? round2RaisedAvax : 0);
+                        const roundBuybackExecuted = round1BuybackExecuted + round2BuybackExecuted;
                         const roundBuybackLabel = `${roundBuybackExecuted.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
                         return (
                             <div className="mt-8 border-t border-[var(--rule)] pt-5">
@@ -1307,11 +1314,11 @@ function LiquiditySection() {
                                     <StatRowItem row={{
                                         label: 'Buyback from round proceeds',
                                         detail: round.isClosed
-                                            ? '10% of the finalized raise went to LP, split 50/50 across LFJ & Pharaoh — half of each allocation market-bought $CATCH, the other half paired with it as LP'
-                                            : 'Continuous-round support accrues through the V8 reserve path, then deploys only after the coordinator executes market support.',
+                                            ? 'Round 1 plus finalized Round 2 proceeds: 10% of each raise went to LP; half of that allocation market-bought $CATCH and half paired with it as LP.'
+                                            : 'Round 1 buyback is included. Continuous-round support accrues through the V8 reserve path, then deploys only after the coordinator executes market support.',
                                         value: roundBuybackLabel,
                                         hint: round.isClosed && roundBuybackExecuted > 0
-                                            ? `≈ 5% of ${raisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
+                                            ? `≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
                                             : undefined,
                                     }} />
                                 </div>

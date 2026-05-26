@@ -559,6 +559,48 @@ describe('page compression regressions', () => {
     });
 
     it('renders the holder dashboard with gated claim and market rows', async () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                roundId: 2n,
+                targetAmount: 5000000000000000000000n,
+                raisedAmount: 1353983600000000000000n,
+                tokenPrice: 3500000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 500000000000000000000n,
+                startTime: 1776351600n,
+                endTime: 1778943600n,
+                isActive: false,
+                isFinalized: true,
+            },
+            status: 'Finalized',
+            progress: 27.079672,
+            isRoundOpen: false,
+            isUpcoming: false,
+            isClosed: true,
+            isPlanned: false,
+            roundSource: 'onchain',
+            startsAt: 1776351600,
+            endsAt: 1778943600,
+            archiveRound: {
+                roundId: 1n,
+                targetAmount: 500000000000000000000n,
+                raisedAmount: 500000000000000000000n,
+                tokenPrice: 3000000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 200000000000000000000n,
+                startTime: 1776110400n,
+                endTime: 1777051200n,
+                isActive: false,
+                isFinalized: true,
+            },
+            targetLabel: '5,000 AVAX',
+            raisedLabel: '1,353.9836 AVAX',
+            priceLabel: '0.0035 AVAX',
+            minMaxLabel: '0.1 to 500 AVAX',
+            links: [],
+        };
+
         renderAt('/holders');
 
         expect((await screen.findAllByText(/CATCH \/ USD/i)).length).toBeGreaterThan(0);
@@ -582,6 +624,9 @@ describe('page compression regressions', () => {
         const marketSupportRow = screen.getByText(/market-support reserve/i).closest('.grid') as HTMLElement | null;
         expect(marketSupportRow).not.toBeNull();
         expect(within(marketSupportRow!).getByText('$0.00')).toHaveClass('text-[1.75rem]');
+        expect(screen.getByText(/Round 1 plus finalized Round 2 proceeds/i)).toBeInTheDocument();
+        expect(screen.getByText(/92\.6992 AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/5% of 1,853\.98 AVAX raised/i)).toBeInTheDocument();
     });
 
     it('uses live NAV for connected wallet reference value', async () => {
