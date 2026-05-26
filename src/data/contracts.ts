@@ -114,6 +114,38 @@ export const GM10_FUND_ABI = [
     },
     {
         inputs: [],
+        name: 'buybackPaused',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'lpSupportPaused',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
+        name: 'mintSpreadBps',
+        outputs: [{ name: '', type: 'int256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'settlementAmountUsdt6', type: 'uint256' }],
+        name: 'previewContinuousMint',
+        outputs: [
+            { name: 'buyerCatch18', type: 'uint256' },
+            { name: 'segmentCatchEach18', type: 'uint256' },
+            { name: 'mintPriceUsdt6', type: 'uint256' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
         name: 'redemptionsPermanentlyDisabled',
         outputs: [{ name: '', type: 'bool' }],
         stateMutability: 'view',
