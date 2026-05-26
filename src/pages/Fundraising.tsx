@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useAccount, useBalance, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { formatEther, parseEther } from 'viem';
-import { useAvaxPrice } from '../hooks/useAvaxPrice';
+import { formatEther, formatUnits, parseUnits } from 'viem';
 import Page from '../components/Page';
 import { ScrollReveal } from '../components/ScrollReveal';
 import {
@@ -24,26 +23,14 @@ import {
 import {
     GM10_NETWORK_LABEL,
     GM10_PRIMARY_DEPLOYMENT,
-    ROUND_2_END_AT,
-    ROUND_2_START_AT,
 } from '../data/gm10Config';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { Web3Providers } from '../components/Web3Providers';
 import { RoundTimingCallout } from '../components/RoundTimingCallout';
 
-const GAS_RESERVE = 0.05; // keep 0.05 AVAX for gas
-
 function formatAddress(address?: string) {
     if (!address) return 'Pending deployment';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-function formatUtcTimestamp(timestamp: number) {
-    return new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone: 'UTC',
-    }).format(new Date(timestamp * 1000));
 }
 
 function formatAvaxAmount(value: number, maximumFractionDigits = value < 1 ? 6 : 4) {
@@ -53,57 +40,87 @@ function formatAvaxAmount(value: number, maximumFractionDigits = value < 1 ? 6 :
     });
 }
 
+function parseUsdt6(value: string) {
+    try {
+        return parseUnits(value || '0', 6);
+    } catch {
+        return 0n;
+    }
+}
+
+function formatUsdc(value?: bigint) {
+    if (value === undefined) return 'Unavailable';
+    return `${Number(formatUnits(value, 6)).toLocaleString('en-US', { maximumFractionDigits: 6 })} USDC`;
+}
+
+function formatCatch(value?: bigint) {
+    if (value === undefined) return '0.00';
+    return Number(formatUnits(value, 18)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+}
+
 function FundraisingContent() {
-    const { address, isConnected } = useAccount();
-    const { data: hash, error: writeError, isPending, reset, writeContract } = useWriteContract();
-    const {
-        error: receiptError,
-        isError: isReceiptError,
-        isLoading: isConfirming,
-        isSuccess: isConfirmed,
-    } = useWaitForTransactionReceipt({ hash });
+    const { isConnected } = useAccount();
     const [amount, setAmount] = useState('');
     const [txError, setTxError] = useState<string | null>(null);
     const roundState = useFujiRoundState();
     const proofState = useFujiPortfolioPositions();
-    const avaxUsd = useAvaxPrice();
-    const { data: balanceData } = useBalance({ address, query: { enabled: Boolean(address) } });
-    const walletAvax = balanceData ? Number(formatEther(balanceData.value)) : 0;
-    const spendableAvax = Math.max(0, walletAvax - GAS_RESERVE);
+    const settlementAmountUsdt6 = useMemo(() => parseUsdt6(amount), [amount]);
+
+    const { data: navPerTokenUsdt6 } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'navPerTokenUsdt6',
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const { data: continuousMintPaused } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'continuousMintPaused',
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const { data: buybackPaused } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'buybackPaused',
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const { data: lpSupportPaused } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'lpSupportPaused',
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const { data: mintSpreadBps } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'mintSpreadBps',
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const { data: redemptionsPermanentlyDisabled } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'redemptionsPermanentlyDisabled',
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const { data: continuousPreview } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'previewContinuousMint',
+        args: [settlementAmountUsdt6],
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address && settlementAmountUsdt6 > 0n) },
+    });
 
     const activeRoundId = roundState.roundId;
     const roundData = roundState.round;
 
     const roundTarget = roundData ? Number(formatEther(roundData.targetAmount)) : BUY_PAGE_DEFAULTS.targetAvax;
     const roundRaised = roundData ? Number(formatEther(roundData.raisedAmount)) : 0;
-    const tokenPrice = roundData ? Number(formatEther(roundData.tokenPrice)) : BUY_PAGE_DEFAULTS.priceAvax;
-    const minInvestment = roundData ? Number(formatEther(roundData.minInvestment)) : BUY_PAGE_DEFAULTS.minAvax;
-    const maxInvestment = roundData ? Number(formatEther(roundData.maxInvestment)) : BUY_PAGE_DEFAULTS.maxAvax;
-    const remainingWei = roundData && roundData.targetAmount > roundData.raisedAmount
-        ? roundData.targetAmount - roundData.raisedAmount
-        : 0n;
-    const roundRemaining = roundData ? Number(formatEther(remainingWei)) : Math.max(0, roundTarget - roundRaised);
-    const exactDustCloseAmount = roundData && remainingWei > 0n && remainingWei < roundData.minInvestment
-        ? formatEther(remainingWei)
-        : null;
-    const exactDustCloseAvax = exactDustCloseAmount ? Number(exactDustCloseAmount) : null;
-    const maxContribution = roundRemaining > 0 ? Math.min(maxInvestment, roundRemaining) : maxInvestment;
-    const minDisplay = exactDustCloseAmount ?? `${minInvestment}`;
-    const isPlannedRound = roundState.isPlanned;
     const isRoundActive = roundState.isRoundOpen;
-    const isUpcoming = roundState.isUpcoming;
-    const isClosed = roundState.isClosed;
-    const buyUnavailable = isPlannedRound || !roundState.isRoundOpen || !GM10_PRIMARY_DEPLOYMENT.proxy.address;
-    const plannedRoundTitle = roundState.status.toLowerCase() === 'round 2 in progress'
-        ? 'Round 2 in progress'
-        : roundState.status.toLowerCase().includes('in progress')
-            ? 'Round 2 setup in progress'
-            : roundState.status.toLowerCase().includes('delayed')
-                ? 'Round 2 setup delayed'
-            : 'Round 2 setup pending';
-    const roundWindowLabel = `${formatUtcTimestamp(roundState.startsAt ?? ROUND_2_START_AT)} UTC → ${formatUtcTimestamp(roundState.endsAt ?? ROUND_2_END_AT)} UTC`;
+    const commitPreviewUnavailable = !GM10_PRIMARY_DEPLOYMENT.proxy.address || settlementAmountUsdt6 === 0n;
     const progress = roundTarget > 0 ? Math.min((roundRaised / roundTarget) * 100, 100) : 0;
-    const estimatedTokens = amount ? (Number(amount) / tokenPrice).toFixed(2) : '0.00';
+    const estimatedTokens = formatCatch(continuousPreview?.[0]);
+    const mintPriceLabel = continuousPreview?.[2] !== undefined ? formatUsdc(continuousPreview[2]) : navPerTokenUsdt6 !== undefined && mintSpreadBps !== undefined ? 'Enter an amount' : 'Unavailable';
+    const spreadLabel = mintSpreadBps !== undefined ? `${mintSpreadBps.toString()} bps` : 'Unavailable';
     const pageCopy = SUPPORT_PAGE_COPY.fundraising;
     const allocationBaseAvax = roundRaised > 0 ? roundRaised : roundTarget;
     const liveAllocation = ROUND_PROCEEDS_ALLOCATION.buckets.map((bucket) => ({
@@ -117,72 +134,30 @@ function FundraisingContent() {
 
     const displayError = useMemo(() => {
         if (txError) return txError;
-        const surfacedError = receiptError ?? writeError;
-        if (!surfacedError) return null;
-        const message = surfacedError.message;
-        if (message.includes('RoundNotActive')) return `Round ${activeRoundId} is not open for buying right now.`;
-        if (message.includes('reverted')) return 'The round rejected this transaction.';
-        if (message.includes('InvestmentBelowMinimum')) return `Minimum buy is ${minInvestment} AVAX.`;
-        if (message.includes('InvestmentAboveMaximum')) return `Maximum buy is ${maxInvestment} AVAX.`;
-        if (message.includes('TargetReached')) return `Round ${activeRoundId} is already at capacity.`;
-        return message;
-    }, [txError, receiptError, writeError, activeRoundId, minInvestment, maxInvestment]);
+        return null;
+    }, [txError]);
 
     function handleInvest() {
         if (!amount) return;
         setTxError(null);
-        reset();
 
         if (!GM10_PRIMARY_DEPLOYMENT.proxy.address) {
             setTxError('Mainnet fund address has not been configured yet.');
             return;
         }
 
-        if (isPlannedRound) {
-            setTxError(`Round ${activeRoundId} has not been created onchain yet. The terms are published here, and buying enables after the admin starts the round.`);
-            return;
-        }
-
-        if (!roundState.isRoundOpen) {
-            setTxError(
-                isUpcoming
-                    ? `Round ${activeRoundId} has not opened yet. Buying stays disabled until the start timestamp.`
-                    : `Round ${activeRoundId} is closed for new buys.`,
-            );
+        if (continuousMintPaused) {
+            setTxError('Continuous commits are still paused onchain. The preview is live, but settlement cannot mint yet.');
             return;
         }
 
         const amountNumber = Number(amount);
         if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-            setTxError('Enter a valid AVAX amount.');
+            setTxError('Enter a valid USDC-equivalent amount.');
             return;
         }
 
-        if (roundRemaining > 0 && amountNumber > roundRemaining) {
-            setTxError(
-                exactDustCloseAmount
-                    ? `Only ${exactDustCloseAmount} AVAX remains. The cap-close buy must use that exact amount; overpaying the remaining cap reverts.`
-                    : `Only ${formatAvaxAmount(roundRemaining)} AVAX remains in Round ${activeRoundId}.`,
-            );
-            return;
-        }
-
-        if (exactDustCloseAmount && exactDustCloseAvax !== null && amountNumber !== exactDustCloseAvax) {
-            setTxError(`Round ${activeRoundId} has only ${exactDustCloseAmount} AVAX left. Use the exact final amount to close and auto-finalize the round.`);
-            return;
-        }
-
-        try {
-            writeContract({
-                address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
-                abi: GM10_FUND_ABI,
-                functionName: 'invest',
-                args: [BigInt(activeRoundId)],
-                value: parseEther(amount),
-            });
-        } catch (error) {
-            setTxError(error instanceof Error ? error.message : 'Transaction failed');
-        }
+        setTxError('Preview is ready. The executable LI.FI/Mobula route should be published only after the settlement receiver is verified.');
     }
 
     return (
@@ -190,10 +165,15 @@ function FundraisingContent() {
             {/* Status bar */}
             <ScrollReveal>
                 <div className="flex flex-wrap gap-2">
-                    <PixelLabel tone={isRoundActive ? 'live' : isUpcoming || isPlannedRound ? 'warning' : 'base'}>{roundState.status}</PixelLabel>
+                    <PixelLabel tone={continuousMintPaused === false ? 'live' : 'warning'}>
+                        {continuousMintPaused === false ? 'Continuous commits live' : 'Continuous commits paused'}
+                    </PixelLabel>
                     <PixelLabel tone="warning">{GM10_NETWORK_LABEL}</PixelLabel>
-                    <PixelLabel tone="base">Round 1 archived</PixelLabel>
-                    <PixelLabel tone="live">Verified on Snowtrace</PixelLabel>
+                    <PixelLabel tone="base">Round 2 finalized</PixelLabel>
+                    <PixelLabel tone="live">V8 verified on Snowtrace</PixelLabel>
+                    <PixelLabel tone={buybackPaused === true ? 'base' : 'warning'}>Buyback {buybackPaused === true ? 'paused' : 'live'}</PixelLabel>
+                    <PixelLabel tone={lpSupportPaused === true ? 'base' : 'warning'}>LP {lpSupportPaused === true ? 'paused' : 'live'}</PixelLabel>
+                    <PixelLabel tone={redemptionsPermanentlyDisabled ? 'base' : 'warning'}>Redemptions disabled</PixelLabel>
                 </div>
             </ScrollReveal>
 
@@ -206,13 +186,7 @@ function FundraisingContent() {
                             {pageCopy.title}
                         </h1>
                         <p className="mt-3 text-[1.05rem] leading-[1.7] text-[var(--text-secondary)]">
-                            {isRoundActive
-                                ? pageCopy.body
-                                : isPlannedRound
-                                    ? `Round ${activeRoundId} is the current public round. The terms are published here, and buying enables after the admin starts the round onchain. Round 1 is kept below as an archive only.`
-                                    : isUpcoming
-                                    ? `Round ${activeRoundId} is about to open on Avalanche mainnet. Buying activates at the exact start timestamp — the live terms, timeline, and proof links are already visible below.`
-                                    : `Round ${activeRoundId} is closed for new buys. The page still shows exactly what the position represents, how the module works, and where to inspect the live proof.`}
+                            The fixed round is closed. New $CATCH entry moves through a continuous commit rail: supported source tokens route into Avalanche settlement, then V8 mints buyer $CATCH at the live NAV-derived price.
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <PixelMenuLink to={pageCopy.primaryCtaTo} active>
@@ -230,7 +204,7 @@ function FundraisingContent() {
                         <RoundTimingCallout roundState={roundState} />
                         <div className="grid gap-3">
                             {[
-                                ['🕒', 'Round window', roundWindowLabel],
+                                ['🕒', 'Commit mode', continuousMintPaused === false ? 'The mint gate is live on Avalanche. Cross-chain route publishing depends on the verified settlement receiver.' : 'The V8 preview is live; the mint gate is still paused until controlled activation.'],
                                 ['💸', 'Sale-profit accrual', 'Profitable exits preserve card-buying power and can route bounded support to LP or CATCH buyback-and-burn.'],
                             ].map(([emoji, title, body]) => (
                                 <div key={title} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
@@ -253,8 +227,11 @@ function FundraisingContent() {
                         {/* Progress strip */}
                         <div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-6 py-4">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)]">Buy $CATCH</h2>
+                                <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)]">Continuous $CATCH Preview</h2>
                                 <PixelLabel tone="warning">{GM10_NETWORK_LABEL}</PixelLabel>
+                                <PixelLabel tone={continuousMintPaused === false ? 'live' : 'warning'}>
+                                    {continuousMintPaused === false ? 'Mint gate live' : 'Mint gate paused'}
+                                </PixelLabel>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="hidden w-40 sm:block">
@@ -267,9 +244,9 @@ function FundraisingContent() {
                         {/* Stats strip */}
                         <div className="grid grid-cols-3 divide-x divide-[var(--border)] border-b border-[var(--border)] text-center">
                             {[
-                                { label: exactDustCloseAmount ? 'Final close' : 'Min buy', value: `${minDisplay} AVAX` },
-                                { label: 'Max buy', value: `${maxInvestment} AVAX` },
-                                { label: 'Token price', value: `${tokenPrice} AVAX` },
+                                { label: 'NAV', value: formatUsdc(navPerTokenUsdt6) },
+                                { label: 'Mint spread', value: spreadLabel },
+                                { label: 'Mint price', value: mintPriceLabel },
                             ].map((stat) => (
                                 <div key={stat.label} className="px-4 py-3">
                                     <div className="label-font" style={{ fontSize: '0.6rem' }}>{stat.label}</div>
@@ -285,26 +262,16 @@ function FundraisingContent() {
                                 <input
                                     value={amount}
                                     onChange={(event) => setAmount(event.target.value)}
-                                    placeholder="1.0"
+                                    placeholder="100.00"
                                     className="w-full min-w-0 bg-transparent text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
                                 />
-                                <span className="shrink-0 text-[0.75rem] font-medium text-[var(--text-tertiary)]">AVAX</span>
+                                <span className="shrink-0 text-[0.75rem] font-medium text-[var(--text-tertiary)]">USDC</span>
                             </div>
-                            {exactDustCloseAmount ? (
-                                <button
-                                    type="button"
-                                    onClick={() => setAmount(exactDustCloseAmount)}
-                                    className="rounded-md border border-[var(--accent-blue)]/50 px-3 py-2 text-[0.78rem] font-semibold text-[var(--accent-blue)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--text-primary)]"
-                                >
-                                    Use exact remaining
-                                </button>
-                            ) : null}
-
                             {/* Arrow + output */}
                             <div className="hidden shrink-0 text-[0.8rem] text-[var(--text-tertiary)] lg:flex lg:items-center lg:gap-1.5">
                                 <span>→</span>
                                 <span className="font-semibold text-[var(--accent-blue)]">{estimatedTokens} CATCH</span>
-                                <span className="text-[0.72rem]">(~${(Number(amount || 0) * avaxUsd).toFixed(2)})</span>
+                                <span className="text-[0.72rem]">(~${Number(amount || 0).toFixed(2)})</span>
                             </div>
 
                             {/* CTA buttons — always side-by-side */}
@@ -315,22 +282,16 @@ function FundraisingContent() {
                                     <button
                                         type="button"
                                         onClick={handleInvest}
-                                        disabled={!amount || buyUnavailable || isPending || isConfirming}
+                                        disabled={!amount || commitPreviewUnavailable}
                                         className="pixel-menu-link pixel-menu-link-active shrink-0 justify-center disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <span className="pixel-menu-cursor opacity-100">↗</span>
                                         <span>
-                                            {isPending || isConfirming
-                                                ? 'Submitting...'
-                                                : isPlannedRound
-                                                    ? 'Awaiting onchain round'
-                                                    : isUpcoming
-                                                    ? 'Round upcoming'
-                                                    : isClosed
-                                                        ? 'Round closed'
-                                                        : !GM10_PRIMARY_DEPLOYMENT.proxy.address
-                                                            ? 'Awaiting deploy'
-                                                            : 'Buy $CATCH'}
+                                            {!GM10_PRIMARY_DEPLOYMENT.proxy.address
+                                                ? 'Awaiting deploy'
+                                                : continuousMintPaused
+                                                    ? 'Preview paused rail'
+                                                    : 'Preview commit'}
                                         </span>
                                     </button>
                                 )}
@@ -340,67 +301,19 @@ function FundraisingContent() {
                             </div>
                         </div>
 
-                        {/* Wallet balance + quick-fill */}
-                        {isConnected && walletAvax > 0 ? (
-                            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-6 py-2.5">
-                                <span className="text-[0.78rem] text-[var(--text-tertiary)]">
-                                    Balance: {walletAvax.toFixed(4)} AVAX
-                                </span>
-                                <div className="flex gap-1.5">
-                                    {[25, 50, 75, 100].map((pct) => {
-                                        const raw = spendableAvax * (pct / 100);
-                                        const clamped = exactDustCloseAmount
-                                            ? Number(exactDustCloseAmount)
-                                            : Math.min(Math.max(raw, minInvestment), maxContribution);
-                                        const value = exactDustCloseAmount ?? String(Number(clamped.toFixed(4)));
-                                        return (
-                                            <button
-                                                key={pct}
-                                                type="button"
-                                                onClick={() => setAmount(value)}
-                                                className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[0.7rem] font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-                                            >
-                                                {pct === 100 ? 'MAX' : `${pct}%`}
-                                            </button>
-                                        );
-                                    })}
-                                    {exactDustCloseAmount ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => setAmount(exactDustCloseAmount)}
-                                            className="rounded-md border border-[var(--accent-blue)]/50 px-2 py-0.5 text-[0.7rem] font-semibold text-[var(--accent-blue)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--text-primary)]"
-                                        >
-                                            Fill exact remaining
-                                        </button>
-                                    ) : null}
-                                </div>
-                            </div>
-                        ) : null}
-
                         {/* Mobile output (hidden on desktop) */}
                         <div className="border-t border-[var(--border)] px-6 py-2.5 text-[0.8rem] text-[var(--text-tertiary)] lg:hidden">
                             → <span className="font-semibold text-[var(--accent-blue)]">{estimatedTokens} CATCH</span>
-                            <span className="ml-2">(~${(Number(amount || 0) * avaxUsd).toFixed(2)} USD)</span>
+                            <span className="ml-2">(~${Number(amount || 0).toFixed(2)} USD)</span>
                         </div>
 
-                        {exactDustCloseAmount && isRoundActive ? (
+                        {!displayError ? (
                             <div className="border-t border-[var(--border)] px-6 py-4">
                                 <PixelMessageBox
-                                    title="Exact cap close available"
-                                    body={`Only ${exactDustCloseAmount} AVAX remains. The contract accepts this exact final contribution below the normal ${minInvestment} AVAX minimum, then auto-finalizes Round ${activeRoundId}. Sending more than the remaining cap reverts.`}
-                                />
-                            </div>
-                        ) : null}
-
-                        {!displayError && !isRoundActive ? (
-                            <div className="border-t border-[var(--border)] px-6 py-4">
-                                <PixelMessageBox
-                                    title={isPlannedRound ? plannedRoundTitle : isUpcoming ? 'Round upcoming' : 'Round closed'}
-                                    body={isPlannedRound
-                                        ? `Round ${activeRoundId} terms are published, but the round has not been started onchain yet. Buying stays disabled until the admin creates the round.`
-                                        : isUpcoming
-                                        ? `Buying stays disabled until ${roundWindowLabel}.`
-                                        : `Round ${activeRoundId} is closed for new buys. Use this page to review the module and inspect the proof.`}
+                                    title={continuousMintPaused ? 'Continuous commit paused' : 'Continuous commit preview'}
+                                    body={continuousMintPaused
+                                        ? 'The V8 preview reads live NAV and spread, but settlement minting stays paused until governance activates the gate.'
+                                        : 'The V8 mint gate is live. Public route execution should use a verified LI.FI or Mobula settlement receiver before any user funds move.'}
                                 />
                             </div>
                         ) : null}
@@ -409,39 +322,9 @@ function FundraisingContent() {
                                 <PixelMessageBox title="Error" body={displayError} />
                             </div>
                         ) : null}
-                        {isReceiptError && !displayError ? (
-                            <div className="border-t border-[var(--border)] px-6 py-4">
-                                <PixelMessageBox title="Error" body="The transaction reverted onchain." />
-                            </div>
-                        ) : null}
-                        {isConfirmed ? (
-                            <div className="border-t border-[var(--border)] px-6 py-4">
-                                <PixelMessageBox
-                                    title="Confirmed"
-                                    body={
-                                        <span>
-                                            Buy confirmed onchain.{' '}
-                                            {hash ? (
-                                                <a
-                                                    href={`https://snowtrace.io/tx/${hash}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="font-semibold text-[var(--accent-blue)] underline underline-offset-2"
-                                                >
-                                                    View on Snowtrace ↗
-                                                </a>
-                                            ) : null}
-                                        </span>
-                                    }
-                                />
-                            </div>
-                        ) : null}
-
                         {/* Disclaimer */}
                         <div className="border-t border-[var(--border)] px-6 py-3 text-[0.75rem] text-[var(--text-tertiary)]">
-                            {isPlannedRound
-                                ? `Round ${activeRoundId} terms are ready for Avalanche mainnet. Once started onchain, the buy window auto-finalizes when the ${roundTarget.toLocaleString('en-US')} AVAX cap is reached.`
-                                : `Round ${activeRoundId} is live on Avalanche mainnet. The buy window auto-finalizes when the ${roundTarget.toLocaleString('en-US')} AVAX cap is reached, or closes when the end timestamp passes.`}
+                            Direct fixed-round buys are disabled. Continuous commits must be backed by verified Avalanche settlement before manager mint settlement.
                         </div>
                     </PixelPanel>
                 </ScrollReveal>

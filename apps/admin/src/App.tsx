@@ -13,6 +13,7 @@ import { CourtyardWizardPanel } from './panels/CourtyardWizardPanel';
 import { PhygitalsPanel } from './panels/PhygitalsPanel';
 import { ValuationPanel } from './panels/ValuationPanel';
 import { RoadmapPanel } from './panels/RoadmapPanel';
+import { ContinuousAccrualPanel } from './panels/ContinuousAccrualPanel';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from './hooks/useAdminRole';
 import { SafeAppBootstrap } from './components/SafeAppBootstrap';
@@ -23,6 +24,7 @@ const TABS = [
     { id: 'Dashboard', label: 'Dashboard', detail: 'Operator console' },
     { id: 'Rounds', label: 'Rounds', detail: 'Close and route' },
     { id: 'Operations', label: 'Operations', detail: 'Readiness gates' },
+    { id: 'Continuous Accrual', label: 'Accrual', detail: 'V8 controls' },
     { id: 'Phygitals', label: 'Phygitals', detail: 'Solana cards' },
     { id: 'Courtyard Wizard', label: 'Courtyard', detail: 'Buy workflow' },
     { id: 'Valuation', label: 'Valuation', detail: 'Marks and NAV' },
@@ -83,6 +85,7 @@ function AdminApp() {
                 {tab === 'Dashboard' && <DashboardPanel />}
                 {tab === 'Rounds' && <RoundsPanel />}
                 {tab === 'Operations' && <OperationsPanel />}
+                {tab === 'Continuous Accrual' && <ContinuousAccrualPanel />}
                 {tab === 'Phygitals' && <PhygitalsPanel />}
                 {tab === 'Courtyard Wizard' && <CourtyardWizardPanel />}
                 {tab === 'Valuation' && <ValuationPanel />}
