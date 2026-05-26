@@ -419,8 +419,12 @@ function FundraisingContent() {
             setTxError(`Selected amount exceeds the detected ${selectedSourceToken.symbol} balance.`);
             return;
         }
-        if (continuousMintPaused) {
-            setTxError('Continuous commits are paused onchain. The preview can read NAV, but settlement cannot mint yet.');
+        if (continuousMintPaused !== false) {
+            setTxError(
+                continuousMintPaused === true
+                    ? 'Continuous commits are paused onchain. The preview can read NAV, but settlement cannot mint yet.'
+                    : 'Continuous commit pause state is still loading. Wait for the onchain control read before previewing the route.',
+            );
             return;
         }
         setTxError('Preview is ready. The public LI.FI/Mobula commit route should be connected only to the verified Avalanche settlement receiver.');
