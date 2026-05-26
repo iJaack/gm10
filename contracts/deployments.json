@@ -3,7 +3,7 @@
     "network": "fuji",
     "chainId": "43113",
     "proxy": "0xd3E57C774BD9a08DfE3bb26e71C019c4fa74F86C",
-    "implementation": "0x938B90f0b53a69Ab8d08feef077F5a96D15A3c4c",
+    "implementation": "0xb5FFa11124bdA2453EA9A9d27c4c640149D6F26F",
     "treasury": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
     "managementFee": 100,
     "performanceFee": 1000,
@@ -35,6 +35,22 @@
       "deployer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
       "deployedAt": "2026-02-19T00:24:20.537Z",
       "blockNumber": 51925198
+    },
+    "implementationV8": "0xb5FFa11124bdA2453EA9A9d27c4c640149D6F26F",
+    "tokenomicsController": "0x395cd213183E13ED52bfffb8255d32A7de8A0aE4",
+    "lastContinuousAccrualUpgrade": {
+      "to": "0xb5FFa11124bdA2453EA9A9d27c4c640149D6F26F",
+      "controller": "0x395cd213183E13ED52bfffb8255d32A7de8A0aE4",
+      "timestamp": "2026-05-26T15:26:59.082Z",
+      "blockNumber": 55800965,
+      "tx": "0x384179a9ada6b0d5ec132b1717ff89d3485ec227cc24454e072e4ef9fd20b351",
+      "controls": {
+        "continuousMintPaused": true,
+        "buybackPaused": true,
+        "lpSupportPaused": true,
+        "mintSpreadBps": "-500",
+        "redemptionsPermanentlyDisabled": true
+      }
     }
   },
   "avalanche": {
