@@ -540,7 +540,7 @@ function FundraisingContent() {
                             <SectionLabel>Live mechanics</SectionLabel>
                             <Hairline className="mt-3" />
                             <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">NAV</Caption>,
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">NAV-backed token price</Caption>,
                                 <span className="v2-mono text-right text-[var(--text-primary)]">{fmtUsdc(navPerTokenUsdt6)}</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
