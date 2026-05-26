@@ -362,7 +362,7 @@ function CatchContent() {
                         { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
                         { emoji: '💰', label: 'Buyer mint', value: 'Continuous commit', unit: 'Minted to buyers' },
                         { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded from circulating supply' },
-                        { emoji: '📊', label: 'Archived raises', value: totalRaisedLabel, unit: 'Round 1 plus finalized Round 2' },
+                        { emoji: '📊', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Round 1 plus finalized Round 2' },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
