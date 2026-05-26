@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useReadContract } from 'wagmi';
+import { useAccount, useBalance, useReadContract } from 'wagmi';
+import { avalanche, base, mainnet } from 'wagmi/chains';
 import { formatEther, formatUnits, parseUnits } from 'viem';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import {
@@ -53,29 +54,46 @@ function fmtSpread(spread?: bigint) {
     return 'At NAV';
 }
 
-type SourceTokenBalance = {
+const BASE_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+type SourceTokenConfig = {
     id: string;
     chain: string;
+    chainId: number;
     symbol: string;
-    balance: number;
+    decimals: number;
+    tokenAddress?: `0x${string}`;
     priceUsdc?: number;
     usesAvaxPrice?: boolean;
 };
 
-const SOURCE_TOKEN_BALANCES = [
-    { id: 'avax-avalanche', chain: 'Avalanche', symbol: 'AVAX', balance: 12.42, usesAvaxPrice: true },
-    { id: 'usdc-base', chain: 'Base', symbol: 'USDC', balance: 2480, priceUsdc: 1 },
-    { id: 'eth-mainnet', chain: 'Ethereum', symbol: 'ETH', balance: 0.86, priceUsdc: 3820 },
-    { id: 'sol-solana', chain: 'Solana', symbol: 'SOL', balance: 51.75, priceUsdc: 168 },
-] as const satisfies readonly SourceTokenBalance[];
+type SourceTokenBalanceStatus = 'connect' | 'loading' | 'ready' | 'error';
 
-type SourceTokenId = typeof SOURCE_TOKEN_BALANCES[number]['id'];
+type SourceTokenOption = SourceTokenConfig & {
+    balance?: number;
+    balanceStatus: SourceTokenBalanceStatus;
+};
+
+const SOURCE_TOKEN_OPTIONS = [
+    { id: 'avax-avalanche', chain: 'Avalanche', chainId: avalanche.id, symbol: 'AVAX', decimals: 18, usesAvaxPrice: true },
+    { id: 'usdc-base', chain: 'Base', chainId: base.id, symbol: 'USDC', decimals: 6, tokenAddress: BASE_USDC_ADDRESS, priceUsdc: 1 },
+    { id: 'eth-mainnet', chain: 'Ethereum', chainId: mainnet.id, symbol: 'ETH', decimals: 18, priceUsdc: 3820 },
+] as const satisfies readonly SourceTokenConfig[];
+
+type SourceTokenId = typeof SOURCE_TOKEN_OPTIONS[number]['id'];
 
 function fmtTokenAmount(value: number) {
-    return value.toLocaleString('en-US', { maximumFractionDigits: value >= 10 ? 2 : 4 });
+    return value.toLocaleString('en-US', { maximumFractionDigits: value >= 10 ? 2 : 6 });
 }
 
-function getSourceTokenUsdcRate(token: SourceTokenBalance, avaxUsd: number) {
+function formatBalanceStatus(token: SourceTokenOption) {
+    if (token.balanceStatus === 'connect') return 'Connect wallet';
+    if (token.balanceStatus === 'loading') return 'Loading balance';
+    if (token.balanceStatus === 'error') return 'Balance unavailable';
+    return `${fmtTokenAmount(token.balance ?? 0)} ${token.symbol}`;
+}
+
+function getSourceTokenUsdcRate(token: SourceTokenConfig, avaxUsd: number) {
     return token.usesAvaxPrice ? avaxUsd : token.priceUsdc ?? 1;
 }
 
@@ -306,15 +324,67 @@ function PostCloseLedger({ archiveRaisedAvax, avaxUsd }: { archiveRaisedAvax: nu
 /* ── Main page ───────────────────────────────────────── */
 
 function FundraisingContent() {
+    const { address, isConnected } = useAccount();
     const [amount, setAmount] = useState('');
-    const [sourceTokenId, setSourceTokenId] = useState<SourceTokenId>(SOURCE_TOKEN_BALANCES[0].id);
+    const [sourceTokenId, setSourceTokenId] = useState<SourceTokenId>(SOURCE_TOKEN_OPTIONS[0].id);
     const [txError, setTxError] = useState<string | null>(null);
     const round = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
+    const avaxBalance = useBalance({
+        address,
+        chainId: avalanche.id,
+        query: { enabled: Boolean(address) },
+    });
+    const baseUsdcBalance = useBalance({
+        address,
+        chainId: base.id,
+        token: BASE_USDC_ADDRESS,
+        query: { enabled: Boolean(address) },
+    });
+    const ethBalance = useBalance({
+        address,
+        chainId: mainnet.id,
+        query: { enabled: Boolean(address) },
+    });
+    const sourceTokens = useMemo<SourceTokenOption[]>(() => (
+        SOURCE_TOKEN_OPTIONS.map((token) => {
+            const balanceRead = token.id === 'avax-avalanche'
+                ? avaxBalance
+                : token.id === 'usdc-base'
+                    ? baseUsdcBalance
+                    : ethBalance;
+            const balance = balanceRead.data
+                ? Number(formatUnits(balanceRead.data.value, token.decimals))
+                : undefined;
+            const balanceStatus: SourceTokenBalanceStatus = !isConnected
+                ? 'connect'
+                : balanceRead.isError
+                    ? 'error'
+                    : balance === undefined || balanceRead.isLoading
+                        ? 'loading'
+                        : 'ready';
+            return {
+                ...token,
+                balance,
+                balanceStatus,
+            };
+        })
+    ), [
+        isConnected,
+        avaxBalance.data,
+        avaxBalance.isError,
+        avaxBalance.isLoading,
+        baseUsdcBalance.data,
+        baseUsdcBalance.isError,
+        baseUsdcBalance.isLoading,
+        ethBalance.data,
+        ethBalance.isError,
+        ethBalance.isLoading,
+    ]);
     const selectedSourceToken = useMemo(
-        () => SOURCE_TOKEN_BALANCES.find((token) => token.id === sourceTokenId) ?? SOURCE_TOKEN_BALANCES[0],
-        [sourceTokenId],
+        () => sourceTokens.find((token) => token.id === sourceTokenId) ?? sourceTokens[0],
+        [sourceTokenId, sourceTokens],
     );
     const sourceAmount = amount ? Number(amount) : 0;
     const validSourceAmount = Number.isFinite(sourceAmount) && sourceAmount > 0 ? sourceAmount : 0;
@@ -536,15 +606,17 @@ function FundraisingContent() {
                                                 }}
                                                 className="mt-2 h-11 w-full border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 v2-mono text-[0.86rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
                                             >
-                                                {SOURCE_TOKEN_BALANCES.map((token) => (
+                                                {sourceTokens.map((token) => (
                                                     <option key={token.id} value={token.id}>
-                                                        {token.symbol} on {token.chain} - {fmtTokenAmount(token.balance)} available
+                                                        {token.symbol} on {token.chain} - {formatBalanceStatus(token)}
                                                     </option>
                                                 ))}
                                             </select>
                                         </div>
                                         <DataMono className="text-left text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)] sm:text-right">
-                                            Balance {fmtTokenAmount(selectedSourceToken.balance)} {selectedSourceToken.symbol}
+                                            {selectedSourceToken.balanceStatus === 'ready'
+                                                ? `Balance ${fmtTokenAmount(selectedSourceToken.balance ?? 0)} ${selectedSourceToken.symbol}`
+                                                : formatBalanceStatus(selectedSourceToken)}
                                         </DataMono>
                                     </div>
                                     <div className="mt-4 flex items-baseline justify-between">
@@ -568,9 +640,12 @@ function FundraisingContent() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                setAmount(String(selectedSourceToken.balance));
+                                                if (selectedSourceToken.balance !== undefined) {
+                                                    setAmount(String(selectedSourceToken.balance));
+                                                }
                                                 setTxError(null);
                                             }}
+                                            disabled={selectedSourceToken.balance === undefined || selectedSourceToken.balance <= 0}
                                             className="v2-mono shrink-0 border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
                                         >
                                             Max
