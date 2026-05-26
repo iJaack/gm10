@@ -24,7 +24,16 @@ vi.mock('@rainbow-me/rainbowkit', () => {
         () => <button type="button">Connect Wallet</button>,
         {
             Custom: ({ children }: { children: any }) =>
-                children({ openConnectModal: () => undefined }),
+                children({
+                    account: wagmiMocks.account.isConnected && wagmiMocks.account.address
+                        ? { address: wagmiMocks.account.address, displayName: '0x1234...7890' }
+                        : undefined,
+                    chain: wagmiMocks.account.isConnected ? { id: 43114, name: 'Avalanche' } : undefined,
+                    mounted: true,
+                    openAccountModal: () => undefined,
+                    openChainModal: () => undefined,
+                    openConnectModal: () => undefined,
+                }),
         },
     );
 
@@ -342,6 +351,15 @@ describe('route simplification', () => {
         expect(labels).toEqual(['Continuous Round', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
     });
 
+    it('uses wallet connect as the global navbar action', () => {
+        const { container } = renderAt('/fundraising');
+        const header = container.querySelector('header');
+
+        expect(header).not.toBeNull();
+        expect(within(header as HTMLElement).getByRole('button', { name: /connect wallet/i })).toBeInTheDocument();
+        expect(within(header as HTMLElement).queryByRole('link', { name: /mint new \$catch/i })).not.toBeInTheDocument();
+    });
+
     it.each([
         ['/testnet-status', '/fundraising#proof'],
         ['/how-it-works', '/#how-it-works'],
@@ -517,7 +535,7 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/Round 1 and Round 2 closed and finalized/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/Fixed-window buys are closed/i)).toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
+        expect(within(screen.getByRole('main')).queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
     });
 
     it('shows post-round token mechanics and total raised on the catch page', async () => {
