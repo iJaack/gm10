@@ -454,7 +454,7 @@ describe('page compression regressions', () => {
         expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
         expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
-        expect(screen.getByText(/archived raises/i)).toBeInTheDocument();
+        expect(screen.getByText(/total raised to date/i)).toBeInTheDocument();
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/Round 1 plus finalized Round 2/i)).toBeInTheDocument();
     });
