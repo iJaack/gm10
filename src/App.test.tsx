@@ -446,7 +446,7 @@ describe('page compression regressions', () => {
 
         expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
         expect(screen.queryByText(/you're not buying one card/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^nav$/i)).toBeInTheDocument();
+        expect(screen.getByText(/NAV-backed token price/i)).toBeInTheDocument();
         expect(screen.getByText(/^mint spread$/i)).toBeInTheDocument();
         expect(screen.getByText(/^settlement$/i)).toBeInTheDocument();
         expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
@@ -602,6 +602,7 @@ describe('page compression regressions', () => {
 
         expect((await screen.findAllByText(/continuous round/i)).length).toBeGreaterThan(0);
         expect(screen.getByText(/per-commit minting at live NAV/i)).toBeInTheDocument();
+        expect(screen.getByText(/NAV-backed token price/i)).toBeInTheDocument();
         expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
 
