@@ -520,42 +520,6 @@ function CatchContent() {
                 </ScrollReveal>
             </section>
 
-            {/* ── INVESTOR P&L ── */}
-            <section className="mt-16">
-                <ScrollReveal>
-                    <SectionLabel>Investor P&amp;L</SectionLabel>
-                    <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
-                        Your position, always visible.
-                    </Display>
-                    <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        The wallet view shows what GM10 can prove: contributed basis, current holdings, and the latest marked value.
-                    </p>
-                </ScrollReveal>
-
-                <ScrollReveal delay={1}>
-                    <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6">
-                        <div className="label-font text-[var(--accent)]">Example investor view</div>
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            {[
-                                { label: 'Direct contribution', value: '$10,000', tone: '' },
-                                { label: 'Attributable holdings', value: '4,000 CATCH', tone: '' },
-                                { label: 'Current NAV value', value: '$12,500', tone: 'text-[var(--accent-green)]' },
-                                { label: 'Unrealized PnL', value: '+$2,500', tone: 'text-[var(--accent-green)]' },
-                            ].map((stat) => (
-                                <div key={stat.label}>
-                                    <div className="label-font" style={{ fontSize: '0.6rem' }}>{stat.label}</div>
-                                    <div className={`mt-1.5 text-xl font-bold tracking-[-0.02em] ${stat.tone || 'text-[var(--text-primary)]'}`}>{stat.value}</div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-5 flex flex-wrap gap-2">
-                            <PixelLabel tone="live">Transferred-in tokens stay visible</PixelLabel>
-                            <PixelLabel>No inherited cost basis</PixelLabel>
-                        </div>
-                    </div>
-                </ScrollReveal>
-            </section>
-
             {/* ── GOVERNANCE ── */}
             <section className="mt-16">
                 <ScrollReveal>
