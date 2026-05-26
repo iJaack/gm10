@@ -577,6 +577,9 @@ describe('page compression regressions', () => {
         expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/no apr \/ apy/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/apr\/apy/i)).not.toBeInTheDocument();
+        const marketSupportRow = screen.getByText(/market-support reserve/i).closest('.grid') as HTMLElement | null;
+        expect(marketSupportRow).not.toBeNull();
+        expect(within(marketSupportRow!).getByText('$0.00')).toHaveClass('text-[1.75rem]');
     });
 
     it('uses live NAV for connected wallet reference value', async () => {

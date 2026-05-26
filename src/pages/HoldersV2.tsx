@@ -325,6 +325,7 @@ function CompositionDonut() {
             label: 'Market-support reserve',
             detail: 'Sale-profit funds reserved for buyback-burn execution and LP support.',
             value: holder.labels.holderProfitsClaimableClaimed,
+            valueClassName: 'text-[1.75rem] md:text-[2rem]',
         },
     ];
 
@@ -404,6 +405,7 @@ type StatRow = {
     label: string;
     detail: string;
     value: string;
+    valueClassName?: string;
     /** 0-100. If set, renders a thin ratio bar under the description */
     ratioPct?: number;
     /** Optional short hint displayed below the value (e.g. "6.2% of total") */
@@ -440,7 +442,7 @@ function StatRowItem({ row }: { row: StatRow }) {
                 ) : null}
             </div>
             <div className="text-right md:min-w-[180px]">
-                <DataMono className="block text-[1.15rem] font-bold tracking-[-0.01em] tabular-nums text-[var(--text-primary)]">
+                <DataMono className={`block ${row.valueClassName ?? 'text-[1.15rem]'} font-bold tracking-[-0.01em] tabular-nums text-[var(--text-primary)]`}>
                     {row.value}
                 </DataMono>
                 {row.hint ? (
