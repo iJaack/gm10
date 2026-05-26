@@ -613,7 +613,7 @@ function ProtocolStats() {
     // Supply — hero is the /fundraising-style big progress bar
     const supplyHero = (
         <div>
-            <div className="relative h-40 w-full overflow-hidden rounded-2xl bg-[var(--bg-tertiary)]">
+            <div className="relative h-28 w-full overflow-hidden rounded-2xl bg-[var(--bg-tertiary)]">
                 <div
                     className="absolute inset-y-0 left-0"
                     style={{
