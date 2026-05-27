@@ -8,6 +8,7 @@ export default async function handler(request, response) {
             fromAmountRaw: request.query?.fromAmountRaw,
             fromAddress: request.query?.fromAddress,
             escrowAddress: request.query?.escrowAddress,
+            settlementAddress: request.query?.settlementAddress,
             settlementToken: request.query?.settlementToken,
         });
         response.setHeader('Cache-Control', 'no-store');

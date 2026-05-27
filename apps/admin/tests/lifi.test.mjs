@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildFundingQuotes, buildSolanaFundingQuote, buildSolanaUsdcFundingQuote, normalizeQuote } from '../server/lib/lifi.js';
+import { buildContinuousCommitRoute, buildFundingQuotes, buildSolanaFundingQuote, buildSolanaUsdcFundingQuote, normalizeQuote } from '../server/lib/lifi.js';
 
 function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', tool = 'stargateV2Bus' }) {
   return {
@@ -137,6 +137,59 @@ test('falls back to exact-source LI.FI quotes when exact-output routing is unava
 
   assert.equal(result.usdc.enoughOutput, true);
   assert.ok(calls.some((call) => call.startsWith('/v1/quote:')));
+});
+
+test('builds a same-chain native AVAX continuous commit transfer into the fund proxy', async () => {
+  const result = await buildContinuousCommitRoute({
+    fromChainId: 43114,
+    fromToken: '0x0000000000000000000000000000000000000000',
+    fromAmountRaw: '1000000000000000000',
+    fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+    settlementToken: '0x0000000000000000000000000000000000000000',
+  }, async () => {
+    throw new Error('LI.FI should not be called for same-chain native AVAX');
+  });
+
+  assert.equal(result.settlementAddress, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.settlementToken, '0x0000000000000000000000000000000000000000');
+  assert.equal(result.route.tool, 'native-transfer');
+  assert.equal(result.route.toAmountRaw, '1000000000000000000');
+  assert.equal(result.route.transactionRequest.to, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.route.transactionRequest.value, '1000000000000000000');
+});
+
+test('builds a LI.FI continuous commit route to native AVAX in the fund proxy', async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    calls.push(parsed);
+    return {
+      ok: true,
+      async json() {
+        return quote({
+          fromAmount: parsed.searchParams.get('fromAmount'),
+          toAmount: '990000000000000000',
+          toAmountMin: '980000000000000000',
+          tool: 'stargateV2Bus',
+        });
+      },
+    };
+  };
+
+  const result = await buildContinuousCommitRoute({
+    fromChainId: 8453,
+    fromToken: '0x0000000000000000000000000000000000000000',
+    fromAmountRaw: '1000000000000000000',
+    fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+    settlementToken: '0x0000000000000000000000000000000000000000',
+  }, fetchImpl);
+
+  assert.equal(calls[0].pathname, '/v1/quote');
+  assert.equal(calls[0].searchParams.get('toToken'), '0x0000000000000000000000000000000000000000');
+  assert.equal(calls[0].searchParams.get('toAddress'), '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.route.toAmountMinRaw, '980000000000000000');
 });
 
 test('blocks missing quote inputs', async () => {

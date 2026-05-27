@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 interface IGm10ContinuousMintReceiver {
+    function NATIVE_AVAX() external view returns (address);
+
     function previewContinuousMint(uint256 settlementAmountUsdt6)
         external
         view

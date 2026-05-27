@@ -14,6 +14,7 @@
  *   IMPLEMENTATION_V8_ADDRESS=0x...
  *   EXECUTION_MODE=direct|safe|timelock
  *   EXECUTE=false
+ *   SKIP_INITIALIZE_V8=true
  *   UNSAFE_ALLOW_RENAMES=true
  *   TIMELOCK_ADDRESS=0x...
  *   ALLOW_TIMELOCK_PROPOSER_GRANT=true
@@ -331,9 +332,11 @@ async function main() {
     console.log("  Implementation V8  :", implementationV8);
   }
 
+  const skipInitializeV8 = process.env.SKIP_INITIALIZE_V8 === "true";
   const fundV8Interface = new ethers.Interface(["function initializeV8()"]);
-  const initData = fundV8Interface.encodeFunctionData("initializeV8", []);
+  const initData = skipInitializeV8 ? "0x" : fundV8Interface.encodeFunctionData("initializeV8", []);
   const executionMode = process.env.EXECUTION_MODE || (process.env.SAFE_ADDRESS ? "safe" : "direct");
+  console.log("  Initialize V8     :", skipInitializeV8 ? "skipped" : "yes");
   console.log("  Execution mode     :", executionMode);
 
   const tx = executionMode === "safe"

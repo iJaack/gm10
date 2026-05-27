@@ -61,10 +61,10 @@ const tokenomicsControllerAddress = parseAddress(
     import.meta.env.VITE_GM10_TOKENOMICS_CONTROLLER_ADDRESS || '0x65acE06bbc9e079321451FAfaaD7C58223b20b26',
 );
 const continuousCommitReceiverAddress = parseAddress(
-    import.meta.env.VITE_GM10_CONTINUOUS_COMMIT_RECEIVER_ADDRESS || '0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe',
+    import.meta.env.VITE_GM10_CONTINUOUS_COMMIT_RECEIVER_ADDRESS || '0xb6bf4AC2C381308dF57f387f00DD81E5962FC027',
 );
 const continuousSettlementTokenAddress = parseAddress(
-    import.meta.env.VITE_GM10_CONTINUOUS_SETTLEMENT_TOKEN_ADDRESS || '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    import.meta.env.VITE_GM10_CONTINUOUS_SETTLEMENT_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000',
 );
 const catchTokenAddress = parseAddress(
     import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,

@@ -379,7 +379,7 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'How do continuous commits route value?',
-        answer: 'Each verified commit settles as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and routes settled value into strategy buying power plus bounded LP support. Round 2 finalized at 1,353.9836 AVAX and remains an archive item.',
+        answer: 'Each verified commit routes native AVAX into the fund proxy, prices that AVAX as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and routes the value into strategy buying power plus bounded LP support. Round 2 finalized at 1,353.9836 AVAX and remains an archive item.',
     },
     {
         question: 'Does GM10 guarantee returns?',

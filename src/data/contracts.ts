@@ -466,6 +466,8 @@ export const GM10_CONTINUOUS_MINT_RECEIVER_ABI = [
             { name: 'settled', type: 'bool' },
             { name: 'settledAmount', type: 'uint256' },
             { name: 'mintedBuyerCatch18', type: 'uint256' },
+            { name: 'fundAvaxBalanceBefore', type: 'uint256' },
+            { name: 'accountedFundAvaxBefore', type: 'uint256' },
         ],
         stateMutability: 'view',
         type: 'function',

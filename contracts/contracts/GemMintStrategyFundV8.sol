@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./Gm10FundStorageV2.sol";
 import "./Gm10Types.sol";
+import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/IGm10ContinuousSaleRouter.sol";
 import "./interfaces/IGm10PortfolioRegistry.sol";
 import "./interfaces/IGm10TokenomicsV7Controller.sol";
@@ -52,6 +53,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
     mapping(address => uint8) public lpVenueCustodyMode;
 
     mapping(bytes32 => Gm10Types.ContinuousCommit) internal continuousCommits;
+    uint256 public accountedFundAvaxSettlementWei;
 
     address internal immutable tokenomicsController;
 
@@ -62,6 +64,12 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         uint256 settlementAmountUsdt6,
         uint256 buyerCatch18,
         uint256 segmentCatchEach18
+    );
+    event ContinuousMintAvaxSettled(
+        bytes32 indexed commitId,
+        address indexed buyer,
+        uint256 avaxAmountWei,
+        uint256 settlementAmountUsdt6
     );
     event SaleProfitRouted(
         bytes32 indexed saleKey,
@@ -86,6 +94,10 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         bool lpSupportPaused,
         int256 mintSpreadBps
     );
+
+    error InvalidPriceFeed();
+    error StalePriceFeed();
+    error InsufficientSettlementBalance();
 
     /// @custom:oz-upgrades-unsafe-allow constructor state-variable-immutable
     constructor(address _tokenomicsController) {
@@ -132,6 +144,22 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         returns (uint256 buyerCatch18)
     {
         return _settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
+    }
+
+    function settleContinuousMintFromAvax(bytes32 commitId, address buyer, uint256 avaxAmountWei)
+        external
+        onlyRole(MANAGER_ROLE)
+        returns (uint256 buyerCatch18)
+    {
+        if (avaxAmountWei == 0) revert InvalidParameters();
+        if (address(this).balance < accountedFundAvaxSettlementWei + avaxAmountWei) {
+            revert InsufficientSettlementBalance();
+        }
+
+        accountedFundAvaxSettlementWei += avaxAmountWei;
+        uint256 settlementAmountUsdt6 = _quoteAvaxToUsdt(avaxAmountWei);
+        buyerCatch18 = _settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
+        emit ContinuousMintAvaxSettled(commitId, buyer, avaxAmountWei, settlementAmountUsdt6);
     }
 
     function finalizeSaleWithMarketSnapshot(
@@ -261,6 +289,18 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         emit ContinuousMintSettled(commitId, buyer, settlementAmountUsdt6, buyerCatch18, segmentCatchEach18);
     }
 
+    function _quoteAvaxToUsdt(uint256 avaxAmountWei) internal view returns (uint256) {
+        if (avaxUsdFeed == address(0)) revert InvalidPriceFeed();
+        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) =
+            IChainlinkPriceFeed(avaxUsdFeed).latestRoundData();
+        if (answer <= 0 || updatedAt == 0 || answeredInRound < roundId) revert InvalidPriceFeed();
+        if (block.timestamp - updatedAt > maxPriceFeedStaleness) revert StalePriceFeed();
+
+        uint256 feedDecimals = IChainlinkPriceFeed(avaxUsdFeed).decimals();
+        if (feedDecimals > 18) revert InvalidPriceFeed();
+        return Math.mulDiv(avaxAmountWei, uint256(answer), (10 ** feedDecimals) * 1e12);
+    }
+
     function _mintSegmentAllocations(uint256 segmentCatchEach18) internal {
         if (segmentCatchEach18 == 0) return;
         for (uint8 segment = 0; segment < 5; ++segment) {
@@ -334,5 +374,5 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         lastStableNavUpdate = block.timestamp;
     }
 
-    uint256[38] private __gapV8;
+    uint256[37] private __gapV8;
 }

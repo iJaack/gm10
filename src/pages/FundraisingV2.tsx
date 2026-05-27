@@ -85,7 +85,6 @@ function formatWalletTokenStatus(status: WalletTopTokensStatus, error?: string) 
 
 const LIFI_NATIVE_TOKEN = '0x0000000000000000000000000000000000000000' as const;
 const COMMIT_TTL_SECONDS = 20 * 60;
-const MIN_SETTLEMENT_BUFFER_BPS = 50n;
 
 type CommitFeedback = {
     tone: 'error' | 'ready' | 'pending';
@@ -113,6 +112,7 @@ type ContinuousCommitRoute = {
     };
     settlementToken?: `0x${string}`;
     escrowAddress?: `0x${string}`;
+    settlementAddress?: `0x${string}`;
     error?: string;
 };
 
@@ -357,10 +357,6 @@ function randomBytes32(label: string) {
     return keccak256(toBytes(`${label}:${Date.now()}:${Array.from(random).join(':')}`));
 }
 
-function minSettlementWithBuffer(settlementAmount: bigint) {
-    return (settlementAmount * (10_000n - MIN_SETTLEMENT_BUFFER_BPS)) / 10_000n;
-}
-
 function commitEscrowFromReadResult(commit: unknown): `0x${string}` | undefined {
     if (Array.isArray(commit) && isAddressLike(commit[3])) return commit[3];
     if (commit && typeof commit === 'object' && isAddressLike((commit as { escrow?: unknown }).escrow)) {
@@ -540,13 +536,31 @@ function FundraisingContent() {
         }
 
         try {
-            const minSettlementAmount = minSettlementWithBuffer(settlementAmountUsdt6);
-            if (minSettlementAmount <= 0n) throw new Error('Minimum settlement amount is too small.');
             const commitId = randomBytes32('gm10-continuous-commit');
             const providerRouteId = randomBytes32('lifi-route');
             const expiresAt = BigInt(Math.floor(Date.now() / 1000) + COMMIT_TTL_SECONDS);
 
-            setCommitFeedback({ tone: 'pending', message: 'Registering the commit escrow on Avalanche...' });
+            setCommitFeedback({ tone: 'pending', message: 'Quoting native AVAX settlement into the fund proxy...' });
+            const lifiFromToken = selectedSourceToken.isNative ? LIFI_NATIVE_TOKEN : selectedSourceToken.tokenAddress;
+            if (!lifiFromToken) throw new Error(`${selectedSourceToken.symbol} is missing a routeable token address.`);
+            const routeParams = new URLSearchParams();
+            routeParams.set('fromChainId', String(sourceChainId));
+            routeParams.set('fromToken', lifiFromToken);
+            routeParams.set('fromAmountRaw', sourceAmountRaw.toString());
+            routeParams.set('fromAddress', address);
+            routeParams.set('settlementAddress', GM10_PRIMARY_DEPLOYMENT.proxy.address);
+            routeParams.set('settlementToken', settlementTokenAddress);
+            const routeResponse = await fetch(`/api/continuous-commit-route?${routeParams.toString()}`);
+            const routePayload = await routeResponse.json().catch(() => ({})) as ContinuousCommitRoute;
+            if (!routeResponse.ok) throw new Error(routePayload.error || `LI.FI route quote failed with ${routeResponse.status}`);
+            const route = routePayload.route;
+            if (!route) throw new Error('LI.FI route response was empty.');
+            const routeTx = route?.transactionRequest;
+            if (!routeTx?.to) throw new Error('LI.FI route did not return an executable transaction.');
+            const minSettlementAmount = BigInt(route.toAmountMinRaw || route.toAmountRaw || '0');
+            if (minSettlementAmount <= 0n) throw new Error('Route did not return a native AVAX settlement amount.');
+
+            setCommitFeedback({ tone: 'pending', message: 'Registering the AVAX settlement checkpoint on Avalanche...' });
             await switchChainAsync({ chainId: GM10_CHAIN_ID });
             const registerHash = await writeContractAsync({
                 address: commitReceiverAddress,
@@ -569,25 +583,7 @@ function FundraisingContent() {
                 args: [commitId],
             });
             const escrowAddress = commitEscrowFromReadResult(commit);
-            if (!escrowAddress) throw new Error('Commit registered, but escrow address was not readable.');
-
-            setCommitFeedback({ tone: 'pending', message: `Commit escrow ready at ${formatShortAddress(escrowAddress)}. Quoting LI.FI route...` });
-            const lifiFromToken = selectedSourceToken.isNative ? LIFI_NATIVE_TOKEN : selectedSourceToken.tokenAddress;
-            if (!lifiFromToken) throw new Error(`${selectedSourceToken.symbol} is missing a routeable token address.`);
-            const routeParams = new URLSearchParams();
-            routeParams.set('fromChainId', String(sourceChainId));
-            routeParams.set('fromToken', lifiFromToken);
-            routeParams.set('fromAmountRaw', sourceAmountRaw.toString());
-            routeParams.set('fromAddress', address);
-            routeParams.set('escrowAddress', escrowAddress);
-            routeParams.set('settlementToken', settlementTokenAddress);
-            const routeResponse = await fetch(`/api/continuous-commit-route?${routeParams.toString()}`);
-            const routePayload = await routeResponse.json().catch(() => ({})) as ContinuousCommitRoute;
-            if (!routeResponse.ok) throw new Error(routePayload.error || `LI.FI route quote failed with ${routeResponse.status}`);
-            const route = routePayload.route;
-            if (!route) throw new Error('LI.FI route response was empty.');
-            const routeTx = route?.transactionRequest;
-            if (!routeTx?.to) throw new Error('LI.FI route did not return an executable transaction.');
+            if (!escrowAddress) throw new Error('Commit registered, but fund settlement address was not readable.');
 
             await switchChainAsync({ chainId: sourceChainId });
             if (!selectedSourceToken.isNative) {
@@ -604,7 +600,7 @@ function FundraisingContent() {
                 await sourcePublicClient?.waitForTransactionReceipt({ hash: approvalHash });
             }
 
-            setCommitFeedback({ tone: 'pending', message: `Submitting ${route.tool || 'LI.FI'} route into ${formatShortAddress(escrowAddress)}...` });
+            setCommitFeedback({ tone: 'pending', message: `Submitting ${route.tool || 'LI.FI'} route into the fund proxy ${formatShortAddress(escrowAddress)}...` });
             const routeHash = await sendTransactionAsync({
                 to: routeTx.to,
                 data: routeTx.data,
@@ -619,22 +615,15 @@ function FundraisingContent() {
             if (sourceChainId !== GM10_CHAIN_ID) {
                 setCommitFeedback({
                     tone: 'ready',
-                    message: `Source transaction confirmed (${formatShortAddress(routeHash)}). Wait for LI.FI to settle USDC.e into ${formatShortAddress(escrowAddress)}, then refresh to settle the mint.`,
+                    message: `Source transaction confirmed (${formatShortAddress(routeHash)}). Wait for LI.FI to settle native AVAX into the fund proxy, then settle the registered commit.`,
                 });
                 return;
             }
 
-            const settledBalance = await avalanchePublicClient.readContract({
-                address: settlementTokenAddress,
-                abi: ERC20_ROUTE_ABI,
-                functionName: 'balanceOf',
-                args: [escrowAddress],
-            });
-            if (settledBalance < minSettlementAmount) {
-                throw new Error(`Route settled ${fmtUsdc(settledBalance)}, below the protected minimum ${fmtUsdc(minSettlementAmount)}.`);
-            }
+            const settledBalance = BigInt(route.toAmountRaw || route.toAmountMinRaw || '0');
+            if (settledBalance < minSettlementAmount) throw new Error('Native AVAX route output is below the protected minimum.');
 
-            setCommitFeedback({ tone: 'pending', message: `Settling ${fmtUsdc(settledBalance)} and minting $CATCH...` });
+            setCommitFeedback({ tone: 'pending', message: `Settling ${formatEther(settledBalance)} AVAX from the fund proxy and minting $CATCH...` });
             await switchChainAsync({ chainId: GM10_CHAIN_ID });
             const settleHash = await writeContractAsync({
                 address: commitReceiverAddress,
@@ -645,7 +634,7 @@ function FundraisingContent() {
             await avalanchePublicClient.waitForTransactionReceipt({ hash: settleHash });
             setCommitFeedback({
                 tone: 'ready',
-                message: `Mint complete. Settled ${fmtUsdc(settledBalance)} through ${formatShortAddress(commitReceiverAddress)}.`,
+                message: `Mint complete. Settled ${formatEther(settledBalance)} AVAX through ${formatShortAddress(commitReceiverAddress)}.`,
             });
         } catch (caught) {
             setCommitFeedback({
@@ -711,7 +700,7 @@ function FundraisingContent() {
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Settlement</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">USDC-equivalent value on Avalanche</span>,
+                                <span className="v2-mono text-right text-[var(--text-primary)]">Native AVAX into the fund proxy</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Mint route</Caption>,

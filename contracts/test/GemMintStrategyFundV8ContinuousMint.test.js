@@ -81,4 +81,40 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
       expect(await fund.balanceOf(recipient)).to.equal(firstSegmentCatchEach18 + secondSegmentCatchEach18);
     }
   });
+
+  it("settles native AVAX that has landed in the fund proxy", async function () {
+    const { fund, owner } = await deployMockV8();
+    const MockAggregator = await ethers.getContractFactory("MockAggregatorV3");
+    const avaxUsdFeed = await MockAggregator.deploy(8, 9_12000000n);
+    await avaxUsdFeed.waitForDeployment();
+
+    await fund.mintForTest(owner.address, ethers.parseEther("100"));
+    await fund.setStableAccountingForTest(100_000_000n, 0n, 0n, 0n, 0n, 0n);
+    await fund.syncStableNavForTest();
+    await fund.setAvaxPricingForTest(await avaxUsdFeed.getAddress(), 86_400n);
+    await fund.grantGovernanceForTest(owner.address);
+    await fund.setContinuousAccrualControls(false, true, true, -500);
+    await fund.grantManagerForTest(owner.address);
+
+    const commitId = ethers.id("native-avax-route-1");
+    const buyer = ethers.Wallet.createRandom().address;
+    const avaxAmount = ethers.parseEther("1");
+    const settlementAmountUsdt6 = 9_120000n;
+    const [buyerCatch18] = await fund.previewContinuousMint(settlementAmountUsdt6);
+
+    await expect(fund.settleContinuousMintFromAvax(commitId, buyer, avaxAmount))
+      .to.be.revertedWithCustomError(fund, "InsufficientSettlementBalance");
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: avaxAmount });
+
+    await expect(fund.settleContinuousMintFromAvax(commitId, buyer, avaxAmount))
+      .to.emit(fund, "ContinuousMintAvaxSettled")
+      .withArgs(commitId, buyer, avaxAmount, settlementAmountUsdt6);
+
+    expect(await fund.accountedFundAvaxSettlementWei()).to.equal(avaxAmount);
+    expect(await fund.balanceOf(buyer)).to.equal(buyerCatch18);
+
+    await expect(fund.settleContinuousMintFromAvax(ethers.id("native-avax-route-2"), buyer, avaxAmount))
+      .to.be.revertedWithCustomError(fund, "InsufficientSettlementBalance");
+  });
 });

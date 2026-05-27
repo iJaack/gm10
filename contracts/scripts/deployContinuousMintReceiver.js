@@ -3,6 +3,7 @@ const { ethers } = hre;
 const fs = require("fs");
 
 const MANAGER_ROLE = ethers.id("MANAGER_ROLE");
+const NATIVE_AVAX = ethers.ZeroAddress;
 
 function requireAddress(name) {
   const value = process.env[name];
@@ -38,8 +39,8 @@ async function main() {
   const fundProxy = optionalAddress("FUND_PROXY_ADDRESS") || ethers.getAddress(deployment.proxy);
   const treasury = requireAddress("TREASURY_SAFE_ADDRESS");
   const admin = optionalAddress("RECEIVER_ADMIN") || treasury;
-  const settlementToken = optionalAddress("SETTLEMENT_TOKEN_ADDRESS") || ethers.getAddress(deployment.settlementToken);
-  const settlementTokenDecimals = parseDecimals("SETTLEMENT_TOKEN_DECIMALS", Number(deployment.settlementTokenDecimals || 6));
+  const settlementToken = optionalAddress("SETTLEMENT_TOKEN_ADDRESS") || NATIVE_AVAX;
+  const settlementTokenDecimals = parseDecimals("SETTLEMENT_TOKEN_DECIMALS", settlementToken === NATIVE_AVAX ? 18 : Number(deployment.settlementTokenDecimals || 6));
   const grantManagerRole = process.env.GRANT_MANAGER_ROLE === "true";
 
   console.log("Deploying Gm10ContinuousMintReceiver");

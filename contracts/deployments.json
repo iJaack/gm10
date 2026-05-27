@@ -88,7 +88,7 @@
     "network": "avalanche",
     "chainId": "43114",
     "proxy": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
-    "implementation": "0x011C23226d0FD7723624Ab6c0CfBFF2B394A1291",
+    "implementation": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
     "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
     "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
     "portfolioRegistry": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
@@ -157,15 +157,15 @@
         "0xfe776F5483dA1456D319805C2853F840AfDbefAC"
       ]
     },
-    "implementationV8": "0x011C23226d0FD7723624Ab6c0CfBFF2B394A1291",
+    "implementationV8": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
     "lastContinuousAccrualUpgrade": {
-      "to": "0x011C23226d0FD7723624Ab6c0CfBFF2B394A1291",
+      "to": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
       "controller": "0x65acE06bbc9e079321451FAfaaD7C58223b20b26",
-      "timestamp": "2026-05-26T16:12:40.943Z",
-      "blockNumber": 86431191,
-      "tx": "0xf79a311f01bc7680e7480e7e5977a4ce97cdf134cf47026b457442f29d3d48a7",
+      "timestamp": "2026-05-27T17:19:05.938Z",
+      "blockNumber": 86514695,
+      "tx": "0xa6fd983e62c52b3f56f8d2ecb089fcc59840f64b45c49662189f797f54ef5a66",
       "controls": {
-        "continuousMintPaused": true,
+        "continuousMintPaused": false,
         "buybackPaused": true,
         "lpSupportPaused": true,
         "mintSpreadBps": "-500",
@@ -185,11 +185,18 @@
         "redemptionsPermanentlyDisabled": true
       }
     },
-    "continuousMintReceiver": "0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe",
+    "continuousMintReceiver": "0xb6bf4AC2C381308dF57f387f00DD81E5962FC027",
     "lastContinuousMintReceiverManagerGrant": {
-      "timestamp": "2026-05-27T13:11:11.029Z",
-      "blockNumber": 86500872,
-      "tx": "0x96a1a5f2b1edbcb2725b2f00605db35726398f4c903b9aea0c9926221ca9c7bc",
+      "timestamp": "2026-05-27T17:19:55.727Z",
+      "blockNumber": 86514739,
+      "tx": "0x6551acc190575f4b1fbf05aea567e80ebeb7eddf279550d9afb84109310484bd",
+      "safe": "0x39971795266a794a8156271729A07994952a6FAD",
+      "receiver": "0xb6bf4AC2C381308dF57f387f00DD81E5962FC027"
+    },
+    "lastContinuousMintReceiverManagerRevoke": {
+      "timestamp": "2026-05-27T17:22:10.603Z",
+      "blockNumber": 86514867,
+      "tx": "0xdc04a9c1ccbe7f530cf60f8d79b309044f7d5da9ce26ccc2d206aba61f9386a7",
       "safe": "0x39971795266a794a8156271729A07994952a6FAD",
       "receiver": "0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe"
     }

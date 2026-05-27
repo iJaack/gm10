@@ -225,17 +225,53 @@ export async function buildContinuousCommitRoute({
   fromAmountRaw,
   fromAddress,
   escrowAddress,
-  settlementToken = AVALANCHE_USDC_E,
+  settlementAddress,
+  settlementToken = NATIVE_TOKEN,
 }, fetchImpl = fetch) {
   const sourceChain = Number(fromChainId);
   if (!Number.isInteger(sourceChain) || sourceChain <= 0) throw new Error('Missing source chain id');
   if (!/^\d+$/.test(String(fromAmountRaw ?? ''))) throw new Error('Missing source token amount');
   if (BigInt(fromAmountRaw) <= 0n) throw new Error('Source token amount must be greater than zero');
   assertEvmAddress(fromAddress, 'buyer');
-  assertEvmAddress(escrowAddress, 'commit escrow');
+  const destinationAddress = settlementAddress || escrowAddress;
+  assertEvmAddress(destinationAddress, 'Avalanche settlement receiver');
   assertEvmAddress(settlementToken, 'Avalanche settlement token');
   const sourceToken = String(fromToken || NATIVE_TOKEN).trim();
   if (sourceToken !== NATIVE_TOKEN) assertEvmAddress(sourceToken, 'source token');
+
+  if (sourceChain === AVALANCHE_CHAIN_ID && sourceToken === NATIVE_TOKEN && settlementToken === NATIVE_TOKEN) {
+    const raw = BigInt(fromAmountRaw);
+    return {
+      route: {
+        kind: 'continuousCommit',
+        id: `native-avax:${sourceChain}:${destinationAddress}:${fromAmountRaw}`,
+        tool: 'native-transfer',
+        fromAmountRaw: raw.toString(),
+        fromAmountAvax: formatDecimalUnits(raw, 18, 8),
+        sourceGasRaw: '0',
+        sourceGasAvax: '0',
+        totalInputRaw: raw.toString(),
+        totalInputAvax: formatDecimalUnits(raw, 18, 8),
+        targetRaw: raw.toString(),
+        toAmountRaw: raw.toString(),
+        toAmountMinRaw: raw.toString(),
+        toAmountUsd: '',
+        fromAmountUsd: '',
+        executionDuration: 0,
+        enoughOutput: true,
+        transactionRequest: {
+          to: destinationAddress,
+          data: '0x',
+          value: raw.toString(),
+          chainId: AVALANCHE_CHAIN_ID,
+        },
+        approvalAddress: null,
+      },
+      settlementToken,
+      escrowAddress: destinationAddress,
+      settlementAddress: destinationAddress,
+    };
+  }
 
   const quote = await fetchLiFiSourceQuote(
     {
@@ -244,7 +280,7 @@ export async function buildContinuousCommitRoute({
       fromToken: sourceToken,
       toToken: settlementToken,
       fromAddress,
-      toAddress: escrowAddress,
+      toAddress: destinationAddress,
       fromAmount: fromAmountRaw,
       slippage: 0.005,
       integrator: 'gm10-continuous-round',
@@ -257,7 +293,8 @@ export async function buildContinuousCommitRoute({
   return {
     route: normalizeQuote('continuousCommit', quote, targetRaw),
     settlementToken,
-    escrowAddress,
+    escrowAddress: destinationAddress,
+    settlementAddress: destinationAddress,
   };
 }
 

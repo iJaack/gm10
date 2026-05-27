@@ -33,6 +33,10 @@ async function deployContinuousMintReceiverFixture() {
   await fund.mintForTest(owner.address, ethers.parseEther("100"));
   await fund.setStableAccountingForTest(100_000_000n, 0n, 0n, 0n, 0n, 0n);
   await fund.syncStableNavForTest();
+  const MockAggregator = await ethers.getContractFactory("MockAggregatorV3");
+  const avaxUsdFeed = await MockAggregator.deploy(8, 9_12000000n);
+  await avaxUsdFeed.waitForDeployment();
+  await fund.setAvaxPricingForTest(await avaxUsdFeed.getAddress(), 86_400n);
   await fund.grantGovernanceForTest(owner.address);
   await fund.setContinuousAccrualControls(false, true, true, -500);
 
@@ -55,6 +59,122 @@ async function deployContinuousMintReceiverFixture() {
 }
 
 describe("Gm10ContinuousMintReceiver", function () {
+  it("settles native AVAX only after it lands in the fund proxy", async function () {
+    const { fund, controller, receiver, buyer, owner } = await deployContinuousMintReceiverFixture();
+    const commitId = ethers.id("native-avax-route-settlement-1");
+    const providerRouteId = ethers.id("native-avax-route-1");
+    const minSettlement = ethers.parseEther("0.95");
+    const settledAmount = ethers.parseEther("1");
+    const expiresAt = (await ethers.provider.getBlock("latest")).timestamp + 600;
+    const [buyerCatch18, segmentCatchEach18] = await fund.previewContinuousMint(9_120000n);
+
+    await expect(
+      receiver.connect(buyer).registerCommit(
+        commitId,
+        providerRouteId,
+        buyer.address,
+        ethers.ZeroAddress,
+        minSettlement,
+        expiresAt
+      )
+    )
+      .to.emit(receiver, "ContinuousCommitRegistered")
+      .withArgs(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, minSettlement, expiresAt);
+
+    const registeredCommit = await receiver.commits(commitId);
+    expect(registeredCommit.escrow).to.equal(await fund.getAddress());
+
+    await expect(
+      receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
+    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+
+    await expect(
+      receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
+    )
+      .to.emit(receiver, "ContinuousCommitSettled")
+      .withArgs(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount, buyerCatch18);
+
+    expect(await fund.balanceOf(buyer.address)).to.equal(buyerCatch18);
+    expect(await receiver.accountedFundAvaxSettlementWei()).to.equal(settledAmount);
+    expect(await fund.accountedFundAvaxSettlementWei()).to.equal(settledAmount);
+
+    for (let segment = 0; segment < 5; segment += 1) {
+      const recipient = await controller.segmentRecipient(segment);
+      expect(await fund.balanceOf(recipient)).to.equal(segmentCatchEach18);
+    }
+  });
+
+  it("does not count native AVAX that was already in the fund before registration", async function () {
+    const { fund, receiver, buyer, owner } = await deployContinuousMintReceiverFixture();
+    const commitId = ethers.id("native-avax-route-settlement-2");
+    const providerRouteId = ethers.id("native-avax-route-2");
+    const settledAmount = ethers.parseEther("1");
+    const expiresAt = (await ethers.provider.getBlock("latest")).timestamp + 600;
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+
+    await receiver.connect(buyer).registerCommit(
+      commitId,
+      providerRouteId,
+      buyer.address,
+      ethers.ZeroAddress,
+      settledAmount,
+      expiresAt
+    );
+
+    await expect(
+      receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
+    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+  });
+
+  it("does not double-count overlapping native AVAX checkpoints", async function () {
+    const { fund, receiver, buyer, attacker, owner } = await deployContinuousMintReceiverFixture();
+    const firstCommitId = ethers.id("native-avax-route-settlement-3a");
+    const secondCommitId = ethers.id("native-avax-route-settlement-3b");
+    const firstProviderRouteId = ethers.id("native-avax-route-3a");
+    const secondProviderRouteId = ethers.id("native-avax-route-3b");
+    const settledAmount = ethers.parseEther("1");
+    const expiresAt = (await ethers.provider.getBlock("latest")).timestamp + 600;
+
+    await receiver.connect(buyer).registerCommit(
+      firstCommitId,
+      firstProviderRouteId,
+      buyer.address,
+      ethers.ZeroAddress,
+      settledAmount,
+      expiresAt
+    );
+    await receiver.connect(attacker).registerCommit(
+      secondCommitId,
+      secondProviderRouteId,
+      attacker.address,
+      ethers.ZeroAddress,
+      settledAmount,
+      expiresAt
+    );
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+    await receiver.connect(buyer).commitSettledRoute(
+      firstCommitId,
+      firstProviderRouteId,
+      buyer.address,
+      ethers.ZeroAddress,
+      settledAmount
+    );
+
+    await expect(
+      receiver.connect(attacker).commitSettledRoute(
+        secondCommitId,
+        secondProviderRouteId,
+        attacker.address,
+        ethers.ZeroAddress,
+        settledAmount
+      )
+    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+  });
+
   it("settles a registered LI.FI route only after approved settlement tokens arrive", async function () {
     const { fund, controller, receiver, usdc, buyer, treasury } = await deployContinuousMintReceiverFixture();
     const commitId = ethers.id("lifi-route-settlement-1");

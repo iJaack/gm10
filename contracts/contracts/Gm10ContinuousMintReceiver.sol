@@ -10,6 +10,10 @@ interface IGm10ContinuousMintFund {
     function settleContinuousMint(bytes32 commitId, address buyer, uint256 settlementAmountUsdt6)
         external
         returns (uint256 buyerCatch18);
+
+    function settleContinuousMintFromAvax(bytes32 commitId, address buyer, uint256 avaxAmountWei)
+        external
+        returns (uint256 buyerCatch18);
 }
 
 contract Gm10ContinuousCommitEscrow {
@@ -33,6 +37,7 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    address public constant NATIVE_AVAX = address(0);
 
     struct SettlementTokenConfig {
         bool approved;
@@ -49,10 +54,13 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         bool settled;
         uint256 settledAmount;
         uint256 mintedBuyerCatch18;
+        uint256 fundAvaxBalanceBefore;
+        uint256 accountedFundAvaxBefore;
     }
 
     IGm10ContinuousMintFund public immutable fund;
     address public immutable treasury;
+    uint256 public accountedFundAvaxSettlementWei;
 
     mapping(address => SettlementTokenConfig) public settlementTokens;
     mapping(bytes32 => ContinuousCommit) public commits;
@@ -98,7 +106,8 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         treasury = treasury_;
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         _grantRole(OPERATOR_ROLE, admin_);
-        if (initialSettlementToken != address(0)) {
+        _configureSettlementToken(NATIVE_AVAX, true, 18);
+        if (initialSettlementToken != NATIVE_AVAX) {
             _configureSettlementToken(initialSettlementToken, true, initialSettlementTokenDecimals);
         }
     }
@@ -128,7 +137,9 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         ) revert InvalidParameters();
         if (!settlementTokens[settlementToken].approved) revert UnsupportedSettlementToken();
         if (commits[commitId].buyer != address(0)) revert CommitAlreadyRegistered();
-        escrow = address(new Gm10ContinuousCommitEscrow(address(this)));
+        escrow = settlementToken == NATIVE_AVAX
+            ? address(fund)
+            : address(new Gm10ContinuousCommitEscrow(address(this)));
 
         commits[commitId] = ContinuousCommit({
             providerRouteId: providerRouteId,
@@ -139,7 +150,9 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
             expiresAt: expiresAt,
             settled: false,
             settledAmount: 0,
-            mintedBuyerCatch18: 0
+            mintedBuyerCatch18: 0,
+            fundAvaxBalanceBefore: settlementToken == NATIVE_AVAX ? address(fund).balance : 0,
+            accountedFundAvaxBefore: settlementToken == NATIVE_AVAX ? accountedFundAvaxSettlementWei : 0
         });
 
         emit ContinuousCommitRegistered(
@@ -170,19 +183,35 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         ) revert CommitMismatch();
         if (block.timestamp > commit.expiresAt) revert CommitExpired();
         if (settledAmount < commit.minSettlementAmount) revert InvalidParameters();
-        SettlementTokenConfig memory tokenConfig = settlementTokens[settlementToken];
-        if (!tokenConfig.approved) revert UnsupportedSettlementToken();
-        if (IERC20(settlementToken).balanceOf(commit.escrow) < settledAmount) revert InsufficientSettlementBalance();
-
-        uint256 settlementAmountUsdt6 = _toUsdt6(settledAmount, tokenConfig.decimals);
-        if (settlementAmountUsdt6 == 0) revert InvalidParameters();
-
         commit.settled = true;
         commit.settledAmount = settledAmount;
-        buyerCatch18 = fund.settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
-        commit.mintedBuyerCatch18 = buyerCatch18;
 
-        Gm10ContinuousCommitEscrow(commit.escrow).release(settlementToken, treasury, settledAmount);
+        if (settlementToken == NATIVE_AVAX) {
+            uint256 fundBalanceDelta = address(fund).balance > commit.fundAvaxBalanceBefore
+                ? address(fund).balance - commit.fundAvaxBalanceBefore
+                : 0;
+            uint256 accountedSinceRegistration = accountedFundAvaxSettlementWei > commit.accountedFundAvaxBefore
+                ? accountedFundAvaxSettlementWei - commit.accountedFundAvaxBefore
+                : 0;
+            uint256 unaccountedDelta = fundBalanceDelta > accountedSinceRegistration
+                ? fundBalanceDelta - accountedSinceRegistration
+                : 0;
+            if (unaccountedDelta < settledAmount) revert InsufficientSettlementBalance();
+
+            accountedFundAvaxSettlementWei += settledAmount;
+            buyerCatch18 = fund.settleContinuousMintFromAvax(commitId, buyer, settledAmount);
+        } else {
+            SettlementTokenConfig memory tokenConfig = settlementTokens[settlementToken];
+            if (!tokenConfig.approved) revert UnsupportedSettlementToken();
+            if (IERC20(settlementToken).balanceOf(commit.escrow) < settledAmount) revert InsufficientSettlementBalance();
+
+            uint256 settlementAmountUsdt6 = _toUsdt6(settledAmount, tokenConfig.decimals);
+            if (settlementAmountUsdt6 == 0) revert InvalidParameters();
+            buyerCatch18 = fund.settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
+            Gm10ContinuousCommitEscrow(commit.escrow).release(settlementToken, treasury, settledAmount);
+        }
+
+        commit.mintedBuyerCatch18 = buyerCatch18;
 
         emit ContinuousCommitSettled(
             commitId,
@@ -195,7 +224,7 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
     }
 
     function _configureSettlementToken(address token, bool approved, uint8 decimals) internal {
-        if (token == address(0)) revert ZeroAddress();
+        if (token == address(0) && decimals != 18) revert InvalidParameters();
         if (decimals > 18) revert InvalidParameters();
         settlementTokens[token] = SettlementTokenConfig({ approved: approved, decimals: decimals });
         emit SettlementTokenConfigured(token, approved, decimals);

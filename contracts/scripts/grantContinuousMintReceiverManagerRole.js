@@ -1,5 +1,5 @@
 /**
- * Grant MANAGER_ROLE to the continuous mint receiver through the treasury Safe.
+ * Grant or revoke MANAGER_ROLE for a continuous mint receiver through the treasury Safe.
  *
  * Usage:
  *   LEDGER_ADDRESS=0x... SAFE_ADDRESS=0x... RECEIVER_ADDRESS=0x... DEPLOYMENT_KEY=avalanche \
@@ -7,6 +7,7 @@
  *
  * Optional:
  *   FUND_PROXY_ADDRESS=0x...
+ *   ROLE_ACTION=grant|revoke
  *   EXECUTE=false
  */
 const hre = require("hardhat");
@@ -23,6 +24,7 @@ const SAFE_ABI = [
 ];
 const FUND_ABI = [
   "function grantRole(bytes32 role,address account)",
+  "function revokeRole(bytes32 role,address account)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
   "function getRoleAdmin(bytes32 role) view returns (bytes32)",
 ];
@@ -69,6 +71,8 @@ async function main() {
   const deployment = deployments[deploymentKey] || {};
   const fundProxy = optionalAddress("FUND_PROXY_ADDRESS") || ethers.getAddress(deployment.proxy);
   const shouldExecute = process.env.EXECUTE !== "false";
+  const roleAction = process.env.ROLE_ACTION || "grant";
+  if (!["grant", "revoke"].includes(roleAction)) throw new Error("ROLE_ACTION must be grant or revoke");
 
   const safe = new ethers.Contract(safeAddress, SAFE_ABI, signer);
   const fund = new ethers.Contract(fundProxy, FUND_ABI, signer);
@@ -81,12 +85,12 @@ async function main() {
 
   const alreadyManager = await fund.hasRole(MANAGER_ROLE, receiverAddress);
   const managerRoleAdmin = await fund.getRoleAdmin(MANAGER_ROLE);
-  const safeCanGrant = await fund.hasRole(managerRoleAdmin, safeAddress);
-  if (!alreadyManager && !safeCanGrant) {
+  const safeCanAdmin = await fund.hasRole(managerRoleAdmin, safeAddress);
+  if (!safeCanAdmin && ((roleAction === "grant" && !alreadyManager) || (roleAction === "revoke" && alreadyManager))) {
     throw new Error(`Safe ${safeAddress} does not hold MANAGER_ROLE admin ${managerRoleAdmin} on ${fundProxy}`);
   }
 
-  console.log("Granting continuous mint receiver manager role");
+  console.log(`${roleAction === "grant" ? "Granting" : "Revoking"} continuous mint receiver manager role`);
   console.log("  Network        :", hre.network.name);
   console.log("  Fund proxy     :", fundProxy);
   console.log("  Safe           :", safeAddress);
@@ -94,14 +98,21 @@ async function main() {
   console.log("  Receiver       :", receiverAddress);
   console.log("  Manager role   :", alreadyManager);
   console.log("  Role admin     :", managerRoleAdmin);
-  console.log("  Safe can grant :", safeCanGrant);
+  console.log("  Safe can admin :", safeCanAdmin);
 
-  if (alreadyManager) {
+  if (roleAction === "grant" && alreadyManager) {
     console.log("  Receiver already has MANAGER_ROLE; no transaction needed.");
     return;
   }
+  if (roleAction === "revoke" && !alreadyManager) {
+    console.log("  Receiver already lacks MANAGER_ROLE; no transaction needed.");
+    return;
+  }
 
-  const data = fund.interface.encodeFunctionData("grantRole", [MANAGER_ROLE, receiverAddress]);
+  const data = fund.interface.encodeFunctionData(
+    roleAction === "grant" ? "grantRole" : "revokeRole",
+    [MANAGER_ROLE, receiverAddress],
+  );
   await ethers.provider.call({ from: safeAddress, to: fundProxy, data });
   console.log("  Static call    : ok");
 
@@ -130,18 +141,22 @@ async function main() {
   const hasRoleAfter = await fund.hasRole(MANAGER_ROLE, receiverAddress);
   console.log("  Confirmed block:", receipt.blockNumber);
   console.log("  Manager role   :", hasRoleAfter);
-  if (!hasRoleAfter) throw new Error("Receiver still lacks MANAGER_ROLE after grant transaction");
+  if (roleAction === "grant" && !hasRoleAfter) throw new Error("Receiver still lacks MANAGER_ROLE after grant transaction");
+  if (roleAction === "revoke" && hasRoleAfter) throw new Error("Receiver still has MANAGER_ROLE after revoke transaction");
 
-  deployments[deploymentKey] = {
-    ...deployment,
-    continuousMintReceiver: receiverAddress,
-    lastContinuousMintReceiverManagerGrant: {
+  const roleRecord = {
       timestamp: new Date().toISOString(),
       blockNumber: receipt.blockNumber,
       tx: tx.hash,
       safe: safeAddress,
       receiver: receiverAddress,
-    },
+  };
+  deployments[deploymentKey] = {
+    ...deployment,
+    ...(roleAction === "grant" ? { continuousMintReceiver: receiverAddress } : {}),
+    ...(roleAction === "grant"
+      ? { lastContinuousMintReceiverManagerGrant: roleRecord }
+      : { lastContinuousMintReceiverManagerRevoke: roleRecord }),
   };
   fs.writeFileSync(deploymentsPath, JSON.stringify(deployments, null, 2));
 }

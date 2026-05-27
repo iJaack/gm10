@@ -33,7 +33,7 @@ wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber)
 wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
 wagmiMocks.waitForTransactionReceipt.mockResolvedValue({ status: 'success' });
 wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
-    if (functionName === 'commits') return { escrow: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' };
+    if (functionName === 'commits') return { escrow: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f' };
     if (functionName === 'balanceOf') return 100_000_000n;
     return undefined;
 });
@@ -399,13 +399,14 @@ function mockWalletPortfolioTokens(tokens: ReturnType<typeof walletToken>[]) {
         }
         if (url.startsWith('/api/continuous-commit-route')) {
             return new Response(JSON.stringify({
-                settlementToken: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
-                escrowAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                settlementToken: '0x0000000000000000000000000000000000000000',
+                escrowAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+                settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
                 route: {
                     id: 'lifi-test-route',
                     tool: 'LI.FI',
-                    toAmountRaw: '100000000',
-                    toAmountMinRaw: '99500000',
+                    toAmountRaw: '1000000000000000000',
+                    toAmountMinRaw: '995000000000000000',
                     approvalAddress: '0xAaaaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa',
                     transactionRequest: {
                         to: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
@@ -443,7 +444,7 @@ afterEach(() => {
     wagmiMocks.waitForTransactionReceipt.mockResolvedValue({ status: 'success' });
     wagmiMocks.readContract.mockReset();
     wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
-        if (functionName === 'commits') return { escrow: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' };
+        if (functionName === 'commits') return { escrow: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f' };
         if (functionName === 'balanceOf') return 100_000_000n;
         return undefined;
     });
@@ -626,7 +627,7 @@ describe('page compression regressions', () => {
         expect(screen.getByRole('heading', { name: /round 1 closed early/i })).toBeInTheDocument();
         expect(screen.queryByText(/round 1 complete/i)).not.toBeInTheDocument();
         expect(screen.getByText(/proof surface/i)).toBeInTheDocument();
-        expect(screen.getByText(/fund proxy/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/fund proxy/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/portfolio registry/i)).toBeInTheDocument();
         expect(screen.getByText(/wallet accounting/i)).toBeInTheDocument();
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
@@ -698,7 +699,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/Round 1 and Round 2 totals are archived, not the current purchase mechanic/i)).toBeInTheDocument();
         expect(screen.getAllByText(/Round 1 and Round 2 closed and finalized/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Fixed-window buys are closed/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/Receiver 0x38C8...5FCe/i)).toBeInTheDocument();
+        expect(screen.getByText(/Receiver 0xb6bf...C027/i)).toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(within(screen.getByRole('main')).queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
     });
