@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { BUY_PAGE_DEFAULTS, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
@@ -12,12 +12,23 @@ const wagmiMocks = vi.hoisted(() => ({
     balanceReads: {} as Record<string, bigint | undefined>,
     roundState: undefined as any,
     contractEvents: [] as any[],
+    blockNumber: 85856585n,
+    getBlockNumber: vi.fn(),
+    getContractEvents: vi.fn(),
+    publicClient: undefined as any,
     readContractData: {} as Record<string, unknown>,
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
     reset: vi.fn(),
     writeContract: vi.fn(),
 }));
+
+wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
+wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
+wagmiMocks.publicClient = {
+    getBlockNumber: wagmiMocks.getBlockNumber,
+    getContractEvents: wagmiMocks.getContractEvents,
+};
 
 vi.mock('@rainbow-me/rainbowkit', () => {
     const ConnectButton = Object.assign(
@@ -55,10 +66,7 @@ vi.mock('wagmi', () => ({
             isLoading: false,
         };
     },
-    usePublicClient: () => ({
-        getBlockNumber: vi.fn(async () => 85856585n),
-        getContractEvents: vi.fn(async () => wagmiMocks.contractEvents),
-    }),
+    usePublicClient: () => wagmiMocks.publicClient,
     useReadContract: ({ functionName }: { functionName?: string }) => ({
         data: functionName ? wagmiMocks.readContractData[functionName] : undefined,
     }),
@@ -325,11 +333,17 @@ function mockSourceTokenBalances() {
 
 afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     wagmiMocks.account = { address: undefined, isConnected: false };
     wagmiMocks.balanceValue = undefined;
     wagmiMocks.balanceReads = {};
     wagmiMocks.roundState = undefined;
     wagmiMocks.contractEvents = [];
+    wagmiMocks.blockNumber = 85856585n;
+    wagmiMocks.getBlockNumber.mockReset();
+    wagmiMocks.getContractEvents.mockReset();
+    wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
+    wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
     wagmiMocks.readContractData = {};
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
@@ -414,6 +428,37 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/onchain logs/i)).toBeInTheDocument();
     });
 
+    it('polls only new continuous settlement blocks after the initial capital scan', async () => {
+        vi.useFakeTimers();
+        wagmiMocks.blockNumber = 85856586n;
+        const eventRanges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+        wagmiMocks.getContractEvents.mockImplementation(async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => {
+            eventRanges.push({ fromBlock, toBlock });
+            return [{ args: { settlementAmountUsdt6: 950_000_000n } }];
+        });
+
+        renderAt('/');
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(0);
+        });
+        expect(screen.getByText(/5,599\.9996 AVAX/i)).toBeInTheDocument();
+        expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 85856585n, toBlock: 85856586n });
+        const activeInitialScanCount = eventRanges.length;
+
+        wagmiMocks.blockNumber = 85856588n;
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(15_000);
+        });
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 85856587n, toBlock: 85856588n });
+        expect(eventRanges.slice(activeInitialScanCount)).not.toContainEqual({ fromBlock: 85856585n, toBlock: 85856586n });
+        expect(screen.getByText(/5,699\.9996 AVAX/i)).toBeInTheDocument();
+    });
+
     it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {
         wagmiMocks.roundState = {
             roundId: 2,
@@ -449,6 +494,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/NAV-backed token price/i)).toBeInTheDocument();
         expect(screen.getByText(/^mint spread$/i)).toBeInTheDocument();
         expect(screen.getByText(/^settlement$/i)).toBeInTheDocument();
+        expect(screen.queryByText(/^mint price$/i)).not.toBeInTheDocument();
         expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.getByText(/from virtually any chain/i)).toBeInTheDocument();
         const sourceTokenSelect = screen.getByRole('combobox', { name: /source token/i }) as HTMLSelectElement;
@@ -774,8 +820,8 @@ describe('page compression regressions', () => {
         expect(within(marketSupportRow!).getByText('$0.00')).toHaveClass('text-[1.75rem]');
         expect(screen.getByText(/\$CATCH market-buy reserve from all proceeds/i)).toBeInTheDocument();
         expect(screen.getByText(/Round 1 and finalized Round 2 round-proceeds market buys/i)).toBeInTheDocument();
-        expect(screen.getByText(/92\.6992 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/Sale proceeds \$0\.00 .* rounds .* 5% of 1,853\.98 AVAX raised/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/\$880\.64/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Sale proceeds \$0\.00 \+ round proceeds 92\.6992 AVAX .* rounds .* 5% of 1,853\.98 AVAX raised/i)).toBeInTheDocument();
         expect(screen.queryByText(/\$CATCH market-buy reserve from sale proceeds/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Buyback from round proceeds/i)).not.toBeInTheDocument();
     });

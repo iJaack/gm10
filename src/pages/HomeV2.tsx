@@ -8,7 +8,7 @@
  *   4. Holdings   — horizontal marquee of portfolio cards → /portfolio
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatEther, formatUnits } from 'viem';
 import { usePublicClient } from 'wagmi';
@@ -42,18 +42,31 @@ function useContinuousSettlementTotalUsdt6() {
     const publicClient = usePublicClient();
     const [totalUsdt6, setTotalUsdt6] = useState<bigint | undefined>(undefined);
     const proxyAddress = GM10_PRIMARY_DEPLOYMENT.proxy.address;
+    const processedThroughBlockRef = useRef<bigint | undefined>(undefined);
+    const totalUsdt6Ref = useRef(0n);
 
     useEffect(() => {
         if (!publicClient || !proxyAddress) return undefined;
         const client = publicClient;
         let cancelled = false;
+        let refreshing = false;
+        processedThroughBlockRef.current = undefined;
+        totalUsdt6Ref.current = 0n;
 
         async function refresh() {
+            if (refreshing) return;
+            refreshing = true;
             try {
                 const latestBlock = await client.getBlockNumber();
-                const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
-                let fromBlock = BigInt(ROUND_2_CLOSE_LEDGER.finalizedBlock);
+                let fromBlock = processedThroughBlockRef.current !== undefined
+                    ? processedThroughBlockRef.current + 1n
+                    : BigInt(ROUND_2_CLOSE_LEDGER.finalizedBlock);
                 if (CONTINUOUS_EVENTS_FROM_BLOCK > fromBlock) fromBlock = CONTINUOUS_EVENTS_FROM_BLOCK;
+                if (fromBlock > latestBlock) {
+                    if (!cancelled) setTotalUsdt6(totalUsdt6Ref.current);
+                    return;
+                }
+                const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
                 while (fromBlock <= latestBlock) {
                     const toBlock = fromBlock + CAPITAL_EVENT_BLOCK_CHUNK > latestBlock
                         ? latestBlock
@@ -73,11 +86,15 @@ function useContinuousSettlementTotalUsdt6() {
                     })))).flat());
                 }
                 if (cancelled) return;
-                setTotalUsdt6(events.reduce((sum, event) => (
+                totalUsdt6Ref.current += events.reduce((sum, event) => (
                     sum + (event.args.settlementAmountUsdt6 ?? 0n)
-                ), 0n));
+                ), 0n);
+                processedThroughBlockRef.current = latestBlock;
+                setTotalUsdt6(totalUsdt6Ref.current);
             } catch {
-                if (!cancelled) setTotalUsdt6(undefined);
+                if (!cancelled && processedThroughBlockRef.current === undefined) setTotalUsdt6(undefined);
+            } finally {
+                refreshing = false;
             }
         }
 
