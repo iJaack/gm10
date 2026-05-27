@@ -157,6 +157,17 @@ export const GM10_FUND_ABI = [
         type: 'function',
     },
     {
+        inputs: [
+            { name: 'commitId', type: 'bytes32' },
+            { name: 'buyer', type: 'address' },
+            { name: 'settlementAmountWei', type: 'uint256' },
+        ],
+        name: 'settleContinuousMintFromAvax',
+        outputs: [{ name: 'buyerCatch18', type: 'uint256' }],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
         inputs: [],
         name: 'redemptionsPermanentlyDisabled',
         outputs: [{ name: '', type: 'bool' }],
@@ -463,6 +474,8 @@ export const GM10_CONTINUOUS_MINT_RECEIVER_ABI = [
             { name: 'escrow', type: 'address' },
             { name: 'minSettlementAmount', type: 'uint256' },
             { name: 'expiresAt', type: 'uint64' },
+            { name: 'fundAvaxBalanceBefore', type: 'uint256' },
+            { name: 'accountedFundAvaxBefore', type: 'uint256' },
             { name: 'settled', type: 'bool' },
             { name: 'settledAmount', type: 'uint256' },
             { name: 'mintedBuyerCatch18', type: 'uint256' },

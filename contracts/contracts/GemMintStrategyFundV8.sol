@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "./Gm10FundStorageV2.sol";
 import "./Gm10Types.sol";
 import "./interfaces/IGm10ContinuousSaleRouter.sol";
+import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/IGm10PortfolioRegistry.sol";
 import "./interfaces/IGm10TokenomicsV7Controller.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -87,6 +88,9 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         int256 mintSpreadBps
     );
 
+    error InvalidPriceFeed();
+    error StalePriceFeed();
+
     /// @custom:oz-upgrades-unsafe-allow constructor state-variable-immutable
     constructor(address _tokenomicsController) {
         tokenomicsController = _tokenomicsController;
@@ -132,6 +136,15 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         returns (uint256 buyerCatch18)
     {
         return _settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
+    }
+
+    function settleContinuousMintFromAvax(bytes32 commitId, address buyer, uint256 settlementAmountWei)
+        external
+        onlyRole(MANAGER_ROLE)
+        returns (uint256 buyerCatch18)
+    {
+        if (settlementAmountWei == 0 || settlementAmountWei > address(this).balance) revert InvalidParameters();
+        return _settleContinuousMint(commitId, buyer, _quoteAvaxToUsdt(settlementAmountWei));
     }
 
     function finalizeSaleWithMarketSnapshot(
@@ -266,6 +279,16 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         for (uint8 segment = 0; segment < 5; ++segment) {
             _mint(IGm10TokenomicsV7Controller(tokenomicsController).segmentRecipient(segment), segmentCatchEach18);
         }
+    }
+
+    function _quoteAvaxToUsdt(uint256 avaxAmountWei) internal view returns (uint256) {
+        if (avaxUsdFeed == address(0)) revert InvalidPriceFeed();
+        (uint80 roundId, int256 answer,, uint256 updatedAt, uint80 answeredInRound) =
+            IChainlinkPriceFeed(avaxUsdFeed).latestRoundData();
+        if (answer <= 0 || updatedAt == 0 || answeredInRound < roundId) revert InvalidPriceFeed();
+        if (block.timestamp - updatedAt > maxPriceFeedStaleness) revert StalePriceFeed();
+
+        return Math.mulDiv(avaxAmountWei, uint256(answer), 1e20);
     }
 
     function _finalizeSaleWithMarketSnapshot(

@@ -64,7 +64,7 @@ const continuousCommitReceiverAddress = parseAddress(
     import.meta.env.VITE_GM10_CONTINUOUS_COMMIT_RECEIVER_ADDRESS || '0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe',
 );
 const continuousSettlementTokenAddress = parseAddress(
-    import.meta.env.VITE_GM10_CONTINUOUS_SETTLEMENT_TOKEN_ADDRESS || '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    import.meta.env.VITE_GM10_CONTINUOUS_SETTLEMENT_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000',
 );
 const catchTokenAddress = parseAddress(
     import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,
@@ -127,7 +127,7 @@ export const GM10_PRIMARY_DEPLOYMENT = {
         snowtraceUrl: buildExplorerUrl(GM10_EXPLORER_BASE_URL, continuousCommitReceiverAddress),
     },
     continuousSettlementToken: {
-        label: 'Continuous settlement token',
+        label: 'Continuous settlement asset',
         address: continuousSettlementTokenAddress,
         snowtraceUrl: buildExplorerUrl(GM10_EXPLORER_BASE_URL, continuousSettlementTokenAddress),
     },

@@ -10,6 +10,10 @@ interface IGm10ContinuousMintFund {
     function settleContinuousMint(bytes32 commitId, address buyer, uint256 settlementAmountUsdt6)
         external
         returns (uint256 buyerCatch18);
+
+    function settleContinuousMintFromAvax(bytes32 commitId, address buyer, uint256 settlementAmountWei)
+        external
+        returns (uint256 buyerCatch18);
 }
 
 contract Gm10ContinuousCommitEscrow {
@@ -33,6 +37,7 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    address public constant NATIVE_AVAX = address(0);
 
     struct SettlementTokenConfig {
         bool approved;
@@ -46,6 +51,8 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         address escrow;
         uint256 minSettlementAmount;
         uint64 expiresAt;
+        uint256 fundAvaxBalanceBefore;
+        uint256 accountedFundAvaxBefore;
         bool settled;
         uint256 settledAmount;
         uint256 mintedBuyerCatch18;
@@ -56,6 +63,7 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
 
     mapping(address => SettlementTokenConfig) public settlementTokens;
     mapping(bytes32 => ContinuousCommit) public commits;
+    uint256 public accountedFundAvaxSettlementWei;
 
     event SettlementTokenConfigured(address indexed token, bool approved, uint8 decimals);
     event ContinuousCommitRegistered(
@@ -126,9 +134,15 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
             minSettlementAmount == 0 ||
             expiresAt <= block.timestamp
         ) revert InvalidParameters();
-        if (!settlementTokens[settlementToken].approved) revert UnsupportedSettlementToken();
+        if (settlementToken != NATIVE_AVAX && !settlementTokens[settlementToken].approved) {
+            revert UnsupportedSettlementToken();
+        }
         if (commits[commitId].buyer != address(0)) revert CommitAlreadyRegistered();
-        escrow = address(new Gm10ContinuousCommitEscrow(address(this)));
+        if (settlementToken == NATIVE_AVAX) {
+            escrow = address(fund);
+        } else {
+            escrow = address(new Gm10ContinuousCommitEscrow(address(this)));
+        }
 
         commits[commitId] = ContinuousCommit({
             providerRouteId: providerRouteId,
@@ -137,6 +151,8 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
             escrow: escrow,
             minSettlementAmount: minSettlementAmount,
             expiresAt: expiresAt,
+            fundAvaxBalanceBefore: settlementToken == NATIVE_AVAX ? address(fund).balance : 0,
+            accountedFundAvaxBefore: settlementToken == NATIVE_AVAX ? accountedFundAvaxSettlementWei : 0,
             settled: false,
             settledAmount: 0,
             mintedBuyerCatch18: 0
@@ -170,6 +186,33 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         ) revert CommitMismatch();
         if (block.timestamp > commit.expiresAt) revert CommitExpired();
         if (settledAmount < commit.minSettlementAmount) revert InvalidParameters();
+        if (settlementToken == NATIVE_AVAX) {
+            uint256 fundBalance = address(fund).balance;
+            uint256 totalArrivedAfterRegistration = fundBalance > commit.fundAvaxBalanceBefore
+                ? fundBalance - commit.fundAvaxBalanceBefore
+                : 0;
+            uint256 accountedAfterRegistration = accountedFundAvaxSettlementWei - commit.accountedFundAvaxBefore;
+            uint256 availableForCommit = totalArrivedAfterRegistration > accountedAfterRegistration
+                ? totalArrivedAfterRegistration - accountedAfterRegistration
+                : 0;
+            if (availableForCommit < settledAmount) revert InsufficientSettlementBalance();
+
+            commit.settled = true;
+            commit.settledAmount = settledAmount;
+            accountedFundAvaxSettlementWei += settledAmount;
+            buyerCatch18 = fund.settleContinuousMintFromAvax(commitId, buyer, settledAmount);
+            commit.mintedBuyerCatch18 = buyerCatch18;
+
+            emit ContinuousCommitSettled(
+                commitId,
+                providerRouteId,
+                buyer,
+                settlementToken,
+                settledAmount,
+                buyerCatch18
+            );
+            return buyerCatch18;
+        }
         SettlementTokenConfig memory tokenConfig = settlementTokens[settlementToken];
         if (!tokenConfig.approved) revert UnsupportedSettlementToken();
         if (IERC20(settlementToken).balanceOf(commit.escrow) < settledAmount) revert InsufficientSettlementBalance();

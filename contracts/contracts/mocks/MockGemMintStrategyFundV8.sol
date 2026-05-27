@@ -51,6 +51,11 @@ contract MockGemMintStrategyFundV8 is GemMintStrategyFundV8 {
         lpSupportAccruedUsdt6 = lpSupportAccrued;
     }
 
+    function setAvaxPricingForTest(address feed, uint256 staleness) external {
+        avaxUsdFeed = feed;
+        maxPriceFeedStaleness = staleness;
+    }
+
     function syncStableNavForTest() external {
         _syncStableNav();
     }

@@ -34,11 +34,17 @@ async function deployContinuousMintReceiverFixture() {
   await fund.setStableAccountingForTest(100_000_000n, 0n, 0n, 0n, 0n, 0n);
   await fund.syncStableNavForTest();
   await fund.grantGovernanceForTest(owner.address);
+
+  const MockAggregator = await ethers.getContractFactory("MockAggregatorV3");
+  const feed = await MockAggregator.deploy(8, 25n * 10n ** 8n);
+  await feed.waitForDeployment();
+
   await fund.setContinuousAccrualControls(false, true, true, -500);
 
   const MockERC20 = await ethers.getContractFactory("MockERC20");
   const usdc = await MockERC20.deploy("Mock USDC", "USDC");
   await usdc.waitForDeployment();
+  await fund.setAvaxPricingForTest(await feed.getAddress(), 24 * 60 * 60);
 
   const Receiver = await ethers.getContractFactory("Gm10ContinuousMintReceiver");
   const receiver = await Receiver.deploy(
@@ -55,6 +61,102 @@ async function deployContinuousMintReceiverFixture() {
 }
 
 describe("Gm10ContinuousMintReceiver", function () {
+  it("settles native AVAX only after it lands in the fund proxy", async function () {
+    const { fund, controller, receiver, owner, buyer } = await deployContinuousMintReceiverFixture();
+    const commitId = ethers.id("native-lifi-route-settlement-1");
+    const providerRouteId = ethers.id("native-lifi-route-1");
+    const settledAmount = ethers.parseEther("1");
+    const settlementAmountUsdt6 = 25_000_000n;
+    const expiresAt = (await ethers.provider.getBlock("latest")).timestamp + 600;
+    const [buyerCatch18, segmentCatchEach18] = await fund.previewContinuousMint(settlementAmountUsdt6);
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: ethers.parseEther("2") });
+
+    await expect(
+      receiver.connect(buyer).registerCommit(
+        commitId,
+        providerRouteId,
+        buyer.address,
+        ethers.ZeroAddress,
+        settledAmount,
+        expiresAt
+      )
+    )
+      .to.emit(receiver, "ContinuousCommitRegistered")
+      .withArgs(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount, expiresAt);
+
+    const registeredCommit = await receiver.commits(commitId);
+    expect(registeredCommit.escrow).to.equal(await fund.getAddress());
+    expect(registeredCommit.fundAvaxBalanceBefore).to.equal(ethers.parseEther("2"));
+
+    await expect(
+      receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
+    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+
+    await expect(
+      receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
+    )
+      .to.emit(receiver, "ContinuousCommitSettled")
+      .withArgs(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount, buyerCatch18);
+
+    expect(await receiver.accountedFundAvaxSettlementWei()).to.equal(settledAmount);
+    expect(await fund.balanceOf(buyer.address)).to.equal(buyerCatch18);
+
+    for (let segment = 0; segment < 5; segment += 1) {
+      const recipient = await controller.segmentRecipient(segment);
+      expect(await fund.balanceOf(recipient)).to.equal(segmentCatchEach18);
+    }
+  });
+
+  it("does not double-count one AVAX landing across concurrent native commits", async function () {
+    const { fund, receiver, owner, buyer, attacker } = await deployContinuousMintReceiverFixture();
+    const firstCommitId = ethers.id("native-lifi-route-settlement-2a");
+    const secondCommitId = ethers.id("native-lifi-route-settlement-2b");
+    const firstProviderRouteId = ethers.id("native-lifi-route-2a");
+    const secondProviderRouteId = ethers.id("native-lifi-route-2b");
+    const settledAmount = ethers.parseEther("1");
+    const expiresAt = (await ethers.provider.getBlock("latest")).timestamp + 600;
+
+    await receiver.connect(buyer).registerCommit(
+      firstCommitId,
+      firstProviderRouteId,
+      buyer.address,
+      ethers.ZeroAddress,
+      settledAmount,
+      expiresAt
+    );
+    await receiver.connect(attacker).registerCommit(
+      secondCommitId,
+      secondProviderRouteId,
+      attacker.address,
+      ethers.ZeroAddress,
+      settledAmount,
+      expiresAt
+    );
+
+    await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+
+    await receiver.connect(buyer).commitSettledRoute(
+      firstCommitId,
+      firstProviderRouteId,
+      buyer.address,
+      ethers.ZeroAddress,
+      settledAmount
+    );
+
+    await expect(
+      receiver.connect(attacker).commitSettledRoute(
+        secondCommitId,
+        secondProviderRouteId,
+        attacker.address,
+        ethers.ZeroAddress,
+        settledAmount
+      )
+    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+  });
+
   it("settles a registered LI.FI route only after approved settlement tokens arrive", async function () {
     const { fund, controller, receiver, usdc, buyer, treasury } = await deployContinuousMintReceiverFixture();
     const commitId = ethers.id("lifi-route-settlement-1");

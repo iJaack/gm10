@@ -15,6 +15,8 @@ interface IGm10ContinuousMintReceiver {
         uint256 settledAmount
     ) external returns (uint256 buyerCatch18);
 
+    function NATIVE_AVAX() external view returns (address);
+
     function registerCommit(
         bytes32 commitId,
         bytes32 providerRouteId,

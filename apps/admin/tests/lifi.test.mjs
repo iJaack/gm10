@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildFundingQuotes, buildSolanaFundingQuote, buildSolanaUsdcFundingQuote, normalizeQuote } from '../server/lib/lifi.js';
+import {
+  buildContinuousCommitRoute,
+  buildFundingQuotes,
+  buildSolanaFundingQuote,
+  buildSolanaUsdcFundingQuote,
+  NATIVE_TOKEN,
+  normalizeQuote,
+} from '../server/lib/lifi.js';
 
 function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', tool = 'stargateV2Bus' }) {
   return {
@@ -99,6 +106,61 @@ test('builds a Polygon route to the listing currency token', async () => {
     toToken: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
   }, fetchImpl);
   assert.equal(seenToToken, '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174');
+});
+
+test('builds same-chain AVAX continuous commits as a native transfer into the fund proxy', async () => {
+  const result = await buildContinuousCommitRoute({
+    fromChainId: 43114,
+    fromToken: NATIVE_TOKEN,
+    fromAmountRaw: '1000000000000000000',
+    fromAddress: '0x2222222222222222222222222222222222222222',
+    settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+  }, async () => {
+    throw new Error('LI.FI should not be called for native same-chain AVAX transfer');
+  });
+
+  assert.equal(result.settlementToken, NATIVE_TOKEN);
+  assert.equal(result.settlementAddress, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.route.tool, 'native-transfer');
+  assert.equal(result.route.toAmountMinRaw, '1000000000000000000');
+  assert.equal(result.route.transactionRequest.to, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.route.transactionRequest.value, '1000000000000000000');
+});
+
+test('builds LI.FI continuous commit routes as native AVAX into the fund proxy', async () => {
+  let seenParams;
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    seenParams = parsed.searchParams;
+    return {
+      ok: true,
+      async json() {
+        return quote({
+          fromAmount: parsed.searchParams.get('fromAmount'),
+          toAmount: '1000000000000000000',
+          toAmountMin: '995000000000000000',
+          tool: 'nordstern',
+        });
+      },
+    };
+  };
+
+  const result = await buildContinuousCommitRoute({
+    fromChainId: 43114,
+    fromToken: '0x1111111111111111111111111111111111111111',
+    fromAmountRaw: '1000000',
+    fromAddress: '0x2222222222222222222222222222222222222222',
+    settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+  }, fetchImpl);
+
+  assert.equal(seenParams.get('toChain'), '43114');
+  assert.equal(seenParams.get('fromToken'), '0x1111111111111111111111111111111111111111');
+  assert.equal(seenParams.get('toToken'), NATIVE_TOKEN);
+  assert.equal(seenParams.get('toAddress'), '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.settlementToken, NATIVE_TOKEN);
+  assert.equal(result.settlementAddress, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.route.toAmountMinRaw, '995000000000000000');
+  assert.equal(result.route.transactionRequest.to, '0x1111111111111111111111111111111111111111');
 });
 
 test('falls back to exact-source LI.FI quotes when exact-output routing is unavailable', async () => {

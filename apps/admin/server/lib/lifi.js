@@ -224,18 +224,53 @@ export async function buildContinuousCommitRoute({
   fromToken,
   fromAmountRaw,
   fromAddress,
+  settlementAddress,
   escrowAddress,
-  settlementToken = AVALANCHE_USDC_E,
+  settlementToken = NATIVE_TOKEN,
 }, fetchImpl = fetch) {
   const sourceChain = Number(fromChainId);
   if (!Number.isInteger(sourceChain) || sourceChain <= 0) throw new Error('Missing source chain id');
   if (!/^\d+$/.test(String(fromAmountRaw ?? ''))) throw new Error('Missing source token amount');
   if (BigInt(fromAmountRaw) <= 0n) throw new Error('Source token amount must be greater than zero');
   assertEvmAddress(fromAddress, 'buyer');
-  assertEvmAddress(escrowAddress, 'commit escrow');
-  assertEvmAddress(settlementToken, 'Avalanche settlement token');
+  const destinationAddress = settlementAddress || escrowAddress;
+  assertEvmAddress(destinationAddress, 'Avalanche settlement destination');
+  if (settlementToken !== NATIVE_TOKEN) assertEvmAddress(settlementToken, 'Avalanche settlement token');
   const sourceToken = String(fromToken || NATIVE_TOKEN).trim();
   if (sourceToken !== NATIVE_TOKEN) assertEvmAddress(sourceToken, 'source token');
+
+  if (sourceChain === AVALANCHE_CHAIN_ID && sourceToken === NATIVE_TOKEN && settlementToken === NATIVE_TOKEN) {
+    return {
+      route: {
+        kind: 'continuousCommit',
+        id: `native-avax-transfer-${fromAmountRaw}`,
+        tool: 'native-transfer',
+        fromAmountRaw: String(fromAmountRaw),
+        fromAmountAvax: formatDecimalUnits(BigInt(fromAmountRaw), 18, 8),
+        sourceGasRaw: '0',
+        sourceGasAvax: '0',
+        totalInputRaw: String(fromAmountRaw),
+        totalInputAvax: formatDecimalUnits(BigInt(fromAmountRaw), 18, 8),
+        targetRaw: String(fromAmountRaw),
+        toAmountRaw: String(fromAmountRaw),
+        toAmountMinRaw: String(fromAmountRaw),
+        toAmountUsd: '',
+        fromAmountUsd: '',
+        executionDuration: 0,
+        enoughOutput: true,
+        transactionRequest: {
+          to: destinationAddress,
+          data: '0x',
+          value: String(fromAmountRaw),
+          chainId: AVALANCHE_CHAIN_ID,
+        },
+        approvalAddress: null,
+      },
+      settlementToken,
+      settlementAddress: destinationAddress,
+      escrowAddress: destinationAddress,
+    };
+  }
 
   const quote = await fetchLiFiSourceQuote(
     {
@@ -244,7 +279,7 @@ export async function buildContinuousCommitRoute({
       fromToken: sourceToken,
       toToken: settlementToken,
       fromAddress,
-      toAddress: escrowAddress,
+      toAddress: destinationAddress,
       fromAmount: fromAmountRaw,
       slippage: 0.005,
       integrator: 'gm10-continuous-round',
@@ -257,7 +292,8 @@ export async function buildContinuousCommitRoute({
   return {
     route: normalizeQuote('continuousCommit', quote, targetRaw),
     settlementToken,
-    escrowAddress,
+    settlementAddress: destinationAddress,
+    escrowAddress: destinationAddress,
   };
 }
 

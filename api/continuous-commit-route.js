@@ -7,6 +7,7 @@ export default async function handler(request, response) {
             fromToken: request.query?.fromToken,
             fromAmountRaw: request.query?.fromAmountRaw,
             fromAddress: request.query?.fromAddress,
+            settlementAddress: request.query?.settlementAddress,
             escrowAddress: request.query?.escrowAddress,
             settlementToken: request.query?.settlementToken,
         });
