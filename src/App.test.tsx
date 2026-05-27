@@ -14,6 +14,7 @@ const wagmiMocks = vi.hoisted(() => ({
     contractEvents: [] as any[],
     blockNumber: 85856585n,
     getBlockNumber: vi.fn(),
+    getBalance: vi.fn(),
     getContractEvents: vi.fn(),
     publicClient: undefined as any,
     readContractData: {} as Record<string, unknown>,
@@ -30,6 +31,7 @@ const wagmiMocks = vi.hoisted(() => ({
 }));
 
 wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
+wagmiMocks.getBalance.mockResolvedValue(100000000000000000000n);
 wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
 wagmiMocks.waitForTransactionReceipt.mockResolvedValue({ status: 'success' });
 wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
@@ -45,6 +47,7 @@ wagmiMocks.sendTransactionAsync.mockResolvedValue('0x444444444444444444444444444
 wagmiMocks.switchChainAsync.mockResolvedValue(undefined);
 wagmiMocks.publicClient = {
     getBlockNumber: wagmiMocks.getBlockNumber,
+    getBalance: wagmiMocks.getBalance,
     getContractEvents: wagmiMocks.getContractEvents,
     waitForTransactionReceipt: wagmiMocks.waitForTransactionReceipt,
     readContract: wagmiMocks.readContract,
@@ -437,8 +440,10 @@ afterEach(() => {
     wagmiMocks.contractEvents = [];
     wagmiMocks.blockNumber = 85856585n;
     wagmiMocks.getBlockNumber.mockReset();
+    wagmiMocks.getBalance.mockReset();
     wagmiMocks.getContractEvents.mockReset();
     wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
+    wagmiMocks.getBalance.mockResolvedValue(100000000000000000000n);
     wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
     wagmiMocks.waitForTransactionReceipt.mockReset();
     wagmiMocks.waitForTransactionReceipt.mockResolvedValue({ status: 'success' });

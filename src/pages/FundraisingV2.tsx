@@ -371,6 +371,7 @@ function FundraisingContent() {
     const [sourceTokenId, setSourceTokenId] = useState('');
     const [commitFeedback, setCommitFeedback] = useState<CommitFeedback | null>(null);
     const [isMinting, setIsMinting] = useState(false);
+    const [sourceBalanceRaw, setSourceBalanceRaw] = useState<bigint | undefined>();
     const round = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
@@ -412,6 +413,39 @@ function FundraisingContent() {
         () => parseUsdt6(settledUsdcAmount > 0 ? settledUsdcAmount.toFixed(6) : ''),
         [settledUsdcAmount],
     );
+
+    useEffect(() => {
+        setSourceBalanceRaw(undefined);
+        if (!address || !selectedSourceToken || !sourcePublicClient) return;
+
+        const walletAddress = address;
+        const token = selectedSourceToken;
+        const client = sourcePublicClient;
+        let cancelled = false;
+        async function loadExactSourceBalance() {
+            try {
+                const balance = token.isNative
+                    ? await client.getBalance({ address: walletAddress })
+                    : token.tokenAddress
+                        ? await client.readContract({
+                            address: token.tokenAddress,
+                            abi: ERC20_ROUTE_ABI,
+                            functionName: 'balanceOf',
+                            args: [walletAddress],
+                        })
+                        : undefined;
+
+                if (!cancelled) setSourceBalanceRaw(typeof balance === 'bigint' ? balance : undefined);
+            } catch {
+                if (!cancelled) setSourceBalanceRaw(undefined);
+            }
+        }
+
+        void loadExactSourceBalance();
+        return () => {
+            cancelled = true;
+        };
+    }, [address, selectedSourceToken, sourcePublicClient]);
 
     const { data: navPerTokenUsdt6 } = useReadContract({
         address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
@@ -511,6 +545,24 @@ function FundraisingContent() {
             setIsMinting(false);
             return;
         }
+        if (!sourcePublicClient) {
+            setCommitFeedback({ tone: 'error', message: `${selectedSourceToken.chain} public client is unavailable; cannot execute the source-token route.` });
+            setIsMinting(false);
+            return;
+        }
+        if (sourceBalanceRaw === undefined) {
+            setCommitFeedback({ tone: 'error', message: `Exact ${selectedSourceToken.symbol} balance is still loading. Try again in a moment.` });
+            setIsMinting(false);
+            return;
+        }
+        if (sourceAmountRaw > sourceBalanceRaw) {
+            setCommitFeedback({
+                tone: 'error',
+                message: `Amount exceeds your exact ${selectedSourceToken.symbol} balance. Use Max to avoid token rounding errors.`,
+            });
+            setIsMinting(false);
+            return;
+        }
         if (continuousMintPaused !== false) {
             setCommitFeedback({
                 tone: 'error',
@@ -575,7 +627,8 @@ function FundraisingContent() {
                     expiresAt,
                 ],
             });
-            await avalanchePublicClient.waitForTransactionReceipt({ hash: registerHash });
+            const registerReceipt = await avalanchePublicClient.waitForTransactionReceipt({ hash: registerHash });
+            if (registerReceipt.status !== 'success') throw new Error('Commit registration reverted.');
             const commit = await avalanchePublicClient.readContract({
                 address: commitReceiverAddress,
                 abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
@@ -610,7 +663,10 @@ function FundraisingContent() {
                 maxFeePerGas: routeTx.maxFeePerGas ? BigInt(routeTx.maxFeePerGas) : undefined,
                 maxPriorityFeePerGas: routeTx.maxPriorityFeePerGas ? BigInt(routeTx.maxPriorityFeePerGas) : undefined,
             });
-            await sourcePublicClient?.waitForTransactionReceipt({ hash: routeHash });
+            const routeReceipt = await sourcePublicClient.waitForTransactionReceipt({ hash: routeHash });
+            if (routeReceipt.status !== 'success') {
+                throw new Error(`${route.tool || 'LI.FI'} route reverted before native AVAX reached the fund proxy. No $CATCH was minted.`);
+            }
 
             if (sourceChainId !== GM10_CHAIN_ID) {
                 setCommitFeedback({
@@ -631,7 +687,8 @@ function FundraisingContent() {
                 functionName: 'commitSettledRoute',
                 args: [commitId, providerRouteId, address, settlementTokenAddress, settledBalance],
             });
-            await avalanchePublicClient.waitForTransactionReceipt({ hash: settleHash });
+            const settleReceipt = await avalanchePublicClient.waitForTransactionReceipt({ hash: settleHash });
+            if (settleReceipt.status !== 'success') throw new Error('Continuous mint settlement reverted.');
             setCommitFeedback({
                 tone: 'ready',
                 message: `Mint complete. Settled ${formatEther(settledBalance)} AVAX through ${formatShortAddress(commitReceiverAddress)}.`,
@@ -800,11 +857,13 @@ function FundraisingContent() {
                                             type="button"
                                             onClick={() => {
                                                 if (selectedSourceToken) {
-                                                    setAmount(String(selectedSourceToken.balance));
+                                                    setAmount(sourceBalanceRaw !== undefined
+                                                        ? formatUnits(sourceBalanceRaw, selectedSourceToken.decimals)
+                                                        : String(selectedSourceToken.balance));
                                                 }
                                                 setCommitFeedback(null);
                                             }}
-                                            disabled={!selectedSourceToken || selectedSourceToken.balance <= 0}
+                                            disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
                                             className="v2-mono shrink-0 border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
                                         >
                                             Max
