@@ -826,6 +826,41 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/Buyback from round proceeds/i)).not.toBeInTheDocument();
     });
 
+    it('keeps the all-proceeds market-buy value unavailable when sale proceeds are unavailable', async () => {
+        wagmiMocks.holderDashboard = {
+            labels: {
+                totalSupply: '183,333.3333 CATCH',
+                profitEligibleSupply: '174,421.1693 CATCH',
+                referenceNav: '$0.02',
+                navPerToken: '$0.02',
+                catchBalance: 'Connect wallet',
+                remainingCostBasis: 'Connect wallet',
+                currentReferenceValue: 'Connect wallet',
+                unrealizedReferencePnl: 'Connect wallet',
+                claimableProfit: 'Connect wallet',
+                claimedProfit: 'Connect wallet',
+                totalProfitDeposited: '0 AVAX',
+                holderProfitsClaimableClaimed: '$0.00',
+                holderProfitApr: 'No APR / APY',
+                liquidTreasury: '$3,528.60',
+                holderDistributionAccrued: '$0.00',
+                marketSupportReserve: '$0.00',
+                buybackBurnAccrued: '$0.00',
+                lpSupportAccrued: '$0.00',
+                liquidityCatchBuyAccrued: 'Unavailable',
+                liquidityAvaxPairingAccrued: '$0.00',
+            },
+        };
+
+        renderAt('/holders');
+
+        const allProceedsRow = (await screen.findByText(/\$CATCH market-buy reserve from all proceeds/i)).closest('.grid') as HTMLElement | null;
+        expect(allProceedsRow).not.toBeNull();
+        expect(within(allProceedsRow!).getByText(/^Unavailable$/)).toBeInTheDocument();
+        expect(within(allProceedsRow!).getByText(/Sale proceeds unavailable \+ round proceeds 25 AVAX/i)).toBeInTheDocument();
+        expect(within(allProceedsRow!).queryByText(/^\$237\.50$/)).not.toBeInTheDocument();
+    });
+
     it('uses live NAV for connected wallet reference value', async () => {
         wagmiMocks.holderDashboard = {
             account: '0x7f1c000000000000000000000000000000007852',

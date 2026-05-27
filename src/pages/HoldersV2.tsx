@@ -64,8 +64,14 @@ function fallbackLiq(p: MarketPool) {
 }
 
 function parseDisplayNumber(label: string) {
-    const value = Number(label.replace(/[^0-9.-]/g, ''));
-    return Number.isFinite(value) ? value : 0;
+    return parseOptionalDisplayNumber(label) ?? 0;
+}
+
+function parseOptionalDisplayNumber(label: string) {
+    const numeric = label.replace(/[^0-9.-]/g, '');
+    if (!/[0-9]/.test(numeric)) return undefined;
+    const value = Number(numeric);
+    return Number.isFinite(value) ? value : undefined;
 }
 
 function deriveLivePortfolioNavUsd({
@@ -1201,14 +1207,20 @@ function LiquiditySection() {
                         const combinedRaisedAvax = round1RaisedAvax + (round.isClosed ? round2RaisedAvax : 0);
                         const roundBuybackExecuted = round1BuybackExecuted + round2BuybackExecuted;
                         const roundBuybackLabel = `${roundBuybackExecuted.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
-                        const saleMarketBuyReserveUsd = parseDisplayNumber(holder.labels.liquidityCatchBuyAccrued);
+                        const saleMarketBuyReserveLabel = holder.labels.liquidityCatchBuyAccrued;
+                        const saleMarketBuyReserveUsd = parseOptionalDisplayNumber(saleMarketBuyReserveLabel);
                         const roundBuybackUsd = avaxUsd > 0 ? roundBuybackExecuted * avaxUsd : undefined;
-                        const allProceedsMarketBuyLabel = roundBuybackUsd !== undefined
+                        const allProceedsMarketBuyLabel = saleMarketBuyReserveUsd === undefined
+                            ? 'Unavailable'
+                            : roundBuybackUsd !== undefined
                             ? formatUsd(saleMarketBuyReserveUsd + roundBuybackUsd, 2)
-                            : `${holder.labels.liquidityCatchBuyAccrued} + ${roundBuybackLabel}`;
+                            : `${saleMarketBuyReserveLabel} + ${roundBuybackLabel}`;
+                        const saleMarketBuyHint = saleMarketBuyReserveUsd === undefined
+                            ? 'Sale proceeds unavailable'
+                            : `Sale proceeds ${saleMarketBuyReserveLabel}`;
                         const roundBuybackHint = roundBuybackExecuted > 0
-                            ? `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued} + round proceeds ${roundBuybackLabel}${roundBuybackUsd !== undefined ? ` (${formatUsd(roundBuybackUsd, 2)} at AVAX ${formatUsd(avaxUsd, 2)})` : ''} · rounds ≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
-                            : `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued}`;
+                            ? `${saleMarketBuyHint} + round proceeds ${roundBuybackLabel}${roundBuybackUsd !== undefined ? ` (${formatUsd(roundBuybackUsd, 2)} at AVAX ${formatUsd(avaxUsd, 2)})` : ''} · rounds ≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
+                            : saleMarketBuyHint;
                         return (
                             <div className="mt-8 border-t border-[var(--rule)] pt-5">
                                 <h4 className="text-[0.78rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">Capital deployment</h4>
