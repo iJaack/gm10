@@ -31,6 +31,7 @@ const apiHandlers: Record<string, () => Promise<ApiHandlerModule>> = {
     '/api/phygitals-card': () => import('./api/phygitals-card.js'),
     '/api/valuation-pack': () => import('./api/valuation-pack.js'),
     '/api/valuation-public': () => import('./api/valuation-public.js'),
+    '/api/wallet-portfolio': () => import('./api/wallet-portfolio.js'),
 };
 
 async function readRequestBody(request: NodeJS.ReadableStream) {

@@ -19,6 +19,7 @@ const wagmiMocks = vi.hoisted(() => ({
     readContractData: {} as Record<string, unknown>,
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
+    fetch: vi.fn(),
     reset: vi.fn(),
     writeContract: vi.fn(),
 }));
@@ -29,6 +30,7 @@ wagmiMocks.publicClient = {
     getBlockNumber: wagmiMocks.getBlockNumber,
     getContractEvents: wagmiMocks.getContractEvents,
 };
+globalThis.fetch = wagmiMocks.fetch as typeof fetch;
 
 vi.mock('@rainbow-me/rainbowkit', () => {
     const ConnectButton = Object.assign(
@@ -324,11 +326,55 @@ function mockSourceTokenBalances() {
         address: '0x1234567890123456789012345678901234567890',
         isConnected: true,
     };
-    wagmiMocks.balanceReads = {
-        '43114:native': 12420000000000000000n,
-        '8453:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': 2480000000n,
-        '1:native': 860000000000000000n,
+    mockWalletPortfolioTokens([
+        walletToken({ id: 'eth-mainnet', chain: 'Ethereum', symbol: 'ETH', balance: 0.86, balanceUsd: 3285.2, priceUsdc: 3820 }),
+        walletToken({ id: 'usdc-base', chain: 'Base', symbol: 'USDC', balance: 2480, balanceUsd: 2480, priceUsdc: 1, decimals: 6, tokenAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' }),
+        walletToken({ id: 'avax-avalanche', chain: 'Avalanche', symbol: 'AVAX', balance: 12.42, balanceUsd: 117.99, priceUsdc: 9.5 }),
+    ]);
+}
+
+function walletToken(overrides: Partial<{
+    id: string;
+    chain: string;
+    chainId: number;
+    symbol: string;
+    name: string;
+    decimals: number;
+    tokenAddress: `0x${string}`;
+    isNative: boolean;
+    balance: number;
+    balanceUsd: number;
+    priceUsdc: number;
+}> = {}) {
+    return {
+        id: overrides.id ?? 'avax-avalanche',
+        chain: overrides.chain ?? 'Avalanche',
+        chainId: overrides.chainId ?? 43114,
+        symbol: overrides.symbol ?? 'AVAX',
+        name: overrides.name ?? overrides.symbol ?? 'AVAX',
+        decimals: overrides.decimals ?? 18,
+        tokenAddress: overrides.tokenAddress,
+        isNative: overrides.isNative ?? !overrides.tokenAddress,
+        balance: overrides.balance ?? 1,
+        balanceUsd: overrides.balanceUsd ?? 10,
+        priceUsdc: overrides.priceUsdc ?? 10,
     };
+}
+
+function mockWalletPortfolioTokens(tokens: ReturnType<typeof walletToken>[]) {
+    wagmiMocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.startsWith('/api/wallet-portfolio')) {
+            return new Response(JSON.stringify({ status: 'available', tokens }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            });
+        }
+        return new Response(JSON.stringify({ error: 'Not mocked' }), {
+            status: 404,
+            headers: { 'content-type': 'application/json' },
+        });
+    });
 }
 
 afterEach(() => {
@@ -347,6 +393,7 @@ afterEach(() => {
     wagmiMocks.readContractData = {};
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
+    wagmiMocks.fetch.mockReset();
     wagmiMocks.reset.mockClear();
     wagmiMocks.writeContract.mockClear();
     window.history.pushState({}, '', '/');
@@ -497,11 +544,13 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/^mint price$/i)).not.toBeInTheDocument();
         expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.getByText(/from virtually any chain/i)).toBeInTheDocument();
-        const sourceTokenSelect = screen.getByRole('combobox', { name: /source token/i }) as HTMLSelectElement;
-        expect(sourceTokenSelect.value).toBe('avax-avalanche');
-        expect(screen.getByText(/balance 12\.42 AVAX/i)).toBeInTheDocument();
+        const sourceTokenSelect = await screen.findByRole('combobox', { name: /source token/i }) as HTMLSelectElement;
+        expect(sourceTokenSelect.value).toBe('eth-mainnet');
+        expect(screen.getByText(/balance 0\.86 ETH/i)).toBeInTheDocument();
+        await waitFor(() => expect(sourceTokenSelect).not.toBeDisabled());
         fireEvent.change(sourceTokenSelect, { target: { value: 'usdc-base' } });
-        expect(screen.getByText(/balance 2,480 USDC/i)).toBeInTheDocument();
+        await waitFor(() => expect(sourceTokenSelect.value).toBe('usdc-base'));
+        expect(await screen.findByText(/balance 2,480 USDC/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/commit amount in USDC/i)).toBeInTheDocument();
         expect(screen.queryByText(/SOL on Solana/i)).not.toBeInTheDocument();
         expect(screen.getByText(/every continuous commit has an immediate route/i)).toBeInTheDocument();
@@ -525,13 +574,16 @@ describe('page compression regressions', () => {
     });
 
     it('blocks continuous commit preview until the mint pause state is known', async () => {
+        mockSourceTokenBalances();
         renderAt('/fundraising');
 
         expect(await screen.findByRole('heading', { name: /continuous round/i })).toBeInTheDocument();
-        fireEvent.change(screen.getByLabelText(/commit amount in AVAX/i), { target: { value: '1' } });
+        fireEvent.change(await screen.findByLabelText(/commit amount in ETH/i), { target: { value: '1' } });
         fireEvent.click(screen.getByRole('button', { name: /mint new \$CATCH/i }));
 
-        expect(await screen.findByText(/pause state is still loading/i)).toBeInTheDocument();
+        const loadingError = await screen.findByText(/pause state is still loading/i);
+        expect(loadingError).toBeInTheDocument();
+        expect(loadingError).toHaveClass('v2-down');
         expect(screen.queryByText(/preview is ready/i)).not.toBeInTheDocument();
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
     });
@@ -663,7 +715,10 @@ describe('page compression regressions', () => {
         fireEvent.click(screen.getByRole('button', { name: /mint new \$CATCH/i }));
 
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
-        expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
+        const readyStatus = screen.getByRole('status');
+        expect(readyStatus).toHaveTextContent(/preview ready/i);
+        expect(readyStatus).toHaveClass('v2-up');
+        expect(readyStatus).not.toHaveClass('v2-down');
     });
 
     it('does not gate commit preview on static source-token balance fixtures', async () => {
@@ -671,6 +726,7 @@ describe('page compression regressions', () => {
         mockSourceTokenBalances();
         renderAt('/fundraising');
 
+        fireEvent.change(await screen.findByRole('combobox', { name: /source token/i }), { target: { value: 'avax-avalanche' } });
         const amountInput = await screen.findByLabelText(/commit amount in AVAX/i);
         fireEvent.change(amountInput, { target: { value: '20' } });
         const previewButton = screen.getByRole('button', { name: /mint new \$CATCH/i });
@@ -679,29 +735,42 @@ describe('page compression regressions', () => {
         fireEvent.click(previewButton);
 
         expect(screen.queryByText(/exceeds the detected/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/public LI\.FI\/Mobula commit route/i)).toBeInTheDocument();
+        const readyStatus = screen.getByRole('status');
+        expect(readyStatus).toHaveTextContent(/preview ready/i);
+        expect(readyStatus).toHaveClass('v2-up');
+        expect(readyStatus).not.toHaveClass('v2-down');
     });
 
-    it('shows source token balances from connected wallet reads, not static fixtures', async () => {
+    it('shows top wallet source tokens from the live portfolio response, not static fixtures', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         wagmiMocks.account = {
             address: '0x1234567890123456789012345678901234567890',
             isConnected: true,
         };
-        wagmiMocks.balanceReads = {
-            '43114:native': 3330000000000000000n,
-            '8453:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': 42000000n,
-            '1:native': 120000000000000000n,
-        };
+        mockWalletPortfolioTokens([
+            walletToken({ id: 'weth-arbitrum', chain: 'Arbitrum', symbol: 'WETH', balance: 2, balanceUsd: 7600, priceUsdc: 3800, tokenAddress: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1' }),
+            walletToken({ id: 'usdc-base', chain: 'Base', symbol: 'USDC', balance: 42, balanceUsd: 42, priceUsdc: 1, decimals: 6, tokenAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' }),
+            walletToken({ id: 'avax-avalanche', chain: 'Avalanche', symbol: 'AVAX', balance: 3.33, balanceUsd: 31.64, priceUsdc: 9.5 }),
+            walletToken({ id: 'op-optimism', chain: 'Optimism', symbol: 'OP', balance: 10, balanceUsd: 20, priceUsdc: 2, tokenAddress: '0x4200000000000000000000000000000000000042' }),
+            walletToken({ id: 'matic-polygon', chain: 'Polygon', symbol: 'POL', balance: 20, balanceUsd: 10, priceUsdc: 0.5, tokenAddress: '0x0000000000000000000000000000000000001010' }),
+            walletToken({ id: 'dust-base', chain: 'Base', symbol: 'DUST', balance: 1000, balanceUsd: 1, priceUsdc: 0.001, tokenAddress: '0x1111111111111111111111111111111111111111' }),
+        ]);
 
         renderAt('/fundraising');
 
-        expect(await screen.findByText(/balance 3\.33 AVAX/i)).toBeInTheDocument();
+        const sourceTokenSelect = await screen.findByRole('combobox', { name: /source token/i }) as HTMLSelectElement;
+        expect(sourceTokenSelect.value).toBe('weth-arbitrum');
+        expect(await screen.findByText(/balance 2 WETH/i)).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /WETH on Arbitrum - 2 available/i })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /USDC on Base - 42 available/i })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /AVAX on Avalanche - 3\.33 available/i })).toBeInTheDocument();
+        expect(screen.getAllByRole('option')).toHaveLength(5);
+        expect(screen.queryByRole('option', { name: /DUST on Base/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/balance 12\.42 AVAX/i)).not.toBeInTheDocument();
 
-        fireEvent.change(screen.getByRole('combobox', { name: /source token/i }), { target: { value: 'usdc-base' } });
+        fireEvent.change(sourceTokenSelect, { target: { value: 'usdc-base' } });
 
-        expect(screen.getByText(/balance 42 USDC/i)).toBeInTheDocument();
+        expect(await screen.findByText(/balance 42 USDC/i)).toBeInTheDocument();
         expect(screen.queryByText(/balance 2,480 USDC/i)).not.toBeInTheDocument();
     });
 

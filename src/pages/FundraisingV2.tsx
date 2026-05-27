@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { useAccount, useBalance, useReadContract } from 'wagmi';
-import { avalanche, base, mainnet } from 'wagmi/chains';
+import { useEffect, useMemo, useState } from 'react';
+import { useAccount, useReadContract } from 'wagmi';
 import { formatEther, formatUnits, parseUnits } from 'viem';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
+import { useWalletTopTokens, type WalletSourceToken, type WalletTopTokensStatus } from '../hooks/useWalletTopTokens';
 import {
     Caption,
     DataMono,
@@ -54,47 +54,24 @@ function fmtSpread(spread?: bigint) {
     return 'At NAV';
 }
 
-const BASE_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-
-type SourceTokenConfig = {
-    id: string;
-    chain: string;
-    chainId: number;
-    symbol: string;
-    decimals: number;
-    tokenAddress?: `0x${string}`;
-    priceUsdc?: number;
-    usesAvaxPrice?: boolean;
-};
-
-type SourceTokenBalanceStatus = 'connect' | 'loading' | 'ready' | 'error';
-
-type SourceTokenOption = SourceTokenConfig & {
-    balance?: number;
-    balanceStatus: SourceTokenBalanceStatus;
-};
-
-const SOURCE_TOKEN_OPTIONS = [
-    { id: 'avax-avalanche', chain: 'Avalanche', chainId: avalanche.id, symbol: 'AVAX', decimals: 18, usesAvaxPrice: true },
-    { id: 'usdc-base', chain: 'Base', chainId: base.id, symbol: 'USDC', decimals: 6, tokenAddress: BASE_USDC_ADDRESS, priceUsdc: 1 },
-    { id: 'eth-mainnet', chain: 'Ethereum', chainId: mainnet.id, symbol: 'ETH', decimals: 18, priceUsdc: 3820 },
-] as const satisfies readonly SourceTokenConfig[];
-
-type SourceTokenId = typeof SOURCE_TOKEN_OPTIONS[number]['id'];
-
 function fmtTokenAmount(value: number) {
     return value.toLocaleString('en-US', { maximumFractionDigits: value >= 10 ? 2 : 6 });
 }
 
-function formatBalanceStatus(token: SourceTokenOption) {
-    if (token.balanceStatus === 'connect') return 'Connect wallet';
-    if (token.balanceStatus === 'loading') return 'Loading balance';
-    if (token.balanceStatus === 'error') return 'Balance unavailable';
-    return `${fmtTokenAmount(token.balance ?? 0)} ${token.symbol}`;
+function fmtUsdValue(value: number) {
+    return `$${value.toLocaleString('en-US', { maximumFractionDigits: value >= 10 ? 2 : 4 })}`;
 }
 
-function getSourceTokenUsdcRate(token: SourceTokenConfig, avaxUsd: number) {
-    return token.usesAvaxPrice ? avaxUsd : token.priceUsdc ?? 1;
+function formatSourceTokenOption(token: WalletSourceToken) {
+    return `${token.symbol} on ${token.chain} - ${fmtTokenAmount(token.balance)} available · ${fmtUsdValue(token.balanceUsd)}`;
+}
+
+function formatWalletTokenStatus(status: WalletTopTokensStatus, error?: string) {
+    if (status === 'connect') return 'Connect wallet to load balances';
+    if (status === 'loading') return 'Loading wallet balances';
+    if (status === 'empty') return 'No supported token balances found';
+    if (status === 'error') return error || 'Wallet balances unavailable';
+    return 'Top 5 wallet tokens by value';
 }
 
 /* ── Round 1 archive ─────────────────────────────────── */
@@ -323,72 +300,39 @@ function PostCloseLedger({ archiveRaisedAvax, avaxUsd }: { archiveRaisedAvax: nu
 
 /* ── Main page ───────────────────────────────────────── */
 
+type CommitFeedback = {
+    tone: 'error' | 'ready';
+    message: string;
+};
+
 function FundraisingContent() {
     const { address, isConnected } = useAccount();
     const [amount, setAmount] = useState('');
-    const [sourceTokenId, setSourceTokenId] = useState<SourceTokenId>(SOURCE_TOKEN_OPTIONS[0].id);
-    const [txError, setTxError] = useState<string | null>(null);
+    const [sourceTokenId, setSourceTokenId] = useState('');
+    const [commitFeedback, setCommitFeedback] = useState<CommitFeedback | null>(null);
     const round = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
-    const avaxBalance = useBalance({
-        address,
-        chainId: avalanche.id,
-        query: { enabled: Boolean(address) },
-    });
-    const baseUsdcBalance = useBalance({
-        address,
-        chainId: base.id,
-        token: BASE_USDC_ADDRESS,
-        query: { enabled: Boolean(address) },
-    });
-    const ethBalance = useBalance({
-        address,
-        chainId: mainnet.id,
-        query: { enabled: Boolean(address) },
-    });
-    const sourceTokens = useMemo<SourceTokenOption[]>(() => (
-        SOURCE_TOKEN_OPTIONS.map((token) => {
-            const balanceRead = token.id === 'avax-avalanche'
-                ? avaxBalance
-                : token.id === 'usdc-base'
-                    ? baseUsdcBalance
-                    : ethBalance;
-            const balance = balanceRead.data
-                ? Number(formatUnits(balanceRead.data.value, token.decimals))
-                : undefined;
-            const balanceStatus: SourceTokenBalanceStatus = !isConnected
-                ? 'connect'
-                : balanceRead.isError
-                    ? 'error'
-                    : balance === undefined || balanceRead.isLoading
-                        ? 'loading'
-                        : 'ready';
-            return {
-                ...token,
-                balance,
-                balanceStatus,
-            };
-        })
-    ), [
-        isConnected,
-        avaxBalance.data,
-        avaxBalance.isError,
-        avaxBalance.isLoading,
-        baseUsdcBalance.data,
-        baseUsdcBalance.isError,
-        baseUsdcBalance.isLoading,
-        ethBalance.data,
-        ethBalance.isError,
-        ethBalance.isLoading,
-    ]);
+    const walletTopTokens = useWalletTopTokens(isConnected ? address : undefined);
+    const sourceTokens = walletTopTokens.tokens;
+    useEffect(() => {
+        if (sourceTokens.length === 0) {
+            if (sourceTokenId) setSourceTokenId('');
+            return;
+        }
+        if (!sourceTokens.some((token) => token.id === sourceTokenId)) {
+            setSourceTokenId(sourceTokens[0].id);
+            setAmount('');
+            setCommitFeedback(null);
+        }
+    }, [sourceTokenId, sourceTokens]);
     const selectedSourceToken = useMemo(
         () => sourceTokens.find((token) => token.id === sourceTokenId) ?? sourceTokens[0],
         [sourceTokenId, sourceTokens],
     );
     const sourceAmount = amount ? Number(amount) : 0;
     const validSourceAmount = Number.isFinite(sourceAmount) && sourceAmount > 0 ? sourceAmount : 0;
-    const selectedTokenUsdcRate = getSourceTokenUsdcRate(selectedSourceToken, avaxUsd);
+    const selectedTokenUsdcRate = selectedSourceToken?.priceUsdc ?? 0;
     const settledUsdcAmount = validSourceAmount * selectedTokenUsdcRate;
     const settlementAmountUsdt6 = useMemo(
         () => parseUsdt6(settledUsdcAmount > 0 ? settledUsdcAmount.toFixed(6) : ''),
@@ -464,30 +408,33 @@ function FundraisingContent() {
         },
     ] as const;
 
-    const displayError = useMemo(() => {
-        if (txError) return txError;
-        return null;
-    }, [txError]);
-
     function handlePreviewCommit() {
-        setTxError(null);
+        setCommitFeedback(null);
         if (!GM10_PRIMARY_DEPLOYMENT.proxy.address) {
-            setTxError('Mainnet fund address has not been configured yet.');
+            setCommitFeedback({ tone: 'error', message: 'Mainnet fund address has not been configured yet.' });
             return;
         }
         if (!amount || settlementAmountUsdt6 <= 0n) {
-            setTxError('Enter a valid source-token amount.');
+            setCommitFeedback({ tone: 'error', message: 'Enter a valid source-token amount.' });
+            return;
+        }
+        if (!selectedSourceToken) {
+            setCommitFeedback({ tone: 'error', message: 'Connect a wallet and select one of the detected source tokens.' });
             return;
         }
         if (continuousMintPaused !== false) {
-            setTxError(
-                continuousMintPaused === true
+            setCommitFeedback({
+                tone: 'error',
+                message: continuousMintPaused === true
                     ? 'Continuous commits are paused onchain. The preview can read NAV, but settlement cannot mint yet.'
                     : 'Continuous commit pause state is still loading. Wait for the onchain control read before previewing the route.',
-            );
+            });
             return;
         }
-        setTxError('Preview is ready. The public LI.FI/Mobula commit route should be connected only to the verified Avalanche settlement receiver.');
+        setCommitFeedback({
+            tone: 'ready',
+            message: 'Preview ready. Route execution is not enabled here yet; connect the verified LI.FI/Mobula settlement receiver before accepting funds.',
+        });
     }
 
     return (
@@ -591,23 +538,28 @@ function FundraisingContent() {
                                                 id="source-token-select"
                                                 value={sourceTokenId}
                                                 onChange={(event) => {
-                                                    setSourceTokenId(event.target.value as SourceTokenId);
+                                                    setSourceTokenId(event.target.value);
                                                     setAmount('');
-                                                    setTxError(null);
+                                                    setCommitFeedback(null);
                                                 }}
+                                                disabled={sourceTokens.length === 0}
                                                 className="mt-2 h-11 w-full border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 v2-mono text-[0.86rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
                                             >
-                                                {sourceTokens.map((token) => (
+                                                {sourceTokens.length > 0 ? sourceTokens.map((token) => (
                                                     <option key={token.id} value={token.id}>
-                                                        {token.symbol} on {token.chain} - {formatBalanceStatus(token)}
+                                                        {formatSourceTokenOption(token)}
                                                     </option>
-                                                ))}
+                                                )) : (
+                                                    <option value="">
+                                                        {formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
+                                                    </option>
+                                                )}
                                             </select>
                                         </div>
                                         <DataMono className="text-left text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)] sm:text-right">
-                                            {selectedSourceToken.balanceStatus === 'ready'
-                                                ? `Balance ${fmtTokenAmount(selectedSourceToken.balance ?? 0)} ${selectedSourceToken.symbol}`
-                                                : formatBalanceStatus(selectedSourceToken)}
+                                            {selectedSourceToken
+                                                ? `Balance ${fmtTokenAmount(selectedSourceToken.balance)} ${selectedSourceToken.symbol} · ${fmtUsdValue(selectedSourceToken.balanceUsd)}`
+                                                : formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
                                         </DataMono>
                                     </div>
                                     <div className="mt-4 flex items-baseline justify-between">
@@ -621,27 +573,28 @@ function FundraisingContent() {
                                             value={amount}
                                             onChange={(e) => {
                                                 setAmount(e.target.value);
-                                                setTxError(null);
+                                                setCommitFeedback(null);
                                             }}
-                                            aria-label={`Commit amount in ${selectedSourceToken.symbol}`}
-                                            placeholder={selectedSourceToken.symbol === 'USDC' ? '100.00' : '1.00'}
+                                            aria-label={selectedSourceToken ? `Commit amount in ${selectedSourceToken.symbol}` : 'Commit amount'}
+                                            placeholder={selectedSourceToken?.symbol === 'USDC' ? '100.00' : '1.00'}
+                                            disabled={!selectedSourceToken}
                                             inputMode="decimal"
                                             className="w-full min-w-0 bg-transparent v2-mono text-[clamp(1.6rem,2.6vw,2rem)] font-bold tracking-[-0.02em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (selectedSourceToken.balance !== undefined) {
+                                                if (selectedSourceToken) {
                                                     setAmount(String(selectedSourceToken.balance));
                                                 }
-                                                setTxError(null);
+                                                setCommitFeedback(null);
                                             }}
-                                            disabled={selectedSourceToken.balance === undefined || selectedSourceToken.balance <= 0}
+                                            disabled={!selectedSourceToken || selectedSourceToken.balance <= 0}
                                             className="v2-mono shrink-0 border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
                                         >
                                             Max
                                         </button>
-                                        <DataMono className="shrink-0 text-[0.9rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken.symbol}</DataMono>
+                                        <DataMono className="shrink-0 text-[0.9rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken?.symbol ?? 'TOKEN'}</DataMono>
                                     </div>
                                 </div>
 
@@ -670,16 +623,19 @@ function FundraisingContent() {
                                     <button
                                         type="button"
                                         onClick={handlePreviewCommit}
-                                        disabled={!amount || settlementAmountUsdt6 <= 0n}
+                                        disabled={!selectedSourceToken || !amount || settlementAmountUsdt6 <= 0n}
                                         className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                     >
                                         Mint new $CATCH
                                     </button>
                                 </div>
 
-                                {displayError ? (
-                                    <div className="pb-4 v2-mono text-[0.82rem] font-medium v2-down">
-                                        ⚠ {displayError}
+                                {commitFeedback ? (
+                                    <div
+                                        className={`pb-4 v2-mono text-[0.82rem] font-medium ${commitFeedback.tone === 'error' ? 'v2-down' : 'v2-up'}`}
+                                        role={commitFeedback.tone === 'error' ? 'alert' : 'status'}
+                                    >
+                                        {commitFeedback.tone === 'error' ? '⚠' : '✓'} {commitFeedback.message}
                                     </div>
                                 ) : null}
                             </div>
