@@ -23,6 +23,7 @@ type ApiHandlerModule = {
 
 const apiHandlers: Record<string, () => Promise<ApiHandlerModule>> = {
     '/api/courtyard-asset': () => import('./api/courtyard-asset.js'),
+    '/api/continuous-commit-route': () => import('./api/continuous-commit-route.js'),
     '/api/courtyard-profile-nav': () => import('./api/courtyard-profile-nav.js'),
     '/api/lifi-quotes': () => import('./api/lifi-quotes.js'),
     '/api/lifi-solana-quote': () => import('./api/lifi-solana-quote.js'),

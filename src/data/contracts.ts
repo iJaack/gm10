@@ -424,3 +424,83 @@ export const GM10_PHARAOH_POOL_ABI = [
         type: 'function',
     },
 ] as const;
+
+export const GM10_CONTINUOUS_MINT_RECEIVER_ABI = [
+    {
+        anonymous: false,
+        inputs: [
+            { indexed: true, name: 'commitId', type: 'bytes32' },
+            { indexed: true, name: 'providerRouteId', type: 'bytes32' },
+            { indexed: true, name: 'buyer', type: 'address' },
+            { indexed: false, name: 'settlementToken', type: 'address' },
+            { indexed: false, name: 'minSettlementAmount', type: 'uint256' },
+            { indexed: false, name: 'expiresAt', type: 'uint64' },
+        ],
+        name: 'ContinuousCommitRegistered',
+        type: 'event',
+    },
+    {
+        inputs: [
+            { name: 'commitId', type: 'bytes32' },
+            { name: 'providerRouteId', type: 'bytes32' },
+            { name: 'buyer', type: 'address' },
+            { name: 'settlementToken', type: 'address' },
+            { name: 'minSettlementAmount', type: 'uint256' },
+            { name: 'expiresAt', type: 'uint64' },
+        ],
+        name: 'registerCommit',
+        outputs: [{ name: 'escrow', type: 'address' }],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: '', type: 'bytes32' }],
+        name: 'commits',
+        outputs: [
+            { name: 'providerRouteId', type: 'bytes32' },
+            { name: 'buyer', type: 'address' },
+            { name: 'settlementToken', type: 'address' },
+            { name: 'escrow', type: 'address' },
+            { name: 'minSettlementAmount', type: 'uint256' },
+            { name: 'expiresAt', type: 'uint64' },
+            { name: 'settled', type: 'bool' },
+            { name: 'settledAmount', type: 'uint256' },
+            { name: 'mintedBuyerCatch18', type: 'uint256' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [
+            { name: 'commitId', type: 'bytes32' },
+            { name: 'providerRouteId', type: 'bytes32' },
+            { name: 'buyer', type: 'address' },
+            { name: 'settlementToken', type: 'address' },
+            { name: 'settledAmount', type: 'uint256' },
+        ],
+        name: 'commitSettledRoute',
+        outputs: [{ name: 'buyerCatch18', type: 'uint256' }],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+] as const;
+
+export const ERC20_ROUTE_ABI = [
+    {
+        inputs: [
+            { name: 'spender', type: 'address' },
+            { name: 'amount', type: 'uint256' },
+        ],
+        name: 'approve',
+        outputs: [{ name: '', type: 'bool' }],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'account', type: 'address' }],
+        name: 'balanceOf',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;

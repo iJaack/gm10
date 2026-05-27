@@ -22,13 +22,32 @@ const wagmiMocks = vi.hoisted(() => ({
     fetch: vi.fn(),
     reset: vi.fn(),
     writeContract: vi.fn(),
+    writeContractAsync: vi.fn(),
+    sendTransactionAsync: vi.fn(),
+    switchChainAsync: vi.fn(),
+    waitForTransactionReceipt: vi.fn(),
+    readContract: vi.fn(),
 }));
 
 wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
 wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
+wagmiMocks.waitForTransactionReceipt.mockResolvedValue({ status: 'success' });
+wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
+    if (functionName === 'commits') return { escrow: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' };
+    if (functionName === 'balanceOf') return 100_000_000n;
+    return undefined;
+});
+wagmiMocks.writeContractAsync
+    .mockResolvedValueOnce('0x1111111111111111111111111111111111111111111111111111111111111111')
+    .mockResolvedValueOnce('0x2222222222222222222222222222222222222222222222222222222222222222')
+    .mockResolvedValueOnce('0x3333333333333333333333333333333333333333333333333333333333333333');
+wagmiMocks.sendTransactionAsync.mockResolvedValue('0x4444444444444444444444444444444444444444444444444444444444444444');
+wagmiMocks.switchChainAsync.mockResolvedValue(undefined);
 wagmiMocks.publicClient = {
     getBlockNumber: wagmiMocks.getBlockNumber,
     getContractEvents: wagmiMocks.getContractEvents,
+    waitForTransactionReceipt: wagmiMocks.waitForTransactionReceipt,
+    readContract: wagmiMocks.readContract,
 };
 globalThis.fetch = wagmiMocks.fetch as typeof fetch;
 
@@ -72,6 +91,13 @@ vi.mock('wagmi', () => ({
     useReadContract: ({ functionName }: { functionName?: string }) => ({
         data: functionName ? wagmiMocks.readContractData[functionName] : undefined,
     }),
+    useSendTransaction: () => ({
+        sendTransactionAsync: wagmiMocks.sendTransactionAsync,
+        isPending: false,
+    }),
+    useSwitchChain: () => ({
+        switchChainAsync: wagmiMocks.switchChainAsync,
+    }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
     useWriteContract: () => ({
         data: undefined,
@@ -79,6 +105,7 @@ vi.mock('wagmi', () => ({
         isPending: false,
         reset: wagmiMocks.reset,
         writeContract: wagmiMocks.writeContract,
+        writeContractAsync: wagmiMocks.writeContractAsync,
     }),
 }));
 
@@ -327,9 +354,9 @@ function mockSourceTokenBalances() {
         isConnected: true,
     };
     mockWalletPortfolioTokens([
-        walletToken({ id: 'eth-mainnet', chain: 'Ethereum', symbol: 'ETH', balance: 0.86, balanceUsd: 3285.2, priceUsdc: 3820 }),
-        walletToken({ id: 'usdc-base', chain: 'Base', symbol: 'USDC', balance: 2480, balanceUsd: 2480, priceUsdc: 1, decimals: 6, tokenAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' }),
-        walletToken({ id: 'avax-avalanche', chain: 'Avalanche', symbol: 'AVAX', balance: 12.42, balanceUsd: 117.99, priceUsdc: 9.5 }),
+        walletToken({ id: 'eth-mainnet', chain: 'Ethereum', chainId: 1, symbol: 'ETH', balance: 0.86, balanceUsd: 3285.2, priceUsdc: 3820 }),
+        walletToken({ id: 'usdc-base', chain: 'Base', chainId: 8453, symbol: 'USDC', balance: 2480, balanceUsd: 2480, priceUsdc: 1, decimals: 6, tokenAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' }),
+        walletToken({ id: 'avax-avalanche', chain: 'Avalanche', chainId: 43114, symbol: 'AVAX', balance: 12.42, balanceUsd: 117.99, priceUsdc: 9.5 }),
     ]);
 }
 
@@ -370,6 +397,28 @@ function mockWalletPortfolioTokens(tokens: ReturnType<typeof walletToken>[]) {
                 headers: { 'content-type': 'application/json' },
             });
         }
+        if (url.startsWith('/api/continuous-commit-route')) {
+            return new Response(JSON.stringify({
+                settlementToken: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+                escrowAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                route: {
+                    id: 'lifi-test-route',
+                    tool: 'LI.FI',
+                    toAmountRaw: '100000000',
+                    toAmountMinRaw: '99500000',
+                    approvalAddress: '0xAaaaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa',
+                    transactionRequest: {
+                        to: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+                        data: '0x',
+                        value: '0',
+                        chainId: 43114,
+                    },
+                },
+            }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            });
+        }
         return new Response(JSON.stringify({ error: 'Not mocked' }), {
             status: 404,
             headers: { 'content-type': 'application/json' },
@@ -390,12 +439,29 @@ afterEach(() => {
     wagmiMocks.getContractEvents.mockReset();
     wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
     wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
+    wagmiMocks.waitForTransactionReceipt.mockReset();
+    wagmiMocks.waitForTransactionReceipt.mockResolvedValue({ status: 'success' });
+    wagmiMocks.readContract.mockReset();
+    wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
+        if (functionName === 'commits') return { escrow: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' };
+        if (functionName === 'balanceOf') return 100_000_000n;
+        return undefined;
+    });
     wagmiMocks.readContractData = {};
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
     wagmiMocks.fetch.mockReset();
     wagmiMocks.reset.mockClear();
     wagmiMocks.writeContract.mockClear();
+    wagmiMocks.writeContractAsync.mockReset();
+    wagmiMocks.writeContractAsync
+        .mockResolvedValueOnce('0x1111111111111111111111111111111111111111111111111111111111111111')
+        .mockResolvedValueOnce('0x2222222222222222222222222222222222222222222222222222222222222222')
+        .mockResolvedValueOnce('0x3333333333333333333333333333333333333333333333333333333333333333');
+    wagmiMocks.sendTransactionAsync.mockReset();
+    wagmiMocks.sendTransactionAsync.mockResolvedValue('0x4444444444444444444444444444444444444444444444444444444444444444');
+    wagmiMocks.switchChainAsync.mockReset();
+    wagmiMocks.switchChainAsync.mockResolvedValue(undefined);
     window.history.pushState({}, '', '/');
 });
 
@@ -705,7 +771,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
 
-    it('previews continuous commits without submitting the legacy invest flow', async () => {
+    it('registers a commit and submits the LI.FI route without using the legacy invest flow', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         mockSourceTokenBalances();
         renderAt('/fundraising');
@@ -716,27 +782,31 @@ describe('page compression regressions', () => {
         fireEvent.click(screen.getByRole('button', { name: /mint new \$CATCH/i }));
 
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
-        const readyStatus = screen.getByRole('status');
-        expect(readyStatus).toHaveTextContent(/verified Avalanche receiver 0x38C8...5FCe/i);
+        await waitFor(() => expect(wagmiMocks.writeContractAsync).toHaveBeenCalled());
+        expect(wagmiMocks.sendTransactionAsync).toHaveBeenCalled();
+        const readyStatus = await screen.findByRole('status');
+        expect(readyStatus).toHaveTextContent(/source transaction confirmed/i);
         expect(readyStatus).toHaveClass('v2-up');
     });
 
-    it('does not gate commit preview on static source-token balance fixtures', async () => {
+    it('settles same-chain routes after the escrow receives settlement tokens', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         mockSourceTokenBalances();
         renderAt('/fundraising');
 
         fireEvent.change(await screen.findByRole('combobox', { name: /source token/i }), { target: { value: 'avax-avalanche' } });
         const amountInput = await screen.findByLabelText(/commit amount in AVAX/i);
-        fireEvent.change(amountInput, { target: { value: '20' } });
+        fireEvent.change(amountInput, { target: { value: '1' } });
         const previewButton = screen.getByRole('button', { name: /mint new \$CATCH/i });
 
         expect(previewButton).toBeEnabled();
         fireEvent.click(previewButton);
 
         expect(screen.queryByText(/exceeds the detected/i)).not.toBeInTheDocument();
-        const readyStatus = screen.getByRole('status');
-        expect(readyStatus).toHaveTextContent(/verified Avalanche receiver 0x38C8...5FCe/i);
+        await waitFor(() => expect(wagmiMocks.writeContractAsync).toHaveBeenCalledTimes(2));
+        expect(wagmiMocks.sendTransactionAsync).toHaveBeenCalled();
+        const readyStatus = await screen.findByRole('status');
+        expect(readyStatus).toHaveTextContent(/mint complete/i);
         expect(readyStatus).toHaveClass('v2-up');
     });
 

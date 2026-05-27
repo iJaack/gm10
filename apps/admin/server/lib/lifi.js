@@ -8,6 +8,7 @@ export const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
 export const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
 export const SOLANA_NATIVE_SOL = '11111111111111111111111111111111';
 export const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+export const AVALANCHE_USDC_E = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
 export const ROUTE_BUFFER_BPS = 10;
 const MIN_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('0.005', 18));
 const MAX_FALLBACK_FROM_AMOUNT_RAW = BigInt(parseDecimalUnits('100', 18));
@@ -54,6 +55,7 @@ export function normalizeQuote(kind, quote, targetRaw) {
           maxPriorityFeePerGas: quote.transactionRequest.maxPriorityFeePerGas,
         }
       : null,
+    approvalAddress: quote.estimate?.approvalAddress || null,
   };
 }
 
@@ -214,6 +216,48 @@ export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress, toTo
   return {
     usdc,
     summary: summarizeFunding(usdc),
+  };
+}
+
+export async function buildContinuousCommitRoute({
+  fromChainId,
+  fromToken,
+  fromAmountRaw,
+  fromAddress,
+  escrowAddress,
+  settlementToken = AVALANCHE_USDC_E,
+}, fetchImpl = fetch) {
+  const sourceChain = Number(fromChainId);
+  if (!Number.isInteger(sourceChain) || sourceChain <= 0) throw new Error('Missing source chain id');
+  if (!/^\d+$/.test(String(fromAmountRaw ?? ''))) throw new Error('Missing source token amount');
+  if (BigInt(fromAmountRaw) <= 0n) throw new Error('Source token amount must be greater than zero');
+  assertEvmAddress(fromAddress, 'buyer');
+  assertEvmAddress(escrowAddress, 'commit escrow');
+  assertEvmAddress(settlementToken, 'Avalanche settlement token');
+  const sourceToken = String(fromToken || NATIVE_TOKEN).trim();
+  if (sourceToken !== NATIVE_TOKEN) assertEvmAddress(sourceToken, 'source token');
+
+  const quote = await fetchLiFiSourceQuote(
+    {
+      fromChain: sourceChain,
+      toChain: AVALANCHE_CHAIN_ID,
+      fromToken: sourceToken,
+      toToken: settlementToken,
+      fromAddress,
+      toAddress: escrowAddress,
+      fromAmount: fromAmountRaw,
+      slippage: 0.005,
+      integrator: 'gm10-continuous-round',
+      order: 'CHEAPEST',
+    },
+    fetchImpl,
+  );
+  const targetRaw = quote.estimate?.toAmountMin ?? quote.estimate?.toAmount ?? '0';
+
+  return {
+    route: normalizeQuote('continuousCommit', quote, targetRaw),
+    settlementToken,
+    escrowAddress,
   };
 }
 

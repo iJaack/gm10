@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount, useReadContract } from 'wagmi';
-import { formatEther, formatUnits, parseUnits } from 'viem';
+import { useAccount, usePublicClient, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
+import { formatEther, formatUnits, keccak256, parseUnits, toBytes } from 'viem';
 import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import { useWalletTopTokens, type WalletSourceToken, type WalletTopTokensStatus } from '../hooks/useWalletTopTokens';
 import {
@@ -12,12 +12,13 @@ import {
     LedgerRow,
     SectionLabel,
 } from '../components/v2/primitives';
-import { GM10_FUND_ABI } from '../data/contracts';
+import { ERC20_ROUTE_ABI, GM10_CONTINUOUS_MINT_RECEIVER_ABI, GM10_FUND_ABI } from '../data/contracts';
 import {
     ROUND_2_CLOSE_LEDGER,
 } from '../data/protocol';
 import { CONTINUOUS_COMMIT_RAILS } from '../data/continuousAccrual';
 import {
+    GM10_CHAIN_ID,
     GM10_PRIMARY_DEPLOYMENT,
 } from '../data/gm10Config';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
@@ -30,6 +31,14 @@ function fmtAvax(n: number, digits = n < 1 ? 4 : 2) {
 function parseUsdt6(value: string) {
     try {
         return parseUnits(value || '0', 6);
+    } catch {
+        return 0n;
+    }
+}
+
+function parseTokenUnits(value: string, decimals: number) {
+    try {
+        return parseUnits(value || '0', decimals);
     } catch {
         return 0n;
     }
@@ -73,6 +82,39 @@ function formatWalletTokenStatus(status: WalletTopTokensStatus, error?: string) 
     if (status === 'error') return error || 'Wallet balances unavailable';
     return 'Top 5 wallet tokens by value';
 }
+
+const LIFI_NATIVE_TOKEN = '0x0000000000000000000000000000000000000000' as const;
+const COMMIT_TTL_SECONDS = 20 * 60;
+const MIN_SETTLEMENT_BUFFER_BPS = 50n;
+
+type CommitFeedback = {
+    tone: 'error' | 'ready' | 'pending';
+    message: string;
+};
+
+type LifiTransactionRequest = {
+    to?: `0x${string}`;
+    data?: `0x${string}`;
+    value?: string;
+    gasLimit?: string;
+    gasPrice?: string;
+    maxFeePerGas?: string;
+    maxPriorityFeePerGas?: string;
+};
+
+type ContinuousCommitRoute = {
+    route?: {
+        id?: string;
+        tool?: string;
+        toAmountRaw?: string;
+        toAmountMinRaw?: string;
+        approvalAddress?: `0x${string}` | null;
+        transactionRequest?: LifiTransactionRequest | null;
+    };
+    settlementToken?: `0x${string}`;
+    escrowAddress?: `0x${string}`;
+    error?: string;
+};
 
 /* ── Round 1 archive ─────────────────────────────────── */
 
@@ -300,14 +342,31 @@ function PostCloseLedger({ archiveRaisedAvax, avaxUsd }: { archiveRaisedAvax: nu
 
 /* ── Main page ───────────────────────────────────────── */
 
-type CommitFeedback = {
-    tone: 'error' | 'ready';
-    message: string;
-};
-
 function formatShortAddress(address?: string) {
     if (!address) return 'Receiver missing';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function isAddressLike(value: unknown): value is `0x${string}` {
+    return typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+function randomBytes32(label: string) {
+    const random = new Uint32Array(4);
+    crypto.getRandomValues(random);
+    return keccak256(toBytes(`${label}:${Date.now()}:${Array.from(random).join(':')}`));
+}
+
+function minSettlementWithBuffer(settlementAmount: bigint) {
+    return (settlementAmount * (10_000n - MIN_SETTLEMENT_BUFFER_BPS)) / 10_000n;
+}
+
+function commitEscrowFromReadResult(commit: unknown): `0x${string}` | undefined {
+    if (Array.isArray(commit) && isAddressLike(commit[3])) return commit[3];
+    if (commit && typeof commit === 'object' && isAddressLike((commit as { escrow?: unknown }).escrow)) {
+        return (commit as { escrow: `0x${string}` }).escrow;
+    }
+    return undefined;
 }
 
 function FundraisingContent() {
@@ -315,9 +374,14 @@ function FundraisingContent() {
     const [amount, setAmount] = useState('');
     const [sourceTokenId, setSourceTokenId] = useState('');
     const [commitFeedback, setCommitFeedback] = useState<CommitFeedback | null>(null);
+    const [isMinting, setIsMinting] = useState(false);
     const round = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
+    const avalanchePublicClient = usePublicClient({ chainId: GM10_CHAIN_ID });
+    const { writeContractAsync } = useWriteContract();
+    const { sendTransactionAsync } = useSendTransaction();
+    const { switchChainAsync } = useSwitchChain();
     const walletTopTokens = useWalletTopTokens(isConnected ? address : undefined);
     const sourceTokens = walletTopTokens.tokens;
     useEffect(() => {
@@ -335,12 +399,19 @@ function FundraisingContent() {
         () => sourceTokens.find((token) => token.id === sourceTokenId) ?? sourceTokens[0],
         [sourceTokenId, sourceTokens],
     );
+    const selectedSourceChainId = selectedSourceToken?.chainId ?? GM10_CHAIN_ID;
+    const sourcePublicClient = usePublicClient({ chainId: selectedSourceChainId });
     const sourceAmount = amount ? Number(amount) : 0;
     const validSourceAmount = Number.isFinite(sourceAmount) && sourceAmount > 0 ? sourceAmount : 0;
     const selectedTokenUsdcRate = selectedSourceToken?.priceUsdc ?? 0;
     const settledUsdcAmount = validSourceAmount * selectedTokenUsdcRate;
     const commitReceiverAddress = GM10_PRIMARY_DEPLOYMENT.continuousCommitReceiver.address;
+    const settlementTokenAddress = GM10_PRIMARY_DEPLOYMENT.continuousSettlementToken.address;
     const hasCommitReceiver = Boolean(commitReceiverAddress);
+    const sourceAmountRaw = useMemo(
+        () => selectedSourceToken ? parseTokenUnits(amount, selectedSourceToken.decimals) : 0n,
+        [amount, selectedSourceToken],
+    );
     const settlementAmountUsdt6 = useMemo(
         () => parseUsdt6(settledUsdcAmount > 0 ? settledUsdcAmount.toFixed(6) : ''),
         [settledUsdcAmount],
@@ -415,18 +486,33 @@ function FundraisingContent() {
         },
     ] as const;
 
-    function handlePreviewCommit() {
+    async function handleMintCommit() {
         setCommitFeedback(null);
+        setIsMinting(true);
+        const sourceChainId = selectedSourceChainId;
         if (!GM10_PRIMARY_DEPLOYMENT.proxy.address) {
             setCommitFeedback({ tone: 'error', message: 'Mainnet fund address has not been configured yet.' });
+            setIsMinting(false);
             return;
         }
-        if (!amount || settlementAmountUsdt6 <= 0n) {
+        if (!address) {
+            setCommitFeedback({ tone: 'error', message: 'Connect a wallet before minting new $CATCH.' });
+            setIsMinting(false);
+            return;
+        }
+        if (!amount || settlementAmountUsdt6 <= 0n || sourceAmountRaw <= 0n) {
             setCommitFeedback({ tone: 'error', message: 'Enter a valid source-token amount.' });
+            setIsMinting(false);
             return;
         }
         if (!selectedSourceToken) {
             setCommitFeedback({ tone: 'error', message: 'Connect a wallet and select one of the detected source tokens.' });
+            setIsMinting(false);
+            return;
+        }
+        if (!selectedSourceToken.isNative && !selectedSourceToken.tokenAddress) {
+            setCommitFeedback({ tone: 'error', message: `${selectedSourceToken.symbol} is missing a routeable token address.` });
+            setIsMinting(false);
             return;
         }
         if (continuousMintPaused !== false) {
@@ -436,19 +522,139 @@ function FundraisingContent() {
                     ? 'Continuous commits are paused onchain. The preview can read NAV, but settlement cannot mint yet.'
                     : 'Continuous commit pause state is still loading. Wait for the onchain control read before previewing the route.',
             });
+            setIsMinting(false);
             return;
         }
-        if (!commitReceiverAddress) {
+        if (!commitReceiverAddress || !settlementTokenAddress) {
             setCommitFeedback({
                 tone: 'error',
-                message: 'Mint route missing: no verified Avalanche settlement receiver is configured. Preview only; do not send funds.',
+                message: 'Mint route missing: no verified Avalanche settlement receiver or settlement token is configured.',
             });
+            setIsMinting(false);
             return;
         }
-        setCommitFeedback({
-            tone: 'ready',
-            message: `Preview ready. Execute the LI.FI/Mobula route only to the verified Avalanche receiver ${formatShortAddress(commitReceiverAddress)}.`,
-        });
+        if (!avalanchePublicClient) {
+            setCommitFeedback({ tone: 'error', message: 'Avalanche public client is unavailable; cannot watch the mint route.' });
+            setIsMinting(false);
+            return;
+        }
+
+        try {
+            const minSettlementAmount = minSettlementWithBuffer(settlementAmountUsdt6);
+            if (minSettlementAmount <= 0n) throw new Error('Minimum settlement amount is too small.');
+            const commitId = randomBytes32('gm10-continuous-commit');
+            const providerRouteId = randomBytes32('lifi-route');
+            const expiresAt = BigInt(Math.floor(Date.now() / 1000) + COMMIT_TTL_SECONDS);
+
+            setCommitFeedback({ tone: 'pending', message: 'Registering the commit escrow on Avalanche...' });
+            await switchChainAsync({ chainId: GM10_CHAIN_ID });
+            const registerHash = await writeContractAsync({
+                address: commitReceiverAddress,
+                abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
+                functionName: 'registerCommit',
+                args: [
+                    commitId,
+                    providerRouteId,
+                    address,
+                    settlementTokenAddress,
+                    minSettlementAmount,
+                    expiresAt,
+                ],
+            });
+            await avalanchePublicClient.waitForTransactionReceipt({ hash: registerHash });
+            const commit = await avalanchePublicClient.readContract({
+                address: commitReceiverAddress,
+                abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
+                functionName: 'commits',
+                args: [commitId],
+            });
+            const escrowAddress = commitEscrowFromReadResult(commit);
+            if (!escrowAddress) throw new Error('Commit registered, but escrow address was not readable.');
+
+            setCommitFeedback({ tone: 'pending', message: `Commit escrow ready at ${formatShortAddress(escrowAddress)}. Quoting LI.FI route...` });
+            const lifiFromToken = selectedSourceToken.isNative ? LIFI_NATIVE_TOKEN : selectedSourceToken.tokenAddress;
+            if (!lifiFromToken) throw new Error(`${selectedSourceToken.symbol} is missing a routeable token address.`);
+            const routeParams = new URLSearchParams();
+            routeParams.set('fromChainId', String(sourceChainId));
+            routeParams.set('fromToken', lifiFromToken);
+            routeParams.set('fromAmountRaw', sourceAmountRaw.toString());
+            routeParams.set('fromAddress', address);
+            routeParams.set('escrowAddress', escrowAddress);
+            routeParams.set('settlementToken', settlementTokenAddress);
+            const routeResponse = await fetch(`/api/continuous-commit-route?${routeParams.toString()}`);
+            const routePayload = await routeResponse.json().catch(() => ({})) as ContinuousCommitRoute;
+            if (!routeResponse.ok) throw new Error(routePayload.error || `LI.FI route quote failed with ${routeResponse.status}`);
+            const route = routePayload.route;
+            if (!route) throw new Error('LI.FI route response was empty.');
+            const routeTx = route?.transactionRequest;
+            if (!routeTx?.to) throw new Error('LI.FI route did not return an executable transaction.');
+
+            await switchChainAsync({ chainId: sourceChainId });
+            if (!selectedSourceToken.isNative) {
+                if (!route.approvalAddress || !isAddressLike(route.approvalAddress)) {
+                    throw new Error('LI.FI route did not return an ERC20 approval address.');
+                }
+                setCommitFeedback({ tone: 'pending', message: `Approving ${selectedSourceToken.symbol} for LI.FI route execution...` });
+                const approvalHash = await writeContractAsync({
+                    address: lifiFromToken,
+                    abi: ERC20_ROUTE_ABI,
+                    functionName: 'approve',
+                    args: [route.approvalAddress, sourceAmountRaw],
+                });
+                await sourcePublicClient?.waitForTransactionReceipt({ hash: approvalHash });
+            }
+
+            setCommitFeedback({ tone: 'pending', message: `Submitting ${route.tool || 'LI.FI'} route into ${formatShortAddress(escrowAddress)}...` });
+            const routeHash = await sendTransactionAsync({
+                to: routeTx.to,
+                data: routeTx.data,
+                value: BigInt(routeTx.value ?? '0'),
+                gas: routeTx.gasLimit ? BigInt(routeTx.gasLimit) : undefined,
+                gasPrice: routeTx.gasPrice ? BigInt(routeTx.gasPrice) : undefined,
+                maxFeePerGas: routeTx.maxFeePerGas ? BigInt(routeTx.maxFeePerGas) : undefined,
+                maxPriorityFeePerGas: routeTx.maxPriorityFeePerGas ? BigInt(routeTx.maxPriorityFeePerGas) : undefined,
+            });
+            await sourcePublicClient?.waitForTransactionReceipt({ hash: routeHash });
+
+            if (sourceChainId !== GM10_CHAIN_ID) {
+                setCommitFeedback({
+                    tone: 'ready',
+                    message: `Source transaction confirmed (${formatShortAddress(routeHash)}). Wait for LI.FI to settle USDC.e into ${formatShortAddress(escrowAddress)}, then refresh to settle the mint.`,
+                });
+                return;
+            }
+
+            const settledBalance = await avalanchePublicClient.readContract({
+                address: settlementTokenAddress,
+                abi: ERC20_ROUTE_ABI,
+                functionName: 'balanceOf',
+                args: [escrowAddress],
+            });
+            if (settledBalance < minSettlementAmount) {
+                throw new Error(`Route settled ${fmtUsdc(settledBalance)}, below the protected minimum ${fmtUsdc(minSettlementAmount)}.`);
+            }
+
+            setCommitFeedback({ tone: 'pending', message: `Settling ${fmtUsdc(settledBalance)} and minting $CATCH...` });
+            await switchChainAsync({ chainId: GM10_CHAIN_ID });
+            const settleHash = await writeContractAsync({
+                address: commitReceiverAddress,
+                abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
+                functionName: 'commitSettledRoute',
+                args: [commitId, providerRouteId, address, settlementTokenAddress, settledBalance],
+            });
+            await avalanchePublicClient.waitForTransactionReceipt({ hash: settleHash });
+            setCommitFeedback({
+                tone: 'ready',
+                message: `Mint complete. Settled ${fmtUsdc(settledBalance)} through ${formatShortAddress(commitReceiverAddress)}.`,
+            });
+        } catch (caught) {
+            setCommitFeedback({
+                tone: 'error',
+                message: caught instanceof Error ? caught.message : 'Mint route was not submitted.',
+            });
+        } finally {
+            setIsMinting(false);
+        }
     }
 
     return (
@@ -642,20 +848,20 @@ function FundraisingContent() {
                                 <div className="py-4">
                                     <button
                                         type="button"
-                                        onClick={handlePreviewCommit}
-                                        disabled={!selectedSourceToken || !amount || settlementAmountUsdt6 <= 0n}
+                                        onClick={handleMintCommit}
+                                        disabled={isMinting || !selectedSourceToken || !amount || settlementAmountUsdt6 <= 0n}
                                         className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
                                     >
-                                        Mint new $CATCH
+                                        {isMinting ? 'Minting $CATCH...' : 'Mint new $CATCH'}
                                     </button>
                                 </div>
 
                                 {commitFeedback ? (
                                     <div
-                                        className={`pb-4 v2-mono text-[0.82rem] font-medium ${commitFeedback.tone === 'error' ? 'v2-down' : 'v2-up'}`}
+                                        className={`pb-4 v2-mono text-[0.82rem] font-medium ${commitFeedback.tone === 'error' ? 'v2-down' : commitFeedback.tone === 'pending' ? 'text-[var(--ink-muted)]' : 'v2-up'}`}
                                         role={commitFeedback.tone === 'error' ? 'alert' : 'status'}
                                     >
-                                        {commitFeedback.tone === 'error' ? '⚠' : '✓'} {commitFeedback.message}
+                                        {commitFeedback.tone === 'error' ? '⚠' : commitFeedback.tone === 'pending' ? '↻' : '✓'} {commitFeedback.message}
                                     </div>
                                 ) : null}
                             </div>
