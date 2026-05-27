@@ -1201,8 +1201,13 @@ function LiquiditySection() {
                         const combinedRaisedAvax = round1RaisedAvax + (round.isClosed ? round2RaisedAvax : 0);
                         const roundBuybackExecuted = round1BuybackExecuted + round2BuybackExecuted;
                         const roundBuybackLabel = `${roundBuybackExecuted.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
+                        const saleMarketBuyReserveUsd = parseDisplayNumber(holder.labels.liquidityCatchBuyAccrued);
+                        const roundBuybackUsd = avaxUsd > 0 ? roundBuybackExecuted * avaxUsd : undefined;
+                        const allProceedsMarketBuyLabel = roundBuybackUsd !== undefined
+                            ? formatUsd(saleMarketBuyReserveUsd + roundBuybackUsd, 2)
+                            : `${holder.labels.liquidityCatchBuyAccrued} + ${roundBuybackLabel}`;
                         const roundBuybackHint = roundBuybackExecuted > 0
-                            ? `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued} · rounds ≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
+                            ? `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued} + round proceeds ${roundBuybackLabel}${roundBuybackUsd !== undefined ? ` (${formatUsd(roundBuybackUsd, 2)} at AVAX ${formatUsd(avaxUsd, 2)})` : ''} · rounds ≈ 5% of ${combinedRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 2 })} AVAX raised`
                             : `Sale proceeds ${holder.labels.liquidityCatchBuyAccrued}`;
                         return (
                             <div className="mt-8 border-t border-[var(--rule)] pt-5">
@@ -1284,7 +1289,7 @@ function LiquiditySection() {
                                         detail: round.isClosed
                                             ? 'Includes sale-proceeds reserves plus Round 1 and finalized Round 2 round-proceeds market buys. Each finalized round routed 10% to LP; half market-bought $CATCH before pairing.'
                                             : 'Includes sale-proceeds reserves plus the archived Round 1 market buy. Continuous-round support accrues through the V8 reserve path before deployment.',
-                                        value: roundBuybackLabel,
+                                        value: allProceedsMarketBuyLabel,
                                         hint: roundBuybackHint,
                                     }} />
                                 </div>

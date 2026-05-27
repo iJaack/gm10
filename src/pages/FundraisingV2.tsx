@@ -444,11 +444,6 @@ function FundraisingContent() {
     const totalRaisedLabel = `${fmtAvax(totalRaisedAvax, 4)} AVAX`;
     const buyerCatch = fmtCatch(continuousPreview?.[0]);
     const segmentCatch = fmtCatch(continuousPreview?.[1]);
-    const mintPriceLabel = continuousPreview?.[2] !== undefined
-        ? fmtUsdc(continuousPreview[2])
-        : navPerTokenUsdt6 !== undefined && mintSpreadBps !== undefined
-            ? 'Enter an amount'
-            : 'Unavailable';
     const amountUsd = settledUsdcAmount;
 
     const continuousAllocationRows = [
@@ -550,10 +545,6 @@ function FundraisingContent() {
                             <LedgerRow columns="160px 1fr" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Settlement</Caption>,
                                 <span className="v2-mono text-right text-[var(--text-primary)]">USDC-equivalent value on Avalanche</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Mint price</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{mintPriceLabel}</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Redemptions</Caption>,
