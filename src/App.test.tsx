@@ -631,7 +631,8 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/Pharaoh liquidity route/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/Round 1 and Round 2 totals are archived, not the current purchase mechanic/i)).toBeInTheDocument();
         expect(screen.getAllByText(/Round 1 and Round 2 closed and finalized/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/Fixed-window buys are closed/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Fixed-window buys are closed/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/Receiver 0x38C8...5FCe/i)).toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(within(screen.getByRole('main')).queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
     });
@@ -716,9 +717,8 @@ describe('page compression regressions', () => {
 
         expect(wagmiMocks.writeContract).not.toHaveBeenCalled();
         const readyStatus = screen.getByRole('status');
-        expect(readyStatus).toHaveTextContent(/preview ready/i);
+        expect(readyStatus).toHaveTextContent(/verified Avalanche receiver 0x38C8...5FCe/i);
         expect(readyStatus).toHaveClass('v2-up');
-        expect(readyStatus).not.toHaveClass('v2-down');
     });
 
     it('does not gate commit preview on static source-token balance fixtures', async () => {
@@ -736,9 +736,8 @@ describe('page compression regressions', () => {
 
         expect(screen.queryByText(/exceeds the detected/i)).not.toBeInTheDocument();
         const readyStatus = screen.getByRole('status');
-        expect(readyStatus).toHaveTextContent(/preview ready/i);
+        expect(readyStatus).toHaveTextContent(/verified Avalanche receiver 0x38C8...5FCe/i);
         expect(readyStatus).toHaveClass('v2-up');
-        expect(readyStatus).not.toHaveClass('v2-down');
     });
 
     it('shows top wallet source tokens from the live portfolio response, not static fixtures', async () => {

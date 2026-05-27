@@ -184,6 +184,14 @@
         "mintSpreadBps": "-500",
         "redemptionsPermanentlyDisabled": true
       }
+    },
+    "continuousMintReceiver": "0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe",
+    "lastContinuousMintReceiverManagerGrant": {
+      "timestamp": "2026-05-27T13:11:11.029Z",
+      "blockNumber": 86500872,
+      "tx": "0x96a1a5f2b1edbcb2725b2f00605db35726398f4c903b9aea0c9926221ca9c7bc",
+      "safe": "0x39971795266a794a8156271729A07994952a6FAD",
+      "receiver": "0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe"
     }
   },
   "fujiPurchaseTest": {

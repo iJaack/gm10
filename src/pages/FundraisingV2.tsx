@@ -305,6 +305,11 @@ type CommitFeedback = {
     message: string;
 };
 
+function formatShortAddress(address?: string) {
+    if (!address) return 'Receiver missing';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 function FundraisingContent() {
     const { address, isConnected } = useAccount();
     const [amount, setAmount] = useState('');
@@ -334,6 +339,8 @@ function FundraisingContent() {
     const validSourceAmount = Number.isFinite(sourceAmount) && sourceAmount > 0 ? sourceAmount : 0;
     const selectedTokenUsdcRate = selectedSourceToken?.priceUsdc ?? 0;
     const settledUsdcAmount = validSourceAmount * selectedTokenUsdcRate;
+    const commitReceiverAddress = GM10_PRIMARY_DEPLOYMENT.continuousCommitReceiver.address;
+    const hasCommitReceiver = Boolean(commitReceiverAddress);
     const settlementAmountUsdt6 = useMemo(
         () => parseUsdt6(settledUsdcAmount > 0 ? settledUsdcAmount.toFixed(6) : ''),
         [settledUsdcAmount],
@@ -431,9 +438,16 @@ function FundraisingContent() {
             });
             return;
         }
+        if (!commitReceiverAddress) {
+            setCommitFeedback({
+                tone: 'error',
+                message: 'Mint route missing: no verified Avalanche settlement receiver is configured. Preview only; do not send funds.',
+            });
+            return;
+        }
         setCommitFeedback({
             tone: 'ready',
-            message: 'Preview ready. Route execution is not enabled here yet; connect the verified LI.FI/Mobula settlement receiver before accepting funds.',
+            message: `Preview ready. Execute the LI.FI/Mobula route only to the verified Avalanche receiver ${formatShortAddress(commitReceiverAddress)}.`,
         });
     }
 
@@ -494,6 +508,12 @@ function FundraisingContent() {
                                 <span className="v2-mono text-right text-[var(--text-primary)]">USDC-equivalent value on Avalanche</span>,
                             ]} />
                             <LedgerRow columns="160px 1fr" cells={[
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Mint route</Caption>,
+                                <span className={`v2-mono text-right ${hasCommitReceiver ? 'text-[var(--text-primary)]' : 'v2-down'}`}>
+                                    {hasCommitReceiver ? `Receiver ${formatShortAddress(commitReceiverAddress)}` : 'Receiver not configured'}
+                                </span>,
+                            ]} />
+                            <LedgerRow columns="160px 1fr" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Redemptions</Caption>,
                                 <span className="v2-mono text-right text-[var(--text-primary)]">{redemptionsPermanentlyDisabled ? 'Permanently disabled' : 'Disabled state unavailable'}</span>,
                             ]} />
@@ -521,7 +541,7 @@ function FundraisingContent() {
                                         SOURCE · <span className="text-[var(--text-primary)]">From virtually any chain</span>
                                     </DataMono>
                                     <DataMono className="text-[0.88rem] font-semibold text-[var(--text-primary)]">
-                                        Avalanche settlement
+                                        {hasCommitReceiver ? `Avalanche ${formatShortAddress(commitReceiverAddress)}` : 'Avalanche receiver missing'}
                                     </DataMono>
                                 </div>
 
@@ -642,9 +662,6 @@ function FundraisingContent() {
                         </div>
                     </div>
 
-                    <p className="mt-8 text-[0.86rem] leading-[1.7] text-[var(--ink-muted)]">
-                        Fixed-window buys are closed. The continuous round has no terminal close: each verified settlement mints buyer CATCH immediately, while the Round 2 close stays visible as historical proof.
-                    </p>
                 </div>
             </section>
 

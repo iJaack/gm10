@@ -60,6 +60,9 @@ const investorAccountingAddress = parseAddress(
 const tokenomicsControllerAddress = parseAddress(
     import.meta.env.VITE_GM10_TOKENOMICS_CONTROLLER_ADDRESS || '0x65acE06bbc9e079321451FAfaaD7C58223b20b26',
 );
+const continuousCommitReceiverAddress = parseAddress(
+    import.meta.env.VITE_GM10_CONTINUOUS_COMMIT_RECEIVER_ADDRESS || '0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe',
+);
 const catchTokenAddress = parseAddress(
     import.meta.env.VITE_GM10_CATCH_TOKEN_ADDRESS || fundProxyAddress,
 );
@@ -114,6 +117,11 @@ export const GM10_PRIMARY_DEPLOYMENT = {
         label: 'V7 tokenomics controller',
         address: tokenomicsControllerAddress,
         snowtraceUrl: buildExplorerUrl(GM10_EXPLORER_BASE_URL, tokenomicsControllerAddress),
+    },
+    continuousCommitReceiver: {
+        label: 'Continuous commit receiver',
+        address: continuousCommitReceiverAddress,
+        snowtraceUrl: buildExplorerUrl(GM10_EXPLORER_BASE_URL, continuousCommitReceiverAddress),
     },
 } as const;
 

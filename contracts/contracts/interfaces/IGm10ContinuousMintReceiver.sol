@@ -15,6 +15,15 @@ interface IGm10ContinuousMintReceiver {
         uint256 settledAmount
     ) external returns (uint256 buyerCatch18);
 
+    function registerCommit(
+        bytes32 commitId,
+        bytes32 providerRouteId,
+        address buyer,
+        address settlementToken,
+        uint256 minSettlementAmount,
+        uint64 expiresAt
+    ) external returns (address escrow);
+
     function retryOftDelivery(bytes32 commitId) external payable;
 
     function claimAvalancheCatch(bytes32 commitId) external;
