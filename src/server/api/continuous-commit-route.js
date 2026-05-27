@@ -1,4 +1,4 @@
-import { buildContinuousCommitRoute } from '../apps/admin/server/lib/lifi.js';
+import { buildContinuousCommitRoute } from '../../../apps/admin/server/lib/lifi.js';
 
 export default async function handler(request, response) {
     try {

@@ -12,27 +12,13 @@ type ApiResponse = {
 type ApiRequest = {
     method?: string;
     headers?: IncomingHttpHeaders;
-    query?: Record<string, string>;
+    query?: Record<string, string | string[]>;
     body?: unknown;
 };
 
 type ApiHandlerModule = {
     default?: (request: ApiRequest, response: ApiResponse) => Promise<void> | void;
     GET?: (request: Request) => Promise<Response> | Response;
-};
-
-const apiHandlers: Record<string, () => Promise<ApiHandlerModule>> = {
-    '/api/courtyard-asset': () => import('./api/courtyard-asset.js'),
-    '/api/continuous-commit-route': () => import('./api/continuous-commit-route.js'),
-    '/api/courtyard-profile-nav': () => import('./api/courtyard-profile-nav.js'),
-    '/api/lifi-quotes': () => import('./api/lifi-quotes.js'),
-    '/api/lifi-solana-quote': () => import('./api/lifi-solana-quote.js'),
-    '/api/lifi-status': () => import('./api/lifi-status.js'),
-    '/api/nft-metadata': () => import('./api/nft-metadata.js'),
-    '/api/phygitals-card': () => import('./api/phygitals-card.js'),
-    '/api/valuation-pack': () => import('./api/valuation-pack.js'),
-    '/api/valuation-public': () => import('./api/valuation-public.js'),
-    '/api/wallet-portfolio': () => import('./api/wallet-portfolio.js'),
 };
 
 async function readRequestBody(request: NodeJS.ReadableStream) {
@@ -57,14 +43,16 @@ function localApiPlugin(): Plugin {
         configureServer(server) {
             server.middlewares.use(async (request, response, next) => {
                 const url = new URL(request.url ?? '/', 'http://localhost');
-                const loadHandler = apiHandlers[url.pathname];
-                if (!loadHandler) {
+                const apiRoute = url.pathname.startsWith('/api/')
+                    ? url.pathname.slice('/api/'.length).split('/').filter(Boolean)
+                    : [];
+                if (apiRoute.length === 0) {
                     next();
                     return;
                 }
 
                 try {
-                    const handlerModule = await loadHandler();
+                    const handlerModule: ApiHandlerModule = await import('./api/[...gm10].js');
                     const apiResponse: ApiResponse = {
                         setHeader: (name, value) => response.setHeader(name, value),
                         status: (code) => {
@@ -80,10 +68,13 @@ function localApiPlugin(): Plugin {
                     };
 
                     if (handlerModule.default) {
+                        const query: Record<string, string | string[]> = Object.fromEntries(url.searchParams.entries());
+                        query.gm10 = apiRoute;
+
                         await handlerModule.default({
                             method: request.method,
                             headers: request.headers,
-                            query: Object.fromEntries(url.searchParams.entries()),
+                            query,
                             body: await readRequestBody(request),
                         }, apiResponse);
                         return;

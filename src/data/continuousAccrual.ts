@@ -5,7 +5,7 @@ export const CONTINUOUS_COMMIT_RAILS = [
     },
     {
         label: 'Avalanche settlement',
-        detail: 'Routes settle into the Avalanche commit receiver before any CATCH is minted.',
+        detail: 'Routes settle native AVAX into the fund proxy before any CATCH is minted.',
     },
     {
         label: 'Per-commit allocation',
