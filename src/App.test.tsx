@@ -605,6 +605,7 @@ describe('page compression regressions', () => {
 
     it('merges buy and live proof into the fundraising route', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
+        wagmiMocks.readContractData.accountedFundAvaxSettlementWei = 1000000000000000000n;
         mockSourceTokenBalances();
         renderAt('/fundraising');
 
@@ -639,8 +640,8 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /mint new \$CATCH/i })).toBeInTheDocument();
         expect(screen.queryByText(/unfilled legacy cap/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^total raised$/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/1,853\.9836 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/^total raised all-time$/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/1,854\.9836 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/1,353\.9836 AVAX finalized/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
     });

@@ -119,6 +119,13 @@ export const GM10_FUND_ABI = [
     },
     {
         inputs: [],
+        name: 'accountedFundAvaxSettlementWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [],
         name: 'continuousMintPaused',
         outputs: [{ name: '', type: 'bool' }],
         stateMutability: 'view',
