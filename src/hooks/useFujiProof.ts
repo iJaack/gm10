@@ -205,6 +205,7 @@ export type Gm10PortfolioPosition = {
     currentValue: string;
     lastNavMark: string;
     acquisitionDateLabel: string;
+    acquisitionTimestamp: number;
     lastValuationLabel: string;
     statusLabel: string;
     acquisitionPriceUsdt6: bigint;
@@ -220,7 +221,17 @@ export type Gm10PortfolioActivity = {
     date: string;
     amount: string;
     detail: string;
+    sortTimestamp?: number;
 };
+
+export function sortPortfolioActivityNewestFirst(activity: Gm10PortfolioActivity[]) {
+    return [...activity].sort((a, b) => {
+        const aTime = a.sortTimestamp ?? 0;
+        const bTime = b.sortTimestamp ?? 0;
+        if (aTime !== bTime) return bTime - aTime;
+        return b.id.localeCompare(a.id);
+    });
+}
 
 function positionMetadataKey(raw: CollectiblePositionTuple) {
     return `${Number(raw.chainEid)}:${raw.evmCollection.toLowerCase()}:${raw.tokenId.toString()}`;
@@ -252,6 +263,7 @@ function normalizePosition(
         currentValue: formatUsdt6(currentValueUsdt6),
         lastNavMark: formatUsdt6(raw.lastNavMarkUsdt6),
         acquisitionDateLabel: formatDate(raw.acquisitionDate),
+        acquisitionTimestamp: Number(raw.acquisitionDate),
         lastValuationLabel,
         statusLabel: positionStatusLabel(Number(raw.status)),
         acquisitionPriceUsdt6: raw.acquisitionPriceUsdt6,
@@ -621,7 +633,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         treasurySafeBalance?.value,
     ]);
 
-    const activity = useMemo<Gm10PortfolioActivity[]>(() => positions
+    const activity = useMemo<Gm10PortfolioActivity[]>(() => sortPortfolioActivityNewestFirst(positions
         .map((position) => ({
             id: `buy-${position.positionId}`,
             type: 'Buy' as const,
@@ -629,8 +641,8 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             date: position.acquisitionDateLabel,
             amount: position.acquisition,
             detail: `${position.chain} position #${position.positionId}`,
-        }))
-        .sort((a, b) => b.id.localeCompare(a.id)), [positions]);
+            sortTimestamp: position.acquisitionTimestamp,
+        }))), [positions]);
     const holderAccounting = useMemo(() => resolveHolderAccounting({
         totalSupply: circulatingSupply,
         profitEligibleSupply,

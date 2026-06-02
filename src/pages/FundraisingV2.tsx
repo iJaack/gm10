@@ -1002,7 +1002,7 @@ function FundraisingContent() {
             <Proof />
 
             {/* closer */}
-            <section className="px-4 py-20 border-t border-[var(--rule)]">
+            <section className="px-4 py-10 border-t border-[var(--rule)] md:py-12">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] flex flex-wrap items-center justify-between gap-4">
                     <Display className="text-[clamp(1.2rem,2.4vw,1.6rem)]">
                         Questions about the terms?

@@ -481,7 +481,7 @@ describe('route simplification', () => {
             link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
-        expect(labels).toEqual(['Continuous Round', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
+        expect(labels).toEqual(['Mint $CATCH', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
     });
 
     it('uses wallet connect as the global navbar action', () => {
@@ -522,19 +522,25 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/record public sale/i)).toBeInTheDocument();
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/continuous round/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/5,499\.9996 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/total raised across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
         expect(screen.queryByText(/raised across finalized rounds/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Continuous commits are the current entry mode/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/legacy raise of .* cap/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/strategy capital/i)).toBeInTheDocument();
+        expect(screen.queryByText(/per commit/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/nav mint/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/live source/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/onchain logs/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/proof live/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/block 85,655,273/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /mint new \$CATCH/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
         expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
     });
 
-    it('adds live continuous settlement logs to the homepage strategy capital total', async () => {
+    it('adds live continuous settlements to the homepage strategy capital total', async () => {
         wagmiMocks.contractEvents = [
             { args: { settlementAmountUsdt6: 950_000_000n } },
         ];
@@ -544,7 +550,7 @@ describe('page compression regressions', () => {
         await waitFor(() => {
             expect(screen.getByText(/5,599\.9996 AVAX/i)).toBeInTheDocument();
         });
-        expect(screen.getByText(/onchain logs/i)).toBeInTheDocument();
+        expect(screen.queryByText(/onchain logs/i)).not.toBeInTheDocument();
     });
 
     it('polls only new continuous settlement blocks after the initial capital scan', async () => {
@@ -727,6 +733,8 @@ describe('page compression regressions', () => {
 
         renderAt('/catch');
 
+        expect(await screen.findByRole('heading', { level: 1, name: /a tcg strategy designed to accrue value to \$catch/i })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { level: 1, name: /from contribution to exit/i })).not.toBeInTheDocument();
         expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
         expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();

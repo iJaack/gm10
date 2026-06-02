@@ -74,7 +74,7 @@ function useContinuousSettlementTotalUsdt6() {
                     ranges.push({ fromBlock, toBlock });
                     fromBlock = toBlock + 1n;
                 }
-                const events = [];
+                const events: Array<{ args: { settlementAmountUsdt6?: bigint } }> = [];
                 for (let i = 0; i < ranges.length; i += CAPITAL_EVENT_BATCH_SIZE) {
                     const batch = ranges.slice(i, i + CAPITAL_EVENT_BATCH_SIZE);
                     events.push(...(await Promise.all(batch.map((range) => client.getContractEvents({
@@ -219,28 +219,6 @@ function Hero() {
                             </div>
                             <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
                                 {totalRaisedUsdLabel} total raised across recorded rounds, including live continuous commits.
-                            </div>
-                            <div className="mt-4 grid grid-cols-3 gap-2">
-                                {[
-                                    ['Live source', continuousSettlementTotalUsdt6 === undefined ? 'Loading' : 'Onchain logs'],
-                                    ['Per commit', 'NAV mint'],
-                                    ['Proof live', `Block ${ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}`],
-                                ].map(([label, value], index) => (
-                                    <div key={label} className="rounded-xl border border-[var(--rule)] bg-[var(--bg-primary)]/50 px-3 py-2">
-                                        <div className="flex items-center gap-1.5">
-                                            <span
-                                                className={`h-1.5 w-1.5 rounded-full ${index === 0 ? 'bg-[var(--accent-brass)]' : 'bg-[var(--ink-muted)]'}`}
-                                                aria-hidden
-                                            />
-                                            <DataMono className="text-[0.58rem] uppercase tracking-[0.08em] text-[var(--ink-faint)]">
-                                                {label}
-                                            </DataMono>
-                                        </div>
-                                        <div className="mt-1 text-[0.74rem] font-semibold leading-tight text-[var(--text-primary)]">
-                                            {value}
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
                         </div>
                     </div>
