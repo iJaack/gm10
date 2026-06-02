@@ -8,7 +8,10 @@
  *   4. Holdings   — horizontal marquee of portfolio cards → /portfolio
  */
 
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatEther, formatUnits } from 'viem';
+import { usePublicClient } from 'wagmi';
 import { Web3Providers } from '../components/Web3Providers';
 import {
     DataMono,
@@ -21,28 +24,115 @@ import {
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useTheme } from '../hooks/useTheme';
 import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
+import { useAvaxPrice } from '../hooks/useAvaxPrice';
+import { GM10_FUND_ABI } from '../data/contracts';
+import { GM10_PRIMARY_DEPLOYMENT } from '../data/gm10Config';
 
 /* ─────────────────────────────────────────────── */
 /*  1. HERO                                         */
 /* ─────────────────────────────────────────────── */
 
+const CAPITAL_REFRESH_INTERVAL_MS = 15_000;
+const CAPITAL_EVENT_BLOCK_CHUNK = 2_000n;
+const CAPITAL_EVENT_BATCH_SIZE = 12;
+const CONTINUOUS_EVENTS_FROM_BLOCK = 85_856_585n;
+const FALLBACK_ROUND_1_RAISED_AVAX = 500;
+
+function useContinuousSettlementTotalUsdt6() {
+    const publicClient = usePublicClient();
+    const [totalUsdt6, setTotalUsdt6] = useState<bigint | undefined>(undefined);
+    const proxyAddress = GM10_PRIMARY_DEPLOYMENT.proxy.address;
+    const processedThroughBlockRef = useRef<bigint | undefined>(undefined);
+    const totalUsdt6Ref = useRef(0n);
+
+    useEffect(() => {
+        if (!publicClient || !proxyAddress) return undefined;
+        const client = publicClient;
+        let cancelled = false;
+        let refreshing = false;
+        processedThroughBlockRef.current = undefined;
+        totalUsdt6Ref.current = 0n;
+
+        async function refresh() {
+            if (refreshing) return;
+            refreshing = true;
+            try {
+                const latestBlock = await client.getBlockNumber();
+                let fromBlock = processedThroughBlockRef.current !== undefined
+                    ? processedThroughBlockRef.current + 1n
+                    : BigInt(ROUND_2_CLOSE_LEDGER.finalizedBlock);
+                if (CONTINUOUS_EVENTS_FROM_BLOCK > fromBlock) fromBlock = CONTINUOUS_EVENTS_FROM_BLOCK;
+                if (fromBlock > latestBlock) {
+                    if (!cancelled) setTotalUsdt6(totalUsdt6Ref.current);
+                    return;
+                }
+                const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+                while (fromBlock <= latestBlock) {
+                    const toBlock = fromBlock + CAPITAL_EVENT_BLOCK_CHUNK > latestBlock
+                        ? latestBlock
+                        : fromBlock + CAPITAL_EVENT_BLOCK_CHUNK;
+                    ranges.push({ fromBlock, toBlock });
+                    fromBlock = toBlock + 1n;
+                }
+                const events: Array<{ args: { settlementAmountUsdt6?: bigint } }> = [];
+                for (let i = 0; i < ranges.length; i += CAPITAL_EVENT_BATCH_SIZE) {
+                    const batch = ranges.slice(i, i + CAPITAL_EVENT_BATCH_SIZE);
+                    events.push(...(await Promise.all(batch.map((range) => client.getContractEvents({
+                        address: proxyAddress,
+                        abi: GM10_FUND_ABI,
+                        eventName: 'ContinuousMintSettled',
+                        fromBlock: range.fromBlock,
+                        toBlock: range.toBlock,
+                    })))).flat());
+                }
+                if (cancelled) return;
+                totalUsdt6Ref.current += events.reduce((sum, event) => (
+                    sum + (event.args.settlementAmountUsdt6 ?? 0n)
+                ), 0n);
+                processedThroughBlockRef.current = latestBlock;
+                setTotalUsdt6(totalUsdt6Ref.current);
+            } catch {
+                if (!cancelled && processedThroughBlockRef.current === undefined) setTotalUsdt6(undefined);
+            } finally {
+                refreshing = false;
+            }
+        }
+
+        void refresh();
+        const interval = window.setInterval(refresh, CAPITAL_REFRESH_INTERVAL_MS);
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, [publicClient, proxyAddress]);
+
+    return totalUsdt6;
+}
 
 function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
-    const isPostRound2Close = round.isClosed && round.roundId === ROUND_2_CLOSE_LEDGER.roundId;
-    const roundStatusSentence = round.isRoundOpen
-        ? `Round ${round.roundId} is live on Avalanche mainnet.`
-        : isPostRound2Close
-            ? `Round ${round.roundId} finalized at ${ROUND_2_CLOSE_LEDGER.raisedLabel} on Avalanche mainnet.`
-            : round.isPlanned
-            ? round.status.toLowerCase().startsWith('round 2 setup ')
-                ? `Round ${round.roundId} setup is ${round.status.toLowerCase().replace(/^round 2 setup /, '')} on Avalanche mainnet.`
-                : `Round ${round.roundId} is ${round.status.toLowerCase().replace(/^round 2 /, '')} on Avalanche mainnet.`
-            : `Round ${round.roundId} ${round.isUpcoming ? 'opens soon.' : 'is closed for new buys.'}`;
-    const roundProofSentence = isPostRound2Close
-        ? ''
-        : 'Public proof links, contract-enforced timing, and verified contracts on Snowtrace.';
+    const avaxUsd = useAvaxPrice();
+    const continuousSettlementTotalUsdt6 = useContinuousSettlementTotalUsdt6();
+    const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : FALLBACK_ROUND_1_RAISED_AVAX;
+    const roundRaisedAvax = round.roundSource === 'onchain' && round.round
+        ? Number(formatEther(round.round.raisedAmount))
+        : round.roundSource === 'published'
+            ? ROUND_2_CLOSE_LEDGER.raisedAvax
+            : 0;
+    const continuousRaisedAvax = continuousSettlementTotalUsdt6 !== undefined && avaxUsd > 0
+        ? Number(formatUnits(continuousSettlementTotalUsdt6, 6)) / avaxUsd
+        : 0;
+    const totalRaisedAvax = archiveRaisedAvax + roundRaisedAvax + continuousRaisedAvax;
+    const totalRaisedUsd = totalRaisedAvax * avaxUsd;
+    const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 4,
+    })} AVAX`;
+    const totalRaisedUsdLabel = `~$${totalRaisedUsd.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    })}`;
 
     const onPhoto = {
         primary: theme === 'dark' ? '#ffffff' : '#0f0e0a',
@@ -97,10 +187,6 @@ function Hero() {
                         <p className="text-[1.08rem] leading-[1.72] sm:text-[1.14rem]" style={{ color: onPhoto.secondary }}>
                             GM10 turns sourcing, diligence, custody, valuation, and exits into one managed onchain strategy, so a single position can track the full portfolio.
                         </p>
-                        <p className="mt-2 text-[0.88rem]" style={{ color: onPhoto.muted }}>
-                            {roundStatusSentence}
-                            {roundProofSentence ? ` ${roundProofSentence}` : null}
-                        </p>
                     </div>
 
                     <div className="mt-8 flex flex-wrap gap-3">
@@ -109,7 +195,7 @@ function Hero() {
                             className="pixel-menu-link pixel-menu-link-active"
                         >
                             <span className="pixel-menu-cursor" aria-hidden>↗</span>
-                            <span>{round.isRoundOpen ? `Join Round ${round.roundId}` : `Review Round ${round.roundId} close`}</span>
+                            <span>Mint new $CATCH</span>
                         </Link>
                         <Link
                             to="/portfolio"
@@ -120,29 +206,19 @@ function Hero() {
                         </Link>
                     </div>
 
-                    {/* Round callout */}
+                    {/* Continuous capital callout */}
                     <div className="mt-6 max-w-[42rem] lg:max-w-[42%]">
                         <div
                             className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/85 backdrop-blur-sm px-5 py-4"
                         >
                             <div className="label-font">
-                                {isPostRound2Close ? 'Latest close' : round.isRoundOpen ? 'Current window' : round.isUpcoming ? 'Next opening' : 'Round status'}
+                                Strategy capital
                             </div>
-                            <div className="mt-2 text-[1.15rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
-                                Round {round.roundId} · {round.isRoundOpen ? 'live' : round.status.toLowerCase()}
+                            <div className="mt-2 text-[1.65rem] font-extrabold leading-tight tracking-[-0.035em] text-[var(--text-primary)]">
+                                {totalRaisedLabel}
                             </div>
-                            <div className="mt-1 text-[0.88rem] text-[var(--text-secondary)]">
-                                {round.raisedLabel} raised of {round.targetLabel} cap · {round.progress.toFixed(1)}%
-                                {isPostRound2Close ? ` · block ${ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}` : ''}
-                            </div>
-                            <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                                <div
-                                    className="h-full rounded-full transition-all duration-700 ease-out"
-                                    style={{
-                                        width: `${round.progress}%`,
-                                        background: 'linear-gradient(90deg, var(--accent), var(--accent-blue))',
-                                    }}
-                                />
+                            <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
+                                {totalRaisedUsdLabel} total raised across recorded rounds, including live continuous commits.
                             </div>
                         </div>
                     </div>

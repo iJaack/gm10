@@ -9,12 +9,19 @@ const wagmiMocks = vi.hoisted(() => ({
         isConnected: false,
     },
     balanceValue: undefined as bigint | undefined,
+    blockNumber: 85856585n,
+    contractEvents: [] as Array<{ args: { settlementAmountUsdt6?: bigint } }>,
     roundState: undefined as any,
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
+    getBlockNumber: vi.fn(),
+    getContractEvents: vi.fn(),
     reset: vi.fn(),
     writeContract: vi.fn(),
 }));
+
+wagmiMocks.getBlockNumber.mockImplementation(async () => wagmiMocks.blockNumber);
+wagmiMocks.getContractEvents.mockImplementation(async () => wagmiMocks.contractEvents);
 
 vi.mock('@rainbow-me/rainbowkit', () => {
     const ConnectButton = Object.assign(
@@ -36,6 +43,10 @@ vi.mock('wagmi', () => ({
     useAccount: () => wagmiMocks.account,
     useBalance: () => ({
         data: wagmiMocks.balanceValue === undefined ? undefined : { value: wagmiMocks.balanceValue },
+    }),
+    usePublicClient: () => ({
+        getBlockNumber: wagmiMocks.getBlockNumber,
+        getContractEvents: wagmiMocks.getContractEvents,
     }),
     useReadContract: () => ({ data: undefined }),
     useWaitForTransactionReceipt: () => ({ isLoading: false, isSuccess: false }),
@@ -309,7 +320,7 @@ describe('route simplification', () => {
             link.textContent?.replace(/^[↗►]/, '').trim(),
         );
 
-        expect(labels).toEqual(['Round Status', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
+        expect(labels).toEqual(['Mint $CATCH', 'How It Works', 'Portfolio', 'Holders', 'FAQ']);
     });
 
     it.each([
@@ -341,8 +352,14 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/record public sale/i)).toBeInTheDocument();
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/round 2 .* live/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByRole('link', { name: /join round|join the round/i }).length).toBeGreaterThan(0);
+        expect(screen.getByText(/strategy capital/i)).toBeInTheDocument();
+        expect(screen.queryByText(/per commit/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/nav mint/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/live source/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/onchain logs/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/proof live/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/block 85,655,273/i)).not.toBeInTheDocument();
+        expect(screen.getAllByRole('link', { name: /mint new \$CATCH/i }).length).toBeGreaterThan(0);
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
         expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
@@ -436,6 +453,8 @@ describe('page compression regressions', () => {
 
         renderAt('/catch');
 
+        expect(await screen.findByRole('heading', { level: 1, name: /a tcg strategy designed to accrue value to \$catch/i })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { level: 1, name: /from contribution to exit/i })).not.toBeInTheDocument();
         expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
         expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();

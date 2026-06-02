@@ -3,7 +3,6 @@ import { ScrollReveal } from './ScrollReveal';
 import { PixelMenuLink } from './PixelUI';
 import {
     FOOTER_EXPLORE_LINKS,
-    FOOTER_PROOF_LINKS,
     GLOBAL_CTA_ROUTE,
     SITE_LINKS,
     getRoundPrimaryCtaLabel,
@@ -26,7 +25,7 @@ export default function Footer() {
         <footer className="relative z-10 px-4 py-16">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <div className="relative pt-12 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--border-strong)] before:to-transparent">
-                    <div className="grid gap-12 xl:grid-cols-[1.2fr_0.7fr_0.7fr_0.9fr] xl:gap-16">
+                    <div className="grid gap-12 xl:grid-cols-[1.2fr_0.7fr_0.9fr] xl:gap-16">
                         <ScrollReveal>
                             <div className="max-w-md">
                                 <div className="text-[0.95rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">GM10</div>
@@ -71,31 +70,6 @@ export default function Footer() {
                         </ScrollReveal>
 
                         <ScrollReveal delay={2}>
-                            <div>
-                                <div className="label-font">Proof</div>
-                                <div className="mt-4 grid gap-2.5">
-                                    {FOOTER_PROOF_LINKS.map(({ to, label }) => (
-                                        <Link
-                                            key={to}
-                                            to={to}
-                                            className="text-[0.9rem] text-[var(--text-secondary)] transition-colors duration-150 hover:text-[var(--text-primary)]"
-                                        >
-                                            {label}
-                                        </Link>
-                                    ))}
-                                    <a
-                                        href="https://snowtrace.io"
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-[0.9rem] text-[var(--text-secondary)] transition-colors duration-150 hover:text-[var(--text-primary)]"
-                                    >
-                                        Snowtrace
-                                    </a>
-                                </div>
-                            </div>
-                        </ScrollReveal>
-
-                        <ScrollReveal delay={3}>
                             <div>
                                 <div className="label-font">Disclosures</div>
                                 <p className="mt-4 text-[0.9rem] leading-[1.7] text-[var(--text-secondary)]">

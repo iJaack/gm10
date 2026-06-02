@@ -399,7 +399,7 @@ export function getRoundPrimaryCtaLabel(isRoundOpen: boolean) {
 }
 
 export const PUBLIC_NAV_LINKS: readonly SiteNavItem[] = [
-    { to: '/fundraising', label: 'Round Status' },
+    { to: '/fundraising', label: 'Mint $CATCH' },
     { to: '/catch', label: 'How It Works' },
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/holders', label: 'Holders' },
@@ -411,11 +411,6 @@ export const FOOTER_EXPLORE_LINKS: readonly SiteNavItem[] = [
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/holders', label: 'Holders' },
     { to: '/faq', label: 'FAQ' },
-] as const;
-
-export const FOOTER_PROOF_LINKS: readonly SiteNavItem[] = [
-    { to: '/fundraising', label: 'Round status' },
-    { to: '/fundraising#proof', label: 'Live proof' },
 ] as const;
 
 export const HOME_PROOF_STRIP = [
@@ -502,7 +497,7 @@ export const SUPPORT_PAGE_COPY = {
     },
     catch: {
         eyebrow: 'How it works',
-        title: 'From contribution to exit, the system is designed to stay explainable.',
+        title: 'A TCG strategy designed to accrue value to $CATCH.',
         body: 'This page shows how GM10 turns one token into portfolio exposure, valuation discipline, and a transparent exit waterfall.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',

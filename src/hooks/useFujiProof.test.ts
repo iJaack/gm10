@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveFujiRoundState } from './useFujiProof';
+import { deriveFujiRoundState, sortPortfolioActivityNewestFirst, type Gm10PortfolioActivity } from './useFujiProof';
 
 const AVAX_WEI = 10n ** 18n;
 
@@ -67,4 +67,22 @@ describe('deriveFujiRoundState', () => {
         expect(state.isCapReached).toBe(false);
     });
 
+});
+
+describe('sortPortfolioActivityNewestFirst', () => {
+    it('orders portfolio activity by newest acquisition date first', () => {
+        const activity: Gm10PortfolioActivity[] = [
+            { id: 'buy-9', type: 'Buy', item: 'Older May card', date: 'May 5, 2026', amount: '$5,300.00', detail: 'Polygon position #9', sortTimestamp: 1_778_016_000 },
+            { id: 'buy-8', type: 'Buy', item: 'April card', date: 'Apr 24, 2026', amount: '$1,800.00', detail: 'Polygon position #8', sortTimestamp: 1_777_065_600 },
+            { id: 'buy-10', type: 'Buy', item: 'Newest May card', date: 'May 19, 2026', amount: '$4,500.00', detail: 'Polygon position #10', sortTimestamp: 1_779_225_600 },
+            { id: 'buy-11', type: 'Buy', item: 'Same-day higher id', date: 'May 19, 2026', amount: '$4,700.00', detail: 'Polygon position #11', sortTimestamp: 1_779_225_600 },
+        ];
+
+        expect(sortPortfolioActivityNewestFirst(activity).map((item) => item.id)).toEqual([
+            'buy-11',
+            'buy-10',
+            'buy-9',
+            'buy-8',
+        ]);
+    });
 });
