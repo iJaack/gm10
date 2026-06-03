@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatEther, formatUnits } from 'viem';
+import { polygon } from 'wagmi/chains';
 import { useAccount, useBalance, useReadContract, useReadContracts } from 'wagmi';
 import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
-import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_ERC20_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI, GM10_TOKENOMICS_CONTROLLER_ABI } from '../data/contracts';
+import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_ERC20_ABI, GM10_ERC721_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI, GM10_TOKENOMICS_CONTROLLER_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
 import {
     normalizePublicValuationOverrides,
@@ -13,9 +14,11 @@ import {
 import {
     GM10_EXPLORER_BASE_URL,
     GM10_EXPLORER_TX_BASE_URL,
+    GM10_COURTYARD_CUSTODY,
     GM10_MARKET_CONFIG,
     GM10_PRIMARY_DEPLOYMENT,
     GM10_TREASURY_WALLETS,
+    LZ_EID_POLYGON,
     ROUND_2_END_AT,
     ROUND_2_START_AT,
     collectionExplorerUrl,
@@ -207,6 +210,9 @@ export type Gm10PortfolioPosition = {
     acquisitionTimestamp: number;
     lastValuationLabel: string;
     statusLabel: string;
+    registryStatusLabel: string;
+    custodyStatus: 'safe' | 'hot-wallet' | 'external' | 'unknown';
+    custodyLabel: string;
     acquisitionPriceUsdt6: bigint;
     currentValueUsdt6: bigint;
     courtyardUrl?: string;
@@ -236,15 +242,75 @@ function positionMetadataKey(raw: CollectiblePositionTuple) {
     return `${Number(raw.chainEid)}:${raw.evmCollection.toLowerCase()}:${raw.tokenId.toString()}`;
 }
 
+function normalizeAddress(value?: `0x${string}` | string) {
+    return value?.toLowerCase();
+}
+
+export function resolveCardCustody({
+    chainEid,
+    registryStatus,
+    owner,
+    safeAddress = GM10_COURTYARD_CUSTODY.polygonSafe.address,
+    hotWalletAddress = GM10_COURTYARD_CUSTODY.polygonHotWallet.address,
+}: {
+    chainEid: number;
+    registryStatus: number;
+    owner?: `0x${string}` | string;
+    safeAddress?: `0x${string}`;
+    hotWalletAddress?: `0x${string}`;
+}): Pick<Gm10PortfolioPosition, 'custodyStatus' | 'custodyLabel' | 'statusLabel' | 'registryStatusLabel'> {
+    const registryStatusLabel = positionStatusLabel(registryStatus);
+    if (registryStatus !== 1 || chainEid !== LZ_EID_POLYGON) {
+        return {
+            custodyStatus: registryStatus === 1 ? 'unknown' : 'external',
+            custodyLabel: registryStatusLabel,
+            statusLabel: registryStatusLabel,
+            registryStatusLabel,
+        };
+    }
+
+    const normalizedOwner = normalizeAddress(owner);
+    if (normalizedOwner && normalizedOwner === normalizeAddress(hotWalletAddress)) {
+        return {
+            custodyStatus: 'hot-wallet',
+            custodyLabel: 'Hot wallet',
+            statusLabel: 'PENDING TRANSFER',
+            registryStatusLabel,
+        };
+    }
+
+    if (normalizedOwner && normalizedOwner === normalizeAddress(safeAddress)) {
+        return {
+            custodyStatus: 'safe',
+            custodyLabel: 'Safe custody',
+            statusLabel: registryStatusLabel,
+            registryStatusLabel,
+        };
+    }
+
+    return {
+        custodyStatus: 'unknown',
+        custodyLabel: 'Custody checking',
+        statusLabel: registryStatusLabel,
+        registryStatusLabel,
+    };
+}
+
 function normalizePosition(
     raw: CollectiblePositionTuple,
     liveMetadata?: CardMetadata,
     valuationOverride?: PublicValuationOverride,
+    owner?: `0x${string}`,
 ): Gm10PortfolioPosition {
     const positionId = Number(raw.id);
     const metadata = metadataForPosition(positionId, liveMetadata);
     const currentValueUsdt6 = valuationOverride?.valueUsdt6 ?? raw.currentValueUsdt6;
     const lastValuationLabel = formatOptionalIsoDate(valuationOverride?.generatedAt) ?? formatDate(raw.lastValuationAt);
+    const custody = resolveCardCustody({
+        chainEid: Number(raw.chainEid),
+        registryStatus: Number(raw.status),
+        owner,
+    });
 
     return {
         positionId,
@@ -264,7 +330,7 @@ function normalizePosition(
         acquisitionDateLabel: formatDate(raw.acquisitionDate),
         acquisitionTimestamp: Number(raw.acquisitionDate),
         lastValuationLabel,
-        statusLabel: positionStatusLabel(Number(raw.status)),
+        ...custody,
         acquisitionPriceUsdt6: raw.acquisitionPriceUsdt6,
         currentValueUsdt6,
         courtyardUrl: metadata.courtyardUrl,
@@ -512,6 +578,38 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         })
         .sort((a, b) => Number(a.id) - Number(b.id)), [positionReads]);
 
+    const custodyReadPositions = useMemo(() => rawPositions.filter((position) => (
+        Number(position.status) === 1
+        && Number(position.chainEid) === LZ_EID_POLYGON
+        && position.evmCollection !== ZERO_ADDRESS
+    )), [rawPositions]);
+
+    const custodyContracts = useMemo(() => custodyReadPositions.map((position) => ({
+        address: position.evmCollection,
+        abi: GM10_ERC721_ABI,
+        functionName: 'ownerOf',
+        args: [position.tokenId],
+        chainId: polygon.id,
+    } as const)), [custodyReadPositions]);
+
+    const { data: custodyReads } = useReadContracts({
+        contracts: custodyContracts,
+        query: {
+            enabled: custodyContracts.length > 0,
+            refetchInterval: 30_000,
+        },
+    });
+
+    const ownerByPositionKey = useMemo(() => {
+        const owners: Record<string, `0x${string}`> = {};
+        (custodyReads ?? []).forEach((read, index) => {
+            const raw = custodyReadPositions[index];
+            if (!raw || read.status !== 'success' || !read.result) return;
+            owners[positionMetadataKey(raw)] = read.result as `0x${string}`;
+        });
+        return owners;
+    }, [custodyReadPositions, custodyReads]);
+
     const liveMetadataRequestKey = useMemo(() => rawPositions
         .map(positionMetadataKey)
         .join('|'), [rawPositions]);
@@ -601,8 +699,9 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             raw,
             liveMetadataByKey[positionMetadataKey(raw)],
             publicValuationOverrides[Number(raw.id)],
+            ownerByPositionKey[positionMetadataKey(raw)],
         ))
-        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, publicValuationOverrides, rawPositions]);
+        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, ownerByPositionKey, publicValuationOverrides, rawPositions]);
 
     const valueSummary = useMemo(
         () => calculatePortfolioValueSummary(positions, platformNav),

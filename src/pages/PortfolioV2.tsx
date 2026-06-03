@@ -83,6 +83,11 @@ function LotCard({ position }: { position: Gm10PortfolioPosition }) {
                 <DataMono className="absolute right-3 top-3 text-[0.62rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
                     {position.chain}
                 </DataMono>
+                {position.statusLabel !== 'Active' ? (
+                    <DataMono className="absolute left-3 bottom-3 bg-[var(--bg-secondary)] px-2.5 py-1 text-[0.58rem] uppercase tracking-[0.08em] text-[var(--accent-brass)]">
+                        {position.statusLabel}
+                    </DataMono>
+                ) : null}
             </div>
 
             <div className="flex flex-col gap-3 p-4 border-t border-[var(--rule)]">
@@ -125,9 +130,9 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
     const lotNumber = String(position.positionId).padStart(2, '0');
     return (
         <LedgerRow
-            columns="48px 64px 1fr 120px 120px 90px 120px 100px"
+            columns="48px 64px 1fr 120px 120px 130px 90px 120px 100px"
             align="center"
-            cellAlign={['center', 'center', 'left', 'right', 'right', 'left', 'left', 'right']}
+            cellAlign={['center', 'center', 'left', 'right', 'right', 'left', 'left', 'left', 'right']}
             cells={[
                 <DataMono className="text-[0.7rem] text-[var(--accent-brass)] tracking-[0.1em]">
                     {lotNumber}
@@ -148,6 +153,9 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
                 </div>,
                 <DataMono className="text-right text-[var(--text-primary)]">{position.acquisition}</DataMono>,
                 <DataMono className="text-right text-[var(--text-primary)]">{position.currentValue}</DataMono>,
+                <DataMono className={`text-[0.68rem] uppercase ${position.statusLabel === 'PENDING TRANSFER' ? 'text-[var(--accent-brass)]' : 'text-[var(--ink-faint)]'}`}>
+                    {position.statusLabel}
+                </DataMono>,
                 <DataMono className="text-[var(--ink-faint)] uppercase text-[0.7rem]">{position.chain}</DataMono>,
                 <DataMono className="text-[var(--ink-faint)] text-[0.7rem]">{position.acquisitionDateLabel}</DataMono>,
                 <div className="flex gap-2 justify-end text-[0.72rem]">
@@ -333,13 +341,14 @@ function PortfolioContent() {
                             {/* Column headers */}
                             <div
                                 className="hidden md:grid gap-4 items-center py-2 border-b border-[var(--rule-strong)] text-[0.62rem] uppercase tracking-[0.1em] text-[var(--ink-faint)] v2-mono"
-                                style={{ gridTemplateColumns: '48px 64px 1fr 120px 120px 90px 120px 100px' }}
+                                style={{ gridTemplateColumns: '48px 64px 1fr 120px 120px 130px 90px 120px 100px' }}
                             >
                                 <span>Lot</span>
                                 <span />
                                 <span>Title</span>
                                 <span className="text-right">Cost</span>
                                 <span className="text-right">Mark</span>
+                                <span>Status</span>
                                 <span>Chain</span>
                                 <span>Acquired</span>
                                 <span className="text-right">Links</span>

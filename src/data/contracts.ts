@@ -235,6 +235,16 @@ export const GM10_ERC20_ABI = [
     },
 ] as const;
 
+export const GM10_ERC721_ABI = [
+    {
+        inputs: [{ name: 'tokenId', type: 'uint256' }],
+        name: 'ownerOf',
+        outputs: [{ name: '', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+] as const;
+
 export const GM10_TOKENOMICS_CONTROLLER_ABI = [
     {
         inputs: [],
