@@ -147,6 +147,31 @@ type SolanaFundingQuote = {
     sol: FundingQuote;
 };
 
+type SaleImport = {
+    saleKey: string;
+    positionId: number;
+    proceedsUsdt: string;
+    settlementMode: 'external';
+    stableProceedsToken: string;
+    stableProceedsAmount: string;
+    sourceChainEid: string;
+    sourceToken: string;
+    sourceTokenAmount: string;
+    sourceTokenDecimals: string;
+    sourceProceedsRef: string;
+    grossProceedsUsdt: string;
+    marketplaceFeesUsdt: string;
+    bridgeFeesUsdt: string;
+    minNetProceedsUsdt: string;
+    executionRef: string;
+    proceedsRef: string;
+    proofRef: string;
+    collection: string;
+    tokenId: string;
+    buyer: string;
+    warning?: string;
+};
+
 type PurchaseForm = {
     key: string;
     assetRef: string;
@@ -308,6 +333,10 @@ export function OperationsPanel() {
     const [autopilotError, setAutopilotError] = useState('');
     const [autopilotLoading, setAutopilotLoading] = useState(false);
     const [lifiUsdcFromAmount, setLifiUsdcFromAmount] = useState('');
+    const [saleTxHash, setSaleTxHash] = useState('');
+    const [saleImportLoading, setSaleImportLoading] = useState(false);
+    const [saleImportError, setSaleImportError] = useState('');
+    const [saleImport, setSaleImport] = useState<SaleImport | null>(null);
     const [purchase, setPurchase] = useState<PurchaseForm>({
         key: 'courtyard-purchase-1',
         assetRef: '',
@@ -755,6 +784,62 @@ export function OperationsPanel() {
 
     function updateSale<K extends keyof SaleForm>(key: K, value: SaleForm[K]) {
         setSale((current) => ({ ...current, [key]: value }));
+    }
+
+    async function importSaleTransaction() {
+        setSaleImportError('');
+        setSaleImport(null);
+        setSaleImportLoading(true);
+        try {
+            if (!BYTES32_RE.test(saleTxHash.trim()) && !/^0x[0-9a-fA-F]{64}$/.test(saleTxHash.trim())) {
+                throw new Error('Paste a Polygon sale transaction hash.');
+            }
+            if (!ADDRESS_RE.test(polygonHotWallet)) {
+                throw new Error('Configure the Polygon Hot Wallet before importing a sale transaction.');
+            }
+            const response = await fetch('/api/sale-import', {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    txHash: saleTxHash.trim(),
+                    hotWallet: polygonHotWallet,
+                }),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Unable to import sale transaction');
+            const imported = payload.sale as SaleImport;
+            setSaleImport(imported);
+            setSale({
+                key: imported.saleKey,
+                positionId: String(imported.positionId),
+                minNetProceedsUsdt: imported.minNetProceedsUsdt,
+                mandateRef: imported.executionRef,
+                grossProceedsUsdt: imported.grossProceedsUsdt,
+                marketplaceFeesUsdt: imported.marketplaceFeesUsdt,
+                bridgeFeesUsdt: imported.bridgeFeesUsdt,
+                executionRef: imported.executionRef,
+                proceedsRef: imported.proceedsRef,
+                proofRef: imported.proofRef,
+                netProceedsUsdt: imported.proceedsUsdt,
+                nativeProceedsAvax: '',
+                settlementMode: imported.settlementMode,
+                stableProceedsToken: imported.stableProceedsToken,
+                stableProceedsAmount: imported.stableProceedsAmount,
+                pullStableFromCaller: false,
+                sourceChainEid: imported.sourceChainEid,
+                sourceToken: imported.sourceToken,
+                sourceTokenAmount: imported.sourceTokenAmount,
+                sourceTokenDecimals: imported.sourceTokenDecimals,
+                sourceProceedsRef: imported.sourceProceedsRef,
+            });
+        } catch (caught) {
+            setSaleImportError(caught instanceof Error ? caught.message : 'Unable to import sale transaction');
+        } finally {
+            setSaleImportLoading(false);
+        }
     }
 
     async function resolveCourtyardAutopilot() {
@@ -1929,6 +2014,45 @@ export function OperationsPanel() {
                         </Section>
 
                         <Section title="Sale">
+                            <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3">
+                                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                                    <Field
+                                        label="Polygon sale tx"
+                                        value={saleTxHash}
+                                        onChange={(value) => {
+                                            setSaleTxHash(value);
+                                            setSaleImportError('');
+                                            setSaleImport(null);
+                                        }}
+                                        placeholder="0x..."
+                                        mono
+                                    />
+                                    <AdminButton
+                                        variant="primary"
+                                        onClick={() => void importSaleTransaction()}
+                                        disabled={saleImportLoading || !saleTxHash.trim() || !ADDRESS_RE.test(polygonHotWallet)}
+                                    >
+                                        {saleImportLoading ? 'Importing...' : 'Import sale tx'}
+                                    </AdminButton>
+                                </div>
+                                {saleImportError ? (
+                                    <div className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">
+                                        {saleImportError}
+                                    </div>
+                                ) : null}
+                                {saleImport ? (
+                                    <div className="grid gap-1 text-xs text-gray-400">
+                                        <div>Generated sale key: {saleImport.saleKey}</div>
+                                        <div>Matched position: {saleImport.positionId}</div>
+                                        <div>Sold token: {saleImport.collection} / {saleImport.tokenId}</div>
+                                        <div>Buyer: {saleImport.buyer}</div>
+                                        <div>Net proceeds: {saleImport.proceedsUsdt} USDT</div>
+                                        {saleImport.warning ? (
+                                            <div className="text-amber-100">{saleImport.warning}</div>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+                            </div>
                             <div className="grid gap-1 text-xs text-gray-400">
                                 <div>Sale key: {saleKey}</div>
                                 <div>Status: {saleAuthorization ? statusLabel(SALE_STATUS, saleAuthorization.status) : 'Unavailable'}</div>
