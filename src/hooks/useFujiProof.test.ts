@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { deriveFujiRoundState, sortPortfolioActivityNewestFirst, type Gm10PortfolioActivity } from './useFujiProof';
+import { LZ_EID_AVALANCHE, LZ_EID_POLYGON } from '../data/gm10Config';
+import {
+    deriveFujiRoundState,
+    resolveCardCustody,
+    sortPortfolioActivityNewestFirst,
+    type Gm10PortfolioActivity,
+} from './useFujiProof';
 
 const AVAX_WEI = 10n ** 18n;
+const polygonSafe = '0x39971795266a794a8156271729A07994952a6FAD' as const;
+const polygonHotWallet = '0xc6E01B7A2e8D842447ED43d30FE89Ae9a9077b50' as const;
 
 const round2Terms = {
     roundId: 2n,
@@ -84,5 +92,62 @@ describe('sortPortfolioActivityNewestFirst', () => {
             'buy-9',
             'buy-8',
         ]);
+    });
+});
+
+describe('resolveCardCustody', () => {
+    it('labels active Polygon cards in the hot wallet as pending transfer', () => {
+        expect(resolveCardCustody({
+            chainEid: LZ_EID_POLYGON,
+            registryStatus: 1,
+            owner: polygonHotWallet,
+            safeAddress: polygonSafe,
+            hotWalletAddress: polygonHotWallet,
+        })).toMatchObject({
+            custodyStatus: 'hot-wallet',
+            custodyLabel: 'Hot wallet',
+            statusLabel: 'PENDING TRANSFER',
+            registryStatusLabel: 'Active',
+        });
+    });
+
+    it('keeps active Polygon Safe-held cards active', () => {
+        expect(resolveCardCustody({
+            chainEid: LZ_EID_POLYGON,
+            registryStatus: 1,
+            owner: polygonSafe.toLowerCase(),
+            safeAddress: polygonSafe,
+            hotWalletAddress: polygonHotWallet,
+        })).toMatchObject({
+            custodyStatus: 'safe',
+            custodyLabel: 'Safe custody',
+            statusLabel: 'Active',
+        });
+    });
+
+    it('does not override non-active registry statuses', () => {
+        expect(resolveCardCustody({
+            chainEid: LZ_EID_POLYGON,
+            registryStatus: 2,
+            owner: polygonHotWallet,
+            safeAddress: polygonSafe,
+            hotWalletAddress: polygonHotWallet,
+        })).toMatchObject({
+            custodyStatus: 'external',
+            statusLabel: 'Sold',
+        });
+    });
+
+    it('does not mark non-Polygon positions as pending transfer', () => {
+        expect(resolveCardCustody({
+            chainEid: LZ_EID_AVALANCHE,
+            registryStatus: 1,
+            owner: polygonHotWallet,
+            safeAddress: polygonSafe,
+            hotWalletAddress: polygonHotWallet,
+        })).toMatchObject({
+            custodyStatus: 'unknown',
+            statusLabel: 'Active',
+        });
     });
 });
