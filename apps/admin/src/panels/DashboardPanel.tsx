@@ -62,7 +62,6 @@ export function DashboardPanel() {
     });
     const liquidityCoordinatorBalanceRead = useBalance({ address: MAINNET.liquidityCoordinator });
     const courtyardWorkflowBalanceRead = useBalance({ address: MAINNET.courtyardWorkflow });
-    const teamWalletBalanceRead = useBalance({ address: MAINNET.teamWallet });
 
     const traderJoeLpRead = useReadContract({
         address: MAINNET.liquidityCoordinator,
@@ -89,7 +88,6 @@ export function DashboardPanel() {
             treasuryBalanceRead.data?.value,
             liquidityCoordinatorBalanceRead.data?.value,
             courtyardWorkflowBalanceRead.data?.value,
-            teamWalletBalanceRead.data?.value,
         ],
         avaxUsd: priceStatus.avaxUsd,
         stableAccountingLiquidTreasury: stableAccountingRead.data?.[2],
@@ -99,7 +97,6 @@ export function DashboardPanel() {
         liquidityCoordinatorBalanceRead.data?.value,
         priceStatus.avaxUsd,
         stableAccountingRead.data,
-        teamWalletBalanceRead.data?.value,
         treasuryBalanceRead.data?.value,
     ]);
     const lpDeployment = aggregateLpDeployment(traderJoeLpRead.data, pharaohLpRead.data);
@@ -118,7 +115,6 @@ export function DashboardPanel() {
         avaxUsdRead.isError,
         liquidityCoordinatorBalanceRead.isError,
         courtyardWorkflowBalanceRead.isError,
-        teamWalletBalanceRead.isError,
         traderJoeLpRead.isError,
         pharaohLpRead.isError,
     ].filter(Boolean).length;
@@ -133,16 +129,16 @@ export function DashboardPanel() {
 
     const routedFundsRows = [
         {
+            label: 'Fund proxy',
+            value: formatAvax(fundBalanceRead.data?.value, { maximumFractionDigits: 6 }),
+            status: liveStatus(fundBalanceRead.data?.value),
+            detail: 'Current AVAX held by the fund contract; this is the hard max card-buying budget.',
+        },
+        {
             label: 'Treasury Safe dust',
             value: formatAvax(treasuryBalanceRead.data?.value),
             status: liveStatus(treasuryBalanceRead.data?.value),
             detail: 'Post-routing Safe balance; excluded from the card-buying budget.',
-        },
-        {
-            label: 'Team wallet',
-            value: formatAvax(teamWalletBalanceRead.data?.value),
-            status: liveStatus(teamWalletBalanceRead.data?.value),
-            detail: 'Separated team allocation; not spendable for card purchases.',
         },
         {
             label: 'LFJ routed allocation',
@@ -285,7 +281,7 @@ export function DashboardPanel() {
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                 <LedgerPanel
                     title="Routed funds"
-                    caption="Separated balances so team, ops, LP, and workflow funds do not inflate card-buying capacity."
+                    caption="Separated balances so fund cash, Safe dust, LP, and workflow funds stay distinct."
                     rows={routedFundsRows}
                 />
                 <LedgerPanel
