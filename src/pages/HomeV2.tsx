@@ -123,6 +123,10 @@ function Hero() {
     const continuousRaisedAvax = continuousSettlementTotalUsdt6 !== undefined && avaxUsd > 0
         ? Number(formatUnits(continuousSettlementTotalUsdt6, 6)) / avaxUsd
         : 0;
+    const priorMonthRaisedAvax = archiveRaisedAvax + roundRaisedAvax;
+    const momRaisedAvaxPercent = priorMonthRaisedAvax > 0
+        ? (continuousRaisedAvax / priorMonthRaisedAvax) * 100
+        : 0;
     const totalRaisedAvax = archiveRaisedAvax + roundRaisedAvax + continuousRaisedAvax;
     const totalRaisedUsd = totalRaisedAvax * avaxUsd;
     const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', {
@@ -133,6 +137,10 @@ function Hero() {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     })}`;
+    const momRaisedAvaxLabel = `+${momRaisedAvaxPercent.toLocaleString('en-US', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    })}% MoM in AVAX`;
 
     const onPhoto = {
         primary: theme === 'dark' ? '#ffffff' : '#0f0e0a',
@@ -214,8 +222,13 @@ function Hero() {
                             <div className="label-font">
                                 Strategy capital
                             </div>
-                            <div className="mt-2 text-[1.65rem] font-extrabold leading-tight tracking-[-0.035em] text-[var(--text-primary)]">
-                                {totalRaisedLabel}
+                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <div className="text-[1.65rem] font-extrabold leading-tight tracking-[-0.035em] text-[var(--text-primary)]">
+                                    {totalRaisedLabel}
+                                </div>
+                                <DataMono className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/45 px-2 py-1 text-[0.76rem] font-semibold tracking-[0.02em] text-[var(--data-up)]">
+                                    {momRaisedAvaxLabel}
+                                </DataMono>
                             </div>
                             <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
                                 {totalRaisedUsdLabel} total raised across recorded rounds, including live continuous commits.

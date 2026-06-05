@@ -166,6 +166,48 @@ describe("GemMintStrategyFundV7 dynamic tokenomics", function () {
     ];
   }
 
+  async function setupPurchase(ctx, amountUsdt6 = 100_000_000n) {
+    const marketId = ethers.id("COURTYARD");
+    const chainEid = 30109;
+    const purchaseKey = ethers.id("prepared-courtyard-purchase");
+
+    await ctx.portfolioRegistry.connect(ctx.governance).setChainSafe(
+      chainEid,
+      ctx.receiver.address,
+      ethers.ZeroHash,
+      ethers.id("POLYGON_SAFE"),
+      true
+    );
+    await ctx.portfolioRegistry.connect(ctx.governance).setMarketplaceApproval(marketId, true);
+    await ctx.portfolioRegistry.connect(ctx.governance).authorizePurchaseV2(
+      purchaseKey,
+      chainEid,
+      marketId,
+      ethers.id("asset-v8"),
+      await ctx.usdt.getAddress(),
+      amountUsdt6,
+      ethers.id("mandate-v8")
+    );
+
+    return { purchaseKey, chainEid, destinationSafe: ctx.receiver.address };
+  }
+
+  async function deployReconciliationUpgrade(ctx) {
+    const finalImplementation = await upgrades.erc1967.getImplementationAddress(await ctx.fund.getAddress());
+    const ReconciliationUpgrade = await ethers.getContractFactory(
+      "Gm10LiquidTreasuryReconciliationUpgrade",
+      ctx.governance
+    );
+    const reconciliationUpgrade = await ReconciliationUpgrade.deploy();
+    await reconciliationUpgrade.waitForDeployment();
+
+    return {
+      finalImplementation,
+      reconciliationUpgrade,
+      reconciliationAtProxy: ReconciliationUpgrade.attach(await ctx.fund.getAddress()),
+    };
+  }
+
   it("validates the V6 to V7 upgrade and rejects zero segment wallets", async function () {
     const ctx = await loadFixture(deployV6Fixture);
     const validRecipients = segmentAddresses(ctx);
@@ -285,5 +327,107 @@ describe("GemMintStrategyFundV7 dynamic tokenomics", function () {
     await ctx.controller.connect(ctx.ops).setProfitShareExclusion(ctx.investor.address, false);
     expect(await ctx.controller.excludedFromProfitShare(ctx.investor.address)).to.equal(false);
     expect(await ctx.controller.profitEligibleSupply18()).to.equal(eligibleBefore);
+  });
+
+  it("lets governance reconcile liquid treasury accounting before confirming prepared purchase funding", async function () {
+    const ctx = await upgradeToV7(await loadFixture(deployV6Fixture));
+
+    const roundId = await createRound(ctx.fund, ctx.ops, "1000");
+    await ctx.fund.connect(ctx.investor).invest(roundId, { value: ethers.parseEther("2") });
+
+    const { purchaseKey, chainEid, destinationSafe } = await setupPurchase(ctx);
+    const settlementRef = ethers.id("polygon-hot-wallet-usdc");
+    const proofHash = ethers.id("safe-bridge-and-hot-wallet-proof");
+
+    await expect(
+      ctx.fund.connect(ctx.ops).confirmPurchaseFunding(
+        purchaseKey,
+        await ctx.usdt.getAddress(),
+        100_000_000n,
+        chainEid,
+        destinationSafe,
+        settlementRef,
+        proofHash
+      )
+    ).to.be.revertedWithCustomError(ctx.fund, "InsufficientFreeBalance");
+
+    const reconciliationRef = ethers.id("treasury-safe-polygon-hot-wallet-snapshot");
+    const reconciliationProof = ethers.id("safe-and-hot-wallet-balance-proof");
+    const { finalImplementation, reconciliationUpgrade, reconciliationAtProxy } =
+      await deployReconciliationUpgrade(ctx);
+    const repairCall = reconciliationUpgrade.interface.encodeFunctionData(
+      "reconcileLiquidTreasuryAndReturn",
+      [
+        finalImplementation,
+        100_000_000n,
+        reconciliationRef,
+        reconciliationProof,
+      ]
+    );
+
+    await expect(
+      ctx.fund.connect(ctx.ops).upgradeToAndCall(await reconciliationUpgrade.getAddress(), repairCall)
+    ).to.be.reverted;
+
+    await expect(
+      ctx.fund.connect(ctx.governance).upgradeToAndCall(await reconciliationUpgrade.getAddress(), repairCall)
+    )
+      .to.emit(reconciliationAtProxy, "LiquidTreasuryAccountingReconciled")
+      .withArgs(50_000_000n, 100_000_000n, reconciliationRef, reconciliationProof);
+    expect(await upgrades.erc1967.getImplementationAddress(await ctx.fund.getAddress())).to.equal(finalImplementation);
+
+    let stableAccounting = await ctx.fund.stableAccounting();
+    expect(stableAccounting.liquidTreasury).to.equal(100_000_000n);
+    expect(await ctx.fund.navPerTokenUsdt6()).to.equal(50_000_000n);
+
+    await ctx.fund.connect(ctx.ops).confirmPurchaseFunding(
+      purchaseKey,
+      await ctx.usdt.getAddress(),
+      100_000_000n,
+      chainEid,
+      destinationSafe,
+      settlementRef,
+      proofHash
+    );
+
+    stableAccounting = await ctx.fund.stableAccounting();
+    expect(stableAccounting.liquidTreasury).to.equal(0n);
+    expect(stableAccounting.outstandingPurchaseReleases).to.equal(100_000_000n);
+  });
+
+  it("requires non-zero evidence when reconciling liquid treasury accounting", async function () {
+    const ctx = await upgradeToV7(await loadFixture(deployV6Fixture));
+    const { finalImplementation, reconciliationUpgrade, reconciliationAtProxy } =
+      await deployReconciliationUpgrade(ctx);
+
+    const zeroRefCall = reconciliationUpgrade.interface.encodeFunctionData(
+      "reconcileLiquidTreasuryAndReturn",
+      [
+        finalImplementation,
+        100_000_000n,
+        ethers.ZeroHash,
+        ethers.id("proof"),
+      ]
+    );
+    await expect(
+      ctx.fund.connect(ctx.governance).upgradeToAndCall(await reconciliationUpgrade.getAddress(), zeroRefCall)
+    ).to.be.revertedWithCustomError(reconciliationAtProxy, "InvalidParameters");
+
+    expect(await upgrades.erc1967.getImplementationAddress(await ctx.fund.getAddress())).to.not.equal(
+      await reconciliationUpgrade.getAddress()
+    );
+
+    const zeroProofCall = reconciliationUpgrade.interface.encodeFunctionData(
+      "reconcileLiquidTreasuryAndReturn",
+      [
+        finalImplementation,
+        100_000_000n,
+        ethers.id("snapshot"),
+        ethers.ZeroHash,
+      ]
+    );
+    await expect(
+      ctx.fund.connect(ctx.governance).upgradeToAndCall(await reconciliationUpgrade.getAddress(), zeroProofCall)
+    ).to.be.revertedWithCustomError(reconciliationAtProxy, "InvalidParameters");
   });
 });

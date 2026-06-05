@@ -302,6 +302,8 @@ afterEach(() => {
     cleanup();
     wagmiMocks.account = { address: undefined, isConnected: false };
     wagmiMocks.balanceValue = undefined;
+    wagmiMocks.blockNumber = 85856585n;
+    wagmiMocks.contractEvents = [];
     wagmiMocks.roundState = undefined;
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
@@ -363,6 +365,57 @@ describe('page compression regressions', () => {
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /top-grade pokémon cards have compounded/i })).toBeInTheDocument();
         expect(screen.getByText(/\$16\.5M/i)).toBeInTheDocument();
+    });
+
+    it('shows the hero strategy capital MoM increase in AVAX', async () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                roundId: 2n,
+                targetAmount: 5000000000000000000000n,
+                raisedAmount: 1353983600000000000000n,
+                tokenPrice: 3500000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 500000000000000000000n,
+                startTime: 1776351600n,
+                endTime: 1778943600n,
+                isActive: false,
+                isFinalized: true,
+            },
+            status: 'Finalized',
+            progress: 27.079672,
+            isRoundOpen: false,
+            isUpcoming: false,
+            isClosed: true,
+            isPlanned: false,
+            roundSource: 'onchain',
+            startsAt: 1776351600,
+            endsAt: 1778943600,
+            archiveRound: {
+                roundId: 1n,
+                targetAmount: 500000000000000000000n,
+                raisedAmount: 500000000000000000000n,
+                tokenPrice: 3000000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 200000000000000000000n,
+                startTime: 1776110400n,
+                endTime: 1777051200n,
+                isActive: false,
+                isFinalized: true,
+            },
+            targetLabel: '5,000 AVAX',
+            raisedLabel: '1,353.9836 AVAX',
+            priceLabel: '0.0035 AVAX',
+            minMaxLabel: '0.1 to 500 AVAX',
+            links: [],
+        };
+        wagmiMocks.contractEvents = [
+            { args: { settlementAmountUsdt6: 1761284420n } },
+        ];
+
+        renderAt('/');
+
+        expect(await screen.findByText(/\+10\.0% MoM in AVAX/i)).toBeInTheDocument();
     });
 
     it('merges buy and live proof into the fundraising route', async () => {
