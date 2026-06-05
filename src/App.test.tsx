@@ -550,6 +550,7 @@ describe('page compression regressions', () => {
         await waitFor(() => {
             expect(screen.getByText(/5,599\.9996 AVAX/i)).toBeInTheDocument();
         });
+        expect(screen.getByText(/\+1\.8% MoM in AVAX/i)).toBeInTheDocument();
         expect(screen.queryByText(/onchain logs/i)).not.toBeInTheDocument();
     });
 
