@@ -109,6 +109,10 @@ function localApiPlugin(): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react(), localApiPlugin()],
+    server: {
+        port: 4500,
+        strictPort: true,
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
