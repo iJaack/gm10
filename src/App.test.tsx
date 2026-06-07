@@ -530,7 +530,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
         expect(screen.getByText(/5,554\.4542 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/commit-time USD \(.* rounds \+ .* continuous\)/i)).toBeInTheDocument();
+        expect(screen.getByText(/conversion-time USDC from AVAX converted for card-buying routes/i)).toBeInTheDocument();
         expect(screen.queryByText(/raised across finalized rounds/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Continuous commits are the current entry mode/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/legacy raise of .* cap/i)).not.toBeInTheDocument();
@@ -593,7 +593,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/5,754\.4542 AVAX/i)).toBeInTheDocument();
     });
 
-    it('uses commit-time AVAX and USDC-equivalent values for homepage strategy capital', async () => {
+    it('uses raised AVAX and conversion-time USDC values for homepage strategy capital', async () => {
         wagmiMocks.roundState = {
             roundId: 2,
             round: {
@@ -643,7 +643,7 @@ describe('page compression regressions', () => {
             expect(screen.getByText(/1,908\.4382 AVAX/i)).toBeInTheDocument();
         });
         expect(screen.getByText(/\+2\.9% MoM in AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/~\$17,864 commit-time USD \(~\$17,462 rounds \+ ~\$402 continuous\)/i)).toBeInTheDocument();
+        expect(screen.getByText(/~\$14,754 conversion-time USDC from AVAX converted for card-buying routes/i)).toBeInTheDocument();
     });
 
     it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {

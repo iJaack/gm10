@@ -23,6 +23,7 @@ import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiPr
 import { useStrategyCapitalTotals } from '../hooks/useStrategyCapitalTotals';
 import { useTheme } from '../hooks/useTheme';
 import { FINALIZED_RAISE_ARCHIVE, HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
+import { CARD_PURCHASE_CONVERSION_BASIS_USD } from '../data/strategyCapital';
 
 /* ─────────────────────────────────────────────── */
 /*  1. HERO                                         */
@@ -48,15 +49,7 @@ function Hero() {
         minimumFractionDigits: 0,
         maximumFractionDigits: 4,
     })} AVAX`;
-    const totalRaisedUsdLabel = `~$${strategyCapital.totalCommitmentUsd.toLocaleString('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    })}`;
-    const historicalCommitmentUsdLabel = `~$${strategyCapital.historicalCommitmentUsd.toLocaleString('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    })}`;
-    const continuousCommitmentUsdLabel = `~$${strategyCapital.continuousCommitmentUsd.toLocaleString('en-US', {
+    const cardBuyingConversionUsdLabel = `~$${CARD_PURCHASE_CONVERSION_BASIS_USD.toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     })}`;
@@ -154,7 +147,7 @@ function Hero() {
                                 </DataMono>
                             </div>
                             <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
-                                {totalRaisedUsdLabel} commit-time USD ({historicalCommitmentUsdLabel} rounds + {continuousCommitmentUsdLabel} continuous).
+                                {cardBuyingConversionUsdLabel} conversion-time USDC from AVAX converted for card-buying routes.
                             </div>
                         </div>
                     </div>
