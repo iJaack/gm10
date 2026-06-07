@@ -254,12 +254,12 @@ function PortfolioContent() {
 
     const summaryStats = [
         { label: 'COST', value: portfolio.proofSummary.costBasisLabel },
-        { label: 'MARK-TO-MARKET', value: portfolio.proofSummary.strategyCurrentValueLabel },
+        { label: 'CARD MARKS', value: portfolio.proofSummary.onchainCurrentMarkLabel },
         { label: 'CASH FUNDS', value: portfolio.proofSummary.liquidTreasuryLabel },
         {
-            label: 'P/L',
-            value: portfolio.proofSummary.unrealizedPnlLabel,
-            secondaryValue: portfolio.proofSummary.unrealizedPnlPercentLabel,
+            label: 'STRATEGY VALUE',
+            value: portfolio.proofSummary.strategyCurrentValueLabel,
+            secondaryValue: `P/L ${portfolio.proofSummary.unrealizedPnlLabel} ${portfolio.proofSummary.unrealizedPnlPercentLabel}`,
             tone: portfolio.proofSummary.unrealizedPnlDirection,
         },
     ];
@@ -290,7 +290,7 @@ function PortfolioContent() {
                         </Display>
                         <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis is the acquisition price. Mark-to-market includes active card marks plus finalized cash funds from settled proceeds.
+                            Cost basis is the acquisition price. Card marks show active holdings only. Strategy value adds finalized cash funds from settled sale proceeds.
                         </p>
                     </div>
 

@@ -989,10 +989,11 @@ describe('page compression regressions', () => {
 
         expect(await screen.findByRole('heading', { name: /^collection$/i })).toBeInTheDocument();
         expect(screen.getByText(/marketplace records and onchain registry data/i)).toBeInTheDocument();
-        expect(screen.getByText(/^mark-to-market$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^card marks$/i)).toBeInTheDocument();
         expect(screen.getByText(/^cash funds$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^strategy value$/i)).toBeInTheDocument();
         expect(screen.queryByText(/^2 recorded positions$/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^\+10\.0%$/i)).toHaveClass('v2-up');
+        expect(screen.getByText(/P\/L .* \+10\.0%/i)).toHaveClass('v2-up');
         expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
