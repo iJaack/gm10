@@ -51,36 +51,6 @@
         "mintSpreadBps": "-500",
         "redemptionsPermanentlyDisabled": true
       }
-    },
-    "lastContinuousAccrualSmoke": {
-      "timestamp": "2026-05-26T15:41:00.000Z",
-      "controlsBefore": {
-        "continuousMintPaused": true,
-        "buybackPaused": true,
-        "lpSupportPaused": true,
-        "mintSpreadBps": "-500"
-      },
-      "previewContinuousMint1Usdt6": {
-        "buyerCatch18": "252716704574172352792",
-        "segmentCatchEach18": "2527167045741723527",
-        "mintPriceUsdt6": "3957"
-      },
-      "redeemReverted": true,
-      "timelock": "0x73cBa10f55251da73423c7Ea76EC4743F5F583d3",
-      "temporaryProposer": "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813",
-      "grantProposerTx": "0xd3e3460ff5609fd8f58f22d12280e6a947f4bdcda4d7e4178d728ac5a8e6b10d",
-      "scheduleSpreadMinus499Tx": "0xf547a60a0a5e621664f16ce4f695a92bbc94b252bcb1c3ae09a93fb2515dcfcd",
-      "scheduleRestoreMinus500Tx": "0x27603fdf45b983bb81d4c6ab2af3b047b0a6a40d8d06b03bbe55f88f62d5409e",
-      "executeSpreadMinus499Tx": "0xea4d0d882dd39e79732b1ed9362e1f12506e09b821a593a84e36e24b9c27229f",
-      "executeRestoreMinus500Tx": "0xd7e68b21b8af6721ce56502083915f21f7fbcee80a86ac82d66cfd246d80e4be",
-      "revokeProposerTx": "0x1551456864512e12677efa8608e1a192ce1ada1d8372cb3851540ea376c7c403",
-      "controlsAfter": {
-        "continuousMintPaused": true,
-        "buybackPaused": true,
-        "lpSupportPaused": true,
-        "mintSpreadBps": "-500"
-      },
-      "ledgerHasProposerRoleAfter": false
     }
   },
   "avalanche": {
@@ -88,7 +58,7 @@
     "network": "avalanche",
     "chainId": "43114",
     "proxy": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
-    "implementation": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
+    "implementation": "0xbae4f2b306be5ad4ef7719e143fd6edbd775d8b5",
     "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
     "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
     "portfolioRegistry": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
@@ -142,6 +112,7 @@
       "timestamp": "2026-04-24T22:48:19.986Z"
     },
     "implementationV7": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
+    "implementationV8": "0xbae4f2b306be5ad4ef7719e143fd6edbd775d8b5",
     "tokenomicsController": "0x65acE06bbc9e079321451FAfaaD7C58223b20b26",
     "lastTokenomicsUpgrade": {
       "to": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
@@ -157,11 +128,14 @@
         "0xfe776F5483dA1456D319805C2853F840AfDbefAC"
       ]
     },
-    "implementationV8": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
     "lastContinuousAccrualUpgrade": {
+      "initialImplementation": "0x011C23226d0FD7723624Ab6c0CfBFF2B394A1291",
+      "initialTx": "0xf79a311f01bc7680e7480e7e5977a4ce97cdf134cf47026b457442f29d3d48a7",
+      "initialBlockNumber": 86431191,
+      "initialTimestamp": "2026-05-26T16:12:36.000Z",
       "to": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
       "controller": "0x65acE06bbc9e079321451FAfaaD7C58223b20b26",
-      "timestamp": "2026-05-27T17:19:05.938Z",
+      "timestamp": "2026-05-27T17:19:01.000Z",
       "blockNumber": 86514695,
       "tx": "0xa6fd983e62c52b3f56f8d2ecb089fcc59840f64b45c49662189f797f54ef5a66",
       "controls": {
@@ -199,6 +173,42 @@
       "tx": "0xdc04a9c1ccbe7f530cf60f8d79b309044f7d5da9ce26ccc2d206aba61f9386a7",
       "safe": "0x39971795266a794a8156271729A07994952a6FAD",
       "receiver": "0x38C86d0748Ae338CcEb761A6F89EA51062DE5FCe"
+    },
+    "lastStableSaleSettlementUpgrade": {
+      "from": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
+      "to": "0x4e572853dfe8f5f8b4a4025e49fbb69fed3c48d3",
+      "deploymentTx": "0x65e9d3e121704a343749ee6d42634864c6e4a183361b1fc927613bdd004da17c",
+      "upgradeTx": "0x6586882ad028b6efe88891de7e9aa5bca91f51ec78f1ca8c4caae0e20eee83ee",
+      "blockNumber": 87354129,
+      "timestamp": "2026-06-06T22:24:00Z",
+      "reason": "Add missing confirmStableSaleProceeds entrypoint to V8 for stable sale settlement"
+    },
+    "lastLpSupportReleaseUpgrade": {
+      "from": "0x4e572853dfe8f5f8b4a4025e49fbb69fed3c48d3",
+      "to": "0xbae4f2b306be5ad4ef7719e143fd6edbd775d8b5",
+      "deploymentTx": "0x583fbc0ac3fdffb595d70ad07265162e770da9c13984c733ee2e466b077e9592",
+      "upgradeTx": "0xc51da18ed65793578314f8c0edb7ee5f4b54ba369d2aa1e270b6b285bc65c8e9",
+      "deploymentBlockNumber": 87354919,
+      "upgradeBlockNumber": 87354957,
+      "timestamp": "2026-06-06T22:36:00Z",
+      "reason": "Add releaseLpSupportToken entrypoint so accrued stable LP support can be released for external LFJ and Pharaoh execution"
+    },
+    "saleProfitRouter": "0x009c742f514c0f245d2c0d0380c0843b97e8dbfa",
+    "lastSaleProfitRouterDeployment": {
+      "router": "0x009c742f514c0f245d2c0d0380c0843b97e8dbfa",
+      "tx": "0x95a29b4a1ae571957b0e74ce347b6114928e6b065c7570bbe3e38c6e09f89219",
+      "blockNumber": 87352999,
+      "timestamp": "2026-06-06T22:09:00Z"
+    },
+    "liquidTreasuryReconciliation": {
+      "targetLiquidTreasuryUsdt6": "4617552305",
+      "reconciliationRef": "0xa679e1028a0c1f900619e2eae84e9d07c7688f8c91f4cc40c21876f7c9fde309",
+      "reconciliationProof": "0x20e90c2a7267a5857fe52c41237bde14d0e2d1196e2c473e9522bfd54ea7f153",
+      "reconciliationUpgrade": "0xe0cDc43C39Cf248e7d025386890985f3bbc095AF",
+      "finalImplementation": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
+      "timestamp": "2026-05-19T18:59:55.819Z",
+      "blockNumber": 85856585,
+      "tx": "0x45566b118649a9ea47a320f7753459ad0495b87030f9b972849be6968172ff35"
     }
   },
   "fujiPurchaseTest": {

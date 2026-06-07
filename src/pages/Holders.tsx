@@ -103,7 +103,7 @@ function HoldersContent() {
                             Holder dashboard
                         </h1>
                         <p className="mt-3 text-[0.98rem] leading-[1.7] text-[var(--text-secondary)]">
-                            Track $CATCH accounting, live market liquidity, and realized sale-profit accrual. Card NAV is exposure; completed sale proceeds now reinforce buying power, buybacks, and LP support.
+                            Track $CATCH accounting, live market liquidity, and sale-profit routing. Card NAV is exposure; completed sale proceeds restore principal first, then route by market snapshot into buying power, LP support, or buyback-and-burn reserve.
                         </p>
                     </div>
                 </ScrollReveal>
@@ -263,7 +263,7 @@ function HoldersContent() {
                             <div className="flex-1">
                                 <div className="label-font text-[0.58rem]">Continuous accrual</div>
                                 <div className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">{holder.labels.marketSupportReserve}</div>
-                                <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">Routine holder claims are disabled. Realized sale profits preserve liquid card-buying power and fund market support.</p>
+                                <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">Routine holder claims are disabled. Realized sale profits restore principal first, then route from the market snapshot into card-buying power or market support.</p>
                             </div>
                             <div className="flex flex-col gap-2 sm:items-end">
                                 <button
@@ -274,7 +274,7 @@ function HoldersContent() {
                                     Public claims disabled
                                 </button>
                                 <p className="max-w-xs text-right text-[0.72rem] leading-[1.5] text-[var(--text-tertiary)]">
-                                    Sale profit accrues through reinvestment, buyback-burn execution, and LP support.
+                                    Sale profit accrues only after settlement and snapshot-based routing.
                                 </p>
                             </div>
                         </div>

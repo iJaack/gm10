@@ -66,7 +66,7 @@ export const ROUND_PROCEEDS_ALLOCATION = {
             detail: 'Sent to the team wallet after Round 2 finalizes and used for bootstrapping expenses.',
         },
     ],
-    realizedProfitWaterfall: 'Separate from realized sale profit. Future sale profit routes dynamically by market snapshot: most profit preserves card-buying power, a bounded share supports LP depth, and discount conditions can reserve budget for CATCH buyback-and-burn. Routine holder claims are disabled.',
+    realizedProfitWaterfall: 'Round proceeds are separate from sale-profit routing. A card sale starts with imported venue evidence, settled proceeds on Avalanche, and stable proceeds confirmed to the fund. Principal restores liquid treasury first. Any realized profit then routes through the current market snapshot into card-buying power, LP support, or buyback-and-burn reserve. Routine holder claims are disabled.',
 } as const;
 
 export const ROUND_2_CLOSE_LEDGER = {
@@ -253,9 +253,27 @@ export const TOKEN_RELEASE_RULES = [
 ] as const;
 
 export const WATERFALL = [
-    { label: 'Buying power', percent: 70, color: 'from-sky-400 to-blue-500' },
-    { label: 'LP support', percent: 20, color: 'from-emerald-400 to-teal-500' },
-    { label: 'Buyback-burn reserve', percent: 10, color: 'from-cyan-400 to-sky-500' },
+    {
+        label: 'Buying power',
+        percent: 34,
+        routeLabel: 'Snapshot-routed',
+        color: 'from-sky-400 to-blue-500',
+        detail: 'Restored after principal when the router keeps realized profit available for new card execution.',
+    },
+    {
+        label: 'LP support',
+        percent: 33,
+        routeLabel: 'When accrued',
+        color: 'from-emerald-400 to-teal-500',
+        detail: 'Released as explicit market support, split into AVAX/WAVAX and CATCH legs, then deployed across LFJ and Pharaoh.',
+    },
+    {
+        label: 'Buyback-burn reserve',
+        percent: 33,
+        routeLabel: 'Conditional',
+        color: 'from-cyan-400 to-sky-500',
+        detail: 'Reserved only when the market snapshot justifies discount support through CATCH buyback and burn.',
+    },
 ] as const;
 
 export const PURCHASE_FLOW = [
@@ -279,20 +297,20 @@ export const PURCHASE_FLOW = [
 
 export const SALE_FLOW = [
     {
-        title: 'A card gets marked for exit',
-        detail: 'The future governance flow decides when a slab should be moved, not just what gets bought.',
+        title: 'Import the sale evidence',
+        detail: 'The operator starts from the venue transaction, matches the sold token to the registry position, and generates the sale key from the proof trail.',
     },
     {
-        title: 'The exit happens on the right venue',
-        detail: 'Sales execute where the buyer is, whether that is a tokenized rail, a settlement venue, or a native collectible marketplace.',
+        title: 'Settle proceeds to Avalanche',
+        detail: 'A sale is not finalized while funds are still on a marketplace rail. Stable proceeds must land on Avalanche and be confirmed against the sale key.',
     },
     {
-        title: 'Proceeds land back on Avalanche',
-        detail: 'Nothing counts until the money is back on the canonical scoreboard.',
+        title: 'Finalize with a market snapshot',
+        detail: 'The architecture-aware path restores principal first, then uses live market inputs to decide how realized profit should be routed.',
     },
     {
-        title: 'Principal first, profit next',
-        detail: 'Once principal is restored, realized profit preserves buying power first, then routes bounded support to LP or buyback-burn budgets when market conditions justify it.',
+        title: 'Execute market support when accrued',
+        detail: 'LP support is an execution step, not a label. Released support buys AVAX/WAVAX and CATCH legs, then adds liquidity across the configured LFJ and Pharaoh venues.',
     },
 ] as const;
 
@@ -359,7 +377,7 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'What does $CATCH represent?',
-        answer: '$CATCH is the token that tracks the GM10 strategy. It reflects round participation, marked holdings, and realized exits as the portfolio evolves.',
+        answer: '$CATCH is the token that tracks the Gem Mint Strategy. It reflects round participation, marked holdings, sale settlement, and realized-profit routing as the portfolio evolves.',
     },
     {
         question: 'Why not buy cards directly?',
@@ -375,11 +393,11 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'What is live today versus planned later?',
-        answer: 'The continuous round is the current entry mechanic. Round 2 is finalized and archived; public proof links, token accounting, liquidity routing, holder dashboards, and reference NAV reporting remain inspectable.',
+        answer: 'The continuous round is the current entry mechanic. Round 2 is finalized and archived; public proof links, token accounting, sale evidence import, liquidity routing, holder dashboards, and reference NAV reporting remain inspectable.',
     },
     {
         question: 'How do continuous commits route value?',
-        answer: 'Each verified commit routes native AVAX into the fund proxy, prices that AVAX as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and routes the value into strategy buying power plus bounded LP support. Round 2 finalized at 1,353.9836 AVAX and remains an archive item.',
+        answer: 'Each verified commit routes native AVAX into the fund proxy, prices that AVAX as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and routes the value into strategy buying power plus bounded LP support. Card-sale profit uses a different path: proceeds settle back to Avalanche, principal is restored first, and realized profit routes from the current market snapshot.',
     },
     {
         question: 'Does GM10 guarantee returns?',
@@ -422,7 +440,7 @@ export const HOME_PROOF_STRIP = [
     {
         label: 'Public mechanics',
         value: 'Continuous mint logic',
-        detail: 'Per-commit accounting, contract links, and proof surfaces are designed to stay inspectable on Avalanche mainnet.',
+        detail: 'Per-commit accounting, sale settlement, contract links, and proof surfaces are designed to stay inspectable on Avalanche mainnet.',
     },
     {
         label: 'Execution layer',
@@ -457,7 +475,7 @@ export const HOME_GM10_ADVANTAGES = [
     },
     {
         title: 'Keep the strategy inspectable',
-        body: 'Commit state, contracts, holdings, and fund mechanics live on Avalanche so diligence does not stop at a PDF deck.',
+        body: 'Commit state, holdings, sale settlement, LP support, and fund mechanics live on Avalanche so diligence does not stop at a PDF deck.',
     },
 ] as const;
 
@@ -472,7 +490,7 @@ export const HOME_INVESTOR_OBJECTIONS = [
     },
     {
         question: 'What proves the system is ready for mainnet?',
-        answer: 'The V8 continuous round is verified on mainnet, while the finalized Round 2 close remains public proof of contract-enforced routing. Inspect the contracts on Snowtrace.',
+        answer: 'The V8 continuous round is verified on mainnet, while the finalized Round 2 close remains public proof of contract-enforced routing. The sale workflow starts from venue evidence instead of spreadsheet entry. Inspect the contracts on Snowtrace.',
     },
     {
         question: 'Why does Avalanche matter here?',
@@ -498,7 +516,7 @@ export const SUPPORT_PAGE_COPY = {
     catch: {
         eyebrow: 'How it works',
         title: 'A TCG strategy designed to accrue value to $CATCH.',
-        body: 'This page shows how GM10 turns one token into portfolio exposure, valuation discipline, and a transparent exit waterfall.',
+        body: 'This page shows how Gem Mint Strategy turns one token into portfolio exposure, valuation discipline, sale settlement, and market-support execution.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',
     },
