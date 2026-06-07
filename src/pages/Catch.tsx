@@ -338,20 +338,20 @@ function AllocationPieChart({ slices, previewStatus }: { slices: AllocationSlice
 const NAV_RULES = [
     {
         label: 'Rule 1',
-        title: 'Exact trade',
-        detail: 'Use the exact executed buy or sale of the same asset when it exists.',
+        title: 'Same-card trade',
+        detail: 'If GM10 bought or sold that exact card, that executed price is the mark.',
         tone: 'live' as const,
     },
     {
         label: 'Rule 2',
-        title: 'Comparable sales',
-        detail: 'Use strong comps from matching collection, condition, chain, and venue context.',
+        title: 'Similar-card sales',
+        detail: 'If there is no exact trade, use recent sales from the same card, grade, and market context.',
         tone: 'warning' as const,
     },
     {
         label: 'Rule 3',
-        title: 'Listing-band fallback',
-        detail: 'If trades are thin, mark conservatively and cap inferred weekly moves.',
+        title: 'Conservative fallback',
+        detail: 'If sales are thin, use listings carefully and cap how much the mark can move in a week.',
         tone: 'warning' as const,
     },
 ];
@@ -502,10 +502,10 @@ function CatchContent() {
                 <ScrollReveal>
                     <SectionLabel>NAV mechanics</SectionLabel>
                     <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
-                        How the token gets priced.
+                        Price starts with what GM10 owns.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        NAV per token reflects the marked portfolio value divided by circulating supply. The marking system follows a strict priority cascade.
+                        GM10 adds up the marked cards plus liquid treasury that backs $CATCH, leaves market-support buckets out of the backing math, then divides by circulating $CATCH.
                     </p>
                 </ScrollReveal>
 
@@ -524,10 +524,10 @@ function CatchContent() {
                 <ScrollReveal delay={1}>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {[
-                            { label: 'Portfolio value', desc: 'Sum of all marked positions' },
-                            { label: 'Liquid treasury', desc: 'Cash held across treasury wallets' },
-                            { label: 'Weekly NAV cap', desc: 'Max inferred move per week' },
-                            { label: 'Onchain reporting', desc: 'All values verifiable on Snowtrace' },
+                            { label: 'Backing value', desc: 'Cards plus liquid treasury that backs $CATCH' },
+                            { label: 'Excluded buckets', desc: 'Market-support liquidity is not counted as backing' },
+                            { label: 'Token count', desc: 'Divide backing value by circulating $CATCH' },
+                            { label: 'Public report', desc: 'Marks and treasury wallets stay inspectable' },
                         ].map((item) => (
                             <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
                                 <div className="text-[0.85rem] font-bold text-[var(--text-primary)]">{item.label}</div>

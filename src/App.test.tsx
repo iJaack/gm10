@@ -812,6 +812,12 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/Live contract preview: a 100 USDC settled commit mints 100 CATCH to the buyer and 1 CATCH to each of 5 configured segment wallets/i)).toBeInTheDocument();
         expect(screen.getAllByText(/95\.24%/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /price starts with what gm10 owns/i })).toBeInTheDocument();
+        expect(screen.getByText(/leaves market-support buckets out of the backing math/i)).toBeInTheDocument();
+        expect(screen.getByText(/same-card trade/i)).toBeInTheDocument();
+        expect(screen.getByText(/similar-card sales/i)).toBeInTheDocument();
+        expect(screen.getByText(/conservative fallback/i)).toBeInTheDocument();
+        expect(screen.getByText(/market-support liquidity is not counted as backing/i)).toBeInTheDocument();
         expect(screen.getByText(/total raised to date/i)).toBeInTheDocument();
         expect(screen.getByText(/1,908\.4382 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/Round 1, Round 2, and continuous commits/i)).toBeInTheDocument();
