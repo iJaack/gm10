@@ -52,6 +52,14 @@ function Hero() {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     })}`;
+    const historicalCommitmentUsdLabel = `~$${strategyCapital.historicalCommitmentUsd.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    })}`;
+    const continuousCommitmentUsdLabel = `~$${strategyCapital.continuousCommitmentUsd.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    })}`;
     const momRaisedAvaxLabel = `+${momRaisedAvaxPercent.toLocaleString('en-US', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
@@ -146,7 +154,7 @@ function Hero() {
                                 </DataMono>
                             </div>
                             <div className="mt-1 text-[0.9rem] text-[var(--text-secondary)]">
-                                {totalRaisedUsdLabel} commit-time USD value across recorded rounds, including live continuous commits.
+                                {totalRaisedUsdLabel} commit-time USD ({historicalCommitmentUsdLabel} rounds + {continuousCommitmentUsdLabel} continuous).
                             </div>
                         </div>
                     </div>
