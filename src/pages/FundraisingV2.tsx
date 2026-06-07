@@ -700,30 +700,7 @@ function FundraisingContent() {
                         </DataMono>
                     </div>
 
-                    <div className="mt-8 grid gap-5 lg:grid-cols-[0.78fr_1.22fr] lg:items-start xl:grid-cols-[0.72fr_1.28fr]">
-                        <div className="max-w-3xl">
-                            <DisplayItalic as="p" className="mt-3 max-w-[24ch] text-[clamp(1.25rem,2.2vw,1.65rem)] leading-tight text-[var(--ink-muted)]">
-                                Mint $CATCH as soon as the route settles.
-                            </DisplayItalic>
-
-                            <div className="mt-6">
-                                <SectionLabel>Live mechanics</SectionLabel>
-                            </div>
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                                {[
-                                    ['NAV-backed token price', fmtUsdc(navPerTokenUsdt6)],
-                                    ['Mint spread', fmtSpread(mintSpreadBps)],
-                                    ['Settlement', 'Native AVAX'],
-                                    ['Raised all-time', totalRaisedLabel],
-                                ].map(([label, value]) => (
-                                    <div key={label} className="rounded-xl border border-[var(--rule)] bg-[var(--bg-secondary)] px-3 py-2.5">
-                                        <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[var(--ink-faint)]">{label}</Caption>
-                                        <DataMono className="mt-1 block text-[0.9rem] font-semibold text-[var(--text-primary)]">{value}</DataMono>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
+                    <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start xl:grid-cols-[minmax(0,1fr)_380px]">
                         <div className="rounded-2xl border border-[var(--rule-strong)] bg-[var(--bg-secondary)] p-4 shadow-[0_0_0_1px_var(--accent-muted)] md:p-5">
                             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--rule)] pb-3">
                                 <div>
@@ -857,6 +834,28 @@ function FundraisingContent() {
                                 </div>
                             ) : null}
                         </div>
+
+                        <aside className="rounded-2xl border border-[var(--rule)] bg-[var(--bg-secondary)] p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <SectionLabel>Live mechanics</SectionLabel>
+                                <DataMono className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--ink-faint)]">
+                                    Avalanche
+                                </DataMono>
+                            </div>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                                {[
+                                    ['NAV-backed token price', fmtUsdc(navPerTokenUsdt6)],
+                                    ['Mint spread', fmtSpread(mintSpreadBps)],
+                                    ['Settlement', 'Native AVAX'],
+                                    ['Raised all-time', totalRaisedLabel],
+                                ].map(([label, value]) => (
+                                    <div key={label} className="rounded-xl border border-[var(--rule)] bg-[var(--bg-secondary)] px-3 py-2.5">
+                                        <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[var(--ink-faint)]">{label}</Caption>
+                                        <DataMono className="mt-1 block text-[0.9rem] font-semibold text-[var(--text-primary)]">{value}</DataMono>
+                                    </div>
+                                ))}
+                            </div>
+                        </aside>
                     </div>
                 </div>
             </section>

@@ -677,7 +677,7 @@ describe('page compression regressions', () => {
         mockSourceTokenBalances();
         renderAt('/fundraising');
 
-        expect(await screen.findByText(/mint \$CATCH as soon as the route settles/i)).toBeInTheDocument();
+        expect(await screen.findByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.queryByText(/you're not buying one card/i)).not.toBeInTheDocument();
         expect(screen.getByText(/NAV-backed token price/i)).toBeInTheDocument();
         expect(screen.getByText(/^mint spread$/i)).toBeInTheDocument();
@@ -719,7 +719,7 @@ describe('page compression regressions', () => {
         mockSourceTokenBalances();
         renderAt('/fundraising');
 
-        expect(await screen.findByText(/mint \$CATCH as soon as the route settles/i)).toBeInTheDocument();
+        expect(await screen.findByText(/^commit preview$/i)).toBeInTheDocument();
         fireEvent.change(await screen.findByLabelText(/commit amount in ETH/i), { target: { value: '1' } });
         fireEvent.click(screen.getByRole('button', { name: /mint new \$CATCH/i }));
 
@@ -764,7 +764,7 @@ describe('page compression regressions', () => {
 
         renderAt('/fundraising');
 
-        expect(await screen.findByText(/mint \$CATCH as soon as the route settles/i)).toBeInTheDocument();
+        expect(await screen.findByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.queryByText(/post-close ledger/i)).not.toBeInTheDocument();
         expect(screen.getByText(/finalized rounds · proof live/i)).toBeInTheDocument();
         expect(screen.getAllByText(/1,853\.9836 AVAX/i).length).toBeGreaterThan(0);
@@ -880,7 +880,7 @@ describe('page compression regressions', () => {
         renderAt('/fundraising');
 
         expect((await screen.findAllByText(/continuous round/i)).length).toBeGreaterThan(0);
-        expect(screen.getByText(/mint \$CATCH as soon as the route settles/i)).toBeInTheDocument();
+        expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.getByText(/NAV-backed token price/i)).toBeInTheDocument();
         expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
