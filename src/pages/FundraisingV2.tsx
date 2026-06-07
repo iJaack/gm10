@@ -215,10 +215,10 @@ function Round1Archive() {
 function Proof() {
     const round = useFujiRoundState();
     return (
-        <section className="px-4 py-20 border-t border-[var(--rule)]">
+        <section className="px-4 py-10 border-t border-[var(--rule)] md:py-12">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <SectionLabel>Proof surface</SectionLabel>
-                <Hairline className="mt-6" />
+                <Hairline className="mt-4" />
                 {round.links.map((link) => (
                     <LedgerRow
                         key={link.label}
