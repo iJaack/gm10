@@ -494,11 +494,6 @@ function FundraisingContent() {
             detail: 'Settled value becomes liquid treasury for inventory sourcing and card execution.',
         },
         {
-            label: 'LP support reserve',
-            percent: '10%',
-            detail: 'A bounded reserve accrues for market support without counting protocol-owned LP in NAV.',
-        },
-        {
             label: 'Segment token mints',
             percent: '5 x 1%',
             detail: 'Core team, governance, community, advisors, and partnerships each mint 1% of buyer tokens per commit.',
@@ -916,7 +911,7 @@ function FundraisingContent() {
                         Every continuous commit has an immediate route. It does not wait for a round close.
                     </Display>
                     <p className="mt-2 text-[0.82rem] text-[var(--ink-faint)]">
-                        Realized sale profits remain separate: principal comes back first, then profit preserves inventory buying power and can fund bounded LP support or buyback-burn budgets when conditions justify it.
+                        Sale-profit support remains separate from this commit route and only appears when a finalized sale creates it.
                     </p>
                     <div className="mt-8 border-t border-[var(--rule)]">
                         {continuousAllocationRows.map((bucket) => (

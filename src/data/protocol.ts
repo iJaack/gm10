@@ -397,7 +397,7 @@ export const FAQ_TOPICS = [
     },
     {
         question: 'How do continuous commits route value?',
-        answer: 'Each verified commit routes native AVAX into the fund proxy, prices that AVAX as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and routes the value into strategy buying power plus bounded LP support. Card-sale profit uses a different path: proceeds settle back to Avalanche, principal is restored first, and realized profit routes from the current market snapshot.',
+        answer: 'Each verified commit routes native AVAX into the fund proxy, prices that AVAX as USDC-equivalent value on Avalanche, mints buyer $CATCH immediately at the live NAV-derived price, and records the commit route separately from sale-profit support. Card-sale profit uses a different path: proceeds settle back to Avalanche, principal is restored first, and realized profit routes from the current market snapshot.',
     },
     {
         question: 'Does GM10 guarantee returns?',
