@@ -16,6 +16,7 @@ import {
     TOKEN_RELEASE_RULES,
     getRoundPrimaryCtaLabel,
 } from '../data/protocol';
+import { RECORDED_CONTINUOUS_CAPITAL_TOTALS } from '../data/strategyCapital';
 import { useFujiRoundState } from '../hooks/useFujiProof';
 
 // Release rule lookup keyed by allocation label
@@ -380,7 +381,8 @@ function CatchContent() {
     const round2RaisedAvax = roundState.round
         ? Number(formatEther(roundState.round.raisedAmount))
         : ROUND_2_CLOSE_LEDGER.raisedAvax;
-    const totalRaisedAvax = round1RaisedAvax + round2RaisedAvax;
+    const continuousRaisedAvax = Number(formatEther(RECORDED_CONTINUOUS_CAPITAL_TOTALS.avaxWei));
+    const totalRaisedAvax = round1RaisedAvax + round2RaisedAvax + continuousRaisedAvax;
     const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
     const { data: continuousAllocationPreview } = useReadContract({
         address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
@@ -436,7 +438,7 @@ function CatchContent() {
                         { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
                         { emoji: '🏷️', label: 'Pricing model', value: '5% below risk-free price', unit: 'Primary commits mint at 95% of NAV' },
                         { emoji: '🔒', label: 'Segment mints', value: `${SEGMENT_ALLOCATION_COUNT} × 1%`, unit: previewSegmentCatch ? `${previewSegmentCatch} each per 100 USDC preview` : 'Excluded from circulating supply' },
-                        { emoji: '📊', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Round 1 plus finalized Round 2' },
+                        { emoji: '📊', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Round 1, Round 2, and continuous commits' },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">

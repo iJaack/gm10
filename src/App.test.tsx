@@ -808,8 +808,8 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/95\.24%/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
         expect(screen.getByText(/total raised to date/i)).toBeInTheDocument();
-        expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/Round 1 plus finalized Round 2/i)).toBeInTheDocument();
+        expect(screen.getByText(/1,908\.4382 AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/Round 1, Round 2, and continuous commits/i)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /a card sale turns into routed strategy capital/i })).toBeInTheDocument();
         expect(screen.getByText(/the fund restores the card's cost basis/i)).toBeInTheDocument();
         expect(screen.getByText(/buy the next slab, deepen CATCH liquidity, or fund a buyback-burn/i)).toBeInTheDocument();
