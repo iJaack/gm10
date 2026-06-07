@@ -3,6 +3,7 @@ import { LZ_EID_AVALANCHE, LZ_EID_POLYGON } from '../data/gm10Config';
 import {
     deriveFujiRoundState,
     resolveCardCustody,
+    resolvePositionCurrentValueUsdt6,
     sortPortfolioActivityNewestFirst,
     type Gm10PortfolioActivity,
 } from './useFujiProof';
@@ -149,5 +150,21 @@ describe('resolveCardCustody', () => {
             custodyStatus: 'unknown',
             statusLabel: 'Active',
         });
+    });
+});
+
+describe('resolvePositionCurrentValueUsdt6', () => {
+    it('uses public valuation overrides for active positions only', () => {
+        expect(resolvePositionCurrentValueUsdt6({
+            registryStatus: 1,
+            registryCurrentValueUsdt6: 900_000000n,
+            valuationOverrideValueUsdt6: 1_100_000000n,
+        })).toBe(1_100_000000n);
+
+        expect(resolvePositionCurrentValueUsdt6({
+            registryStatus: 2,
+            registryCurrentValueUsdt6: 0n,
+            valuationOverrideValueUsdt6: 1_100_000000n,
+        })).toBe(0n);
     });
 });

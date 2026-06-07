@@ -254,7 +254,7 @@ function PortfolioContent() {
 
     const summaryStats = [
         { label: 'COST', value: portfolio.proofSummary.costBasisLabel },
-        { label: 'MARK-TO-MARKET', value: portfolio.proofSummary.onchainCurrentMarkLabel },
+        { label: 'MARK-TO-MARKET', value: portfolio.proofSummary.strategyCurrentValueLabel },
         { label: 'CASH FUNDS', value: portfolio.proofSummary.liquidTreasuryLabel },
         {
             label: 'P/L',
@@ -290,7 +290,7 @@ function PortfolioContent() {
                         </Display>
                         <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis is the acquisition price. Current mark uses the latest public valuation feed when available, then falls back to registry marks.
+                            Cost basis is the acquisition price. Mark-to-market includes active card marks plus finalized cash funds from settled proceeds.
                         </p>
                     </div>
 

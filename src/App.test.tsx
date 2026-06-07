@@ -260,6 +260,7 @@ vi.mock('./hooks/useFujiProof', () => ({
             holdingsChipLabel: '2 acquired cards',
             costBasisLabel: '$40.00',
             onchainCurrentMarkLabel: '$40.00',
+            strategyCurrentValueLabel: '$50.00',
             platformNavLabel: '$44.00',
             unrealizedPnlLabel: '$4.00',
             unrealizedPnlPercentLabel: '+10.0%',

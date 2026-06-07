@@ -12,6 +12,7 @@ export type PortfolioValueSummary = {
     costBasisUsdt6: bigint;
     onchainCurrentMarkUsdt6: bigint;
     platformNavUsdt6?: bigint;
+    strategyCurrentValueUsdt6: bigint;
     unrealizedPnlUsdt6: bigint;
     unrealizedPnlPercent: number;
     unrealizedPnlDirection: 'up' | 'down' | 'flat';
@@ -26,6 +27,7 @@ export function dollarsToUsdt6(value: number) {
 export function calculatePortfolioValueSummary(
     positions: readonly PortfolioValueInput[],
     platformNav: PlatformNavState,
+    options: { liquidTreasuryUsdt6?: bigint } = {},
 ): PortfolioValueSummary {
     const totals = positions.reduce(
         (acc, position) => ({
@@ -39,7 +41,8 @@ export function calculatePortfolioValueSummary(
         ? dollarsToUsdt6(platformNav.netWorthUsd)
         : undefined;
     const activeCurrentMark = platformNavUsdt6 ?? totals.onchainCurrentMarkUsdt6;
-    const unrealizedPnlUsdt6 = activeCurrentMark - totals.costBasisUsdt6;
+    const strategyCurrentValueUsdt6 = activeCurrentMark + (options.liquidTreasuryUsdt6 ?? 0n);
+    const unrealizedPnlUsdt6 = strategyCurrentValueUsdt6 - totals.costBasisUsdt6;
     const unrealizedPnlPercent = totals.costBasisUsdt6 === 0n
         ? 0
         : (Number(unrealizedPnlUsdt6) / Number(totals.costBasisUsdt6)) * 100;
@@ -52,6 +55,7 @@ export function calculatePortfolioValueSummary(
     return {
         ...totals,
         platformNavUsdt6,
+        strategyCurrentValueUsdt6,
         unrealizedPnlUsdt6,
         unrealizedPnlPercent,
         unrealizedPnlDirection,

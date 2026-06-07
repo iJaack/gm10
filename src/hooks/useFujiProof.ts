@@ -161,6 +161,20 @@ function positionStatusLabel(status: number) {
     return 'Pending';
 }
 
+export function resolvePositionCurrentValueUsdt6({
+    registryStatus,
+    registryCurrentValueUsdt6,
+    valuationOverrideValueUsdt6,
+}: {
+    registryStatus: number;
+    registryCurrentValueUsdt6: bigint;
+    valuationOverrideValueUsdt6?: bigint;
+}) {
+    return registryStatus === 1
+        ? valuationOverrideValueUsdt6 ?? registryCurrentValueUsdt6
+        : registryCurrentValueUsdt6;
+}
+
 function formatDate(timestamp: bigint) {
     if (timestamp === 0n) return 'Pending';
     return new Intl.DateTimeFormat(undefined, {
@@ -305,8 +319,13 @@ function normalizePosition(
 ): Gm10PortfolioPosition {
     const positionId = Number(raw.id);
     const metadata = metadataForPosition(positionId, liveMetadata);
-    const currentValueUsdt6 = valuationOverride?.valueUsdt6 ?? raw.currentValueUsdt6;
-    const lastValuationLabel = formatOptionalIsoDate(valuationOverride?.generatedAt) ?? formatDate(raw.lastValuationAt);
+    const activeValuationOverride = Number(raw.status) === 1 ? valuationOverride : undefined;
+    const currentValueUsdt6 = resolvePositionCurrentValueUsdt6({
+        registryStatus: Number(raw.status),
+        registryCurrentValueUsdt6: raw.currentValueUsdt6,
+        valuationOverrideValueUsdt6: activeValuationOverride?.valueUsdt6,
+    });
+    const lastValuationLabel = formatOptionalIsoDate(activeValuationOverride?.generatedAt) ?? formatDate(raw.lastValuationAt);
     const custody = resolveCardCustody({
         chainEid: Number(raw.chainEid),
         registryStatus: Number(raw.status),
@@ -335,8 +354,8 @@ function normalizePosition(
         acquisitionPriceUsdt6: raw.acquisitionPriceUsdt6,
         currentValueUsdt6,
         courtyardUrl: metadata.courtyardUrl,
-        proofUrl: valuationOverride?.submittedTxHash
-            ? `${GM10_EXPLORER_TX_BASE_URL}/${valuationOverride.submittedTxHash}`
+        proofUrl: activeValuationOverride?.submittedTxHash
+            ? `${GM10_EXPLORER_TX_BASE_URL}/${activeValuationOverride.submittedTxHash}`
             : metadata.proofUrl,
     };
 }
@@ -704,11 +723,6 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         ))
         .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, ownerByPositionKey, publicValuationOverrides, rawPositions]);
 
-    const valueSummary = useMemo(
-        () => calculatePortfolioValueSummary(positions, platformNav),
-        [platformNav, positions],
-    );
-    const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
     const avaxUsd = avaxUsdRoundData && avaxUsdRoundData[1] > 0n
         ? Number(formatUnits(avaxUsdRoundData[1], 8))
         : fallbackAvaxUsd;
@@ -731,6 +745,11 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         teamWalletBalance?.value,
         treasurySafeBalance?.value,
     ]);
+    const valueSummary = useMemo(
+        () => calculatePortfolioValueSummary(positions, platformNav, { liquidTreasuryUsdt6 }),
+        [liquidTreasuryUsdt6, platformNav, positions],
+    );
+    const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
 
     const activity = useMemo<Gm10PortfolioActivity[]>(() => sortPortfolioActivityNewestFirst(positions
         .map((position) => ({
@@ -773,6 +792,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             holdingsChipLabel: `${positions.length} acquired card${positions.length === 1 ? '' : 's'}`,
             costBasisLabel: formatUsdt6(valueSummary.costBasisUsdt6),
             onchainCurrentMarkLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
+            strategyCurrentValueLabel: formatUsdt6(valueSummary.strategyCurrentValueUsdt6),
             platformNavLabel: valueSummary.platformNavUsdt6 !== undefined ? formatUsdt6(valueSummary.platformNavUsdt6) : 'Unavailable',
             unrealizedPnlLabel: formatUsdt6(valueSummary.unrealizedPnlUsdt6),
             unrealizedPnlPercentLabel: formatPercent(valueSummary.unrealizedPnlPercent),

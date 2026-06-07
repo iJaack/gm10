@@ -33,7 +33,7 @@ export function resolveLiquidTreasuryUsdt6({
     avaxUsd: number;
     stableAccountingLiquidTreasury?: bigint;
 }) {
-    return sumTreasuryWalletBalancesUsdt6(walletBalancesWei, avaxUsd)
-        ?? stableAccountingLiquidTreasury
+    return stableAccountingLiquidTreasury
+        ?? sumTreasuryWalletBalancesUsdt6(walletBalancesWei, avaxUsd)
         ?? 0n;
 }
