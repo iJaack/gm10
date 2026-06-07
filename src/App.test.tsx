@@ -1057,6 +1057,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/dynamic supply expands when successful commits mint from settled value/i)).toBeInTheDocument();
         expect(screen.getByText(/Liquid \$3,528\.60 incl\. settled sale proceeds · Cards \$40\.00/i)).toBeInTheDocument();
         expect(screen.getByText(/sale-inclusive liquid treasury plus card marks/i)).toBeInTheDocument();
+        expect(screen.queryByText(/market-support reserve/i)).not.toBeInTheDocument();
         expect(screen.getAllByText(/total minted/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/excluded system supply/i).length).toBeGreaterThan(0);
         const profitEligibleHero = screen.getAllByText(/174,421\.1693 CATCH/i)[0].closest('.relative');
@@ -1073,9 +1074,6 @@ describe('page compression regressions', () => {
         expect(screen.queryByRole('button', { name: /mint|invest|buy/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/no apr \/ apy/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/apr\/apy/i)).not.toBeInTheDocument();
-        const marketSupportRow = screen.getByText(/market-support reserve/i).closest('.grid') as HTMLElement | null;
-        expect(marketSupportRow).not.toBeNull();
-        expect(within(marketSupportRow!).getByText('$0.00')).toHaveClass('text-[1.75rem]');
         expect(screen.getByText(/\$CATCH market-buy reserve from all proceeds/i)).toBeInTheDocument();
         expect(screen.getByText(/Round 1 and finalized Round 2 round-proceeds market buys/i)).toBeInTheDocument();
         expect(screen.getAllByText(/\$880\.64/i).length).toBeGreaterThan(0);

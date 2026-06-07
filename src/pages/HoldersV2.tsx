@@ -327,22 +327,12 @@ function CompositionDonut() {
         return { d, color: slice.color, pct: (slice.value / total) * 100, label: slice.label, value: slice.value };
     });
 
-    // Market-support metrics — live alongside the composition donut
-    const flowRows = [
-        {
-            label: 'Market-support reserve',
-            detail: 'Sale-profit funds reserved for buyback-burn execution and LP support.',
-            value: holder.labels.holderProfitsClaimableClaimed,
-            valueClassName: 'text-[1.75rem] md:text-[2rem]',
-        },
-    ];
-
     return (
         <section className="px-4 pb-12">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <SectionLabel>Protocol composition</SectionLabel>
                 <Hairline className="mt-4" />
-                <div className="mt-6 grid gap-8 md:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)] md:items-start">
+                <div className="mt-6 grid gap-8 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
                     <div className="flex justify-center md:justify-start lg:items-center">
                         <svg viewBox="0 0 180 180" width="180" height="180" aria-hidden>
                             {paths.map((p, i) => (
@@ -393,9 +383,6 @@ function CompositionDonut() {
                             </li>
                         ))}
                     </ul>
-                    <div className="flex flex-col">
-                        {flowRows.map((row) => <StatRowItem key={row.label} row={row} />)}
-                    </div>
                 </div>
             </div>
         </section>
