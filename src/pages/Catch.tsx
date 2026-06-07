@@ -37,7 +37,7 @@ const SLICE_COLOURS: Record<string, string> = {
 
 const WATERFALL_CODE_REFERENCE = [
     {
-        emoji: '🃏',
+        step: '01',
         label: 'Sale matched to inventory',
         detail: 'Venue proof links the sold card to its registry position',
         color: 'var(--accent)',
@@ -47,7 +47,7 @@ positionId = matchSoldTokenToRegistry(collection, tokenId);
 recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
     },
     {
-        emoji: '⛓',
+        step: '02',
         label: 'Cash lands on Avalanche',
         detail: 'Stable proceeds must be confirmed in the fund before routing',
         color: 'var(--accent-blue)',
@@ -62,7 +62,7 @@ recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
 );`,
     },
     {
-        emoji: '💰',
+        step: '03',
         label: 'Cost basis returns first',
         detail: 'The fund restores the sold card principal before profit routing',
         color: 'var(--accent-green)',
@@ -75,7 +75,7 @@ recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
 }`,
     },
     {
-        emoji: '📊',
+        step: '04',
         label: 'Profit gets a fresh route',
         detail: 'The market snapshot decides how realized profit supports the strategy',
         color: 'var(--accent)',
@@ -159,7 +159,7 @@ function buildContinuousAllocationSlices(preview?: readonly [bigint, bigint, big
 }
 
 function WaterfallHoverCard({
-    emoji,
+    step,
     label,
     detail,
     color,
@@ -169,7 +169,7 @@ function WaterfallHoverCard({
     return (
         <div className="group relative flex w-full max-w-sm flex-col items-center">
             <div className="w-full rounded-xl border-2 bg-[var(--bg-secondary)] px-5 py-4 text-center transition-transform duration-200 group-hover:-translate-y-0.5 group-focus-within:-translate-y-0.5" style={{ borderColor: color }}>
-                <div className="text-xl">{emoji}</div>
+                <div className="v2-mono text-[0.68rem] font-bold uppercase tracking-[0.14em]" style={{ color }}>{step}</div>
                 <div className="mt-1 text-[0.92rem] font-bold text-[var(--text-primary)]">{label}</div>
                 <div className="mt-0.5 text-[0.75rem] text-[var(--text-secondary)]">{detail}</div>
                 <div className="mt-2 hidden items-center justify-center gap-1 text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)] md:flex">
@@ -419,7 +419,7 @@ function CatchContent() {
                     <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
                         {pageCopy.title}
                     </Display>
-                    <p className="mt-4 w-full max-w-none text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
+                    <p className="mt-4 max-w-[82ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                         {pageCopy.body}
                     </p>
                     <div className="mt-6 flex flex-wrap gap-6">
@@ -435,15 +435,15 @@ function CatchContent() {
                 {/* Quick stats */}
                 <div className="mt-8 grid gap-3 sm:grid-cols-4">
                     {[
-                        { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
-                        { emoji: '🏷️', label: 'Pricing model', value: '5% below risk-free price', unit: 'Primary commits mint at 95% of NAV' },
-                        { emoji: '🔒', label: 'Segment mints', value: `${SEGMENT_ALLOCATION_COUNT} × 1%`, unit: previewSegmentCatch ? `${previewSegmentCatch} each per 100 USDC preview` : 'Excluded from circulating supply' },
-                        { emoji: '📊', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Round 1, Round 2, and continuous commits' },
+                        { code: 'NAV', label: 'Pricing model', value: '5% below risk-free price', unit: 'Primary commits mint at 95% of NAV' },
+                        { code: 'OPEN', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
+                        { code: '1%', label: 'Segment mints', value: `${SEGMENT_ALLOCATION_COUNT} × 1%`, unit: previewSegmentCatch ? `${previewSegmentCatch} each per 100 USDC preview` : 'Excluded from circulating supply' },
+                        { code: 'SUM', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Rounds plus continuous commits' },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
                                 <div className="flex items-center gap-2">
-                                    <span aria-hidden>{stat.emoji}</span>
+                                    <span className="v2-mono inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-[var(--border)] px-1.5 text-[0.68rem] font-bold text-[var(--accent-brass)]" aria-hidden>{stat.code}</span>
                                     <span className="label-font">{stat.label}</span>
                                 </div>
                                 <div className="mt-2 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">{stat.value}</div>
@@ -505,7 +505,7 @@ function CatchContent() {
                         Price starts with what GM10 owns.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        GM10 adds up the marked cards plus liquid treasury that backs $CATCH, leaves market-support buckets out of the backing math, then divides by circulating $CATCH.
+                        GM10 adds up marked cards plus liquid treasury that backs $CATCH, leaves liquidity-execution buckets out of the backing math, then divides by circulating $CATCH.
                     </p>
                 </ScrollReveal>
 
@@ -525,7 +525,7 @@ function CatchContent() {
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {[
                             { label: 'Backing value', desc: 'Cards plus liquid treasury that backs $CATCH' },
-                            { label: 'Excluded buckets', desc: 'Market-support liquidity is not counted as backing' },
+                            { label: 'Excluded buckets', desc: 'Liquidity-execution reserves are not counted as backing' },
                             { label: 'Token count', desc: 'Divide backing value by circulating $CATCH' },
                             { label: 'Public report', desc: 'Marks and treasury wallets stay inspectable' },
                         ].map((item) => (

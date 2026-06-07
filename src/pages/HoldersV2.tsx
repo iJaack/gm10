@@ -238,7 +238,7 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
         {
             label: 'Treasury NAV',
             value: fmtUsd0(totalTreasury),
-            detail: `Liquid ${liquidTreasuryLabel} incl. settled sale proceeds · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
+            detail: `Liquid ${liquidTreasuryLabel} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
         },
         {
             label: '24h volume',
@@ -884,7 +884,7 @@ function AccountSection() {
                             columns="200px 1fr 240px"
                             cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Cost basis</Caption>,
-                                <span className="text-[var(--ink-faint)]">Remaining investor accounting</span>,
+                                <span className="text-[var(--ink-faint)]">Remaining wallet cost basis</span>,
                                 <span className="text-right text-[var(--text-primary)]">{holder.labels.remainingCostBasis}</span>,
                             ]}
                         />
@@ -914,45 +914,8 @@ function AccountSection() {
                                 <span className="text-right text-[var(--text-primary)]">{holder.labels.claimableProfit}</span>,
                             ]}
                         />
-                        <LedgerRow
-                            columns="200px 1fr 240px"
-                            cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Market support</Caption>,
-                                <span className="text-[var(--ink-faint)]">Buyback-burn and LP reserve</span>,
-                                <span className="text-right text-[var(--text-primary)]">{holder.labels.marketSupportReserve}</span>,
-                            ]}
-                        />
                     </div>
                 )}
-            </div>
-        </section>
-    );
-}
-
-/* ── 4. Claim row ──────────────────────────────────────── */
-
-function ClaimRow() {
-    const holder = useHolderDashboard();
-    if (!holder.isConnected) return null;
-
-    return (
-        <section className="px-4 pt-8 pb-16 border-t border-[var(--rule)]">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] flex flex-wrap items-baseline gap-6 justify-between">
-                <div>
-                    <SectionLabel>Accrual status</SectionLabel>
-                    <DataMono className="mt-2 block text-[1.05rem] text-[var(--text-primary)]">
-                        BUYBACK / LP SUPPORT · {holder.labels.marketSupportReserve}
-                    </DataMono>
-                    <p className="mt-2 max-w-[56ch] text-[0.82rem] leading-[1.6] text-[var(--ink-muted)]">
-                        Realized sale profits restore principal first, then route from the market snapshot into card buying power, CATCH buyback-burn reserve, or LP support instead of routine holder claim distributions.
-                    </p>
-                </div>
-                <span
-                    aria-disabled
-                    className="v2-mono cursor-not-allowed text-[0.92rem] tracking-[0.05em] text-[var(--ink-faint)]"
-                >
-                    ◯ Public claims disabled
-                </span>
             </div>
         </section>
     );
@@ -1330,7 +1293,6 @@ function HoldersContent() {
         <main>
             <MarketHeader market={market} />
             <AccountSection />
-            <ClaimRow />
             <OverviewCards market={market} />
             <CompositionDonut />
             <ProtocolStats />

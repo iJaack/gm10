@@ -700,27 +700,27 @@ function FundraisingContent() {
                         </DataMono>
                     </div>
 
-                    <div className="mt-8 grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-start xl:grid-cols-[0.65fr_1.35fr]">
+                    <div className="mt-8 grid gap-5 lg:grid-cols-[0.78fr_1.22fr] lg:items-start xl:grid-cols-[0.72fr_1.28fr]">
                         <div className="max-w-3xl">
                             <SectionLabel>Current entry mode</SectionLabel>
-                            <Display as="h1" className="mt-3 text-[clamp(2.35rem,5vw,4rem)]">
+                            <Display as="h1" className="mt-3 text-[clamp(2.25rem,4.4vw,3.75rem)]">
                                 Continuous round
                             </Display>
-                            <DisplayItalic as="p" className="mt-2 text-[clamp(1.15rem,2.2vw,1.65rem)] leading-tight text-[var(--ink-muted)]">
-                                Per-commit minting at live NAV.
+                            <DisplayItalic as="p" className="mt-2 max-w-[22ch] text-[clamp(1.05rem,1.8vw,1.4rem)] leading-tight text-[var(--ink-muted)]">
+                                Mint $CATCH as soon as the route settles.
                             </DisplayItalic>
 
                             <div className="mt-6">
                                 <SectionLabel>Live mechanics</SectionLabel>
                             </div>
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                                 {[
                                     ['NAV-backed token price', fmtUsdc(navPerTokenUsdt6)],
                                     ['Mint spread', fmtSpread(mintSpreadBps)],
                                     ['Settlement', 'Native AVAX'],
                                     ['Raised all-time', totalRaisedLabel],
                                 ].map(([label, value]) => (
-                                    <div key={label} className="border border-[var(--rule)] bg-[var(--bg-secondary)] px-3 py-2">
+                                    <div key={label} className="rounded-xl border border-[var(--rule)] bg-[var(--bg-secondary)] px-3 py-2.5">
                                         <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[var(--ink-faint)]">{label}</Caption>
                                         <DataMono className="mt-1 block text-[0.9rem] font-semibold text-[var(--text-primary)]">{value}</DataMono>
                                     </div>
@@ -728,7 +728,7 @@ function FundraisingContent() {
                             </div>
                         </div>
 
-                        <div className="border border-[var(--rule-strong)] bg-[var(--bg-secondary)] p-4 shadow-[0_0_0_1px_var(--accent-muted)] md:p-5">
+                        <div className="rounded-2xl border border-[var(--rule-strong)] bg-[var(--bg-secondary)] p-4 shadow-[0_0_0_1px_var(--accent-muted)] md:p-5">
                             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--rule)] pb-3">
                                 <div>
                                     <SectionLabel>Commit preview</SectionLabel>
@@ -741,8 +741,8 @@ function FundraisingContent() {
                                 </DataMono>
                             </div>
 
-                            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.5fr)]">
-                                <div className="border border-[var(--accent-brass)]/70 bg-[var(--bg-primary)]/55 px-4 py-3 shadow-[0_0_20px_var(--accent-muted)]">
+                            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.46fr)]">
+                                <div className="rounded-xl border border-[var(--accent-brass)]/70 bg-[var(--bg-primary)]/55 px-4 py-3 shadow-[0_0_20px_var(--accent-muted)]">
                                     <div className="flex items-baseline justify-between gap-4">
                                         <Caption className="block text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-brass)]">Commit amount</Caption>
                                         <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
@@ -774,7 +774,7 @@ function FundraisingContent() {
                                                     setCommitFeedback(null);
                                                 }}
                                                 disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
-                                                className="v2-mono border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                                className="v2-mono rounded-full border border-[var(--rule-strong)] px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
                                             >
                                                 Max
                                             </button>
@@ -783,7 +783,7 @@ function FundraisingContent() {
                                     </div>
                                 </div>
 
-                                <div className="border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 py-3">
+                                <div className="rounded-xl border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 py-3">
                                     <label
                                         htmlFor="source-token-select"
                                         className="v2-mono block text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]"
@@ -799,7 +799,7 @@ function FundraisingContent() {
                                             setCommitFeedback(null);
                                         }}
                                         disabled={sourceTokens.length === 0}
-                                        className="mt-2 h-10 w-full border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-2 v2-mono text-[0.8rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
+                                        className="mt-2 h-10 w-full rounded-lg border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-2 v2-mono text-[0.8rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
                                     >
                                         {sourceTokens.length > 0 ? sourceTokens.map((token) => (
                                             <option key={token.id} value={token.id}>
@@ -819,7 +819,7 @@ function FundraisingContent() {
                                 </div>
                             </div>
 
-                            <div className="mt-3 grid gap-2 bg-[var(--accent-muted)] p-3 sm:grid-cols-3">
+                            <div className="mt-3 grid gap-2 rounded-xl bg-[var(--accent-muted)] p-3 sm:grid-cols-3">
                                 <div>
                                     <Caption className="block text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Route settles</Caption>
                                     <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--text-primary)]">
@@ -873,7 +873,7 @@ function FundraisingContent() {
                         The next commit flow is infinite: every settled route mints immediately.
                     </Display>
                     <p className="mt-2 max-w-[72ch] text-[0.84rem] leading-[1.7] text-[var(--ink-muted)]">
-                        Users commit from any LI.FI or Mobula-supported chain and token. The route settles on Avalanche first, then CATCH is minted per commit and delivered back through the prepared LayerZero OFT path when supported.
+                        Commit from any LI.FI or Mobula-supported chain and token. The route settles on Avalanche first, then CATCH is minted for that commit.
                     </p>
                     <div className="mt-8 grid gap-3 md:grid-cols-4">
                         {CONTINUOUS_COMMIT_RAILS.map((rail, index) => (

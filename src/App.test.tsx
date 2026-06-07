@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { BUY_PAGE_DEFAULTS, FINALIZED_RAISE_ARCHIVE, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
+import { CARD_PURCHASE_CONVERSION_BASIS_USDT6 } from './data/strategyCapital';
 
 const wagmiMocks = vi.hoisted(() => ({
     account: {
@@ -819,14 +820,14 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/95\.24%/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/excluded from circulating supply/i)).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /price starts with what gm10 owns/i })).toBeInTheDocument();
-        expect(screen.getByText(/leaves market-support buckets out of the backing math/i)).toBeInTheDocument();
+        expect(screen.getByText(/leaves liquidity-execution buckets out of the backing math/i)).toBeInTheDocument();
         expect(screen.getByText(/same-card trade/i)).toBeInTheDocument();
         expect(screen.getByText(/similar-card sales/i)).toBeInTheDocument();
         expect(screen.getByText(/conservative fallback/i)).toBeInTheDocument();
-        expect(screen.getByText(/market-support liquidity is not counted as backing/i)).toBeInTheDocument();
+        expect(screen.getByText(/liquidity-execution reserves are not counted as backing/i)).toBeInTheDocument();
         expect(screen.getByText(/total raised to date/i)).toBeInTheDocument();
         expect(screen.getByText(/1,908\.4382 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/Round 1, Round 2, and continuous commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/Rounds plus continuous commits/i)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /a card sale turns into routed strategy capital/i })).toBeInTheDocument();
         expect(screen.getByText(/when a card sells, the cash returns to Avalanche/i)).toBeInTheDocument();
         expect(screen.getByText(/GM10 puts back the card's original cost/i)).toBeInTheDocument();
@@ -879,7 +880,7 @@ describe('page compression regressions', () => {
         renderAt('/fundraising');
 
         expect((await screen.findAllByText(/continuous round/i)).length).toBeGreaterThan(0);
-        expect(screen.getByText(/per-commit minting at live NAV/i)).toBeInTheDocument();
+        expect(screen.getByText(/mint \$CATCH as soon as the route settles/i)).toBeInTheDocument();
         expect(screen.getByText(/NAV-backed token price/i)).toBeInTheDocument();
         expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
@@ -987,6 +988,7 @@ describe('page compression regressions', () => {
             displayUsdLabel: '$17,462',
         });
         expect(FINALIZED_RAISE_ARCHIVE.rounds.map((round) => round.eventCount)).toEqual([28, 38]);
+        expect(CARD_PURCHASE_CONVERSION_BASIS_USDT6).toBe(14_753_905117n);
     });
 
     it('renders the portfolio gallery with live positions and activity', async () => {
@@ -1014,7 +1016,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/^cash funds$/i)).toBeInTheDocument();
         expect(screen.getByText(/^strategy value$/i)).toBeInTheDocument();
         expect(screen.queryByText(/^2 recorded positions$/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/P\/L \+\$136\.29 \+0\.8%/i)).toHaveClass('v2-up');
+        expect(screen.getByText(/P\/L \+\$3,246\.09 \+22\.0%/i)).toHaveClass('v2-up');
         expect(screen.queryByText(/P\/L .* \+10\.0%/i)).not.toBeInTheDocument();
         expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
@@ -1077,7 +1079,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/protocol accounting/i)).toBeInTheDocument();
         expect(screen.getByText(/supply composition/i)).toBeInTheDocument();
         expect(screen.getByText(/dynamic supply expands when successful commits mint from settled value/i)).toBeInTheDocument();
-        expect(screen.getByText(/Liquid \$3,528\.60 incl\. settled sale proceeds · Cards \$40\.00/i)).toBeInTheDocument();
+        expect(screen.getByText(/Liquid \$3,528\.60 · Cards \$40\.00/i)).toBeInTheDocument();
         expect(screen.getByText(/sale-inclusive liquid treasury plus card marks/i)).toBeInTheDocument();
         expect(screen.queryByText(/market-support reserve/i)).not.toBeInTheDocument();
         expect(screen.getAllByText(/total minted/i).length).toBeGreaterThan(0);
@@ -1182,7 +1184,7 @@ describe('page compression regressions', () => {
     it('keeps faq as a short edge-case page with forward links', async () => {
         renderAt('/faq');
 
-        expect(await screen.findByRole('heading', { name: /the investor questions that need short answers/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /the holder questions that need short answers/i })).toBeInTheDocument();
         expect(document.querySelectorAll('button[aria-expanded]').length).toBeGreaterThanOrEqual(7);
         expect(screen.getByRole('button', { name: /how do continuous commits route value/i })).toBeInTheDocument();
 

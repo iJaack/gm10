@@ -22,9 +22,9 @@ import {
     LedgerRow,
     SectionLabel,
 } from '../components/v2/primitives';
+import { CARD_PURCHASE_CONVERSION_BASIS_USD } from '../data/strategyCapital';
 import { useCourtyardProfileNav } from '../hooks/useCourtyardProfileNav';
-import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
-import { useStrategyCapitalTotals } from '../hooks/useStrategyCapitalTotals';
+import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
 import type { Gm10PortfolioPosition } from '../hooks/useFujiProof';
 
 /* ── Summary strip ─────────────────────────────────────── */
@@ -40,12 +40,12 @@ function SummaryStrip({
     }[];
 }) {
     return (
-        <div className="grid grid-cols-2 gap-4 py-8 md:grid-cols-4 md:gap-6">
+        <div className="grid gap-3 py-6 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((s) => (
-                <div key={s.label} className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-4 transition-colors hover:border-[var(--border-strong)]">
+                <div key={s.label} className="flex min-h-[6.25rem] flex-col justify-between gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-4 transition-colors hover:border-[var(--border-strong)]">
                     <Label as="span" className="text-[0.65rem]">{s.label}</Label>
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <DataMono className="text-[1.45rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
+                        <DataMono className="text-[1.35rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">
                             {s.value}
                         </DataMono>
                         {s.secondaryValue ? (
@@ -191,7 +191,7 @@ function ActivityLedger() {
     const portfolio = useFujiPortfolioPositions();
     const items = portfolio.activity;
     return (
-        <section className="px-4 py-20">
+        <section className="px-4 py-12">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                 <SectionLabel>Activity ledger</SectionLabel>
                 <Hairline className="mt-4" />
@@ -267,18 +267,16 @@ function formatSignedPercent(value: number) {
 }
 
 function PortfolioContent() {
-    const round = useFujiRoundState();
     const platformNav = useCourtyardProfileNav();
     const portfolio = useFujiPortfolioPositions({
         status: platformNav.status,
         netWorthUsd: platformNav.netWorthUsd,
     });
-    const strategyCapital = useStrategyCapitalTotals(round);
     const [view, setView] = useState<ViewMode>('grid');
     const strategyCurrentValueUsd = Number(formatUnits(portfolio.valueSummary.strategyCurrentValueUsdt6, 6));
-    const strategyPnlUsd = strategyCurrentValueUsd - strategyCapital.totalCommitmentUsd;
-    const strategyPnlPercent = strategyCapital.totalCommitmentUsd > 0
-        ? (strategyPnlUsd / strategyCapital.totalCommitmentUsd) * 100
+    const strategyPnlUsd = strategyCurrentValueUsd - CARD_PURCHASE_CONVERSION_BASIS_USD;
+    const strategyPnlPercent = CARD_PURCHASE_CONVERSION_BASIS_USD > 0
+        ? (strategyPnlUsd / CARD_PURCHASE_CONVERSION_BASIS_USD) * 100
         : 0;
     const strategyPnlDirection = strategyPnlUsd > 0
         ? 'up'
@@ -322,9 +320,9 @@ function PortfolioContent() {
                         <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
                             Collection
                         </Display>
-                        <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
+                        <p className="mt-4 max-w-[86ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis is the acquisition price. Card marks show active holdings only. Strategy value adds finalized cash funds, and P/L is measured against commit-time capital across the rounds plus continuous commits.
+                            Cost basis stays the acquisition price. Card marks show active holdings only. Strategy value adds finalized cash funds, and P/L is measured against AVAX converted into USDC for card buying.
                         </p>
                     </div>
 
@@ -333,10 +331,10 @@ function PortfolioContent() {
             </section>
 
             {/* Gallery — Grid or Ledger */}
-            <section className="px-4 pt-8 pb-12">
+            <section className="px-4 pt-4 pb-10">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                     {/* View toggle + count */}
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                         <SectionLabel>Holdings ({portfolio.positions.length})</SectionLabel>
                         <div className="flex items-center gap-3">
                             <Caption className="text-[var(--ink-faint)] uppercase tracking-[0.08em]">View</Caption>

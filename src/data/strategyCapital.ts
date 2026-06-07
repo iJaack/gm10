@@ -31,6 +31,13 @@ export type StrategyCapitalTotals = {
     totalCommitmentUsd: number;
 };
 
+export type CardPurchaseConversionRoute = {
+    transactionHash: `0x${string}`;
+    tool: string;
+    destinationChain: 'Avalanche' | 'Polygon';
+    destinationUsdcRaw: bigint;
+};
+
 export const RECORDED_CONTINUOUS_CAPITAL_EVENTS = [
     {
         blockNumber: 86_525_949n,
@@ -56,6 +63,76 @@ export const RECORDED_CONTINUOUS_CAPITAL_TOTALS = RECORDED_CONTINUOUS_CAPITAL_EV
 
 export const RECORDED_CONTINUOUS_CAPITAL_LAST_BLOCK =
     RECORDED_CONTINUOUS_CAPITAL_EVENTS[RECORDED_CONTINUOUS_CAPITAL_EVENTS.length - 1]?.blockNumber ?? 0n;
+
+export const CARD_PURCHASE_CONVERSION_ROUTES = [
+    {
+        transactionHash: '0x9b52eca5acfb5b875979ef06b302f47056fd3fef1a5e1cc0314996a1b67128c8',
+        tool: 'mayanMCTP',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 96_863_798n,
+    },
+    {
+        transactionHash: '0x2733948f2bd5a56f824c1667614bc88c5e466172efecf743465c8ec33e3810e4',
+        tool: 'celercirclefast',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 252_423_050n,
+    },
+    {
+        transactionHash: '0xbcfda8669e9bdc53f4f42082cc864dbdfa55f40fa67bd646341158100e3a223a',
+        tool: 'celercirclefast',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 647_527_982n,
+    },
+    {
+        transactionHash: '0x925bbce728a374852f8d13cc7a6799699a8ba5c19d2d69fa8dae45837386955e',
+        tool: 'celercircle',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 336_494_166n,
+    },
+    {
+        transactionHash: '0x63332a125359a98fb59079fa8f55f32028c1ec4cdc005a2a640de57c9a168f95',
+        tool: 'celercirclefast',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 603_467_303n,
+    },
+    {
+        transactionHash: '0xac3324edfe2f5905ac6a04a4fe583c89840e50594a8da50df9773363c821a7c4',
+        tool: 'squid',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 176_853_789n,
+    },
+    {
+        transactionHash: '0xb617deb3633330d9574f447da99bc676a0bdc0596723f42df174110bef8e1743',
+        tool: 'celercircle',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 1_003_775_422n,
+    },
+    {
+        transactionHash: '0x51bf1714f05d62d85609300544a1baafcecc6db08792a8c146fcf0cf7c419ae4',
+        tool: 'fly',
+        destinationChain: 'Avalanche',
+        destinationUsdcRaw: 1_790_027_855n,
+    },
+    {
+        transactionHash: '0xcccd62b9a85b186e847cc10f7d1e9cd939f875ee8f01d2a9f884fea88d31e199',
+        tool: 'celercircle',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 5_323_832_765n,
+    },
+    {
+        transactionHash: '0xad14cd0b899e81188217c0914fe9ed872fdeec08d70985abd679a90140307e7d',
+        tool: 'celercircle',
+        destinationChain: 'Polygon',
+        destinationUsdcRaw: 4_522_638_987n,
+    },
+] as const satisfies readonly CardPurchaseConversionRoute[];
+
+export const CARD_PURCHASE_CONVERSION_BASIS_USDT6 = CARD_PURCHASE_CONVERSION_ROUTES.reduce(
+    (total, route) => total + route.destinationUsdcRaw,
+    0n,
+);
+
+export const CARD_PURCHASE_CONVERSION_BASIS_USD = bigintFixedToNumber(CARD_PURCHASE_CONVERSION_BASIS_USDT6, USDT6);
 
 function bigintFixedToNumber(value: bigint, scale: bigint) {
     const whole = value / scale;

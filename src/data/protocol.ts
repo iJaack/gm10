@@ -217,16 +217,16 @@ export const THESIS_EVIDENCE: readonly EvidenceStat[] = [
 
 export const EXPOSURE_STEPS: readonly ExposureStep[] = [
     {
-        title: '🪙 Commit continuously',
+        title: 'Commit continuously',
         body: 'The fixed raise is archived. New entry uses the continuous round: supported routes settle on Avalanche, then $CATCH mints per commit at the live NAV-derived price.',
     },
     {
-        title: '🃏 We acquire the cards',
+        title: 'GM10 acquires the cards',
         body: 'GM10 targets verified, high-grade slabs with clear provenance, visible comps, and recorded execution proofs from supported marketplaces.',
     },
     {
-        title: '📊 $CATCH tracks it all',
-        body: 'One token tracks every commit, holding, realized exit, market-support reserve, and conservative reference NAV as the strategy evolves.',
+        title: '$CATCH tracks it all',
+        body: 'One token tracks every commit, holding, realized exit, liquid treasury update, and conservative reference NAV as the strategy evolves.',
     },
 ] as const;
 
@@ -497,7 +497,7 @@ export const HOME_GM10_ADVANTAGES = [
     },
     {
         title: 'Stay diversified at the right end of the market',
-        body: 'A single trophy-tier card can cost more than most investors want tied to one collectible. GM10 lets one position cover the broader strategy.',
+        body: 'A single trophy-tier card can tie too much capital to one collectible. GM10 lets one position cover the broader strategy.',
     },
     {
         title: 'Keep the strategy inspectable',
@@ -542,13 +542,13 @@ export const SUPPORT_PAGE_COPY = {
     catch: {
         eyebrow: 'How it works',
         title: 'A TCG strategy designed to accrue value to $CATCH.',
-        body: 'This page shows how Gem Mint Strategy turns one token into portfolio exposure, valuation discipline, sale settlement, and market-support execution.',
+        body: 'This page shows how Gem Mint Strategy turns one token into portfolio exposure, valuation discipline, sale settlement, and liquidity execution.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',
     },
     faq: {
         eyebrow: 'FAQ',
-        title: 'The investor questions that need short answers.',
+        title: 'The holder questions that need short answers.',
         body: 'Use this page to pressure-test what GM10 is, what $CATCH tracks, why Avalanche matters, and how the continuous round operates on mainnet.',
         primaryCtaTo: GLOBAL_CTA_ROUTE,
         secondaryCtaTo: '/fundraising#proof',

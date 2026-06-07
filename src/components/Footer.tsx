@@ -33,7 +33,7 @@ export default function Footer() {
                                     Onchain access to a managed portfolio of trophy-tier Pokemon cards.
                                 </h2>
                                 <p className="mt-3 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                                    GM10 packages sourcing, diligence, custody, valuation, and exits into one strategy so investors can focus on exposure instead of card operations.
+                                    GM10 packages sourcing, diligence, custody, valuation, and exits into one strategy so holders can track the portfolio instead of running card operations.
                                 </p>
                                 <div className="mt-6 flex flex-wrap gap-3">
                                     <Web3Providers>
