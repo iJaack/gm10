@@ -195,6 +195,13 @@ function formatOptionalIsoDate(value?: string) {
     return formatDate(BigInt(Math.floor(timestamp / 1000)));
 }
 
+const SALE_ACTIVITY_BY_POSITION_ID: Record<number, { netProceedsUsdt6: bigint; finalizedAt: number }> = {
+    7: {
+        netProceedsUsdt6: 1_895_249872n,
+        finalizedAt: 1_780_704_000,
+    },
+};
+
 type CollectiblePositionTuple = {
     id: bigint;
     chainEid: number;
@@ -255,6 +262,10 @@ export function sortPortfolioActivityNewestFirst(activity: Gm10PortfolioActivity
         if (aTime !== bTime) return bTime - aTime;
         return b.id.localeCompare(a.id);
     });
+}
+
+export function resolvePortfolioActivityType(registryStatusLabel: string): Gm10PortfolioActivity['type'] {
+    return registryStatusLabel === 'Sold' || registryStatusLabel === 'Archived' ? 'Sell' : 'Buy';
 }
 
 function positionMetadataKey(raw: CollectiblePositionTuple) {
@@ -636,12 +647,12 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         return owners;
     }, [custodyReadPositions, custodyReads]);
 
-    const liveMetadataRequestKey = useMemo(() => holdingRawPositions
+    const liveMetadataRequestKey = useMemo(() => rawPositions
         .map(positionMetadataKey)
-        .join('|'), [holdingRawPositions]);
+        .join('|'), [rawPositions]);
 
     useEffect(() => {
-        const positionsToResolve = holdingRawPositions;
+        const positionsToResolve = rawPositions;
         if (positionsToResolve.length === 0) {
             setLiveMetadataByKey({});
             return;
@@ -683,7 +694,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
 
         void loadMetadata();
         return () => controller.abort();
-    }, [holdingRawPositions, liveMetadataRequestKey]);
+    }, [liveMetadataRequestKey, rawPositions]);
 
     useEffect(() => {
         let activeController: AbortController | undefined;
@@ -728,6 +739,14 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             ownerByPositionKey[positionMetadataKey(raw)],
         ))
         .sort((a, b) => a.positionId - b.positionId), [holdingRawPositions, liveMetadataByKey, ownerByPositionKey, publicValuationOverrides]);
+    const activityPositions = useMemo(() => rawPositions
+        .map((raw) => normalizePosition(
+            raw,
+            liveMetadataByKey[positionMetadataKey(raw)],
+            publicValuationOverrides[Number(raw.id)],
+            ownerByPositionKey[positionMetadataKey(raw)],
+        ))
+        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, ownerByPositionKey, publicValuationOverrides, rawPositions]);
 
     const avaxUsd = avaxUsdRoundData && avaxUsdRoundData[1] > 0n
         ? Number(formatUnits(avaxUsdRoundData[1], 8))
@@ -757,16 +776,25 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     );
     const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
 
-    const activity = useMemo<Gm10PortfolioActivity[]>(() => sortPortfolioActivityNewestFirst(positions
-        .map((position) => ({
-            id: `buy-${position.positionId}`,
-            type: 'Buy' as const,
-            item: position.title,
-            date: position.acquisitionDateLabel,
-            amount: position.acquisition,
-            detail: `${position.chain} position #${position.positionId}`,
-            sortTimestamp: position.acquisitionTimestamp,
-        }))), [positions]);
+    const activity = useMemo<Gm10PortfolioActivity[]>(() => sortPortfolioActivityNewestFirst(activityPositions
+        .map((position) => {
+            const activityType = resolvePortfolioActivityType(position.registryStatusLabel);
+            const saleActivity = activityType === 'Sell'
+                ? SALE_ACTIVITY_BY_POSITION_ID[position.positionId]
+                : undefined;
+
+            return {
+                id: `${activityType.toLowerCase()}-${position.positionId}`,
+                type: activityType,
+                item: position.title,
+                date: saleActivity ? formatDate(BigInt(saleActivity.finalizedAt)) : position.acquisitionDateLabel,
+                amount: saleActivity ? formatUsdt6(saleActivity.netProceedsUsdt6) : position.acquisition,
+                detail: saleActivity
+                    ? `${position.chain} position #${position.positionId} settled net proceeds`
+                    : `${position.chain} position #${position.positionId}`,
+                sortTimestamp: saleActivity?.finalizedAt ?? position.acquisitionTimestamp,
+            };
+        })), [activityPositions]);
     const holderAccounting = useMemo(() => resolveHolderAccounting({
         totalSupply: circulatingSupply,
         profitEligibleSupply,

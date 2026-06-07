@@ -4,6 +4,7 @@ import {
     deriveFujiRoundState,
     isPortfolioHoldingStatus,
     resolveCardCustody,
+    resolvePortfolioActivityType,
     resolvePositionCurrentValueUsdt6,
     sortPortfolioActivityNewestFirst,
     type Gm10PortfolioActivity,
@@ -94,6 +95,14 @@ describe('sortPortfolioActivityNewestFirst', () => {
             'buy-9',
             'buy-8',
         ]);
+    });
+});
+
+describe('resolvePortfolioActivityType', () => {
+    it('renders sold registry positions as sale events in the activity ledger', () => {
+        expect(resolvePortfolioActivityType('Sold')).toBe('Sell');
+        expect(resolvePortfolioActivityType('Archived')).toBe('Sell');
+        expect(resolvePortfolioActivityType('Active')).toBe('Buy');
     });
 });
 
