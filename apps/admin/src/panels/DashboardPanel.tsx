@@ -144,13 +144,13 @@ export function DashboardPanel() {
             label: 'LFJ routed allocation',
             value: formatAvax(routing.lfj),
             status: round2 ? READ_STATUS.live : READ_STATUS.unavailable,
-            detail: `Round-close allocation. Coordinator read: ${formatAvax(lpDeployment.traderJoe)}.`,
+            detail: `Round-close allocation only. Sale-profit LP support is executed from accrued support after finalization. Coordinator read: ${formatAvax(lpDeployment.traderJoe)}.`,
         },
         {
             label: 'Pharaoh routed allocation',
             value: formatAvax(routing.pharaoh),
             status: round2 ? READ_STATUS.live : READ_STATUS.unavailable,
-            detail: `Round-close allocation. Coordinator read: ${formatAvax(lpDeployment.pharaoh)}.`,
+            detail: `Round-close allocation only. Sale-profit LP support is executed from accrued support after finalization. Coordinator read: ${formatAvax(lpDeployment.pharaoh)}.`,
         },
         {
             label: 'Courtyard workflow',
@@ -243,7 +243,7 @@ export function DashboardPanel() {
         <AdminPage
             eyebrow="Operator console"
             title="Admin dashboard"
-            description="Spendable card budget, routed funds, round-close math, and read health in one first-screen view."
+            description="Spendable card budget, round-close balances, sale-settlement accounting, and read health in one first-screen view."
             statusItems={statusItems}
         >
             <OperatorSummaryGrid>
@@ -261,7 +261,7 @@ export function DashboardPanel() {
                     detail={
                         <div className="grid gap-1">
                             <span>Hard max from the fund contract only at {priceLabel}.</span>
-                            <span>Excludes team wallet, Safe dust, LP, and workflow balances.</span>
+                            <span>Excludes team wallet, Safe dust, LP, workflow balances, and sale funds that have not been finalized through the fund.</span>
                             {'warning' in cardBuyingBudget && cardBuyingBudget.warning ? <span className="text-amber-100">Warning: {cardBuyingBudget.warning}</span> : null}
                         </div>
                     }
@@ -281,12 +281,12 @@ export function DashboardPanel() {
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                 <LedgerPanel
                     title="Routed funds"
-                    caption="Separated balances so fund cash, Safe dust, LP, and workflow funds stay distinct."
+                    caption="Separated balances so fund cash, Safe dust, round LP, sale LP support, and workflow funds stay distinct."
                     rows={routedFundsRows}
                 />
                 <LedgerPanel
-                    title="Round 2 close ledger"
-                    caption="Routing math from the finalized round, using the same calculation as execution flows."
+                    title="Round close ledger"
+                    caption="Finalized round routing only. Card-sale profit uses the sale-finalization router and current market snapshot."
                     rows={roundCloseRows}
                 />
             </div>
@@ -298,7 +298,7 @@ export function DashboardPanel() {
                 value={formatToken6(stableAccountingRead.data?.[2])}
                 status={stableAccountingRead.data ? READ_STATUS.live : READ_STATUS.unavailable}
                 sourceLabel={stableAccountingRead.data ? 'stableAccounting' : 'unavailable'}
-                detail={`Legacy holder bucket ${formatToken6(stableAccountingRead.data?.[6])} · LP buy ${formatToken6(stableAccountingRead.data?.[4])} · LP AVAX side ${formatToken6(stableAccountingRead.data?.[5])}`}
+                detail={`Liquid treasury ${formatToken6(stableAccountingRead.data?.[2])} · legacy LP buy bucket ${formatToken6(stableAccountingRead.data?.[4])} · legacy LP AVAX side ${formatToken6(stableAccountingRead.data?.[5])} · legacy holder bucket ${formatToken6(stableAccountingRead.data?.[6])}`}
             />
         </AdminPage>
     );

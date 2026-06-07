@@ -41,7 +41,7 @@ export function SaleLifecycleDiagram() {
 export function ProfitWaterfallDiagram() {
     return (
         <div>
-            <PixelDivider label="Profit waterfall" />
+            <PixelDivider label="Sale-profit process" />
             <div className="mt-6 overflow-hidden border-2 border-[var(--border)] bg-[var(--bg-tertiary)] shadow-[0_0_0_2px_var(--shadow-sm)]">
                 <div className="flex h-8 w-full">
                     {WATERFALL.map((slice) => (
@@ -49,7 +49,7 @@ export function ProfitWaterfallDiagram() {
                             key={slice.label}
                             className={`bg-gradient-to-r ${slice.color}`}
                             style={{ width: `${slice.percent}%` }}
-                            title={`${slice.label} ${slice.percent}%`}
+                            title={`${slice.label}: ${slice.routeLabel}`}
                         />
                     ))}
                 </div>
@@ -63,11 +63,9 @@ export function ProfitWaterfallDiagram() {
                                 <div className="text-lg font-bold text-[var(--text-primary)]">{slice.label}</div>
                             </div>
                             <div className="grid gap-2 md:grid-cols-[auto_1fr] md:items-start">
-                                <div className="text-2xl font-bold text-[var(--accent-blue)]">{slice.percent}%</div>
+                                <div className="text-sm font-bold uppercase text-[var(--accent-blue)]">{slice.routeLabel}</div>
                                 <div className="text-sm leading-7 text-[var(--text-secondary)]">
-                                    {slice.label === 'Buying power' && 'Returned to the strategy so realized profits can buy more cards and keep liquid execution capacity.'}
-                                    {slice.label === 'LP support' && 'Reserved for bounded liquidity support without counting protocol-owned LP in conservative NAV.'}
-                                    {slice.label === 'Buyback-burn reserve' && 'Reserved under discount conditions to buy CATCH and remove it from supply.'}
+                                    {slice.detail}
                                 </div>
                             </div>
                         </div>

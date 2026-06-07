@@ -629,9 +629,11 @@ describe('page compression regressions', () => {
         expect(team?.fullCapAvax).toBe(250);
         expect(liquidity?.detail).toMatch(/250 AVAX to LFJ LP and 250 AVAX to Pharaoh LP/i);
         expect(team?.detail).toMatch(/bootstrapping expenses/i);
-        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Separate from realized sale profit/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/separate from sale-profit routing/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/settled proceeds on Avalanche/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/market snapshot/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/card-buying power/i);
-        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/LP depth/i);
+        expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/LP support/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/buyback-and-burn/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Routine holder claims are disabled/i);
     });

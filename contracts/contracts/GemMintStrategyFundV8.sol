@@ -7,11 +7,14 @@ import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/IGm10ContinuousSaleRouter.sol";
 import "./interfaces/IGm10PortfolioRegistry.sol";
 import "./interfaces/IGm10TokenomicsV7Controller.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @custom:oz-upgrades-unsafe-allow missing-initializer-call
 contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
     using Math for uint256;
+    using SafeERC20 for IERC20;
 
     address internal canonicalUsdt;
     address internal avaxUsdFeed;
@@ -79,12 +82,25 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         uint256 buybackBurnBps,
         bytes32 proofHash
     );
+    event SaleProceedsSettled(
+        bytes32 indexed saleKey,
+        address indexed proceedsToken,
+        uint256 proceedsAmount,
+        uint256 netProceedsUsdt6
+    );
     event BuybackBurnExecuted(address indexed venue, uint256 amountInUsdt6, uint256 minCatchOut18, bytes32 proofHash);
     event LpSupportExecuted(
         address indexed venue,
         uint256 catchAmountUsdt6,
         uint256 pairedAvaxAmountUsdt6,
         uint8 custodyMode,
+        bytes32 proofHash
+    );
+    event LpSupportTokenReleased(
+        address indexed token,
+        address indexed to,
+        uint256 amountUsdt6,
+        uint256 tokenAmount,
         bytes32 proofHash
     );
     event LpVenueCustodyModeUpdated(address indexed venue, uint8 mode);
@@ -98,6 +114,10 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
     error InvalidPriceFeed();
     error StalePriceFeed();
     error InsufficientSettlementBalance();
+    error UnapprovedSettlementToken(address token);
+    error SettlementAlreadyAccounted();
+    error InvalidSettlementAmount();
+    error UnsupportedSettlementTokenDecimals();
 
     /// @custom:oz-upgrades-unsafe-allow constructor state-variable-immutable
     constructor(address _tokenomicsController) {
@@ -162,6 +182,39 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         emit ContinuousMintAvaxSettled(commitId, buyer, avaxAmountWei, settlementAmountUsdt6);
     }
 
+    function confirmStableSaleProceeds(
+        bytes32 saleKey,
+        address proceedsToken,
+        uint256 amount,
+        bool pullFromCaller,
+        bytes32 proceedsRef,
+        bytes32 proofHash
+    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+        if (!approvedSaleSettlementToken[proceedsToken]) revert UnapprovedSettlementToken(proceedsToken);
+        if (amount == 0 || proceedsRef == bytes32(0) || proofHash == bytes32(0)) revert InvalidSettlementAmount();
+
+        IERC20 token = IERC20(proceedsToken);
+        if (pullFromCaller) {
+            token.safeTransferFrom(msg.sender, address(this), amount);
+        } else {
+            uint256 currentBalance = token.balanceOf(address(this));
+            uint256 accounted = accountedSettlementBalance[proceedsToken];
+            if (currentBalance < accounted + amount) revert SettlementAlreadyAccounted();
+        }
+
+        accountedSettlementBalance[proceedsToken] += amount;
+        uint256 netProceedsUsdt6 = _normalizeStableToUsdt6(proceedsToken, amount);
+        IGm10PortfolioRegistry(portfolioRegistry).confirmSaleProceedsReceivedV2(
+            saleKey,
+            proceedsToken,
+            amount,
+            netProceedsUsdt6,
+            proceedsRef,
+            proofHash
+        );
+        emit SaleProceedsSettled(saleKey, proceedsToken, amount, netProceedsUsdt6);
+    }
+
     function finalizeSaleWithMarketSnapshot(
         bytes32 saleKey,
         address saleRouter,
@@ -174,6 +227,28 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         if (venue == address(0) || mode > 1) revert InvalidParameters();
         lpVenueCustodyMode[venue] = mode;
         emit LpVenueCustodyModeUpdated(venue, mode);
+    }
+
+    function releaseLpSupportToken(
+        address token,
+        address to,
+        uint256 amountUsdt6,
+        uint256 tokenAmount,
+        bytes32 proofHash
+    ) external onlyRole(MANAGER_ROLE) nonReentrant {
+        if (
+            token == address(0) ||
+            to == address(0) ||
+            amountUsdt6 == 0 ||
+            tokenAmount == 0 ||
+            proofHash == bytes32(0)
+        ) revert InvalidParameters();
+        if (!approvedSaleSettlementToken[token]) revert UnapprovedSettlementToken(token);
+        if (amountUsdt6 > lpSupportAccruedUsdt6) revert InsufficientFreeBalance();
+        if (_normalizeStableToUsdt6(token, tokenAmount) != amountUsdt6) revert InvalidSettlementAmount();
+
+        IERC20(token).safeTransfer(to, tokenAmount);
+        emit LpSupportTokenReleased(token, to, amountUsdt6, tokenAmount, proofHash);
     }
 
     function setContinuousAccrualControls(
@@ -299,6 +374,13 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         uint256 feedDecimals = IChainlinkPriceFeed(avaxUsdFeed).decimals();
         if (feedDecimals > 18) revert InvalidPriceFeed();
         return Math.mulDiv(avaxAmountWei, uint256(answer), (10 ** feedDecimals) * 1e12);
+    }
+
+    function _normalizeStableToUsdt6(address token, uint256 amount) internal view returns (uint256) {
+        uint8 decimals_ = saleSettlementTokenDecimals[token];
+        if (decimals_ < 6) revert UnsupportedSettlementTokenDecimals();
+        if (decimals_ == 6) return amount;
+        return amount / (10 ** (decimals_ - 6));
     }
 
     function _mintSegmentAllocations(uint256 segmentCatchEach18) internal {

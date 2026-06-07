@@ -18,6 +18,13 @@ const COURTYARD_MARKETPLACE_ID = keccak256(stringToHex('COURTYARD'));
 const PHYGITALS_MARKETPLACE_ID = keccak256(stringToHex('PHYGITALS'));
 const PURCHASE_STATUS = ['None', 'Approved', 'Legacy funds released', 'Funding confirmed', 'Executed', 'Position recorded', 'Cancelled'] as const;
 const SALE_STATUS = ['None', 'Approved', 'Executed', 'External proceeds pending', 'Proceeds received', 'Finalized', 'Cancelled'] as const;
+const SALE_FINALIZATION_STEPS = [
+    'Import the Polygon/Courtyard sale tx and match it to the registry position.',
+    'Record execution evidence: gross proceeds, marketplace fees, bridge fees, sale proof, and proceeds proof.',
+    'Settle funds back to Avalanche and confirm stable proceeds against the sale key.',
+    'Finalize through the architecture-aware market snapshot path so principal is restored before realized profit routes.',
+    'If LP support accrues, release support funds, split into AVAX/WAVAX and CATCH legs, add LFJ and Pharaoh liquidity, then record execution.',
+] as const;
 const COURTYARD_CHECKLIST_SUMMARY = summarizeMarketplaceChecklist(MARKETPLACE_CHECKLIST_ITEMS.map((item) => item.id));
 const POLYGON_CHAIN_ID = 137;
 const AVALANCHE_CHAIN_ID = 43114;
@@ -2013,11 +2020,25 @@ export function OperationsPanel() {
                             </div>
                         </Section>
 
-                        <Section title="Sale">
+                        <Section title="Sale finalization">
+                            <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs leading-5 text-gray-300">
+                                <div className="font-semibold text-white">Architecture-aware sale path</div>
+                                <div className="mt-1 text-gray-400">
+                                    Start from the sale transaction, not a manually invented key. The admin should only call a sale complete after funds settle on Avalanche, the fund confirms stable proceeds, and the market-snapshot router records the final route.
+                                </div>
+                                <div className="mt-3 grid gap-2">
+                                    {SALE_FINALIZATION_STEPS.map((step, index) => (
+                                        <div key={step} className="flex gap-2">
+                                            <span className="font-mono text-[var(--accent)]">{index + 1}.</span>
+                                            <span>{step}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3">
                                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                                     <Field
-                                        label="Polygon sale tx"
+                                        label="Polygon/Courtyard sale tx"
                                         value={saleTxHash}
                                         onChange={(value) => {
                                             setSaleTxHash(value);
@@ -2032,7 +2053,7 @@ export function OperationsPanel() {
                                         onClick={() => void importSaleTransaction()}
                                         disabled={saleImportLoading || !saleTxHash.trim() || !ADDRESS_RE.test(polygonHotWallet)}
                                     >
-                                        {saleImportLoading ? 'Importing...' : 'Import sale tx'}
+                                        {saleImportLoading ? 'Importing...' : 'Import sale evidence'}
                                     </AdminButton>
                                 </div>
                                 {saleImportError ? (
@@ -2043,10 +2064,10 @@ export function OperationsPanel() {
                                 {saleImport ? (
                                     <div className="grid gap-1 text-xs text-gray-400">
                                         <div>Generated sale key: {saleImport.saleKey}</div>
-                                        <div>Matched position: {saleImport.positionId}</div>
+                                        <div>Registry match: position {saleImport.positionId}</div>
                                         <div>Sold token: {saleImport.collection} / {saleImport.tokenId}</div>
                                         <div>Buyer: {saleImport.buyer}</div>
-                                        <div>Net proceeds: {saleImport.proceedsUsdt} USDT</div>
+                                        <div>Imported net proceeds: {saleImport.proceedsUsdt} USDT before Avalanche settlement confirmation</div>
                                         {saleImport.warning ? (
                                             <div className="text-amber-100">{saleImport.warning}</div>
                                         ) : null}
@@ -2062,6 +2083,7 @@ export function OperationsPanel() {
                                 <div>Settlement token: {saleAuthorization?.proceedsToken ?? 'Unavailable'}</div>
                                 <div>Settlement amount: {saleAuthorization ? saleAuthorization.proceedsAmount.toString() : 'Unavailable'}</div>
                                 <div>External source: {saleAuthorization?.sourceChainEid ? `${saleAuthorization.sourceChainEid} / ${saleAuthorization.sourceToken}` : 'None'}</div>
+                                <div>Final route: use market-snapshot finalization before treating realized profit as routed.</div>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2">
                                 <Field label="Sale key" value={sale.key} onChange={(value) => updateSale('key', value)} placeholder="courtyard-sale-1 or 0x..." mono />
@@ -2071,7 +2093,7 @@ export function OperationsPanel() {
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <TxButton onClick={submitAuthorizeSale} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !sale.key.trim()}>
-                                    Authorize sale
+                                    Authorize sale key
                                 </TxButton>
                             </div>
 
@@ -2080,12 +2102,12 @@ export function OperationsPanel() {
                                 <Field label="Marketplace fees (USDT)" value={sale.marketplaceFeesUsdt} onChange={(value) => updateSale('marketplaceFeesUsdt', value)} placeholder="8" type="number" />
                                 <Field label="Bridge fees (USDT)" value={sale.bridgeFeesUsdt} onChange={(value) => updateSale('bridgeFeesUsdt', value)} placeholder="2" type="number" />
                                 <Field label="Execution ref" value={sale.executionRef} onChange={(value) => updateSale('executionRef', value)} placeholder="Courtyard sale tx or 0x..." mono />
-                                <Field label="Proceeds ref" value={sale.proceedsRef} onChange={(value) => updateSale('proceedsRef', value)} placeholder="proceeds ref or 0x..." mono />
+                                <Field label="Settlement proceeds ref" value={sale.proceedsRef} onChange={(value) => updateSale('proceedsRef', value)} placeholder="bridge or Avalanche receipt ref" mono />
                                 <Field label="Proof ref" value={sale.proofRef} onChange={(value) => updateSale('proofRef', value)} placeholder="proof hash or 0x..." mono />
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <TxButton onClick={submitRecordSaleExecution} txHash={txHash} isPending={isPending} disabled={!MAINNET.portfolioRegistry || !sale.key.trim()}>
-                                    Record sale execution
+                                    Record execution evidence
                                 </TxButton>
                             </div>
 
@@ -2097,15 +2119,15 @@ export function OperationsPanel() {
                                         value={sale.settlementMode}
                                         onChange={(event) => updateSale('settlementMode', event.target.value as SaleForm['settlementMode'])}
                                     >
-                                        <option value="stable">USDC/USDT returned to fund</option>
-                                        <option value="native">AVAX returned to fund</option>
-                                        <option value="external">External token pending normalization</option>
+                                        <option value="stable">USDC/USDT settled on Avalanche</option>
+                                        <option value="native">AVAX settled on Avalanche</option>
+                                        <option value="external">External token pending bridge/normalization</option>
                                     </select>
                                 </label>
                                 {sale.settlementMode === 'stable' ? (
                                     <>
-                                        <Field label="Stable proceeds token" value={sale.stableProceedsToken} onChange={(value) => updateSale('stableProceedsToken', value)} placeholder="0x..." mono />
-                                        <Field label="Stable proceeds amount" value={sale.stableProceedsAmount} onChange={(value) => updateSale('stableProceedsAmount', value)} placeholder="110" type="number" />
+                                        <Field label="Avalanche stable proceeds token" value={sale.stableProceedsToken} onChange={(value) => updateSale('stableProceedsToken', value)} placeholder="0x..." mono />
+                                        <Field label="Avalanche stable proceeds amount" value={sale.stableProceedsAmount} onChange={(value) => updateSale('stableProceedsAmount', value)} placeholder="110" type="number" />
                                         <label className="flex items-center gap-2 text-sm text-gray-300">
                                             <input type="checkbox" checked={sale.pullStableFromCaller} onChange={(event) => updateSale('pullStableFromCaller', event.target.checked)} />
                                             Pull stablecoin from connected wallet
@@ -2125,12 +2147,15 @@ export function OperationsPanel() {
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <TxButton onClick={submitConfirmSaleProceeds} txHash={txHash} isPending={isPending} disabled={(!MAINNET.fundProxy && sale.settlementMode !== 'external') || (!MAINNET.portfolioRegistry && sale.settlementMode === 'external') || !sale.key.trim()}>
-                                    {sale.settlementMode === 'external' ? 'Record external proceeds' : 'Confirm settled proceeds'}
+                                    {sale.settlementMode === 'external' ? 'Record external proceeds pending settlement' : 'Confirm Avalanche proceeds'}
                                 </TxButton>
                                 <TxButton onClick={submitFinalizeSale} txHash={txHash} isPending={isPending} disabled={!MAINNET.fundProxy || !sale.key.trim() || saleAuthorization?.status !== 4}>
-                                    Finalize sale
+                                    Finalize sale (legacy button)
                                 </TxButton>
                             </div>
+                            <p className="text-xs leading-5 text-amber-100">
+                                The button above calls the legacy finalize function. Use the V8 market-snapshot router path for production finalization, then execute LP support if the route accrues it.
+                            </p>
                         </Section>
                     </div>
                 ) : (

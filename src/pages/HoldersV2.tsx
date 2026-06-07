@@ -948,7 +948,7 @@ function ClaimRow() {
                         BUYBACK / LP SUPPORT · {holder.labels.marketSupportReserve}
                     </DataMono>
                     <p className="mt-2 max-w-[56ch] text-[0.82rem] leading-[1.6] text-[var(--ink-muted)]">
-                        Realized sale profits are reserved for card buying power, CATCH buyback-burn execution, and LP support instead of routine holder claim distributions.
+                        Realized sale profits restore principal first, then route from the market snapshot into card buying power, CATCH buyback-burn reserve, or LP support instead of routine holder claim distributions.
                     </p>
                 </div>
                 <span

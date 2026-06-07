@@ -58,7 +58,7 @@
     "network": "avalanche",
     "chainId": "43114",
     "proxy": "0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f",
-    "implementation": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
+    "implementation": "0xbae4f2b306be5ad4ef7719e143fd6edbd775d8b5",
     "implementationV5": "0x256fdBe6718DfaD2E4D8F0AEa8C9831C100e40e5",
     "portfolioRegistryV1": "0x02962F73AdFAA792636c62d3D2a76d922c6B052c",
     "portfolioRegistry": "0x0fCbce2341E3682AB92f1cAabDF976E17D91436A",
@@ -112,7 +112,7 @@
       "timestamp": "2026-04-24T22:48:19.986Z"
     },
     "implementationV7": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
-    "implementationV8": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
+    "implementationV8": "0xbae4f2b306be5ad4ef7719e143fd6edbd775d8b5",
     "tokenomicsController": "0x65acE06bbc9e079321451FAfaaD7C58223b20b26",
     "lastTokenomicsUpgrade": {
       "to": "0x9b5b2eb5A2D517F5bfE76784a47651B5CD99a438",
@@ -145,6 +145,32 @@
         "mintSpreadBps": "-500",
         "redemptionsPermanentlyDisabled": true
       }
+    },
+    "lastStableSaleSettlementUpgrade": {
+      "from": "0xFB7E8713e1d3172d55fBcA3567B2177C449d96e4",
+      "to": "0x4e572853dfe8f5f8b4a4025e49fbb69fed3c48d3",
+      "deploymentTx": "0x65e9d3e121704a343749ee6d42634864c6e4a183361b1fc927613bdd004da17c",
+      "upgradeTx": "0x6586882ad028b6efe88891de7e9aa5bca91f51ec78f1ca8c4caae0e20eee83ee",
+      "blockNumber": 87354129,
+      "timestamp": "2026-06-06T22:24:00Z",
+      "reason": "Add missing confirmStableSaleProceeds entrypoint to V8 for stable sale settlement"
+    },
+    "lastLpSupportReleaseUpgrade": {
+      "from": "0x4e572853dfe8f5f8b4a4025e49fbb69fed3c48d3",
+      "to": "0xbae4f2b306be5ad4ef7719e143fd6edbd775d8b5",
+      "deploymentTx": "0x583fbc0ac3fdffb595d70ad07265162e770da9c13984c733ee2e466b077e9592",
+      "upgradeTx": "0xc51da18ed65793578314f8c0edb7ee5f4b54ba369d2aa1e270b6b285bc65c8e9",
+      "deploymentBlockNumber": 87354919,
+      "upgradeBlockNumber": 87354957,
+      "timestamp": "2026-06-06T22:36:00Z",
+      "reason": "Add releaseLpSupportToken entrypoint so accrued stable LP support can be released for external LFJ and Pharaoh execution"
+    },
+    "saleProfitRouter": "0x009c742f514c0f245d2c0d0380c0843b97e8dbfa",
+    "lastSaleProfitRouterDeployment": {
+      "router": "0x009c742f514c0f245d2c0d0380c0843b97e8dbfa",
+      "tx": "0x95a29b4a1ae571957b0e74ce347b6114928e6b065c7570bbe3e38c6e09f89219",
+      "blockNumber": 87352999,
+      "timestamp": "2026-06-06T22:09:00Z"
     },
     "liquidTreasuryReconciliation": {
       "targetLiquidTreasuryUsdt6": "4617552305",

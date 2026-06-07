@@ -32,33 +32,37 @@ const SLICE_COLOURS: Record<string, string> = {
 const WATERFALL_CODE_REFERENCE = [
     {
         emoji: '🃏',
-        label: 'Card sells',
-        detail: 'Sale event triggers the onchain flow',
+        label: 'Sale evidence imported',
+        detail: 'The venue transaction becomes a sale key and registry match',
         color: 'var(--accent)',
-        source: 'GemMintStrategyFundV8.sol',
-        code: `function finalizeSale(bytes32 _saleKey) external onlyRole(MANAGER_ROLE) {
-    (, uint256 markedValueUsdt6, uint256 costBasisUsdt6, uint256 netProceedsUsdt6) =
-        IGm10PortfolioRegistry(portfolioRegistry).finalizeSale(_saleKey);`,
+        source: 'Admin sale import',
+        code: `saleKey = hash(venueTx, collection, tokenId, proceedsRef);
+positionId = matchSoldTokenToRegistry(collection, tokenId);
+recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
     },
     {
         emoji: '⛓',
-        label: 'Proceeds hit contract',
-        detail: 'Full AVAX returned onchain before any split',
+        label: 'Proceeds settle',
+        detail: 'Stable proceeds must land on Avalanche before finalization',
         color: 'var(--accent-blue)',
-        source: 'GemMintStrategyFundV3.sol',
-        code: `uint256 treasuryAllocationUsdt6;
-uint256 holderDistributionAllocationUsdt6;
-uint256 liquidityCatchBuyAllocationUsdt6;
-uint256 liquidityAvaxPairingAllocationUsdt6;`,
+        source: 'GemMintStrategyFundV8.sol',
+        code: `confirmStableSaleProceeds(
+    saleKey,
+    settlementToken,
+    settledAmount,
+    pullStableFromCaller,
+    proceedsRef,
+    proofRef
+);`,
     },
     {
         emoji: '💰',
         label: 'Principal restored',
         detail: 'Investors recover their original cost basis first',
         color: 'var(--accent-green)',
-        source: 'GemMintStrategyFundV3.sol',
+        source: 'GemMintStrategyFundV8.sol',
         code: `if (netProceedsUsdt6 <= costBasisUsdt6) {
-    treasuryAllocationUsdt6 = netProceedsUsdt6;
+    liquidTreasuryUsdt6 += netProceedsUsdt6;
 } else {
     uint256 realizedProfitUsdt6 = netProceedsUsdt6 - costBasisUsdt6;
     liquidTreasuryUsdt6 += costBasisUsdt6;
@@ -66,15 +70,14 @@ uint256 liquidityAvaxPairingAllocationUsdt6;`,
     },
     {
         emoji: '📊',
-        label: 'Realized profit routes',
-        detail: 'Dynamic route: buying power first, then LP or buyback-burn when conditions justify it',
+        label: 'Snapshot routes profit',
+        detail: 'Market inputs decide whether profit stays liquid or supports CATCH',
         color: 'var(--accent)',
         source: 'GemMintStrategyFundV8.sol',
-        code: `SaleProfitRoute memory route =
-    IGm10ContinuousSaleRouter(saleRouter).previewSaleProfitRoute(realizedProfitUsdt6, snapshot);
-liquidTreasuryUsdt6 += route.reinvestUsdt6;
-lpSupportAccruedUsdt6 += route.lpSupportUsdt6;
-buybackBurnAccruedUsdt6 += route.buybackBurnUsdt6;`,
+        code: `finalizeSaleWithMarketSnapshot(saleKey, snapshot, proofRef);
+previewSaleProfitRoute(realizedProfitUsdt6, snapshot);
+releaseLpSupportToken(token, amount, recipient, ref);
+executeLpSupport(lfjAmount, pharaohAmount, catchAmount, ref);`,
     },
 ] as const;
 
@@ -130,7 +133,7 @@ function WaterfallHoverCard({
                 </div>
                 <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--bg-primary)_88%,black)] px-3 py-3 text-[0.68rem] leading-[1.55] text-[var(--text-secondary)]"><code>{code}</code></pre>
                 <div className="mt-2 text-[0.7rem] leading-[1.5] text-[var(--text-tertiary)]">
-                    this is the actual branch the UI is describing, not marketing copy.
+                    This is the process branch the UI is describing. Exact route amounts depend on confirmed settlement and the market snapshot.
                 </div>
                 <div className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-[var(--border-strong)] bg-[color-mix(in_oklab,var(--bg-secondary)_92%,black)]" />
             </div>
@@ -462,15 +465,15 @@ function CatchContent() {
                 </ScrollReveal>
             </section>
 
-            {/* ── PROFIT WATERFALL ── */}
+            {/* ── SALE-PROFIT PROCESS ── */}
             <section className="mt-16">
                 <ScrollReveal>
-                    <SectionLabel>Profit waterfall</SectionLabel>
+                    <SectionLabel>Sale-profit process</SectionLabel>
                     <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
                         What happens when a card sells.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        Sale proceeds return onchain first. Principal is restored, then realized profit is routed by the current market snapshot into buying power, LP support, or buyback-burn reserve.
+                        Sale proceeds return to Avalanche first. Principal is restored, then realized profit is routed by the current market snapshot into buying power, LP support, or buyback-burn reserve. The split is calculated per sale, not published as a fixed promise.
                     </p>
                     <p className="mt-2 hidden text-[0.75rem] uppercase tracking-[0.16em] text-[var(--text-tertiary)] md:block">
                         hover any step to inspect the matching contract branch
@@ -496,19 +499,19 @@ function CatchContent() {
                         {/* Fork */}
                         <div className="h-5 w-px bg-[var(--border-strong)]" />
                         <div className="relative w-full">
-                            {/* Horizontal bar — spans center of col1 to center of col3 */}
+                            {/* Horizontal bar spans center of col1 to center of col3. */}
                             <div className="absolute top-0 left-[16.666%] right-[16.666%] h-px bg-[var(--border-strong)]" />
                             <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-3">
                                 {([
-                                    { label: 'Buying power', percent: 70, color: '#0ea5e9', desc: 'More cards plus liquid execution capacity' },
-                                    { label: 'LP support', percent: 20, color: '#10b981', desc: 'Bounded protocol liquidity support' },
-                                    { label: 'Buyback-burn', percent: 10, color: '#6366f1', desc: 'Conditional CATCH supply reduction' },
+                                    { label: 'Buying power', route: 'Snapshot-routed', color: '#0ea5e9', desc: 'More cards plus liquid execution capacity' },
+                                    { label: 'LP support', route: 'When accrued', color: '#10b981', desc: 'CATCH and AVAX/WAVAX liquidity added across configured venues' },
+                                    { label: 'Buyback-burn', route: 'Conditional', color: '#6366f1', desc: 'CATCH support only when discount conditions justify it' },
                                 ] as const).map((out) => (
                                     <div key={out.label} className="flex flex-col items-center">
                                         <div className="h-5 w-px bg-[var(--border-strong)]" />
                                         <svg width="10" height="6" viewBox="0 0 10 6" className="text-[var(--border-strong)]"><path d="M5 6L0 0h10z" fill="currentColor"/></svg>
                                         <div className="w-full rounded-xl border-2 bg-[var(--bg-secondary)] px-3 py-3 text-center" style={{ borderColor: out.color }}>
-                                            <div className="text-xl font-extrabold tracking-tight" style={{ color: out.color }}>{out.percent}%</div>
+                                            <div className="text-sm font-extrabold uppercase" style={{ color: out.color }}>{out.route}</div>
                                             <div className="mt-0.5 text-[0.73rem] font-bold text-[var(--text-primary)] leading-tight">{out.label}</div>
                                             <p className="mt-1 text-[0.68rem] leading-[1.4] text-[var(--text-secondary)]">{out.desc}</p>
                                         </div>
