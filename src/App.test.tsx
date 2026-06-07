@@ -1004,6 +1004,8 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/protocol accounting/i)).toBeInTheDocument();
         expect(screen.getByText(/supply composition/i)).toBeInTheDocument();
         expect(screen.getByText(/dynamic supply expands when successful commits mint from settled value/i)).toBeInTheDocument();
+        expect(screen.getByText(/Liquid \$3,528\.60 incl\. settled sale proceeds · Cards \$40\.00/i)).toBeInTheDocument();
+        expect(screen.getByText(/sale-inclusive liquid treasury plus card marks/i)).toBeInTheDocument();
         expect(screen.getAllByText(/total minted/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/excluded system supply/i).length).toBeGreaterThan(0);
         const profitEligibleHero = screen.getAllByText(/174,421\.1693 CATCH/i)[0].closest('.relative');

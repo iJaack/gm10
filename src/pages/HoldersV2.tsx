@@ -119,7 +119,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
     const fallbackPriceLabel = market.spotPriceSource === 'cached' ? 'Last known price' : spotSourceLabel(market.spotPriceSource);
 
     const { liveNavUsd } = deriveLivePortfolioNavUsd({
-        liquidTreasuryLabel: portfolio.proofSummary.liquidTreasuryLabel,
+        liquidTreasuryLabel: holder.labels.liquidTreasury,
         cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
         totalSupplyLabel: holder.labels.totalSupply,
     });
@@ -220,7 +220,7 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
     const livePriceUsd = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
     const marketCapSpot = livePriceUsd !== undefined ? totalSupplyNum * livePriceUsd : undefined;
 
-    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const liquidTreasuryLabel = holder.labels.liquidTreasury;
     const liquidTreasuryUsd = Number(liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const totalTreasury = liquidTreasuryUsd + cardPortfolioUsd;
@@ -238,7 +238,7 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
         {
             label: 'Treasury NAV',
             value: fmtUsd0(totalTreasury),
-            detail: `Liquid ${liquidTreasuryLabel} · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
+            detail: `Liquid ${liquidTreasuryLabel} incl. settled sale proceeds · Cards ${portfolio.proofSummary.onchainCurrentMarkLabel}`,
         },
         {
             label: '24h volume',
@@ -281,7 +281,7 @@ function CompositionDonut() {
     const portfolio = useFujiPortfolioPositions();
     const avaxUsd = useAvaxPrice();
 
-    const liquidTreasuryUsd = Number(portfolio.proofSummary.liquidTreasuryLabel.replace(/[^0-9.]/g, '')) || 0;
+    const liquidTreasuryUsd = Number(holder.labels.liquidTreasury.replace(/[^0-9.]/g, '')) || 0;
     const cardPortfolioUsd = Number(portfolio.proofSummary.onchainCurrentMarkLabel.replace(/[^0-9.]/g, '')) || 0;
     const protocolLpUsd = resolveProtocolLpValue(market.lfj, avaxUsd).usd + resolveProtocolLpValue(market.pharaoh, avaxUsd).usd;
 
@@ -544,7 +544,7 @@ function ProtocolStats() {
     const eligibleSupplyNum = parseDisplayNumber(holder.labels.profitEligibleSupply);
     const eligibleRatio = totalSupplyNum > 0 ? (eligibleSupplyNum / totalSupplyNum) * 100 : undefined;
 
-    const liquidTreasuryLabel = portfolio.proofSummary.liquidTreasuryLabel;
+    const liquidTreasuryLabel = holder.labels.liquidTreasury;
     const livePortfolioNav = deriveLivePortfolioNavUsd({
         liquidTreasuryLabel,
         cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
@@ -576,7 +576,7 @@ function ProtocolStats() {
         },
         {
             label: 'Live NAV / token',
-            detail: `(${liquidTreasuryLabel} liquid + ${portfolio.proofSummary.onchainCurrentMarkLabel} cards) ÷ ${fmtCatch(totalSupplyNum)}`,
+            detail: `(${liquidTreasuryLabel} liquid incl. settled sale proceeds + ${portfolio.proofSummary.onchainCurrentMarkLabel} cards) ÷ ${fmtCatch(totalSupplyNum)}`,
             value: liveNavUsd !== undefined ? formatUsd(liveNavUsd, 4) : holder.labels.navPerToken,
         },
         {
@@ -817,7 +817,7 @@ function ProtocolStats() {
                     />
                     <StatGroup
                         title="Valuation"
-                        description="Reference NAV is the fund's onchain accounting baseline. Live NAV divides liquid treasury plus card marks by total minted supply. Spot is the DEX-implied market cap."
+                        description="Reference NAV is the fund's onchain accounting baseline. Live NAV divides sale-inclusive liquid treasury plus card marks by total minted supply. Spot is the DEX-implied market cap."
                         rows={valuation}
                         chart={valuationChart}
                     />
@@ -833,7 +833,7 @@ function AccountSection() {
     const holder = useHolderDashboard();
     const portfolio = useFujiPortfolioPositions();
     const { liveNavUsd } = deriveLivePortfolioNavUsd({
-        liquidTreasuryLabel: portfolio.proofSummary.liquidTreasuryLabel,
+        liquidTreasuryLabel: holder.labels.liquidTreasury,
         cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
         totalSupplyLabel: holder.labels.totalSupply,
     });
