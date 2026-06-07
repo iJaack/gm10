@@ -4,6 +4,17 @@ export const GM10_FUND_ABI = [
         inputs: [
             { indexed: true, name: 'commitId', type: 'bytes32' },
             { indexed: true, name: 'buyer', type: 'address' },
+            { indexed: false, name: 'avaxAmountWei', type: 'uint256' },
+            { indexed: false, name: 'settlementAmountUsdt6', type: 'uint256' },
+        ],
+        name: 'ContinuousMintAvaxSettled',
+        type: 'event',
+    },
+    {
+        anonymous: false,
+        inputs: [
+            { indexed: true, name: 'commitId', type: 'bytes32' },
+            { indexed: true, name: 'buyer', type: 'address' },
             { indexed: false, name: 'settlementAmountUsdt6', type: 'uint256' },
             { indexed: false, name: 'buyerCatch18', type: 'uint256' },
             { indexed: false, name: 'segmentCatchEach18', type: 'uint256' },

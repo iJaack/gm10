@@ -523,7 +523,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
         expect(screen.getByText(/5,499\.9996 AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/total raised across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
         expect(screen.queryByText(/raised across finalized rounds/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Continuous commits are the current entry mode/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/legacy raise of .* cap/i)).not.toBeInTheDocument();
@@ -574,7 +574,7 @@ describe('page compression regressions', () => {
 
         wagmiMocks.blockNumber = 85856588n;
         await act(async () => {
-            await vi.advanceTimersByTimeAsync(15_000);
+            await vi.advanceTimersByTimeAsync(5_000);
         });
         await act(async () => {
             await Promise.resolve();
@@ -583,6 +583,28 @@ describe('page compression regressions', () => {
         expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 85856587n, toBlock: 85856588n });
         expect(eventRanges.slice(activeInitialScanCount)).not.toContainEqual({ fromBlock: 85856585n, toBlock: 85856586n });
         expect(screen.getByText(/5,699\.9996 AVAX/i)).toBeInTheDocument();
+    });
+
+    it('uses commit-time AVAX and USDC-equivalent values for homepage strategy capital', async () => {
+        wagmiMocks.getContractEvents.mockImplementation(async ({ eventName }: { eventName?: string }) => {
+            if (eventName === 'ContinuousMintAvaxSettled') {
+                return [{
+                    args: {
+                        avaxAmountWei: 20_000_000_000_000_000_000n,
+                        settlementAmountUsdt6: 1_000_000_000n,
+                    },
+                }];
+            }
+            return [];
+        });
+
+        renderAt('/');
+
+        await waitFor(() => {
+            expect(screen.getByText(/5,519\.9996 AVAX/i)).toBeInTheDocument();
+        });
+        expect(screen.getByText(/\+0\.4% MoM in AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/~\$53,250 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
     });
 
     it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {
