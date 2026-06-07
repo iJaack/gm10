@@ -721,11 +721,6 @@ function FundraisingContent() {
                             {' · '}
                             <span className="text-[var(--text-primary)]">Continuous round</span>
                         </DataMono>
-                        <DataMono className="tracking-[0.04em]">
-                            <span className={continuousMintPaused === false ? 'v2-up' : 'text-[var(--ink-faint)]'}>
-                                {continuousMintPaused === false ? 'CONTINUOUS LIVE' : 'CONTINUOUS PAUSED'}
-                            </span>
-                        </DataMono>
                         <DataMono className="text-[var(--ink-faint)] tracking-[0.04em]">
                             AVALANCHE MAINNET · V8 VERIFIED
                         </DataMono>
