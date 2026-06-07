@@ -358,16 +358,16 @@ const NAV_RULES = [
 
 const SYSTEM_FLOW_STEPS = [
     {
-        title: 'Commit through the continuous round',
-        body: 'The continuous round is the entry point. Supported routes settle on Avalanche and the system records each commit as its own mint event.',
+        title: 'You commit',
+        body: 'Add funds through the continuous round. When the route settles on Avalanche, the contract mints your $CATCH and records the commit.',
     },
     {
-        title: 'GM10 acquires and marks positions',
-        body: 'The team handles sourcing and execution, while the system tracks positions, marks, and liquid treasury against the portfolio.',
+        title: 'GM10 buys and prices cards',
+        body: 'Treasury capital funds card sourcing. Each position keeps its cost, latest mark, and cash balance in the portfolio ledger.',
     },
     {
-        title: '$CATCH tracks the strategy result',
-        body: 'The token represents exposure to the portfolio process: holdings, realized exits, and the accounting rules that govern each update.',
+        title: '$CATCH follows the portfolio',
+        body: 'As cards are bought, marked, or sold, NAV updates so one token keeps tracking the whole strategy.',
     },
 ] as const;
 
@@ -458,10 +458,10 @@ function CatchContent() {
                 <ScrollReveal>
                     <SectionLabel>System flow</SectionLabel>
                     <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
-                        How GM10 turns one token into portfolio exposure.
+                        Three things happen when you mint.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        Read this page as a sequence: contribution, portfolio construction, valuation discipline, and realized exit handling.
+                        Your commit becomes fund capital, GM10 uses that capital to build the card portfolio, and $CATCH tracks the result.
                     </p>
                 </ScrollReveal>
 

@@ -802,6 +802,11 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/5% below risk-free price/i)).toBeInTheDocument();
         expect(screen.getByText(/primary commits mint at 95% of NAV/i)).toBeInTheDocument();
         expect(screen.queryByText(/minted to buyers/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /three things happen when you mint/i })).toBeInTheDocument();
+        expect(screen.getByText(/your commit becomes fund capital/i)).toBeInTheDocument();
+        expect(screen.getByText(/you commit/i)).toBeInTheDocument();
+        expect(screen.getByText(/gm10 buys and prices cards/i)).toBeInTheDocument();
+        expect(screen.getByText(/\$CATCH follows the portfolio/i)).toBeInTheDocument();
         expect(screen.getAllByText(/100 CATCH/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/1 CATCH each per 100 USDC preview/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/Live contract preview: a 100 USDC settled commit mints 100 CATCH to the buyer and 1 CATCH to each of 5 configured segment wallets/i)).toBeInTheDocument();
