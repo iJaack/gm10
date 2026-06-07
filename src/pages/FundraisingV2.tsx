@@ -702,7 +702,6 @@ function FundraisingContent() {
 
                     <div className="mt-8 grid gap-5 lg:grid-cols-[0.78fr_1.22fr] lg:items-start xl:grid-cols-[0.72fr_1.28fr]">
                         <div className="max-w-3xl">
-                            <SectionLabel>Current entry mode</SectionLabel>
                             <DisplayItalic as="p" className="mt-3 max-w-[24ch] text-[clamp(1.25rem,2.2vw,1.65rem)] leading-tight text-[var(--ink-muted)]">
                                 Mint $CATCH as soon as the route settles.
                             </DisplayItalic>
