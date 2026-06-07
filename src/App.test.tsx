@@ -523,7 +523,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/record public sale/i)).toBeInTheDocument();
         expect(screen.getByText(/the track record/i)).toBeInTheDocument();
         expect(screen.getByText(/current holdings/i)).toBeInTheDocument();
-        expect(screen.getByText(/5,499\.9996 AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/5,554\.4542 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
         expect(screen.queryByText(/raised across finalized rounds/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/Continuous commits are the current entry mode/i)).not.toBeInTheDocument();
@@ -545,19 +545,20 @@ describe('page compression regressions', () => {
         wagmiMocks.contractEvents = [
             { args: { settlementAmountUsdt6: 950_000_000n } },
         ];
+        wagmiMocks.blockNumber = 87228003n;
 
         renderAt('/');
 
         await waitFor(() => {
-            expect(screen.getByText(/5,599\.9996 AVAX/i)).toBeInTheDocument();
+            expect(screen.getByText(/5,654\.4542 AVAX/i)).toBeInTheDocument();
         });
-        expect(screen.getByText(/\+1\.8% MoM in AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/\+2\.8% MoM in AVAX/i)).toBeInTheDocument();
         expect(screen.queryByText(/onchain logs/i)).not.toBeInTheDocument();
     });
 
     it('polls only new continuous settlement blocks after the initial capital scan', async () => {
         vi.useFakeTimers();
-        wagmiMocks.blockNumber = 85856586n;
+        wagmiMocks.blockNumber = 87228003n;
         const eventRanges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
         wagmiMocks.getContractEvents.mockImplementation(async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => {
             eventRanges.push({ fromBlock, toBlock });
@@ -569,11 +570,11 @@ describe('page compression regressions', () => {
         await act(async () => {
             await vi.advanceTimersByTimeAsync(0);
         });
-        expect(screen.getByText(/5,599\.9996 AVAX/i)).toBeInTheDocument();
-        expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 85856585n, toBlock: 85856586n });
+        expect(screen.getByText(/5,654\.4542 AVAX/i)).toBeInTheDocument();
+        expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 87228002n, toBlock: 87228003n });
         const activeInitialScanCount = eventRanges.length;
 
-        wagmiMocks.blockNumber = 85856588n;
+        wagmiMocks.blockNumber = 87228005n;
         await act(async () => {
             await vi.advanceTimersByTimeAsync(5_000);
         });
@@ -581,12 +582,43 @@ describe('page compression regressions', () => {
             await Promise.resolve();
         });
 
-        expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 85856587n, toBlock: 85856588n });
-        expect(eventRanges.slice(activeInitialScanCount)).not.toContainEqual({ fromBlock: 85856585n, toBlock: 85856586n });
-        expect(screen.getByText(/5,699\.9996 AVAX/i)).toBeInTheDocument();
+        expect(eventRanges[eventRanges.length - 1]).toEqual({ fromBlock: 87228004n, toBlock: 87228005n });
+        expect(eventRanges.slice(activeInitialScanCount)).not.toContainEqual({ fromBlock: 87228002n, toBlock: 87228003n });
+        expect(screen.getByText(/5,754\.4542 AVAX/i)).toBeInTheDocument();
     });
 
     it('uses commit-time AVAX and USDC-equivalent values for homepage strategy capital', async () => {
+        wagmiMocks.roundState = {
+            roundId: 2,
+            round: {
+                targetAmount: 5000000000000000000000n,
+                raisedAmount: 1353983600000000000000n,
+                tokenPrice: 3500000000000000n,
+                minInvestment: 100000000000000000n,
+                maxInvestment: 500000000000000000000n,
+                startTime: 1776351600n,
+                endTime: 1778943600n,
+                isActive: false,
+                isFinalized: true,
+            },
+            status: 'Finalized',
+            progress: 27.079672,
+            isRoundOpen: false,
+            isUpcoming: false,
+            isClosed: true,
+            isPlanned: false,
+            roundSource: 'onchain',
+            startsAt: 1776351600,
+            endsAt: 1778943600,
+            archiveRound: {
+                raisedAmount: 500000000000000000000n,
+            },
+            targetLabel: '5,000 AVAX',
+            raisedLabel: '1,353.9836 AVAX',
+            priceLabel: '0.0035 AVAX',
+            minMaxLabel: '0.1 to 500 AVAX',
+            links: [],
+        };
         wagmiMocks.getContractEvents.mockImplementation(async ({ eventName }: { eventName?: string }) => {
             if (eventName === 'ContinuousMintAvaxSettled') {
                 return [{
@@ -602,10 +634,10 @@ describe('page compression regressions', () => {
         renderAt('/');
 
         await waitFor(() => {
-            expect(screen.getByText(/5,519\.9996 AVAX/i)).toBeInTheDocument();
+            expect(screen.getByText(/1,928\.4382 AVAX/i)).toBeInTheDocument();
         });
-        expect(screen.getByText(/\+0\.4% MoM in AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/~\$18,462 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/\+4\.0% MoM in AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/~\$18,864 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
     });
 
     it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {

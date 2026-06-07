@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { formatEther, formatUnits } from 'viem';
+import { formatEther } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { Web3Providers } from '../components/Web3Providers';
 import {
@@ -26,6 +26,11 @@ import { useTheme } from '../hooks/useTheme';
 import { FINALIZED_RAISE_ARCHIVE, HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 import { GM10_FUND_ABI } from '../data/contracts';
 import { GM10_PRIMARY_DEPLOYMENT } from '../data/gm10Config';
+import {
+    RECORDED_CONTINUOUS_CAPITAL_LAST_BLOCK,
+    RECORDED_CONTINUOUS_CAPITAL_TOTALS,
+    computeStrategyCapitalTotals,
+} from '../data/strategyCapital';
 
 /* ─────────────────────────────────────────────── */
 /*  1. HERO                                         */
@@ -34,7 +39,7 @@ import { GM10_PRIMARY_DEPLOYMENT } from '../data/gm10Config';
 const CAPITAL_REFRESH_INTERVAL_MS = 5_000;
 const CAPITAL_EVENT_BLOCK_CHUNK = 2_000n;
 const CAPITAL_EVENT_BATCH_SIZE = 12;
-const CONTINUOUS_EVENTS_FROM_BLOCK = 85_856_585n;
+const CONTINUOUS_EVENTS_FROM_BLOCK = RECORDED_CONTINUOUS_CAPITAL_LAST_BLOCK + 1n;
 const FALLBACK_ROUND_1_RAISED_AVAX = 500;
 const LEGACY_CONTINUOUS_SETTLEMENT_USDT6_PER_AVAX = 9_500_000n;
 
@@ -45,18 +50,19 @@ type ContinuousCapitalTotals = {
 
 function useContinuousSettlementTotals() {
     const publicClient = usePublicClient();
-    const [totals, setTotals] = useState<ContinuousCapitalTotals | undefined>(undefined);
+    const [totals, setTotals] = useState<ContinuousCapitalTotals | undefined>(RECORDED_CONTINUOUS_CAPITAL_TOTALS);
     const proxyAddress = GM10_PRIMARY_DEPLOYMENT.proxy.address;
-    const processedThroughBlockRef = useRef<bigint | undefined>(undefined);
-    const totalsRef = useRef<ContinuousCapitalTotals>({ avaxWei: 0n, usdt6: 0n });
+    const processedThroughBlockRef = useRef<bigint | undefined>(RECORDED_CONTINUOUS_CAPITAL_LAST_BLOCK);
+    const totalsRef = useRef<ContinuousCapitalTotals>(RECORDED_CONTINUOUS_CAPITAL_TOTALS);
 
     useEffect(() => {
         if (!publicClient || !proxyAddress) return undefined;
         const client = publicClient;
         let cancelled = false;
         let refreshing = false;
-        processedThroughBlockRef.current = undefined;
-        totalsRef.current = { avaxWei: 0n, usdt6: 0n };
+        processedThroughBlockRef.current = RECORDED_CONTINUOUS_CAPITAL_LAST_BLOCK;
+        totalsRef.current = RECORDED_CONTINUOUS_CAPITAL_TOTALS;
+        setTotals(RECORDED_CONTINUOUS_CAPITAL_TOTALS);
 
         async function refresh() {
             if (refreshing) return;
@@ -153,26 +159,24 @@ function Hero() {
         : round.roundSource === 'published'
             ? ROUND_2_CLOSE_LEDGER.raisedAvax
             : 0;
-    const continuousRaisedAvax = continuousSettlementTotals
-        ? Number(formatEther(continuousSettlementTotals.avaxWei))
-        : 0;
+    const strategyCapital = computeStrategyCapitalTotals({
+        archiveRaisedAvax,
+        roundRaisedAvax,
+        roundSource: round.roundSource,
+        roundIsFinalized: Boolean(round.round?.isFinalized),
+        roundIsClosed: round.isClosed,
+        continuousAvaxWei: continuousSettlementTotals?.avaxWei,
+        continuousSettlementUsdt6: continuousSettlementTotals?.usdt6,
+    });
     const priorMonthRaisedAvax = archiveRaisedAvax + roundRaisedAvax;
     const momRaisedAvaxPercent = priorMonthRaisedAvax > 0
-        ? (continuousRaisedAvax / priorMonthRaisedAvax) * 100
+        ? (strategyCapital.continuousRaisedAvax / priorMonthRaisedAvax) * 100
         : 0;
-    const totalRaisedAvax = archiveRaisedAvax + roundRaisedAvax + continuousRaisedAvax;
-    const historicalRaisedUsd =
-        (archiveRaisedAvax > 0 ? FINALIZED_RAISE_ARCHIVE.rounds[0].commitmentUsd : 0) +
-        (roundRaisedAvax > 0 ? FINALIZED_RAISE_ARCHIVE.rounds[1].commitmentUsd : 0);
-    const continuousRaisedUsd = continuousSettlementTotals
-        ? Number(formatUnits(continuousSettlementTotals.usdt6, 6))
-        : 0;
-    const totalRaisedUsd = historicalRaisedUsd + continuousRaisedUsd;
-    const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', {
+    const totalRaisedLabel = `${strategyCapital.totalRaisedAvax.toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 4,
     })} AVAX`;
-    const totalRaisedUsdLabel = `~$${totalRaisedUsd.toLocaleString('en-US', {
+    const totalRaisedUsdLabel = `~$${strategyCapital.totalCommitmentUsd.toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     })}`;
