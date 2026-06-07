@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatUnits } from 'viem';
 import { Web3Providers } from '../components/Web3Providers';
 import {
     Caption,
@@ -22,7 +23,8 @@ import {
     SectionLabel,
 } from '../components/v2/primitives';
 import { useCourtyardProfileNav } from '../hooks/useCourtyardProfileNav';
-import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
+import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
+import { useStrategyCapitalTotals } from '../hooks/useStrategyCapitalTotals';
 import type { Gm10PortfolioPosition } from '../hooks/useFujiProof';
 
 /* ── Summary strip ─────────────────────────────────────── */
@@ -244,13 +246,45 @@ function ActivityLedger() {
 
 type ViewMode = 'grid' | 'ledger';
 
+function formatUsd(value: number) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
+function formatSignedUsd(value: number) {
+    if (value > 0) return `+${formatUsd(value)}`;
+    if (value < 0) return `-${formatUsd(Math.abs(value))}`;
+    return formatUsd(0);
+}
+
+function formatSignedPercent(value: number) {
+    const prefix = value > 0 ? '+' : '';
+    return `${prefix}${value.toFixed(1)}%`;
+}
+
 function PortfolioContent() {
+    const round = useFujiRoundState();
     const platformNav = useCourtyardProfileNav();
     const portfolio = useFujiPortfolioPositions({
         status: platformNav.status,
         netWorthUsd: platformNav.netWorthUsd,
     });
+    const strategyCapital = useStrategyCapitalTotals(round);
     const [view, setView] = useState<ViewMode>('grid');
+    const strategyCurrentValueUsd = Number(formatUnits(portfolio.valueSummary.strategyCurrentValueUsdt6, 6));
+    const strategyPnlUsd = strategyCurrentValueUsd - strategyCapital.totalCommitmentUsd;
+    const strategyPnlPercent = strategyCapital.totalCommitmentUsd > 0
+        ? (strategyPnlUsd / strategyCapital.totalCommitmentUsd) * 100
+        : 0;
+    const strategyPnlDirection = strategyPnlUsd > 0
+        ? 'up'
+        : strategyPnlUsd < 0
+            ? 'down'
+            : 'flat';
 
     const summaryStats = [
         { label: 'COST', value: portfolio.proofSummary.costBasisLabel },
@@ -259,8 +293,8 @@ function PortfolioContent() {
         {
             label: 'STRATEGY VALUE',
             value: portfolio.proofSummary.strategyCurrentValueLabel,
-            secondaryValue: `P/L ${portfolio.proofSummary.unrealizedPnlLabel} ${portfolio.proofSummary.unrealizedPnlPercentLabel}`,
-            tone: portfolio.proofSummary.unrealizedPnlDirection,
+            secondaryValue: `P/L ${formatSignedUsd(strategyPnlUsd)} ${formatSignedPercent(strategyPnlPercent)}`,
+            tone: strategyPnlDirection,
         },
     ];
 
@@ -290,7 +324,7 @@ function PortfolioContent() {
                         </Display>
                         <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis is the acquisition price. Card marks show active holdings only. Strategy value adds finalized cash funds from settled sale proceeds.
+                            Cost basis is the acquisition price. Card marks show active holdings only. Strategy value adds finalized cash funds, and P/L is measured against commit-time capital across the rounds plus continuous commits.
                         </p>
                     </div>
 

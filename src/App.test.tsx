@@ -20,6 +20,7 @@ const wagmiMocks = vi.hoisted(() => ({
     readContractData: {} as Record<string, unknown>,
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
+    portfolioValueSummary: undefined as any,
     fetch: vi.fn(),
     reset: vi.fn(),
     writeContract: vi.fn(),
@@ -271,6 +272,9 @@ vi.mock('./hooks/useFujiProof', () => ({
             referenceNavLabel: '$0.02',
             ...wagmiMocks.portfolioProofSummary,
         },
+        valueSummary: wagmiMocks.portfolioValueSummary ?? {
+            strategyCurrentValueUsdt6: 50_000000n,
+        },
     }),
 }));
 
@@ -457,6 +461,7 @@ afterEach(() => {
     wagmiMocks.readContractData = {};
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
+    wagmiMocks.portfolioValueSummary = undefined;
     wagmiMocks.fetch.mockReset();
     wagmiMocks.reset.mockClear();
     wagmiMocks.writeContract.mockClear();
@@ -985,6 +990,22 @@ describe('page compression regressions', () => {
     });
 
     it('renders the portfolio gallery with live positions and activity', async () => {
+        wagmiMocks.roundState = {
+            roundSource: 'published',
+            isClosed: true,
+            archiveRound: { raisedAmount: 500_000_000_000_000_000_000n },
+            round: {
+                raisedAmount: 1_353_983_600_000_000_000_000n,
+                isFinalized: true,
+            },
+        };
+        wagmiMocks.portfolioProofSummary = {
+            strategyCurrentValueLabel: '$18,000.00',
+        };
+        wagmiMocks.portfolioValueSummary = {
+            strategyCurrentValueUsdt6: 18_000_000000n,
+        };
+
         renderAt('/portfolio');
 
         expect(await screen.findByRole('heading', { name: /^collection$/i })).toBeInTheDocument();
@@ -993,7 +1014,8 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/^cash funds$/i)).toBeInTheDocument();
         expect(screen.getByText(/^strategy value$/i)).toBeInTheDocument();
         expect(screen.queryByText(/^2 recorded positions$/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/P\/L .* \+10\.0%/i)).toHaveClass('v2-up');
+        expect(screen.getByText(/P\/L \+\$136\.29 \+0\.8%/i)).toHaveClass('v2-up');
+        expect(screen.queryByText(/P\/L .* \+10\.0%/i)).not.toBeInTheDocument();
         expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
