@@ -686,8 +686,8 @@ function FundraisingContent() {
 
     return (
         <main>
-            {/* Status strip */}
-            <section className="px-4 pt-28 md:pt-32 pb-4">
+            {/* Compact continuous commit surface */}
+            <section className="px-4 pt-24 pb-12 md:pt-28">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                     <div className="flex flex-wrap items-center gap-3 text-[0.7rem]">
                         <DataMono className="text-[var(--ink-faint)] tracking-[0.08em] uppercase">
@@ -700,31 +700,22 @@ function FundraisingContent() {
                         </DataMono>
                     </div>
 
-                    {/* Title */}
-                    <div className="mt-10 flex flex-wrap items-end gap-8">
-                        <div>
+                    <div className="mt-8 grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-start xl:grid-cols-[0.65fr_1.35fr]">
+                        <div className="max-w-3xl">
                             <SectionLabel>Current entry mode</SectionLabel>
-                            <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
+                            <Display as="h1" className="mt-3 text-[clamp(2.35rem,5vw,4rem)]">
                                 Continuous round
                             </Display>
-                        </div>
-                        <DisplayItalic as="div" className="text-[clamp(1.4rem,3vw,2.2rem)] text-[var(--ink-muted)] pb-3">
-                            Per-commit minting at live NAV.
-                        </DisplayItalic>
-                    </div>
-                </div>
-            </section>
+                            <DisplayItalic as="p" className="mt-2 text-[clamp(1.15rem,2.2vw,1.65rem)] leading-tight text-[var(--ink-muted)]">
+                                Per-commit minting at live NAV.
+                            </DisplayItalic>
 
-            {/* Continuous spec + preview grid */}
-            <section className="px-4 pb-20">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                    <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
-                        {/* Spec */}
-                        <div>
-                            <SectionLabel>Live mechanics</SectionLabel>
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                            <div className="mt-6">
+                                <SectionLabel>Live mechanics</SectionLabel>
+                            </div>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                 {[
-                                    ['NAV price', fmtUsdc(navPerTokenUsdt6)],
+                                    ['NAV-backed token price', fmtUsdc(navPerTokenUsdt6)],
                                     ['Mint spread', fmtSpread(mintSpreadBps)],
                                     ['Settlement', 'Native AVAX'],
                                     ['Raised all-time', totalRaisedLabel],
@@ -737,144 +728,140 @@ function FundraisingContent() {
                             </div>
                         </div>
 
-                        {/* Preview */}
-                        <div>
-                            <SectionLabel>Commit preview</SectionLabel>
-                            <Hairline className="mt-3" />
-                            <div className="mt-4 border border-[var(--rule-strong)] bg-[var(--bg-secondary)] px-4 shadow-[0_0_0_1px_var(--accent-muted)]">
-                                <div className="flex items-baseline justify-between border-b border-[var(--rule)] py-2.5">
-                                    <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
-                                        SOURCE · <span className="text-[var(--text-primary)]">From virtually any chain</span>
-                                    </DataMono>
-                                    <DataMono className="text-[0.88rem] font-semibold text-[var(--text-primary)]">
-                                        {hasCommitReceiver ? `Avalanche ${formatShortAddress(commitReceiverAddress)}` : 'Avalanche receiver missing'}
+                        <div className="border border-[var(--rule-strong)] bg-[var(--bg-secondary)] p-4 shadow-[0_0_0_1px_var(--accent-muted)] md:p-5">
+                            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--rule)] pb-3">
+                                <div>
+                                    <SectionLabel>Commit preview</SectionLabel>
+                                    <DataMono className="mt-1 block text-[0.74rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
+                                        From virtually any chain
                                     </DataMono>
                                 </div>
-
-                                <div className="py-4">
-                                    <div className="rounded-sm border border-[var(--accent-brass)]/70 bg-[var(--bg-primary)]/55 px-4 py-3 shadow-[0_0_24px_var(--accent-muted)]">
-                                        <div className="flex items-baseline justify-between">
-                                            <Caption className="block text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-brass)]">Commit amount</Caption>
-                                            <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
-                                                {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
-                                            </DataMono>
-                                        </div>
-                                        <div className="mt-2 flex items-center gap-3">
-                                            <input
-                                                value={amount}
-                                                onChange={(e) => {
-                                                    setAmount(e.target.value);
-                                                    setCommitFeedback(null);
-                                                }}
-                                                aria-label={selectedSourceToken ? `Commit amount in ${selectedSourceToken.symbol}` : 'Commit amount'}
-                                                placeholder={selectedSourceToken?.symbol === 'USDC' ? '100.00' : '1.00'}
-                                                disabled={!selectedSourceToken}
-                                                inputMode="decimal"
-                                                className="w-full min-w-0 bg-transparent v2-mono text-[clamp(2.4rem,5vw,4.1rem)] font-bold leading-none tracking-[-0.03em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
-                                            />
-                                            <div className="flex shrink-0 items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (selectedSourceToken) {
-                                                            setAmount(sourceBalanceRaw !== undefined
-                                                                ? formatUnits(sourceBalanceRaw, selectedSourceToken.decimals)
-                                                                : String(selectedSourceToken.balance));
-                                                        }
-                                                        setCommitFeedback(null);
-                                                    }}
-                                                    disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
-                                                    className="v2-mono border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
-                                                >
-                                                    Max
-                                                </button>
-                                                <DataMono className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken?.symbol ?? 'TOKEN'}</DataMono>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                                        <div>
-                                            <label
-                                                htmlFor="source-token-select"
-                                                className="v2-mono block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]"
-                                            >
-                                                Source token
-                                            </label>
-                                            <select
-                                                id="source-token-select"
-                                                value={sourceTokenId}
-                                                onChange={(event) => {
-                                                    setSourceTokenId(event.target.value);
-                                                    setAmount('');
-                                                    setCommitFeedback(null);
-                                                }}
-                                                disabled={sourceTokens.length === 0}
-                                                className="mt-2 h-11 w-full border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 v2-mono text-[0.86rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
-                                            >
-                                                {sourceTokens.length > 0 ? sourceTokens.map((token) => (
-                                                    <option key={token.id} value={token.id}>
-                                                        {formatSourceTokenOption(token)}
-                                                    </option>
-                                                )) : (
-                                                    <option value="">
-                                                        {formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
-                                                    </option>
-                                                )}
-                                            </select>
-                                        </div>
-                                        <DataMono className="text-left text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)] sm:text-right">
-                                            {selectedSourceToken
-                                                ? `Balance ${fmtTokenAmount(selectedSourceToken.balance)} ${selectedSourceToken.symbol} · ${fmtUsdValue(selectedSourceToken.balanceUsd)}`
-                                                : formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
-                                        </DataMono>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4 border-y border-[var(--rule-strong)] bg-[var(--accent-muted)] px-4 py-4">
-                                    <div>
-                                        <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Route settles</Caption>
-                                        <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--text-primary)]">
-                                            {settledUsdcAmount > 0 ? settledUsdcAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0.00'} <span className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">USDC</span>
-                                        </DataMono>
-                                        <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
-                                            ~${amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                                        </DataMono>
-                                    </div>
-                                    <div className="text-right">
-                                        <Caption className="block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Buyer receives</Caption>
-                                        <DataMono className="mt-1.5 block text-[clamp(1.3rem,2vw,1.55rem)] font-bold text-[var(--accent-brass)]">
-                                            {buyerCatch} <span className="text-[0.9rem] font-semibold">$CATCH</span>
-                                        </DataMono>
-                                        <DataMono className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">
-                                            + {segmentCatch} each segment wallet
-                                        </DataMono>
-                                    </div>
-                                </div>
-
-                                <div className="py-4">
-                                    <button
-                                        type="button"
-                                        onClick={handleMintCommit}
-                                        disabled={isMinting || !selectedSourceToken || !amount || settlementAmountUsdt6 <= 0n}
-                                        className="v2-mono flex h-14 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.95rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_24px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
-                                    >
-                                        {isMinting ? 'Minting $CATCH...' : 'Mint new $CATCH'}
-                                    </button>
-                                </div>
-
-                                {commitFeedback ? (
-                                    <div
-                                        className={`pb-4 v2-mono text-[0.82rem] font-medium ${commitFeedback.tone === 'error' ? 'v2-down' : commitFeedback.tone === 'pending' ? 'text-[var(--ink-muted)]' : 'v2-up'}`}
-                                        role={commitFeedback.tone === 'error' ? 'alert' : 'status'}
-                                    >
-                                        {commitFeedback.tone === 'error' ? '⚠' : commitFeedback.tone === 'pending' ? '↻' : '✓'} {commitFeedback.message}
-                                    </div>
-                                ) : null}
+                                <DataMono className="text-[0.82rem] font-semibold text-[var(--text-primary)]">
+                                    {hasCommitReceiver ? `Avalanche ${formatShortAddress(commitReceiverAddress)}` : 'Avalanche receiver missing'}
+                                </DataMono>
                             </div>
+
+                            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.5fr)]">
+                                <div className="border border-[var(--accent-brass)]/70 bg-[var(--bg-primary)]/55 px-4 py-3 shadow-[0_0_20px_var(--accent-muted)]">
+                                    <div className="flex items-baseline justify-between gap-4">
+                                        <Caption className="block text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-brass)]">Commit amount</Caption>
+                                        <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
+                                            {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
+                                        </DataMono>
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <input
+                                            value={amount}
+                                            onChange={(e) => {
+                                                setAmount(e.target.value);
+                                                setCommitFeedback(null);
+                                            }}
+                                            aria-label={selectedSourceToken ? `Commit amount in ${selectedSourceToken.symbol}` : 'Commit amount'}
+                                            placeholder={selectedSourceToken?.symbol === 'USDC' ? '100.00' : '1.00'}
+                                            disabled={!selectedSourceToken}
+                                            inputMode="decimal"
+                                            className="w-full min-w-0 bg-transparent v2-mono text-[clamp(2.25rem,4vw,3.25rem)] font-bold leading-none tracking-[-0.03em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
+                                        />
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (selectedSourceToken) {
+                                                        setAmount(sourceBalanceRaw !== undefined
+                                                            ? formatUnits(sourceBalanceRaw, selectedSourceToken.decimals)
+                                                            : String(selectedSourceToken.balance));
+                                                    }
+                                                    setCommitFeedback(null);
+                                                }}
+                                                disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
+                                                className="v2-mono border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                            >
+                                                Max
+                                            </button>
+                                            <DataMono className="text-[0.86rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken?.symbol ?? 'TOKEN'}</DataMono>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-3 py-3">
+                                    <label
+                                        htmlFor="source-token-select"
+                                        className="v2-mono block text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]"
+                                    >
+                                        Source token
+                                    </label>
+                                    <select
+                                        id="source-token-select"
+                                        value={sourceTokenId}
+                                        onChange={(event) => {
+                                            setSourceTokenId(event.target.value);
+                                            setAmount('');
+                                            setCommitFeedback(null);
+                                        }}
+                                        disabled={sourceTokens.length === 0}
+                                        className="mt-2 h-10 w-full border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-2 v2-mono text-[0.8rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
+                                    >
+                                        {sourceTokens.length > 0 ? sourceTokens.map((token) => (
+                                            <option key={token.id} value={token.id}>
+                                                {formatSourceTokenOption(token)}
+                                            </option>
+                                        )) : (
+                                            <option value="">
+                                                {formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
+                                            </option>
+                                        )}
+                                    </select>
+                                    <DataMono className="mt-2 block text-[0.7rem] font-semibold leading-snug tracking-[0.04em] text-[var(--ink-muted)]">
+                                        {selectedSourceToken
+                                            ? `Balance ${fmtTokenAmount(selectedSourceToken.balance)} ${selectedSourceToken.symbol} · ${fmtUsdValue(selectedSourceToken.balanceUsd)}`
+                                            : formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
+                                    </DataMono>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 grid gap-2 bg-[var(--accent-muted)] p-3 sm:grid-cols-3">
+                                <div>
+                                    <Caption className="block text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Route settles</Caption>
+                                    <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--text-primary)]">
+                                        {settledUsdcAmount > 0 ? settledUsdcAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0.00'} <span className="text-[0.78rem] font-semibold text-[var(--ink-muted)]">USDC</span>
+                                    </DataMono>
+                                    <DataMono className="text-[0.72rem] font-semibold text-[var(--ink-muted)]">
+                                        ~${amountUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                    </DataMono>
+                                </div>
+                                <div>
+                                    <Caption className="block text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Buyer receives</Caption>
+                                    <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--accent-brass)]">
+                                        {buyerCatch} <span className="text-[0.78rem] font-semibold">$CATCH</span>
+                                    </DataMono>
+                                </div>
+                                <div>
+                                    <Caption className="block text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Segment mints</Caption>
+                                    <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--text-primary)]">
+                                        {segmentCatch} <span className="text-[0.78rem] font-semibold">each</span>
+                                    </DataMono>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleMintCommit}
+                                disabled={isMinting || !selectedSourceToken || !amount || settlementAmountUsdt6 <= 0n}
+                                className="v2-mono mt-3 flex h-12 w-full items-center justify-center gap-2 border border-[var(--accent-brass)] bg-[var(--accent-brass)] px-4 text-[0.9rem] font-bold uppercase tracking-[0.08em] text-[var(--bg-primary)] shadow-[0_0_20px_var(--accent-muted)] transition-all hover:-translate-y-0.5 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--ink-muted)] disabled:shadow-none disabled:hover:translate-y-0"
+                            >
+                                {isMinting ? 'Minting $CATCH...' : 'Mint new $CATCH'}
+                            </button>
+
+                            {commitFeedback ? (
+                                <div
+                                    className={`mt-3 v2-mono text-[0.82rem] font-medium ${commitFeedback.tone === 'error' ? 'v2-down' : commitFeedback.tone === 'pending' ? 'text-[var(--ink-muted)]' : 'v2-up'}`}
+                                    role={commitFeedback.tone === 'error' ? 'alert' : 'status'}
+                                >
+                                    {commitFeedback.tone === 'error' ? '⚠' : commitFeedback.tone === 'pending' ? '↻' : '✓'} {commitFeedback.message}
+                                </div>
+                            ) : null}
                         </div>
                     </div>
-
                 </div>
             </section>
 

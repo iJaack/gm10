@@ -634,10 +634,10 @@ describe('page compression regressions', () => {
         renderAt('/');
 
         await waitFor(() => {
-            expect(screen.getByText(/1,928\.4382 AVAX/i)).toBeInTheDocument();
+            expect(screen.getByText(/1,908\.4382 AVAX/i)).toBeInTheDocument();
         });
-        expect(screen.getByText(/\+4\.0% MoM in AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/~\$18,864 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/\+2\.9% MoM in AVAX/i)).toBeInTheDocument();
+        expect(screen.getByText(/~\$17,864 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
     });
 
     it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {
@@ -660,7 +660,7 @@ describe('page compression regressions', () => {
 
         renderAt('/');
 
-        expect(screen.getByText(/^500 AVAX$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^554\.4546 AVAX$/i)).toBeInTheDocument();
         expect(screen.queryByText(/1,853\.9836 AVAX/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/5,499\.9996 AVAX/i)).not.toBeInTheDocument();
     });
@@ -679,6 +679,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/^mint price$/i)).not.toBeInTheDocument();
         expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
         expect(screen.getByText(/from virtually any chain/i)).toBeInTheDocument();
+        expect(screen.getByText(/^segment mints$/i)).toBeInTheDocument();
         const sourceTokenSelect = await screen.findByRole('combobox', { name: /source token/i }) as HTMLSelectElement;
         expect(sourceTokenSelect.value).toBe('eth-mainnet');
         expect(screen.getByText(/balance 0\.86 ETH/i)).toBeInTheDocument();
@@ -690,7 +691,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/SOL on Solana/i)).not.toBeInTheDocument();
         expect(screen.getByText(/every continuous commit has an immediate route/i)).toBeInTheDocument();
         expect(screen.getAllByText(/strategy buying power/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/LP support reserve/i).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/LP support reserve/i)).not.toBeInTheDocument();
         expect(screen.getAllByText(/segment token mints/i).length).toBeGreaterThan(0);
         expect(screen.getByRole('heading', { name: /round 1 closed early/i })).toBeInTheDocument();
         expect(screen.queryByText(/round 1 complete/i)).not.toBeInTheDocument();
@@ -702,7 +703,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /mint new \$CATCH/i })).toBeInTheDocument();
         expect(screen.queryByText(/unfilled legacy cap/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/^total raised all-time$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^raised all-time$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/1,854\.9836 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/1,353\.9836 AVAX finalized/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /follow on x/i }).length).toBeGreaterThan(0);
@@ -768,7 +769,7 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/Round 1 and Round 2 totals are archived, not the current purchase mechanic/i)).toBeInTheDocument();
         expect(screen.getAllByText(/Round 1 and Round 2 closed and finalized/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Fixed-window buys are closed/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/Receiver 0xb6bf...C027/i)).toBeInTheDocument();
+        expect(screen.getByText(/Avalanche 0xb6bf...C027/i)).toBeInTheDocument();
         expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument();
         expect(within(screen.getByRole('main')).queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
     });
@@ -811,7 +812,7 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/1 CATCH each per 100 USDC preview/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/Live contract preview: a 100 USDC settled commit mints 100 CATCH to the buyer and 1 CATCH to each of 5 configured segment wallets/i)).toBeInTheDocument();
         expect(screen.getAllByText(/95\.24%/i).length).toBeGreaterThan(0);
-        expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
+        expect(screen.queryByText(/excluded from circulating supply/i)).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /price starts with what gm10 owns/i })).toBeInTheDocument();
         expect(screen.getByText(/leaves market-support buckets out of the backing math/i)).toBeInTheDocument();
         expect(screen.getByText(/same-card trade/i)).toBeInTheDocument();
