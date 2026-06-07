@@ -754,6 +754,11 @@ describe('page compression regressions', () => {
                 raisedAmount: 500000000000000000000n,
             },
         };
+        wagmiMocks.readContractData.previewContinuousMint = [
+            100_000_000_000_000_000_000n,
+            1_000_000_000_000_000_000n,
+            1_000_000n,
+        ];
 
         renderAt('/catch');
 
@@ -761,6 +766,10 @@ describe('page compression regressions', () => {
         expect(screen.queryByRole('heading', { level: 1, name: /from contribution to exit/i })).not.toBeInTheDocument();
         expect(await screen.findByText(/dynamic supply/i)).toBeInTheDocument();
         expect(screen.getByText(/minted to buyers/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/100 CATCH/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/1 CATCH each per 100 USDC preview/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Live contract preview: a 100 USDC settled commit mints 100 CATCH to the buyer and 1 CATCH to each of 5 configured segment wallets/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/95\.24%/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/excluded from circulating supply/i)).toBeInTheDocument();
         expect(screen.getByText(/total raised to date/i)).toBeInTheDocument();
         expect(screen.getByText(/1,853\.9836 AVAX/i)).toBeInTheDocument();

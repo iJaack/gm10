@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatEther } from 'viem';
+import { useReadContract } from 'wagmi';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { PixelLabel } from '../components/PixelUI';
 import { Web3Providers } from '../components/Web3Providers';
 import { Display, SectionLabel } from '../components/v2/primitives';
+import { GM10_FUND_ABI } from '../data/contracts';
+import { GM10_PRIMARY_DEPLOYMENT } from '../data/gm10Config';
 import {
     GOVERNANCE_PHASES,
     ROUND_2_CLOSE_LEDGER,
@@ -17,6 +20,8 @@ import { useFujiRoundState } from '../hooks/useFujiProof';
 
 // Release rule lookup keyed by allocation label
 const RELEASE_BY_LABEL: Record<string, string> = Object.fromEntries(TOKEN_RELEASE_RULES);
+const CONTINUOUS_ALLOCATION_PREVIEW_USDT6 = 100_000_000n;
+const SEGMENT_ALLOCATION_COUNT = TOKEN_ALLOCATION.length - 1;
 
 // Solid fill colours matching the Tailwind gradient classes
 const SLICE_COLOURS: Record<string, string> = {
@@ -102,6 +107,56 @@ interface TooltipState {
     color: string;
 }
 
+type AllocationSlice = {
+    label: string;
+    percent: number;
+    color: string;
+    detail: string;
+    amountLabel?: string;
+};
+
+function percentFromParts(part: bigint, total: bigint) {
+    if (total <= 0n) return 0;
+    return Number((part * 10_000n + total / 2n) / total) / 100;
+}
+
+function formatPercent(value: number) {
+    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatCatchAmount(value?: bigint) {
+    if (value === undefined) return undefined;
+    const amount = Number(formatEther(value));
+    return `${amount.toLocaleString('en-US', { maximumFractionDigits: amount >= 100 ? 0 : 2 })} CATCH`;
+}
+
+function buildContinuousAllocationSlices(preview?: readonly [bigint, bigint, bigint]) {
+    const buyerCatch = preview?.[0];
+    const segmentCatchEach = preview?.[1];
+    const previewTotal = buyerCatch !== undefined && segmentCatchEach !== undefined
+        ? buyerCatch + segmentCatchEach * BigInt(SEGMENT_ALLOCATION_COUNT)
+        : 0n;
+    const buyerPercent = previewTotal > 0n && buyerCatch !== undefined
+        ? percentFromParts(buyerCatch, previewTotal)
+        : TOKEN_ALLOCATION[0].percent;
+    const segmentPercent = previewTotal > 0n && segmentCatchEach !== undefined
+        ? percentFromParts(segmentCatchEach, previewTotal)
+        : TOKEN_ALLOCATION[1]?.percent ?? 0;
+
+    return TOKEN_ALLOCATION.map((slice, index): AllocationSlice => {
+        const isBuyer = index === 0;
+        const amountLabel = isBuyer ? formatCatchAmount(buyerCatch) : formatCatchAmount(segmentCatchEach);
+        return {
+            ...slice,
+            percent: isBuyer ? buyerPercent : segmentPercent,
+            amountLabel,
+            detail: amountLabel
+                ? `${slice.detail} Current 100 USDC contract preview: ${amountLabel}.`
+                : slice.detail,
+        };
+    });
+}
+
 function WaterfallHoverCard({
     emoji,
     label,
@@ -141,7 +196,7 @@ function WaterfallHoverCard({
     );
 }
 
-function AllocationPieChart() {
+function AllocationPieChart({ slices, previewStatus }: { slices: AllocationSlice[]; previewStatus: string }) {
     const [tooltip, setTooltip] = useState<TooltipState | null>(null);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const cx = 200, cy = 200, r = 165, rHover = 177;
@@ -158,7 +213,7 @@ function AllocationPieChart() {
                     className="drop-shadow-lg"
                     onMouseLeave={() => { setTooltip(null); setActiveIndex(null); }}
                 >
-                    {TOKEN_ALLOCATION.map((slice, i) => {
+                    {slices.map((slice, i) => {
                         const start = cursor;
                         const sweep = (slice.percent / 100) * 360;
                         cursor += sweep;
@@ -207,7 +262,7 @@ function AllocationPieChart() {
                                         fontWeight="700"
                                         style={{ pointerEvents: 'none', userSelect: 'none' }}
                                     >
-                                        {slice.percent}%
+                                        {formatPercent(slice.percent)}%
                                     </text>
                                 )}
                                 {/* Midpoint dot indicator for small slices */}
@@ -240,7 +295,7 @@ function AllocationPieChart() {
                             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: tooltip.color }} />
                             <span className="text-[0.78rem] font-bold text-[var(--text-primary)]">{tooltip.label}</span>
                         </div>
-                        <div className="text-xl font-extrabold tracking-[-0.03em] text-[var(--text-primary)]">{tooltip.percent}%</div>
+                        <div className="text-xl font-extrabold tracking-[-0.03em] text-[var(--text-primary)]">{formatPercent(tooltip.percent)}%</div>
                         <p className="mt-1 text-[0.75rem] leading-[1.5] text-[var(--text-secondary)]">{tooltip.detail}</p>
                     </div>
                 )}
@@ -248,7 +303,7 @@ function AllocationPieChart() {
 
             {/* Unified legend + release rules */}
             <div className="w-full divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] overflow-hidden">
-                {TOKEN_ALLOCATION.map((slice, i) => {
+                {slices.map((slice, i) => {
                     const color = SLICE_COLOURS[slice.color] ?? '#888';
                     const releaseRule = RELEASE_BY_LABEL[slice.label] ?? '—';
                     return (
@@ -265,12 +320,15 @@ function AllocationPieChart() {
                         >
                             <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
                             <span className="flex-1 min-w-0 text-[0.83rem] leading-[1.45] font-semibold text-[var(--text-primary)]">
-                                {slice.label}<span className="font-normal text-[var(--text-secondary)]"> — {releaseRule}</span>
+                                {slice.label}<span className="font-normal text-[var(--text-secondary)]"> — {releaseRule}{slice.amountLabel ? ` Preview: ${slice.amountLabel}.` : ''}</span>
                             </span>
-                            <span className="shrink-0 text-[0.83rem] font-bold tabular-nums" style={{ color }}>{slice.percent}%</span>
+                            <span className="shrink-0 text-[0.83rem] font-bold tabular-nums" style={{ color }}>{formatPercent(slice.percent)}%</span>
                         </button>
                     );
                 })}
+                <div className="bg-[var(--bg-secondary)] px-4 py-3 text-[0.78rem] leading-[1.55] text-[var(--text-secondary)]">
+                    {previewStatus}
+                </div>
             </div>
         </div>
     );
@@ -324,6 +382,19 @@ function CatchContent() {
         : ROUND_2_CLOSE_LEDGER.raisedAvax;
     const totalRaisedAvax = round1RaisedAvax + round2RaisedAvax;
     const totalRaisedLabel = `${totalRaisedAvax.toLocaleString('en-US', { maximumFractionDigits: 4 })} AVAX`;
+    const { data: continuousAllocationPreview } = useReadContract({
+        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
+        abi: GM10_FUND_ABI,
+        functionName: 'previewContinuousMint',
+        args: [CONTINUOUS_ALLOCATION_PREVIEW_USDT6],
+        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
+    });
+    const allocationSlices = buildContinuousAllocationSlices(continuousAllocationPreview);
+    const previewBuyerCatch = formatCatchAmount(continuousAllocationPreview?.[0]);
+    const previewSegmentCatch = formatCatchAmount(continuousAllocationPreview?.[1]);
+    const previewStatus = previewBuyerCatch && previewSegmentCatch
+        ? `Live contract preview: a 100 USDC settled commit mints ${previewBuyerCatch} to the buyer and ${previewSegmentCatch} to each of ${SEGMENT_ALLOCATION_COUNT} configured segment wallets.`
+        : `Waiting for live contract preview; showing the continuous mint formula of buyer tokens plus ${SEGMENT_ALLOCATION_COUNT} segment mints.`;
 
     return (
         <main>
@@ -363,8 +434,8 @@ function CatchContent() {
                 <div className="mt-8 grid gap-3 sm:grid-cols-4">
                     {[
                         { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
-                        { emoji: '💰', label: 'Buyer mint', value: 'Continuous commit', unit: 'Minted to buyers' },
-                        { emoji: '🔒', label: 'Segment mints', value: '5 × 1%', unit: 'Excluded from circulating supply' },
+                        { emoji: '💰', label: 'Buyer mint', value: previewBuyerCatch ?? 'Continuous commit', unit: 'Minted to buyers' },
+                        { emoji: '🔒', label: 'Segment mints', value: `${SEGMENT_ALLOCATION_COUNT} × 1%`, unit: previewSegmentCatch ? `${previewSegmentCatch} each per 100 USDC preview` : 'Excluded from circulating supply' },
                         { emoji: '📊', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Round 1 plus finalized Round 2' },
                     ].map((stat, index) => (
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
@@ -413,13 +484,13 @@ function CatchContent() {
                         Where the supply goes.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        There is no max supply. Each successful continuous commit mints buyer tokens from settled value, then mints 1% each to the five configured segment wallets.
+                        There is no max supply. Each successful continuous commit mints buyer tokens from settled value, then mints 1% each to the {SEGMENT_ALLOCATION_COUNT} configured segment wallets. The chart uses the current contract preview for a 100 USDC settled commit.
                     </p>
                 </ScrollReveal>
 
                 <ScrollReveal delay={1}>
                     <div className="mt-8">
-                        <AllocationPieChart />
+                        <AllocationPieChart slices={allocationSlices} previewStatus={previewStatus} />
                     </div>
                 </ScrollReveal>
             </section>
