@@ -938,7 +938,7 @@ function FundraisingContent() {
                 </div>
             </section>
 
-            <section className="px-4 py-16 border-t border-[var(--rule)]">
+            <section className="px-4 py-[3.4rem] border-t border-[var(--rule)]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                     <SectionLabel>Finalized raise archive</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[56ch]">
