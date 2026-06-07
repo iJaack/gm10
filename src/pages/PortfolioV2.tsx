@@ -291,7 +291,7 @@ function PortfolioContent() {
         {
             label: 'STRATEGY VALUE',
             value: portfolio.proofSummary.strategyCurrentValueLabel,
-            secondaryValue: `P/L ${formatSignedUsd(strategyPnlUsd)} ${formatSignedPercent(strategyPnlPercent)}`,
+            secondaryValue: `P/L ${formatSignedUsd(strategyPnlUsd)} (${formatSignedPercent(strategyPnlPercent)})`,
             tone: strategyPnlDirection,
         },
     ];

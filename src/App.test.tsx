@@ -1016,8 +1016,8 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/^cash funds$/i)).toBeInTheDocument();
         expect(screen.getByText(/^strategy value$/i)).toBeInTheDocument();
         expect(screen.queryByText(/^2 recorded positions$/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/P\/L \+\$3,246\.09 \+22\.0%/i)).toHaveClass('v2-up');
-        expect(screen.queryByText(/P\/L .* \+10\.0%/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/P\/L \+\$3,246\.09 \(\+22\.0%\)/i)).toHaveClass('v2-up');
+        expect(screen.queryByText(/P\/L .* \+22\.0%/i)).not.toBeInTheDocument();
         expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
