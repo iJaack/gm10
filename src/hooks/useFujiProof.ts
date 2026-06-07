@@ -161,6 +161,10 @@ function positionStatusLabel(status: number) {
     return 'Pending';
 }
 
+export function isPortfolioHoldingStatus(status: number) {
+    return status === 1;
+}
+
 export function resolvePositionCurrentValueUsdt6({
     registryStatus,
     registryCurrentValueUsdt6,
@@ -597,12 +601,14 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             return [read.result as CollectiblePositionTuple];
         })
         .sort((a, b) => Number(a.id) - Number(b.id)), [positionReads]);
-
-    const custodyReadPositions = useMemo(() => rawPositions.filter((position) => (
-        Number(position.status) === 1
-        && Number(position.chainEid) === LZ_EID_POLYGON
-        && position.evmCollection !== ZERO_ADDRESS
+    const holdingRawPositions = useMemo(() => rawPositions.filter((position) => (
+        isPortfolioHoldingStatus(Number(position.status))
     )), [rawPositions]);
+
+    const custodyReadPositions = useMemo(() => holdingRawPositions.filter((position) => (
+        Number(position.chainEid) === LZ_EID_POLYGON
+        && position.evmCollection !== ZERO_ADDRESS
+    )), [holdingRawPositions]);
 
     const custodyContracts = useMemo(() => custodyReadPositions.map((position) => ({
         address: position.evmCollection,
@@ -630,12 +636,12 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         return owners;
     }, [custodyReadPositions, custodyReads]);
 
-    const liveMetadataRequestKey = useMemo(() => rawPositions
+    const liveMetadataRequestKey = useMemo(() => holdingRawPositions
         .map(positionMetadataKey)
-        .join('|'), [rawPositions]);
+        .join('|'), [holdingRawPositions]);
 
     useEffect(() => {
-        const positionsToResolve = rawPositions;
+        const positionsToResolve = holdingRawPositions;
         if (positionsToResolve.length === 0) {
             setLiveMetadataByKey({});
             return;
@@ -677,7 +683,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
 
         void loadMetadata();
         return () => controller.abort();
-    }, [liveMetadataRequestKey, rawPositions]);
+    }, [holdingRawPositions, liveMetadataRequestKey]);
 
     useEffect(() => {
         let activeController: AbortController | undefined;
@@ -714,14 +720,14 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         };
     }, []);
 
-    const positions = useMemo(() => rawPositions
+    const positions = useMemo(() => holdingRawPositions
         .map((raw) => normalizePosition(
             raw,
             liveMetadataByKey[positionMetadataKey(raw)],
             publicValuationOverrides[Number(raw.id)],
             ownerByPositionKey[positionMetadataKey(raw)],
         ))
-        .sort((a, b) => a.positionId - b.positionId), [liveMetadataByKey, ownerByPositionKey, publicValuationOverrides, rawPositions]);
+        .sort((a, b) => a.positionId - b.positionId), [holdingRawPositions, liveMetadataByKey, ownerByPositionKey, publicValuationOverrides]);
 
     const avaxUsd = avaxUsdRoundData && avaxUsdRoundData[1] > 0n
         ? Number(formatUnits(avaxUsdRoundData[1], 8))

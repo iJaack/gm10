@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LZ_EID_AVALANCHE, LZ_EID_POLYGON } from '../data/gm10Config';
 import {
     deriveFujiRoundState,
+    isPortfolioHoldingStatus,
     resolveCardCustody,
     resolvePositionCurrentValueUsdt6,
     sortPortfolioActivityNewestFirst,
@@ -166,5 +167,14 @@ describe('resolvePositionCurrentValueUsdt6', () => {
             registryCurrentValueUsdt6: 0n,
             valuationOverrideValueUsdt6: 1_100_000000n,
         })).toBe(0n);
+    });
+});
+
+describe('isPortfolioHoldingStatus', () => {
+    it('keeps only active registry positions in the public portfolio', () => {
+        expect(isPortfolioHoldingStatus(1)).toBe(true);
+        expect(isPortfolioHoldingStatus(2)).toBe(false);
+        expect(isPortfolioHoldingStatus(3)).toBe(false);
+        expect(isPortfolioHoldingStatus(0)).toBe(false);
     });
 });
