@@ -822,8 +822,10 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/1,908\.4382 AVAX/i)).toBeInTheDocument();
         expect(screen.getByText(/Round 1, Round 2, and continuous commits/i)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: /a card sale turns into routed strategy capital/i })).toBeInTheDocument();
-        expect(screen.getByText(/the fund restores the card's cost basis/i)).toBeInTheDocument();
-        expect(screen.getByText(/buy the next slab, deepen CATCH liquidity, or fund a buyback-burn/i)).toBeInTheDocument();
+        expect(screen.getByText(/when a card sells, the cash returns to Avalanche/i)).toBeInTheDocument();
+        expect(screen.getByText(/GM10 puts back the card's original cost/i)).toBeInTheDocument();
+        expect(screen.getByText(/only the profit is routed/i)).toBeInTheDocument();
+        expect(screen.queryByText(/payout button/i)).not.toBeInTheDocument();
         expect(screen.getByText(/profit can stay liquid for the next card purchase/i)).toBeInTheDocument();
         expect(screen.getByText(/operator-led/i)).toBeInTheDocument();
         expect(screen.getByText(/community signal/i)).toBeInTheDocument();

@@ -546,7 +546,7 @@ function CatchContent() {
                         A card sale turns into routed strategy capital.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        A sale is not a payout button. Proceeds land on Avalanche, the fund restores the card&apos;s cost basis, then the remaining profit follows the live market snapshot: buy the next slab, deepen CATCH liquidity, or fund a buyback-burn when the token trades at a discount.
+                        When a card sells, the cash returns to Avalanche. First, GM10 puts back the card&apos;s original cost. Then only the profit is routed: more card buying power, CATCH liquidity support, or a buyback-burn when current market data says that is the better move.
                     </p>
                     <p className="mt-2 hidden text-[0.75rem] uppercase tracking-[0.16em] text-[var(--text-tertiary)] md:block">
                         hover a step to inspect the matching contract branch
