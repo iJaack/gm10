@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { BUY_PAGE_DEFAULTS, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
+import { BUY_PAGE_DEFAULTS, FINALIZED_RAISE_ARCHIVE, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
 
 const wagmiMocks = vi.hoisted(() => ({
     account: {
@@ -604,7 +604,7 @@ describe('page compression regressions', () => {
             expect(screen.getByText(/5,519\.9996 AVAX/i)).toBeInTheDocument();
         });
         expect(screen.getByText(/\+0\.4% MoM in AVAX/i)).toBeInTheDocument();
-        expect(screen.getByText(/~\$53,250 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/~\$18,462 commit-time USD value across recorded rounds, including live continuous commits/i)).toBeInTheDocument();
     });
 
     it('does not count the Round 2 close ledger in homepage capital before Round 2 is published or live', () => {
@@ -728,6 +728,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/post-close ledger/i)).not.toBeInTheDocument();
         expect(screen.getByText(/finalized rounds · proof live/i)).toBeInTheDocument();
         expect(screen.getAllByText(/1,853\.9836 AVAX/i).length).toBeGreaterThan(0);
+        expect(screen.getByText(/\$17,461\.77 commit-time USD/i)).toBeInTheDocument();
         expect(screen.getAllByText(/1,650\.8861 AVAX/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/LFJ liquidity route/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Pharaoh liquidity route/i).length).toBeGreaterThan(0);
@@ -906,6 +907,12 @@ describe('page compression regressions', () => {
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/LP support/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/buyback-and-burn/i);
         expect(ROUND_PROCEEDS_ALLOCATION.realizedProfitWaterfall).toMatch(/Routine holder claims are disabled/i);
+        expect(FINALIZED_RAISE_ARCHIVE).toMatchObject({
+            totalAvax: 1853.9836,
+            commitmentUsd: 17461.77,
+            displayUsdLabel: '$17,462',
+        });
+        expect(FINALIZED_RAISE_ARCHIVE.rounds.map((round) => round.eventCount)).toEqual([28, 38]);
     });
 
     it('renders the portfolio gallery with live positions and activity', async () => {

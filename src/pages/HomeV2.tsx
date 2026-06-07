@@ -23,8 +23,7 @@ import {
 } from '../components/v2/primitives';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useTheme } from '../hooks/useTheme';
-import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
-import { useAvaxPrice } from '../hooks/useAvaxPrice';
+import { FINALIZED_RAISE_ARCHIVE, HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 import { GM10_FUND_ABI } from '../data/contracts';
 import { GM10_PRIMARY_DEPLOYMENT } from '../data/gm10Config';
 
@@ -147,7 +146,6 @@ function useContinuousSettlementTotals() {
 function Hero() {
     const round = useFujiRoundState();
     const { theme } = useTheme();
-    const avaxUsd = useAvaxPrice();
     const continuousSettlementTotals = useContinuousSettlementTotals();
     const archiveRaisedAvax = round.archiveRound ? Number(formatEther(round.archiveRound.raisedAmount)) : FALLBACK_ROUND_1_RAISED_AVAX;
     const roundRaisedAvax = round.roundSource === 'onchain' && round.round
@@ -163,7 +161,9 @@ function Hero() {
         ? (continuousRaisedAvax / priorMonthRaisedAvax) * 100
         : 0;
     const totalRaisedAvax = archiveRaisedAvax + roundRaisedAvax + continuousRaisedAvax;
-    const historicalRaisedUsd = (archiveRaisedAvax + roundRaisedAvax) * avaxUsd;
+    const historicalRaisedUsd =
+        (archiveRaisedAvax > 0 ? FINALIZED_RAISE_ARCHIVE.rounds[0].commitmentUsd : 0) +
+        (roundRaisedAvax > 0 ? FINALIZED_RAISE_ARCHIVE.rounds[1].commitmentUsd : 0);
     const continuousRaisedUsd = continuousSettlementTotals
         ? Number(formatUnits(continuousSettlementTotals.usdt6, 6))
         : 0;

@@ -107,6 +107,32 @@ export const ROUND_2_CLOSE_LEDGER = {
     ],
 } as const;
 
+export const FINALIZED_RAISE_ARCHIVE = {
+    totalAvax: 1853.9836,
+    commitmentUsd: 17461.77,
+    commitmentUsdLabel: '$17,461.77',
+    displayUsdLabel: '$17,462',
+    source: '66 Investment events priced with the Avalanche AVAX/USD feed at each commitment block.',
+    rounds: [
+        {
+            roundId: 1,
+            eventCount: 28,
+            raisedAvax: 500,
+            commitmentUsd: 4704.17,
+            firstBlock: 82862935,
+            lastBlock: 83021043,
+        },
+        {
+            roundId: 2,
+            eventCount: 38,
+            raisedAvax: 1353.9836,
+            commitmentUsd: 12757.59,
+            firstBlock: 83096311,
+            lastBlock: 84691319,
+        },
+    ],
+} as const;
+
 export const RECENT_CARD_COMPS = [
     {
         id: 'charizard',

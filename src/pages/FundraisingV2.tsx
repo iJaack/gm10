@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount, usePublicClient, useReadContract, useSendTransaction, useSwitchChain, useWriteContract } from 'wagmi';
 import { formatEther, formatUnits, keccak256, parseUnits, toBytes } from 'viem';
-import { useAvaxPrice } from '../hooks/useAvaxPrice';
 import { useWalletTopTokens, type WalletSourceToken, type WalletTopTokensStatus } from '../hooks/useWalletTopTokens';
 import {
     Caption,
@@ -14,6 +13,7 @@ import {
 } from '../components/v2/primitives';
 import { ERC20_ROUTE_ABI, GM10_CONTINUOUS_MINT_RECEIVER_ABI, GM10_FUND_ABI } from '../data/contracts';
 import {
+    FINALIZED_RAISE_ARCHIVE,
     ROUND_2_CLOSE_LEDGER,
 } from '../data/protocol';
 import { CONTINUOUS_COMMIT_RAILS } from '../data/continuousAccrual';
@@ -121,14 +121,13 @@ type ContinuousCommitRoute = {
 function Round1Archive() {
     const { archiveRound } = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
-    const avaxUsd = useAvaxPrice();
     if (!archiveRound) return null;
 
     const raised = Number(formatEther(archiveRound.raisedAmount));
     const target = Number(formatEther(archiveRound.targetAmount));
     const filledLabel = '~45 hours'; // from onchain analysis: first tx 13 Apr 20:13 → last 15 Apr 16:48
     const participantsLabel = '24 addresses';
-    const usdValue = raised * avaxUsd;
+    const round1CommitmentUsd = FINALIZED_RAISE_ARCHIVE.rounds[0].commitmentUsd;
     const lotCount = portfolio.positions.length;
     const lotWord = lotCount === 1 ? 'lot' : 'lots';
     const lotCountLabel = lotCount > 0 ? `${lotCount} ${lotWord}` : 'lots';
@@ -136,7 +135,7 @@ function Round1Archive() {
         {
             label: 'Raised',
             detail: `${fmtAvax(raised)} / ${fmtAvax(target)} AVAX · 100%`,
-            value: `$${usdValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+            value: `$${round1CommitmentUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
         },
         {
             label: 'Fill time',
@@ -245,9 +244,8 @@ function Proof() {
 
 /* ── Post-close ledger ───────────────────────────────── */
 
-function PostCloseLedger({ archiveRaisedAvax, avaxUsd }: { archiveRaisedAvax: number; avaxUsd: number }) {
+function PostCloseLedger({ archiveRaisedAvax }: { archiveRaisedAvax: number }) {
     const totalRaisedAvax = archiveRaisedAvax + ROUND_2_CLOSE_LEDGER.raisedAvax;
-    const totalRaisedUsd = totalRaisedAvax * avaxUsd;
     const round2StrategyAvax = ROUND_2_CLOSE_LEDGER.raisedAvax * 0.85;
     const round2LiquidityRouteAvax = ROUND_2_CLOSE_LEDGER.raisedAvax * 0.05;
     const totalStrategyAvax = archiveRaisedAvax + round2StrategyAvax;
@@ -300,7 +298,7 @@ function PostCloseLedger({ archiveRaisedAvax, avaxUsd }: { archiveRaisedAvax: nu
                             {fmtAvax(totalRaisedAvax, 4)} AVAX
                         </DataMono>
                         <DataMono className="text-[0.72rem] font-semibold text-[var(--ink-muted)]">
-                            ~${totalRaisedUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                            {FINALIZED_RAISE_ARCHIVE.commitmentUsdLabel} commit-time USD
                         </DataMono>
                     </div>
                     <div className="text-right">
@@ -374,7 +372,6 @@ function FundraisingContent() {
     const [sourceBalanceRaw, setSourceBalanceRaw] = useState<bigint | undefined>();
     const round = useFujiRoundState();
     const portfolio = useFujiPortfolioPositions();
-    const avaxUsd = useAvaxPrice();
     const avalanchePublicClient = usePublicClient({ chainId: GM10_CHAIN_ID });
     const { writeContractAsync } = useWriteContract();
     const { sendTransactionAsync } = useSendTransaction();
@@ -948,7 +945,7 @@ function FundraisingContent() {
                         Round 1 and Round 2 totals are archived, not the current purchase mechanic.
                     </Display>
                     <div className="mt-8">
-                        <PostCloseLedger archiveRaisedAvax={archiveRaisedAvax} avaxUsd={avaxUsd} />
+                        <PostCloseLedger archiveRaisedAvax={archiveRaisedAvax} />
                     </div>
                 </div>
             </section>
