@@ -342,19 +342,19 @@ export const SALE_FLOW = [
 
 export const GOVERNANCE_PHASES = [
     {
-        rounds: 'Rounds 1–3',
+        phase: 'Operator-led',
         title: 'Centralized card selection',
-        detail: 'The founding team picks every target. Speed matters more than process while the portfolio is small and the strategy is proving itself.',
+        detail: 'The founding team picks targets while the portfolio is small. Speed and disciplined execution matter most at this stage.',
     },
     {
-        rounds: 'Rounds 4–5',
+        phase: 'Community signal',
         title: 'Offchain community selection',
-        detail: 'Token holders propose and vote on card targets offchain. The team still executes, but the community sets the direction.',
+        detail: 'Token holders propose and vote on card targets offchain. The team still executes, but holders start setting the direction.',
     },
     {
-        rounds: 'From Round 6',
+        phase: 'Onchain control',
         title: 'Onchain enforcement',
-        detail: 'Buy and sell decisions are enforced onchain. The governance contract controls the fund — no single party can override a vote.',
+        detail: 'Buy and sell decisions move into contract-enforced governance. No single party can override a valid vote.',
     },
 ] as const;
 

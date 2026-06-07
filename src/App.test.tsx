@@ -778,6 +778,12 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/the fund restores the card's cost basis/i)).toBeInTheDocument();
         expect(screen.getByText(/buy the next slab, deepen CATCH liquidity, or fund a buyback-burn/i)).toBeInTheDocument();
         expect(screen.getByText(/profit can stay liquid for the next card purchase/i)).toBeInTheDocument();
+        expect(screen.getByText(/operator-led/i)).toBeInTheDocument();
+        expect(screen.getByText(/community signal/i)).toBeInTheDocument();
+        expect(screen.getByText(/onchain control/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Rounds 1–3/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Rounds 4–5/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/From Round 6/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/investor p&l/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/your position, always visible/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/example investor view/i)).not.toBeInTheDocument();
