@@ -1001,6 +1001,7 @@ describe('page compression regressions', () => {
         expect(screen.getAllByText(/^buy$/i).length).toBeGreaterThanOrEqual(1);
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^continuous sourcing$/i)).not.toBeInTheDocument();
     });
 
     it('renders the holder dashboard with gated claim and market rows', async () => {
