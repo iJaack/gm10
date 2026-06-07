@@ -37,8 +37,8 @@ const SLICE_COLOURS: Record<string, string> = {
 const WATERFALL_CODE_REFERENCE = [
     {
         emoji: '🃏',
-        label: 'Sale evidence imported',
-        detail: 'The venue transaction becomes a sale key and registry match',
+        label: 'Sale matched to inventory',
+        detail: 'Venue proof links the sold card to its registry position',
         color: 'var(--accent)',
         source: 'Admin sale import',
         code: `saleKey = hash(venueTx, collection, tokenId, proceedsRef);
@@ -47,8 +47,8 @@ recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
     },
     {
         emoji: '⛓',
-        label: 'Proceeds settle',
-        detail: 'Stable proceeds must land on Avalanche before finalization',
+        label: 'Cash lands on Avalanche',
+        detail: 'Stable proceeds must be confirmed in the fund before routing',
         color: 'var(--accent-blue)',
         source: 'GemMintStrategyFundV8.sol',
         code: `confirmStableSaleProceeds(
@@ -62,8 +62,8 @@ recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
     },
     {
         emoji: '💰',
-        label: 'Principal restored',
-        detail: 'Investors recover their original cost basis first',
+        label: 'Cost basis returns first',
+        detail: 'The fund restores the sold card principal before profit routing',
         color: 'var(--accent-green)',
         source: 'GemMintStrategyFundV8.sol',
         code: `if (netProceedsUsdt6 <= costBasisUsdt6) {
@@ -75,8 +75,8 @@ recordSaleExecution(saleKey, gross, fees, bridgeFees, proofRef);`,
     },
     {
         emoji: '📊',
-        label: 'Snapshot routes profit',
-        detail: 'Market inputs decide whether profit stays liquid or supports CATCH',
+        label: 'Profit gets a fresh route',
+        detail: 'The market snapshot decides how realized profit supports the strategy',
         color: 'var(--accent)',
         source: 'GemMintStrategyFundV8.sol',
         code: `finalizeSaleWithMarketSnapshot(saleKey, snapshot, proofRef);
@@ -541,13 +541,13 @@ function CatchContent() {
                 <ScrollReveal>
                     <SectionLabel>Sale-profit process</SectionLabel>
                     <Display as="h2" className="mt-3 text-[clamp(1.4rem,2.6vw,2rem)]">
-                        What happens when a card sells.
+                        A card sale turns into routed strategy capital.
                     </Display>
                     <p className="mt-2 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">
-                        Sale proceeds return to Avalanche first. Principal is restored, then realized profit is routed by the current market snapshot into buying power, LP support, or buyback-burn reserve. The split is calculated per sale, not published as a fixed promise.
+                        A sale is not a payout button. Proceeds land on Avalanche, the fund restores the card&apos;s cost basis, then the remaining profit follows the live market snapshot: buy the next slab, deepen CATCH liquidity, or fund a buyback-burn when the token trades at a discount.
                     </p>
                     <p className="mt-2 hidden text-[0.75rem] uppercase tracking-[0.16em] text-[var(--text-tertiary)] md:block">
-                        hover any step to inspect the matching contract branch
+                        hover a step to inspect the matching contract branch
                     </p>
                 </ScrollReveal>
 
@@ -574,9 +574,9 @@ function CatchContent() {
                             <div className="absolute top-0 left-[16.666%] right-[16.666%] h-px bg-[var(--border-strong)]" />
                             <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-3">
                                 {([
-                                    { label: 'Buying power', route: 'Snapshot-routed', color: '#0ea5e9', desc: 'More cards plus liquid execution capacity' },
-                                    { label: 'LP support', route: 'When accrued', color: '#10b981', desc: 'CATCH and AVAX/WAVAX liquidity added across configured venues' },
-                                    { label: 'Buyback-burn', route: 'Conditional', color: '#6366f1', desc: 'CATCH support only when discount conditions justify it' },
+                                    { label: 'Buying power', route: 'New inventory', color: '#0ea5e9', desc: 'Profit can stay liquid for the next card purchase' },
+                                    { label: 'LP support', route: 'Market depth', color: '#10b981', desc: 'Accrued support pairs CATCH with AVAX/WAVAX on configured venues' },
+                                    { label: 'Buyback-burn', route: 'Discount support', color: '#6366f1', desc: 'Triggered when the snapshot favors CATCH support over new inventory' },
                                 ] as const).map((out) => (
                                     <div key={out.label} className="flex flex-col items-center">
                                         <div className="h-5 w-px bg-[var(--border-strong)]" />
