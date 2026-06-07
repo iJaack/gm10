@@ -434,7 +434,7 @@ function CatchContent() {
                 <div className="mt-8 grid gap-3 sm:grid-cols-4">
                     {[
                         { emoji: '🪙', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
-                        { emoji: '💰', label: 'Buyer mint', value: previewBuyerCatch ?? 'Continuous commit', unit: 'Minted to buyers' },
+                        { emoji: '🏷️', label: 'Pricing model', value: '5% below risk-free price', unit: 'Primary commits mint at 95% of NAV' },
                         { emoji: '🔒', label: 'Segment mints', value: `${SEGMENT_ALLOCATION_COUNT} × 1%`, unit: previewSegmentCatch ? `${previewSegmentCatch} each per 100 USDC preview` : 'Excluded from circulating supply' },
                         { emoji: '📊', label: 'Total raised to date', value: totalRaisedLabel, unit: 'Round 1 plus finalized Round 2' },
                     ].map((stat, index) => (
