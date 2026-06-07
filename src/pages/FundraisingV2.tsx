@@ -459,28 +459,10 @@ function FundraisingContent() {
         functionName: 'continuousMintPaused',
         query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
     });
-    const { data: buybackPaused } = useReadContract({
-        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
-        abi: GM10_FUND_ABI,
-        functionName: 'buybackPaused',
-        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
-    });
-    const { data: lpSupportPaused } = useReadContract({
-        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
-        abi: GM10_FUND_ABI,
-        functionName: 'lpSupportPaused',
-        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
-    });
     const { data: mintSpreadBps } = useReadContract({
         address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
         abi: GM10_FUND_ABI,
         functionName: 'mintSpreadBps',
-        query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
-    });
-    const { data: redemptionsPermanentlyDisabled } = useReadContract({
-        address: GM10_PRIMARY_DEPLOYMENT.proxy.address,
-        abi: GM10_FUND_ABI,
-        functionName: 'redemptionsPermanentlyDisabled',
         query: { enabled: Boolean(GM10_PRIMARY_DEPLOYMENT.proxy.address) },
     });
     const { data: continuousPreview } = useReadContract({
@@ -744,45 +726,23 @@ function FundraisingContent() {
             {/* Continuous spec + preview grid */}
             <section className="px-4 pb-20">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                    <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
+                    <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
                         {/* Spec */}
                         <div>
                             <SectionLabel>Live mechanics</SectionLabel>
-                            <Hairline className="mt-3" />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">NAV-backed token price</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{fmtUsdc(navPerTokenUsdt6)}</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Mint spread</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{fmtSpread(mintSpreadBps)}</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Settlement</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">Native AVAX into the fund proxy</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Mint route</Caption>,
-                                <span className={`v2-mono text-right ${hasCommitReceiver ? 'text-[var(--text-primary)]' : 'v2-down'}`}>
-                                    {hasCommitReceiver ? `Receiver ${formatShortAddress(commitReceiverAddress)}` : 'Receiver not configured'}
-                                </span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Redemptions</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{redemptionsPermanentlyDisabled ? 'Permanently disabled' : 'Disabled state unavailable'}</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Buyback</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{buybackPaused === true ? 'Paused until sale-profit trigger' : 'Live'}</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">LP support</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{lpSupportPaused === true ? 'Paused until deployment' : 'Live'}</span>,
-                            ]} />
-                            <LedgerRow columns="160px 1fr" cells={[
-                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Total raised all-time</Caption>,
-                                <span className="v2-mono text-right text-[var(--text-primary)]">{totalRaisedLabel}</span>,
-                            ]} />
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                                {[
+                                    ['NAV price', fmtUsdc(navPerTokenUsdt6)],
+                                    ['Mint spread', fmtSpread(mintSpreadBps)],
+                                    ['Settlement', 'Native AVAX'],
+                                    ['Raised all-time', totalRaisedLabel],
+                                ].map(([label, value]) => (
+                                    <div key={label} className="border border-[var(--rule)] bg-[var(--bg-secondary)] px-3 py-2">
+                                        <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[var(--ink-faint)]">{label}</Caption>
+                                        <DataMono className="mt-1 block text-[0.9rem] font-semibold text-[var(--text-primary)]">{value}</DataMono>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Preview */}
@@ -790,7 +750,7 @@ function FundraisingContent() {
                             <SectionLabel>Commit preview</SectionLabel>
                             <Hairline className="mt-3" />
                             <div className="mt-4 border border-[var(--rule-strong)] bg-[var(--bg-secondary)] px-4 shadow-[0_0_0_1px_var(--accent-muted)]">
-                                <div className="flex items-baseline justify-between border-b border-[var(--rule)] py-3">
+                                <div className="flex items-baseline justify-between border-b border-[var(--rule)] py-2.5">
                                     <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
                                         SOURCE · <span className="text-[var(--text-primary)]">From virtually any chain</span>
                                     </DataMono>
@@ -800,7 +760,48 @@ function FundraisingContent() {
                                 </div>
 
                                 <div className="py-4">
-                                    <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                                    <div className="rounded-sm border border-[var(--accent-brass)]/70 bg-[var(--bg-primary)]/55 px-4 py-3 shadow-[0_0_24px_var(--accent-muted)]">
+                                        <div className="flex items-baseline justify-between">
+                                            <Caption className="block text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-brass)]">Commit amount</Caption>
+                                            <DataMono className="text-[0.75rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
+                                                {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
+                                            </DataMono>
+                                        </div>
+                                        <div className="mt-2 flex items-center gap-3">
+                                            <input
+                                                value={amount}
+                                                onChange={(e) => {
+                                                    setAmount(e.target.value);
+                                                    setCommitFeedback(null);
+                                                }}
+                                                aria-label={selectedSourceToken ? `Commit amount in ${selectedSourceToken.symbol}` : 'Commit amount'}
+                                                placeholder={selectedSourceToken?.symbol === 'USDC' ? '100.00' : '1.00'}
+                                                disabled={!selectedSourceToken}
+                                                inputMode="decimal"
+                                                className="w-full min-w-0 bg-transparent v2-mono text-[clamp(2.4rem,5vw,4.1rem)] font-bold leading-none tracking-[-0.03em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
+                                            />
+                                            <div className="flex shrink-0 items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (selectedSourceToken) {
+                                                            setAmount(sourceBalanceRaw !== undefined
+                                                                ? formatUnits(sourceBalanceRaw, selectedSourceToken.decimals)
+                                                                : String(selectedSourceToken.balance));
+                                                        }
+                                                        setCommitFeedback(null);
+                                                    }}
+                                                    disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
+                                                    className="v2-mono border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                                >
+                                                    Max
+                                                </button>
+                                                <DataMono className="text-[0.9rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken?.symbol ?? 'TOKEN'}</DataMono>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                                         <div>
                                             <label
                                                 htmlFor="source-token-select"
@@ -835,42 +836,6 @@ function FundraisingContent() {
                                                 ? `Balance ${fmtTokenAmount(selectedSourceToken.balance)} ${selectedSourceToken.symbol} · ${fmtUsdValue(selectedSourceToken.balanceUsd)}`
                                                 : formatWalletTokenStatus(walletTopTokens.status, walletTopTokens.error)}
                                         </DataMono>
-                                    </div>
-                                    <div className="mt-4 flex items-baseline justify-between">
-                                        <Caption className="block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-muted)]">Commit amount</Caption>
-                                        <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
-                                            {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
-                                        </DataMono>
-                                    </div>
-                                    <div className="mt-2 flex items-baseline gap-3 border-b border-[var(--rule-strong)] pb-2">
-                                        <input
-                                            value={amount}
-                                            onChange={(e) => {
-                                                setAmount(e.target.value);
-                                                setCommitFeedback(null);
-                                            }}
-                                            aria-label={selectedSourceToken ? `Commit amount in ${selectedSourceToken.symbol}` : 'Commit amount'}
-                                            placeholder={selectedSourceToken?.symbol === 'USDC' ? '100.00' : '1.00'}
-                                            disabled={!selectedSourceToken}
-                                            inputMode="decimal"
-                                            className="w-full min-w-0 bg-transparent v2-mono text-[clamp(1.6rem,2.6vw,2rem)] font-bold tracking-[-0.02em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (selectedSourceToken) {
-                                                    setAmount(sourceBalanceRaw !== undefined
-                                                        ? formatUnits(sourceBalanceRaw, selectedSourceToken.decimals)
-                                                        : String(selectedSourceToken.balance));
-                                                }
-                                                setCommitFeedback(null);
-                                            }}
-                                            disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
-                                            className="v2-mono shrink-0 border border-[var(--rule-strong)] px-2 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
-                                        >
-                                            Max
-                                        </button>
-                                        <DataMono className="shrink-0 text-[0.9rem] font-semibold text-[var(--ink-muted)]">{selectedSourceToken?.symbol ?? 'TOKEN'}</DataMono>
                                     </div>
                                 </div>
 
