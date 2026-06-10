@@ -1175,6 +1175,9 @@ describe('page compression regressions', () => {
 
         renderAt('/holders');
 
+        expect(await screen.findByText(/^Current value$/i)).toBeInTheDocument();
+        expect(screen.getByText('Wallet tokens × current token price')).toBeInTheDocument();
+        expect(screen.getByText('$0.22')).toBeInTheDocument();
         expect(await screen.findByText(/^Reference value$/i)).toBeInTheDocument();
         expect(screen.getByText('$30.00')).toBeInTheDocument();
         expect(screen.getByText('+$9.00')).toBeInTheDocument();

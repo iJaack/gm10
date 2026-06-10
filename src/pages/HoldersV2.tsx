@@ -818,14 +818,20 @@ function ProtocolStats() {
 
 function AccountSection() {
     const holder = useHolderDashboard();
+    const market = useCatchMarketData();
     const portfolio = useFujiPortfolioPositions();
     const { liveNavUsd } = deriveLivePortfolioNavUsd({
         liquidTreasuryLabel: holder.labels.liquidTreasury,
         cardPortfolioLabel: portfolio.proofSummary.onchainCurrentMarkLabel,
         totalSupplyLabel: holder.labels.totalSupply,
     });
+    const catchBalance = parseDisplayNumber(holder.labels.catchBalance);
+    const currentTokenPriceUsd = market.spotPriceUsd ?? market.lfj.priceUsd ?? market.pharaoh.priceUsd;
+    const currentMarketValue = holder.isConnected && currentTokenPriceUsd !== undefined
+        ? catchBalance * currentTokenPriceUsd
+        : undefined;
     const liveReferenceValue = holder.isConnected && liveNavUsd !== undefined
-        ? parseDisplayNumber(holder.labels.catchBalance) * liveNavUsd
+        ? catchBalance * liveNavUsd
         : undefined;
     const liveReferencePnl = liveReferenceValue !== undefined
         ? liveReferenceValue - parseDisplayNumber(holder.labels.remainingCostBasis)
@@ -886,6 +892,14 @@ function AccountSection() {
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Cost basis</Caption>,
                                 <span className="text-[var(--ink-faint)]">Remaining wallet cost basis</span>,
                                 <span className="text-right text-[var(--text-primary)]">{holder.labels.remainingCostBasis}</span>,
+                            ]}
+                        />
+                        <LedgerRow
+                            columns="200px 1fr 240px"
+                            cells={[
+                                <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">Current value</Caption>,
+                                <span className="text-[var(--ink-faint)]">Wallet tokens × current token price</span>,
+                                <span className="text-right text-[var(--text-primary)]">{formatUsd(currentMarketValue)}</span>,
                             ]}
                         />
                         <LedgerRow
