@@ -4,6 +4,7 @@ import {
     deriveFujiRoundState,
     isPortfolioHoldingStatus,
     resolveCardCustody,
+    resolvePortfolioSaleActivity,
     resolvePortfolioActivityType,
     resolvePositionCurrentValueUsdt6,
     sortPortfolioActivityNewestFirst,
@@ -103,6 +104,15 @@ describe('resolvePortfolioActivityType', () => {
         expect(resolvePortfolioActivityType('Sold')).toBe('Sell');
         expect(resolvePortfolioActivityType('Archived')).toBe('Sell');
         expect(resolvePortfolioActivityType('Active')).toBe('Buy');
+    });
+});
+
+describe('resolvePortfolioSaleActivity', () => {
+    it('includes the finalized Gengar sale proceeds for position 1', () => {
+        expect(resolvePortfolioSaleActivity(1)).toEqual({
+            netProceedsUsdt6: 150_000000n,
+            finalizedAt: 1_781_104_279,
+        });
     });
 });
 

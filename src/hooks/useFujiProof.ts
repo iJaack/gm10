@@ -195,12 +195,25 @@ function formatOptionalIsoDate(value?: string) {
     return formatDate(BigInt(Math.floor(timestamp / 1000)));
 }
 
-const SALE_ACTIVITY_BY_POSITION_ID: Record<number, { netProceedsUsdt6: bigint; finalizedAt: number }> = {
+export type Gm10PortfolioSaleActivity = {
+    netProceedsUsdt6: bigint;
+    finalizedAt: number;
+};
+
+const SALE_ACTIVITY_BY_POSITION_ID: Record<number, Gm10PortfolioSaleActivity> = {
+    1: {
+        netProceedsUsdt6: 150_000000n,
+        finalizedAt: 1_781_104_279,
+    },
     7: {
         netProceedsUsdt6: 1_895_249872n,
         finalizedAt: 1_780_704_000,
     },
 };
+
+export function resolvePortfolioSaleActivity(positionId: number) {
+    return SALE_ACTIVITY_BY_POSITION_ID[positionId];
+}
 
 type CollectiblePositionTuple = {
     id: bigint;
@@ -780,7 +793,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         .map((position) => {
             const activityType = resolvePortfolioActivityType(position.registryStatusLabel);
             const saleActivity = activityType === 'Sell'
-                ? SALE_ACTIVITY_BY_POSITION_ID[position.positionId]
+                ? resolvePortfolioSaleActivity(position.positionId)
                 : undefined;
 
             return {
