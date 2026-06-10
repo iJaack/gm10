@@ -3,6 +3,7 @@ import { LZ_EID_AVALANCHE, LZ_EID_POLYGON } from '../data/gm10Config';
 import {
     deriveFujiRoundState,
     isPortfolioHoldingStatus,
+    resolvePortfolioActivityForPosition,
     resolveCardCustody,
     resolvePortfolioActivityType,
     resolvePortfolioSaleActivityFromLogs,
@@ -104,6 +105,50 @@ describe('resolvePortfolioActivityType', () => {
         expect(resolvePortfolioActivityType('Sold')).toBe('Sell');
         expect(resolvePortfolioActivityType('Archived')).toBe('Sell');
         expect(resolvePortfolioActivityType('Active')).toBe('Buy');
+    });
+});
+
+describe('resolvePortfolioActivityForPosition', () => {
+    it('tracks a sold card as separate buy and sell activity events', () => {
+        const activity = resolvePortfolioActivityForPosition({
+            positionId: 1,
+            title: 'Gengar VMAX',
+            chain: 'Polygon',
+            registryStatusLabel: 'Sold',
+            acquisition: '$96.00',
+            acquisitionDateLabel: 'Apr 15, 2026',
+            acquisitionTimestamp: 1_776_211_200,
+            currentValue: '$0.00',
+            lastValuationLabel: 'Apr 21, 2026',
+            lastValuationTimestamp: 1_776_729_600,
+        }, {
+            saleKey: `0x${'2'.repeat(64)}`,
+            netProceedsUsdt6: 999_000000n,
+            finalizedAt: 1_776_729_600,
+            blockNumber: 87_665_491n,
+            logIndex: 12,
+        });
+
+        expect(activity).toEqual([
+            {
+                id: 'buy-1',
+                type: 'Buy',
+                item: 'Gengar VMAX',
+                date: 'Apr 15, 2026',
+                amount: '$96.00',
+                detail: 'Polygon position #1',
+                sortTimestamp: 1_776_211_200,
+            },
+            {
+                id: 'sell-1',
+                type: 'Sell',
+                item: 'Gengar VMAX',
+                date: 'Apr 21, 2026',
+                amount: '$999.00',
+                detail: 'Polygon position #1 settled net proceeds',
+                sortTimestamp: 1_776_729_600,
+            },
+        ]);
     });
 });
 

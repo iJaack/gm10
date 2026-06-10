@@ -286,6 +286,7 @@ export type Gm10PortfolioPosition = {
     acquisitionDateLabel: string;
     acquisitionTimestamp: number;
     lastValuationLabel: string;
+    lastValuationTimestamp: number;
     statusLabel: string;
     registryStatusLabel: string;
     custodyStatus: 'safe' | 'hot-wallet' | 'external' | 'unknown';
@@ -317,6 +318,52 @@ export function sortPortfolioActivityNewestFirst(activity: Gm10PortfolioActivity
 
 export function resolvePortfolioActivityType(registryStatusLabel: string): Gm10PortfolioActivity['type'] {
     return registryStatusLabel === 'Sold' || registryStatusLabel === 'Archived' ? 'Sell' : 'Buy';
+}
+
+type PortfolioActivityPosition = Pick<
+    Gm10PortfolioPosition,
+    | 'positionId'
+    | 'title'
+    | 'chain'
+    | 'registryStatusLabel'
+    | 'acquisition'
+    | 'acquisitionDateLabel'
+    | 'acquisitionTimestamp'
+    | 'currentValue'
+    | 'lastValuationLabel'
+    | 'lastValuationTimestamp'
+>;
+
+export function resolvePortfolioActivityForPosition(
+    position: PortfolioActivityPosition,
+    saleActivity?: Gm10PortfolioSaleActivity,
+): Gm10PortfolioActivity[] {
+    const buyActivity: Gm10PortfolioActivity = {
+        id: `buy-${position.positionId}`,
+        type: 'Buy',
+        item: position.title,
+        date: position.acquisitionDateLabel,
+        amount: position.acquisition,
+        detail: `${position.chain} position #${position.positionId}`,
+        sortTimestamp: position.acquisitionTimestamp,
+    };
+
+    if (resolvePortfolioActivityType(position.registryStatusLabel) !== 'Sell') return [buyActivity];
+
+    return [
+        buyActivity,
+        {
+            id: `sell-${position.positionId}`,
+            type: 'Sell',
+            item: position.title,
+            date: saleActivity ? formatDate(BigInt(saleActivity.finalizedAt)) : position.lastValuationLabel,
+            amount: saleActivity ? formatUsdt6(saleActivity.netProceedsUsdt6) : position.currentValue,
+            detail: saleActivity
+                ? `${position.chain} position #${position.positionId} settled net proceeds`
+                : `${position.chain} position #${position.positionId} sale recorded`,
+            sortTimestamp: saleActivity?.finalizedAt ?? position.lastValuationTimestamp,
+        },
+    ];
 }
 
 function positionMetadataKey(raw: CollectiblePositionTuple) {
@@ -416,6 +463,7 @@ function normalizePosition(
         acquisitionDateLabel: formatDate(raw.acquisitionDate),
         acquisitionTimestamp: Number(raw.acquisitionDate),
         lastValuationLabel,
+        lastValuationTimestamp: Number(raw.lastValuationAt),
         ...custody,
         acquisitionPriceUsdt6: raw.acquisitionPriceUsdt6,
         currentValueUsdt6,
@@ -892,24 +940,10 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
 
     const activity = useMemo<Gm10PortfolioActivity[]>(() => sortPortfolioActivityNewestFirst(activityPositions
-        .map((position) => {
-            const activityType = resolvePortfolioActivityType(position.registryStatusLabel);
-            const saleActivity = activityType === 'Sell'
-                ? saleActivityByPositionId[position.positionId]
-                : undefined;
-
-            return {
-                id: `${activityType.toLowerCase()}-${position.positionId}`,
-                type: activityType,
-                item: position.title,
-                date: saleActivity ? formatDate(BigInt(saleActivity.finalizedAt)) : position.acquisitionDateLabel,
-                amount: saleActivity ? formatUsdt6(saleActivity.netProceedsUsdt6) : position.acquisition,
-                detail: saleActivity
-                    ? `${position.chain} position #${position.positionId} settled net proceeds`
-                    : `${position.chain} position #${position.positionId}`,
-                sortTimestamp: saleActivity?.finalizedAt ?? position.acquisitionTimestamp,
-            };
-        })), [activityPositions, saleActivityByPositionId]);
+        .flatMap((position) => resolvePortfolioActivityForPosition(
+            position,
+            saleActivityByPositionId[position.positionId],
+        ))), [activityPositions, saleActivityByPositionId]);
     const holderAccounting = useMemo(() => resolveHolderAccounting({
         totalSupply: circulatingSupply,
         profitEligibleSupply,
