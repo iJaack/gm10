@@ -41,7 +41,7 @@
    - Release accrued support to the Avalanche Safe.
    - Convert half into WAVAX-side support and half into CATCH-side support.
    - Mint the Pharaoh CL position to the configured custody owner.
-   - Use live V8 release-as-execution accounting: `releaseLpSupportToken` decrements the accrued LP support budget, so do not also call `executeLpSupport` for the same budget.
+   - Call `executeLpSupport` for the Pharaoh pool only; the live proxy records/decrements LP support there, not on token release.
    - Re-pause LP support and clear temporary allowances.
 
 ## Execution Log
@@ -94,5 +94,38 @@
   - Trader Joe quote for `6.750000` USDC to CATCH via WAVAX: `295.919703520868828465` CATCH.
   - Pharaoh mint range from live tick: `-70600` to `-42800`.
   - Release-and-swap Safe batch simulated successfully with a `5%` minimum-output guard.
-  - The batch uses live V8 release-as-execution accounting: `releaseLpSupportToken` decrements the accrued LP support budget, so `executeLpSupport` is not called for the same `13.500000` USDC to avoid double-decrementing.
-  - Pending submission: Ledger HID connection is currently not visible to `cast` (`Ledger device not found`); no LP-support transaction has been submitted.
+  - Initial Ledger submission attempts failed while the device was not visible to `cast` (`Ledger device not found`).
+- Pharaoh-only LP support release and swaps:
+  - Tx: `0xcaf1a0913e4bf6f2cfd118835ea18fec2dceaaacab3eda93b93834c6c57486a4`.
+  - Confirmed in Avalanche block `87,668,124`.
+  - Batch actions:
+    - Temporarily unpaused LP support.
+    - Released `13.500000` USDC from the fund to the Safe.
+    - Restored LP support pause.
+    - Approved exact `13.500000` USDC to Trader Joe.
+    - Swapped `6.750000` USDC to WAVAX with a `5%` minimum-output guard.
+    - Swapped `6.750000` USDC to CATCH through WAVAX with a `5%` minimum-output guard.
+    - Cleared the Trader Joe USDC allowance.
+  - Actual received into the Safe:
+    - `1.022447007231269156` WAVAX.
+    - `295.272155650608746671` CATCH.
+  - Live observation after this tx: `lpSupportAccruedUsdt6` still read `13.500000`, so the deployed proxy accounts LP support execution on `executeLpSupport`, not on token release.
+- Pharaoh LP mint and execution accounting:
+  - Tx: `0x079e4222dfb7d560c300635e71cae2374a1bc77eb775821cbac0314a242b45bd`.
+  - Confirmed in Avalanche block `87,668,420`.
+  - Batch actions:
+    - Approved the newly acquired CATCH and WAVAX to the Pharaoh position manager.
+    - Minted Pharaoh CL position `313011` in pool `0x1D4Cf678129cdDF63fBc31ca58cB24048955651f`.
+    - Range: tick `-70600` to `-42800`.
+    - Called `executeLpSupport` for Pharaoh only with `6.750000` CATCH-side budget and `6.750000` paired-AVAX-side budget, custody mode `1`.
+    - Restored LP support pause.
+    - Cleared CATCH and WAVAX Pharaoh position-manager allowances.
+  - Final checks:
+    - LP support accrued: `0.000000` USDC.
+    - LP support paused: `true`.
+    - Safe nonce: `166`.
+    - Trader Joe USDC allowance: `0`.
+    - Pharaoh position-manager CATCH allowance: `0`.
+    - Pharaoh position-manager WAVAX allowance: `0`.
+    - Pharaoh NFT `313011` owner: Safe `0x39971795266a794a8156271729A07994952a6FAD`.
+    - Safe residual LP-support tokens after mint: `0` USDC, baseline CATCH restored, and `0.003477956718078273` incremental WAVAX left over from the minted range ratio.
