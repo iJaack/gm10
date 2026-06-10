@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { formatEther, formatUnits } from 'viem';
+import { formatEther, formatUnits, parseAbiItem } from 'viem';
 import { polygon } from 'wagmi/chains';
-import { useAccount, useBalance, useReadContract, useReadContracts } from 'wagmi';
+import { useAccount, useBalance, usePublicClient, useReadContract, useReadContracts } from 'wagmi';
 import { metadataForPosition, type CardMetadata } from '../data/cardPortfolio';
 import { CHAINLINK_AGGREGATOR_V3_ABI, GM10_ERC20_ABI, GM10_ERC721_ABI, GM10_FUND_ABI, GM10_PORTFOLIO_REGISTRY_ABI, GM10_TOKENOMICS_CONTROLLER_ABI } from '../data/contracts';
 import { calculatePortfolioValueSummary, type PlatformNavState } from '../data/portfolioMath';
@@ -15,6 +15,7 @@ import {
     GM10_EXPLORER_BASE_URL,
     GM10_EXPLORER_TX_BASE_URL,
     GM10_COURTYARD_CUSTODY,
+    GM10_CHAIN_ID,
     GM10_MARKET_CONFIG,
     GM10_PRIMARY_DEPLOYMENT,
     GM10_TREASURY_WALLETS,
@@ -35,6 +36,10 @@ const DEFAULT_PLATFORM_NAV: PlatformNavState = { status: 'unavailable' };
 const AVAX_WEI = 10n ** 18n;
 const PUBLIC_VALUATION_REFRESH_INTERVAL_MS = 30_000;
 const ROUND_STATE_REFRESH_INTERVAL_MS = 15_000;
+const SALE_ACTIVITY_REFRESH_INTERVAL_MS = 30_000;
+const PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK = 85_000_000n;
+const PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE = 1_000_000n;
+const SALE_FINALIZED_EVENT = parseAbiItem('event SaleFinalized(bytes32 indexed saleKey, uint256 indexed positionId, uint256 markedValueUsdt6, uint256 netProceedsUsdt6)');
 
 const ROUND_2_PLANNED_ROUND = {
     roundId: BigInt(BUY_PAGE_DEFAULTS.roundId),
@@ -196,23 +201,56 @@ function formatOptionalIsoDate(value?: string) {
 }
 
 export type Gm10PortfolioSaleActivity = {
+    saleKey?: `0x${string}`;
     netProceedsUsdt6: bigint;
     finalizedAt: number;
+    blockNumber: bigint;
+    logIndex: number;
 };
 
-const SALE_ACTIVITY_BY_POSITION_ID: Record<number, Gm10PortfolioSaleActivity> = {
-    1: {
-        netProceedsUsdt6: 150_000000n,
-        finalizedAt: 1_781_104_279,
-    },
-    7: {
-        netProceedsUsdt6: 1_895_249872n,
-        finalizedAt: 1_780_704_000,
-    },
+type SaleFinalizedLogForActivity = {
+    args?: {
+        saleKey?: `0x${string}`;
+        positionId?: bigint;
+        netProceedsUsdt6?: bigint;
+    };
+    blockNumber?: bigint | null;
+    logIndex?: number | bigint | string | null;
 };
 
-export function resolvePortfolioSaleActivity(positionId: number) {
-    return SALE_ACTIVITY_BY_POSITION_ID[positionId];
+export function resolvePortfolioSaleActivityFromLogs(
+    logs: readonly SaleFinalizedLogForActivity[],
+    blockTimestamps: Record<string, bigint | number | undefined>,
+) {
+    const activityByPositionId: Record<number, Gm10PortfolioSaleActivity> = {};
+
+    logs.forEach((log) => {
+        const positionIdBigInt = log.args?.positionId;
+        const netProceedsUsdt6 = log.args?.netProceedsUsdt6;
+        const blockNumber = log.blockNumber;
+        if (positionIdBigInt === undefined || netProceedsUsdt6 === undefined || blockNumber === undefined || blockNumber === null) return;
+
+        const positionId = Number(positionIdBigInt);
+        if (!Number.isSafeInteger(positionId) || positionId <= 0) return;
+
+        const timestamp = blockTimestamps[blockNumber.toString()];
+        const finalizedAt = typeof timestamp === 'bigint' ? Number(timestamp) : Number(timestamp ?? 0);
+        const logIndex = Number(log.logIndex ?? 0);
+        const current = activityByPositionId[positionId];
+        const isOlderLog = current
+            && (current.blockNumber > blockNumber || (current.blockNumber === blockNumber && current.logIndex >= logIndex));
+        if (isOlderLog) return;
+
+        activityByPositionId[positionId] = {
+            saleKey: log.args?.saleKey,
+            netProceedsUsdt6,
+            finalizedAt,
+            blockNumber,
+            logIndex,
+        };
+    });
+
+    return activityByPositionId;
 }
 
 type CollectiblePositionTuple = {
@@ -485,9 +523,11 @@ export function useFujiRoundState() {
 export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAULT_PLATFORM_NAV) {
     const contractState = useFujiContracts(GM10_PRIMARY_DEPLOYMENT);
     const { address } = useAccount();
+    const publicClient = usePublicClient({ chainId: GM10_CHAIN_ID });
     const fallbackAvaxUsd = useAvaxPrice();
     const [liveMetadataByKey, setLiveMetadataByKey] = useState<Record<string, CardMetadata>>({});
     const [publicValuationOverrides, setPublicValuationOverrides] = useState<Record<number, PublicValuationOverride>>({});
+    const [saleActivityByPositionId, setSaleActivityByPositionId] = useState<Record<number, Gm10PortfolioSaleActivity>>({});
 
     const { data: collectiblePositionCount } = useReadContract({
         address: contractState.portfolioRegistryAddress ?? ZERO_ADDRESS,
@@ -744,6 +784,68 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         };
     }, []);
 
+    useEffect(() => {
+        let disposed = false;
+
+        async function loadSaleActivity() {
+            if (!publicClient || !contractState.portfolioRegistryAddress) {
+                setSaleActivityByPositionId({});
+                return;
+            }
+
+            try {
+                const latestBlock = await publicClient.getBlockNumber();
+                if (latestBlock < PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK) {
+                    if (!disposed) setSaleActivityByPositionId({});
+                    return;
+                }
+
+                const logs: SaleFinalizedLogForActivity[] = [];
+                let fromBlock = PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK;
+                while (fromBlock <= latestBlock) {
+                    const toBlock = fromBlock + PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE > latestBlock
+                        ? latestBlock
+                        : fromBlock + PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE;
+                    const chunk = await publicClient.getLogs({
+                        address: contractState.portfolioRegistryAddress,
+                        event: SALE_FINALIZED_EVENT,
+                        fromBlock,
+                        toBlock,
+                    });
+                    logs.push(...(chunk as SaleFinalizedLogForActivity[]));
+                    fromBlock = toBlock + 1n;
+                }
+
+                const blockNumbers = Array.from(new Set(logs
+                    .map((log) => log.blockNumber)
+                    .filter((blockNumber): blockNumber is bigint => typeof blockNumber === 'bigint')
+                    .map((blockNumber) => blockNumber.toString())));
+                const blockEntries = await Promise.all(blockNumbers.map(async (blockNumberString) => {
+                    const blockNumber = BigInt(blockNumberString);
+                    const block = await publicClient.getBlock({ blockNumber });
+                    return [blockNumberString, block.timestamp] as const;
+                }));
+                const blockTimestamps = Object.fromEntries(blockEntries);
+
+                if (!disposed) {
+                    setSaleActivityByPositionId(resolvePortfolioSaleActivityFromLogs(logs, blockTimestamps));
+                }
+            } catch {
+                if (!disposed) setSaleActivityByPositionId((current) => current);
+            }
+        }
+
+        void loadSaleActivity();
+        const intervalId = window.setInterval(() => {
+            void loadSaleActivity();
+        }, SALE_ACTIVITY_REFRESH_INTERVAL_MS);
+
+        return () => {
+            disposed = true;
+            window.clearInterval(intervalId);
+        };
+    }, [contractState.portfolioRegistryAddress, publicClient]);
+
     const positions = useMemo(() => holdingRawPositions
         .map((raw) => normalizePosition(
             raw,
@@ -793,7 +895,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         .map((position) => {
             const activityType = resolvePortfolioActivityType(position.registryStatusLabel);
             const saleActivity = activityType === 'Sell'
-                ? resolvePortfolioSaleActivity(position.positionId)
+                ? saleActivityByPositionId[position.positionId]
                 : undefined;
 
             return {
@@ -807,7 +909,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                     : `${position.chain} position #${position.positionId}`,
                 sortTimestamp: saleActivity?.finalizedAt ?? position.acquisitionTimestamp,
             };
-        })), [activityPositions]);
+        })), [activityPositions, saleActivityByPositionId]);
     const holderAccounting = useMemo(() => resolveHolderAccounting({
         totalSupply: circulatingSupply,
         profitEligibleSupply,

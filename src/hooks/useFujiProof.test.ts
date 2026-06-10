@@ -4,8 +4,8 @@ import {
     deriveFujiRoundState,
     isPortfolioHoldingStatus,
     resolveCardCustody,
-    resolvePortfolioSaleActivity,
     resolvePortfolioActivityType,
+    resolvePortfolioSaleActivityFromLogs,
     resolvePositionCurrentValueUsdt6,
     sortPortfolioActivityNewestFirst,
     type Gm10PortfolioActivity,
@@ -107,11 +107,47 @@ describe('resolvePortfolioActivityType', () => {
     });
 });
 
-describe('resolvePortfolioSaleActivity', () => {
-    it('includes the finalized Gengar sale proceeds for position 1', () => {
-        expect(resolvePortfolioSaleActivity(1)).toEqual({
+describe('resolvePortfolioSaleActivityFromLogs', () => {
+    it('derives finalized sale proceeds from portfolio registry logs', () => {
+        const saleKey = `0x${'1'.repeat(64)}` as `0x${string}`;
+        const activity = resolvePortfolioSaleActivityFromLogs([{
+            args: {
+                saleKey,
+                positionId: 1n,
+                netProceedsUsdt6: 150_000000n,
+            },
+            blockNumber: 87_665_491n,
+            logIndex: 12,
+        }], { '87665491': 1_781_104_279n });
+
+        expect(activity[1]).toEqual({
+            saleKey,
             netProceedsUsdt6: 150_000000n,
             finalizedAt: 1_781_104_279,
+            blockNumber: 87_665_491n,
+            logIndex: 12,
+        });
+    });
+
+    it('keeps the latest finalized sale log for a position', () => {
+        const activity = resolvePortfolioSaleActivityFromLogs([
+            {
+                args: { positionId: 1n, netProceedsUsdt6: 1n },
+                blockNumber: 10n,
+                logIndex: 5,
+            },
+            {
+                args: { positionId: 1n, netProceedsUsdt6: 2n },
+                blockNumber: 10n,
+                logIndex: 6,
+            },
+        ], { '10': 123n });
+
+        expect(activity[1]).toMatchObject({
+            netProceedsUsdt6: 2n,
+            finalizedAt: 123,
+            blockNumber: 10n,
+            logIndex: 6,
         });
     });
 });

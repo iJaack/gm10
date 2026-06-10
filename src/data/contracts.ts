@@ -201,6 +201,17 @@ export const GM10_FUND_ABI = [
 
 export const GM10_PORTFOLIO_REGISTRY_ABI = [
     {
+        anonymous: false,
+        inputs: [
+            { indexed: true, name: 'saleKey', type: 'bytes32' },
+            { indexed: true, name: 'positionId', type: 'uint256' },
+            { indexed: false, name: 'markedValueUsdt6', type: 'uint256' },
+            { indexed: false, name: 'netProceedsUsdt6', type: 'uint256' },
+        ],
+        name: 'SaleFinalized',
+        type: 'event',
+    },
+    {
         inputs: [],
         name: 'collectiblePositionCount',
         outputs: [{ name: '', type: 'uint256' }],
