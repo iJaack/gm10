@@ -38,7 +38,12 @@ const PUBLIC_VALUATION_REFRESH_INTERVAL_MS = 30_000;
 const ROUND_STATE_REFRESH_INTERVAL_MS = 15_000;
 const SALE_ACTIVITY_REFRESH_INTERVAL_MS = 30_000;
 const PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK = 85_000_000n;
-const PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE = 1_000_000n;
+const PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE = 2_048n;
+const SALE_ACTIVITY_FALLBACK_LOOKBACK_BLOCKS = 100_000n;
+const SALE_ACTIVITY_KNOWN_BLOCK_HINTS: Record<number, bigint> = {
+    1: 87_665_491n,
+    7: 87_354_222n,
+};
 const SALE_FINALIZED_EVENT = parseAbiItem('event SaleFinalized(bytes32 indexed saleKey, uint256 indexed positionId, uint256 markedValueUsdt6, uint256 netProceedsUsdt6)');
 
 const ROUND_2_PLANNED_ROUND = {
@@ -357,13 +362,30 @@ export function resolvePortfolioActivityForPosition(
             type: 'Sell',
             item: position.title,
             date: saleActivity ? formatDate(BigInt(saleActivity.finalizedAt)) : position.lastValuationLabel,
-            amount: saleActivity ? formatUsdt6(saleActivity.netProceedsUsdt6) : position.currentValue,
+            amount: saleActivity ? formatUsdt6(saleActivity.netProceedsUsdt6) : 'Syncing',
             detail: saleActivity
                 ? `${position.chain} position #${position.positionId} settled net proceeds`
-                : `${position.chain} position #${position.positionId} sale recorded`,
+                : `${position.chain} position #${position.positionId} sale price syncing from registry`,
             sortTimestamp: saleActivity?.finalizedAt ?? position.lastValuationTimestamp,
         },
     ];
+}
+
+export function resolveSaleActivityBlockRange(positionId: number, latestBlock: bigint) {
+    const hintedBlock = SALE_ACTIVITY_KNOWN_BLOCK_HINTS[positionId];
+    if (hintedBlock !== undefined) {
+        const fromBlock = hintedBlock > 32n ? hintedBlock - 32n : hintedBlock;
+        const toBlock = hintedBlock + 32n > latestBlock ? latestBlock : hintedBlock + 32n;
+        return { fromBlock, toBlock };
+    }
+
+    const fromBlock = latestBlock > SALE_ACTIVITY_FALLBACK_LOOKBACK_BLOCKS
+        ? latestBlock - SALE_ACTIVITY_FALLBACK_LOOKBACK_BLOCKS
+        : PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK;
+    return {
+        fromBlock: fromBlock > PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK ? fromBlock : PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK,
+        toBlock: latestBlock,
+    };
 }
 
 function positionMetadataKey(raw: CollectiblePositionTuple) {
@@ -716,6 +738,10 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     const holdingRawPositions = useMemo(() => rawPositions.filter((position) => (
         isPortfolioHoldingStatus(Number(position.status))
     )), [rawPositions]);
+    const soldPositionIds = useMemo(() => rawPositions
+        .filter((position) => resolvePortfolioActivityType(positionStatusLabel(Number(position.status))) === 'Sell')
+        .map((position) => Number(position.id))
+        .filter((positionId) => Number.isSafeInteger(positionId) && positionId > 0), [rawPositions]);
 
     const custodyReadPositions = useMemo(() => holdingRawPositions.filter((position) => (
         Number(position.chainEid) === LZ_EID_POLYGON
@@ -836,7 +862,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         let disposed = false;
 
         async function loadSaleActivity() {
-            if (!publicClient || !contractState.portfolioRegistryAddress) {
+            if (!publicClient || !contractState.portfolioRegistryAddress || soldPositionIds.length === 0) {
                 setSaleActivityByPositionId({});
                 return;
             }
@@ -848,21 +874,25 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                     return;
                 }
 
-                const logs: SaleFinalizedLogForActivity[] = [];
-                let fromBlock = PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK;
-                while (fromBlock <= latestBlock) {
-                    const toBlock = fromBlock + PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE > latestBlock
-                        ? latestBlock
-                        : fromBlock + PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE;
-                    const chunk = await publicClient.getLogs({
+                const logChunks = await Promise.all(soldPositionIds.flatMap((positionId) => {
+                    const { fromBlock, toBlock } = resolveSaleActivityBlockRange(positionId, latestBlock);
+                    const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+                    for (let start = fromBlock; start <= toBlock; start += PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE) {
+                        const end = start + PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE - 1n > toBlock
+                            ? toBlock
+                            : start + PORTFOLIO_REGISTRY_LOG_CHUNK_SIZE - 1n;
+                        ranges.push({ fromBlock: start, toBlock: end });
+                    }
+
+                    return ranges.map((range) => publicClient.getLogs({
                         address: contractState.portfolioRegistryAddress,
                         event: SALE_FINALIZED_EVENT,
-                        fromBlock,
-                        toBlock,
-                    });
-                    logs.push(...(chunk as SaleFinalizedLogForActivity[]));
-                    fromBlock = toBlock + 1n;
-                }
+                        args: { positionId: BigInt(positionId) },
+                        fromBlock: range.fromBlock,
+                        toBlock: range.toBlock,
+                    }));
+                }));
+                const logs = logChunks.flat() as SaleFinalizedLogForActivity[];
 
                 const blockNumbers = Array.from(new Set(logs
                     .map((log) => log.blockNumber)
@@ -892,7 +922,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             disposed = true;
             window.clearInterval(intervalId);
         };
-    }, [contractState.portfolioRegistryAddress, publicClient]);
+    }, [contractState.portfolioRegistryAddress, publicClient, soldPositionIds]);
 
     const positions = useMemo(() => holdingRawPositions
         .map((raw) => normalizePosition(

@@ -7,6 +7,7 @@ import {
     resolveCardCustody,
     resolvePortfolioActivityType,
     resolvePortfolioSaleActivityFromLogs,
+    resolveSaleActivityBlockRange,
     resolvePositionCurrentValueUsdt6,
     sortPortfolioActivityNewestFirst,
     type Gm10PortfolioActivity,
@@ -150,6 +151,29 @@ describe('resolvePortfolioActivityForPosition', () => {
             },
         ]);
     });
+
+    it('does not present a missing sale event as a zero-dollar sale', () => {
+        const activity = resolvePortfolioActivityForPosition({
+            positionId: 7,
+            title: 'Pikachu & Zekrom GX',
+            chain: 'Polygon',
+            registryStatusLabel: 'Sold',
+            acquisition: '$999.00',
+            acquisitionDateLabel: 'Apr 21, 2026',
+            acquisitionTimestamp: 1_776_729_600,
+            currentValue: '$0.00',
+            lastValuationLabel: 'Jun 7, 2026',
+            lastValuationTimestamp: 1_780_790_400,
+        });
+
+        expect(activity[1]).toMatchObject({
+            id: 'sell-7',
+            type: 'Sell',
+            amount: 'Syncing',
+            detail: 'Polygon position #7 sale price syncing from registry',
+        });
+        expect(activity[1].amount).not.toBe('$0.00');
+    });
 });
 
 describe('resolvePortfolioSaleActivityFromLogs', () => {
@@ -193,6 +217,22 @@ describe('resolvePortfolioSaleActivityFromLogs', () => {
             finalizedAt: 123,
             blockNumber: 10n,
             logIndex: 6,
+        });
+    });
+});
+
+describe('resolveSaleActivityBlockRange', () => {
+    it('uses narrow onchain log windows for known finalized sale blocks', () => {
+        expect(resolveSaleActivityBlockRange(7, 87_682_496n)).toEqual({
+            fromBlock: 87_354_190n,
+            toBlock: 87_354_254n,
+        });
+    });
+
+    it('caps unhinted sale log lookups to a recent fallback range', () => {
+        expect(resolveSaleActivityBlockRange(12, 87_682_496n)).toEqual({
+            fromBlock: 87_582_496n,
+            toBlock: 87_682_496n,
         });
     });
 });
