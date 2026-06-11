@@ -20,7 +20,75 @@ function sourceGasRaw(quote) {
     .reduce((total, gas) => total + BigInt(gas.amount ?? '0'), 0n);
 }
 
-export function normalizeQuote(kind, quote, targetRaw) {
+function sameAddress(a, b) {
+  return String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
+}
+
+function encodeErc20Transfer(to, amountRaw) {
+  assertEvmAddress(to, 'ERC20 transfer recipient');
+  const amount = BigInt(amountRaw);
+  const recipientWord = to.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const amountWord = amount.toString(16).padStart(64, '0');
+  return `0xa9059cbb${recipientWord}${amountWord}`;
+}
+
+function allowedLifiTargets() {
+  return String(process.env.GM10_LIFI_ALLOWED_TARGETS ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function assertAllowedLifiTransactionTarget(to) {
+  assertEvmAddress(to, 'LI.FI transaction target');
+  const allowedTargets = allowedLifiTargets();
+  if (!allowedTargets.length) {
+    throw new Error('Set GM10_LIFI_ALLOWED_TARGETS before returning executable LI.FI transactions');
+  }
+  if (!allowedTargets.some((target) => sameAddress(target, to))) {
+    throw new Error('LI.FI transaction target is not allowlisted');
+  }
+}
+
+function assertOptionalAddressMatch(actual, expected, label) {
+  if (expected === undefined || expected === null || expected === '') return;
+  if (actual === undefined || actual === null || actual === '') return;
+  if (!sameAddress(actual, expected)) throw new Error(`LI.FI quote ${label} mismatch`);
+}
+
+function assertOptionalStringMatch(actual, expected, label) {
+  if (expected === undefined || expected === null || expected === '') return;
+  if (actual === undefined || actual === null || actual === '') return;
+  if (String(actual) !== String(expected)) throw new Error(`LI.FI quote ${label} mismatch`);
+}
+
+function assertOptionalChainMatch(actual, expected, label) {
+  if (expected === undefined || expected === null || expected === '') return;
+  if (actual === undefined || actual === null || actual === '') return;
+  if (Number(actual) !== Number(expected)) throw new Error(`LI.FI quote ${label} mismatch`);
+}
+
+function validateTransactionRequest(quote, expectations = {}) {
+  const tx = quote.transactionRequest;
+  if (!tx) throw new Error('LI.FI quote is missing transaction request');
+  assertAllowedLifiTransactionTarget(tx.to);
+  assertOptionalChainMatch(tx.chainId ?? quote.action?.fromChainId ?? quote.action?.fromChain, expectations.fromChain, 'source chain');
+  assertOptionalChainMatch(quote.action?.toChainId ?? quote.action?.toChain, expectations.toChain, 'destination chain');
+  assertOptionalAddressMatch(quote.action?.fromAddress, expectations.fromAddress, 'sender');
+  assertOptionalStringMatch(quote.action?.toAddress, expectations.toAddress, 'recipient');
+  assertOptionalAddressMatch(quote.action?.fromToken?.address ?? quote.action?.fromToken, expectations.fromToken, 'source token');
+  assertOptionalStringMatch(quote.action?.toToken?.address ?? quote.action?.toToken, expectations.toToken, 'destination token');
+
+  if (expectations.fromToken === NATIVE_TOKEN) {
+    const expectedValue = BigInt(quote.action?.fromAmount ?? quote.estimate?.fromAmount ?? '0');
+    if (BigInt(tx.value ?? '0') !== expectedValue) {
+      throw new Error('LI.FI native transaction value mismatch');
+    }
+  }
+}
+
+export function normalizeQuote(kind, quote, targetRaw, expectations = {}) {
+  if (quote.transactionRequest) validateTransactionRequest(quote, expectations);
   const fromAmountRaw = BigInt(quote.action?.fromAmount ?? quote.estimate?.fromAmount ?? '0');
   const gasRaw = sourceGasRaw(quote);
   const target = BigInt(targetRaw);
@@ -131,6 +199,17 @@ function usdcPreferredFromAmountRaw(usdcRaw) {
   return ((BigInt(usdcRaw) * 10n ** 12n) / 10n).toString();
 }
 
+function quoteExpectations(params) {
+  return {
+    fromChain: params.fromChain,
+    toChain: params.toChain,
+    fromToken: params.fromToken,
+    toToken: params.toToken,
+    fromAddress: params.fromAddress,
+    toAddress: params.toAddress,
+  };
+}
+
 async function fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmountRaw, fetchImpl) {
   let lastError;
   let low = 0n;
@@ -140,7 +219,7 @@ async function fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmou
   for (const fromAmount of fallbackFromAmounts(preferredFromAmountRaw)) {
     try {
       const quote = await fetchLiFiSourceQuote({ ...params, fromAmount }, fetchImpl);
-      const normalized = normalizeQuote(kind, quote, targetRaw);
+      const normalized = normalizeQuote(kind, quote, targetRaw, quoteExpectations(params));
       if (normalized.enoughOutput) {
         high = BigInt(fromAmount);
         bestQuote = quote;
@@ -161,7 +240,7 @@ async function fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmou
     if (mid <= low || mid >= high) break;
     try {
       const quote = await fetchLiFiSourceQuote({ ...params, fromAmount: mid.toString() }, fetchImpl);
-      if (normalizeQuote(kind, quote, targetRaw).enoughOutput) {
+      if (normalizeQuote(kind, quote, targetRaw, quoteExpectations(params)).enoughOutput) {
         bestQuote = quote;
         high = mid;
       } else {
@@ -179,7 +258,7 @@ async function fetchLiFiFallbackQuote(kind, params, targetRaw, preferredFromAmou
 async function fetchLiFiTargetQuote(kind, params, targetRaw, preferredFromAmountRaw, fetchImpl) {
   try {
     const exactQuote = await fetchLiFiQuote({ ...params, toAmount: targetRaw }, fetchImpl);
-    if (normalizeQuote(kind, exactQuote, targetRaw).enoughOutput) {
+    if (normalizeQuote(kind, exactQuote, targetRaw, quoteExpectations(params)).enoughOutput) {
       return exactQuote;
     }
   } catch {
@@ -212,7 +291,14 @@ export async function buildFundingQuotes({ usdcRaw, fromAddress, toAddress, toTo
     usdcPreferredFromAmountRaw(usdcRaw),
     fetchImpl,
   );
-  const usdc = normalizeQuote('polygonUsdc', usdcRawQuote, usdcRaw);
+  const usdc = normalizeQuote('polygonUsdc', usdcRawQuote, usdcRaw, {
+    fromChain: AVALANCHE_CHAIN_ID,
+    toChain: POLYGON_CHAIN_ID,
+    fromToken: NATIVE_TOKEN,
+    toToken,
+    fromAddress,
+    toAddress,
+  });
   return {
     usdc,
     summary: summarizeFunding(usdc),
@@ -233,13 +319,15 @@ export async function buildContinuousCommitRoute({
   if (!/^\d+$/.test(String(fromAmountRaw ?? ''))) throw new Error('Missing source token amount');
   if (BigInt(fromAmountRaw) <= 0n) throw new Error('Source token amount must be greater than zero');
   assertEvmAddress(fromAddress, 'buyer');
-  const destinationAddress = settlementAddress || escrowAddress;
-  assertEvmAddress(destinationAddress, 'Avalanche settlement receiver');
-  assertEvmAddress(settlementToken, 'Avalanche settlement token');
+  const normalizedSettlementToken = String(settlementToken || NATIVE_TOKEN).trim();
+  assertEvmAddress(normalizedSettlementToken, 'Avalanche settlement token');
+  const usesNativeSettlement = normalizedSettlementToken === NATIVE_TOKEN;
+  const destinationAddress = usesNativeSettlement ? settlementAddress || escrowAddress : escrowAddress;
+  assertEvmAddress(destinationAddress, usesNativeSettlement ? 'Avalanche settlement receiver' : 'per-commit escrow');
   const sourceToken = String(fromToken || NATIVE_TOKEN).trim();
   if (sourceToken !== NATIVE_TOKEN) assertEvmAddress(sourceToken, 'source token');
 
-  if (sourceChain === AVALANCHE_CHAIN_ID && sourceToken === NATIVE_TOKEN && settlementToken === NATIVE_TOKEN) {
+  if (sourceChain === AVALANCHE_CHAIN_ID && sourceToken === NATIVE_TOKEN && normalizedSettlementToken === NATIVE_TOKEN) {
     const raw = BigInt(fromAmountRaw);
     return {
       route: {
@@ -267,7 +355,45 @@ export async function buildContinuousCommitRoute({
         },
         approvalAddress: null,
       },
-      settlementToken,
+      settlementToken: normalizedSettlementToken,
+      escrowAddress: destinationAddress,
+      settlementAddress: destinationAddress,
+    };
+  }
+
+  if (
+    sourceChain === AVALANCHE_CHAIN_ID
+    && sourceToken !== NATIVE_TOKEN
+    && sameAddress(sourceToken, normalizedSettlementToken)
+  ) {
+    const raw = BigInt(fromAmountRaw);
+    return {
+      route: {
+        kind: 'continuousCommit',
+        id: `erc20-transfer:${sourceChain}:${sourceToken}:${destinationAddress}:${fromAmountRaw}`,
+        tool: 'erc20-transfer',
+        fromAmountRaw: raw.toString(),
+        fromAmountAvax: formatDecimalUnits(raw, 18, 8),
+        sourceGasRaw: '0',
+        sourceGasAvax: '0',
+        totalInputRaw: raw.toString(),
+        totalInputAvax: formatDecimalUnits(raw, 18, 8),
+        targetRaw: raw.toString(),
+        toAmountRaw: raw.toString(),
+        toAmountMinRaw: raw.toString(),
+        toAmountUsd: '',
+        fromAmountUsd: '',
+        executionDuration: 0,
+        enoughOutput: true,
+        transactionRequest: {
+          to: sourceToken,
+          data: encodeErc20Transfer(destinationAddress, raw),
+          value: '0',
+          chainId: AVALANCHE_CHAIN_ID,
+        },
+        approvalAddress: null,
+      },
+      settlementToken: normalizedSettlementToken,
       escrowAddress: destinationAddress,
       settlementAddress: destinationAddress,
     };
@@ -278,7 +404,7 @@ export async function buildContinuousCommitRoute({
       fromChain: sourceChain,
       toChain: AVALANCHE_CHAIN_ID,
       fromToken: sourceToken,
-      toToken: settlementToken,
+      toToken: normalizedSettlementToken,
       fromAddress,
       toAddress: destinationAddress,
       fromAmount: fromAmountRaw,
@@ -291,8 +417,15 @@ export async function buildContinuousCommitRoute({
   const targetRaw = quote.estimate?.toAmountMin ?? quote.estimate?.toAmount ?? '0';
 
   return {
-    route: normalizeQuote('continuousCommit', quote, targetRaw),
-    settlementToken,
+    route: normalizeQuote('continuousCommit', quote, targetRaw, {
+      fromChain: sourceChain,
+      toChain: AVALANCHE_CHAIN_ID,
+      fromToken: sourceToken,
+      toToken: normalizedSettlementToken,
+      fromAddress,
+      toAddress: destinationAddress,
+    }),
+    settlementToken: normalizedSettlementToken,
     escrowAddress: destinationAddress,
     settlementAddress: destinationAddress,
   };
@@ -320,7 +453,14 @@ export async function buildSolanaFundingQuote({ fromAmountRaw, fromAddress, toAd
   );
 
   return {
-    sol: normalizeQuote('solanaSol', quote, 0),
+    sol: normalizeQuote('solanaSol', quote, 0, {
+      fromChain: AVALANCHE_CHAIN_ID,
+      toChain: SOLANA_CHAIN_ID,
+      fromToken: NATIVE_TOKEN,
+      toToken: SOLANA_NATIVE_SOL,
+      fromAddress,
+      toAddress,
+    }),
   };
 }
 
@@ -348,6 +488,13 @@ export async function buildSolanaUsdcFundingQuote({ usdcRaw, fromAddress, toAddr
   );
 
   return {
-    usdc: normalizeQuote('solanaUsdc', quote, usdcRaw),
+    usdc: normalizeQuote('solanaUsdc', quote, usdcRaw, {
+      fromChain: AVALANCHE_CHAIN_ID,
+      toChain: SOLANA_CHAIN_ID,
+      fromToken: NATIVE_TOKEN,
+      toToken: SOLANA_USDC,
+      fromAddress,
+      toAddress,
+    }),
   };
 }

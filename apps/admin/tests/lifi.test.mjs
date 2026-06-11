@@ -2,11 +2,33 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildContinuousCommitRoute, buildFundingQuotes, buildSolanaFundingQuote, buildSolanaUsdcFundingQuote, normalizeQuote } from '../server/lib/lifi.js';
 
-function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', tool = 'stargateV2Bus' }) {
+const LIFI_TARGET = '0x1111111111111111111111111111111111111111';
+process.env.GM10_LIFI_ALLOWED_TARGETS = LIFI_TARGET;
+
+function quote({
+  fromAmount,
+  toAmount,
+  toAmountMin = toAmount,
+  gasAmount = '0',
+  tool = 'stargateV2Bus',
+  fromChain = 43114,
+  toChain = 137,
+  fromToken = '0x0000000000000000000000000000000000000000',
+  toToken = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+  fromAddress = '0x39971795266a794a8156271729A07994952a6FAD',
+  toAddress = '0x39971795266a794a8156271729A07994952a6FAD',
+  txTo = LIFI_TARGET,
+}) {
   return {
     id: `${tool}-${fromAmount}-${toAmount}`,
     action: {
       fromAmount,
+      fromChainId: fromChain,
+      toChainId: toChain,
+      fromToken,
+      toToken,
+      fromAddress,
+      toAddress,
     },
     estimate: {
       fromAmount,
@@ -25,11 +47,22 @@ function quote({ fromAmount, toAmount, toAmountMin = toAmount, gasAmount = '0', 
       ],
     },
     transactionRequest: {
-      to: '0x1111111111111111111111111111111111111111',
+      to: txTo,
       data: '0x1234',
       value: fromAmount,
-      chainId: 43114,
+      chainId: fromChain,
     },
+  };
+}
+
+function routeFieldsFromUrl(parsed) {
+  return {
+    fromChain: Number(parsed.searchParams.get('fromChain') ?? 43114),
+    toChain: Number(parsed.searchParams.get('toChain') ?? 137),
+    fromToken: parsed.searchParams.get('fromToken') ?? '0x0000000000000000000000000000000000000000',
+    toToken: parsed.searchParams.get('toToken') ?? '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+    fromAddress: parsed.searchParams.get('fromAddress') ?? '0x39971795266a794a8156271729A07994952a6FAD',
+    toAddress: parsed.searchParams.get('toAddress') ?? '0x39971795266a794a8156271729A07994952a6FAD',
   };
 }
 
@@ -39,10 +72,21 @@ test('normalizes exact-output quote and source gas', () => {
   assert.equal(normalized.sourceGasAvax, '0.01');
   assert.equal(normalized.totalInputAvax, '1.01');
   assert.equal(normalized.enoughOutput, true);
-  assert.equal(normalized.transactionRequest.to, '0x1111111111111111111111111111111111111111');
+  assert.equal(normalized.transactionRequest.to, LIFI_TARGET);
 
   const belowMinimum = normalizeQuote('polygonUsdc', quote({ fromAmount: '1000000000000000000', toAmount: '97000000', toAmountMin: '95000000' }), '96000000');
   assert.equal(belowMinimum.enoughOutput, false);
+});
+
+test('rejects executable LI.FI quotes to unallowlisted targets', () => {
+  assert.throws(
+    () => normalizeQuote('polygonUsdc', quote({
+      fromAmount: '1000000000000000000',
+      toAmount: '96000000',
+      txTo: '0x2222222222222222222222222222222222222222',
+    }), '96000000'),
+    /target is not allowlisted/,
+  );
 });
 
 test('builds one USDC route with a 0.1 percent AVAX buffer', async () => {
@@ -55,6 +99,7 @@ test('builds one USDC route with a 0.1 percent AVAX buffer', async () => {
       ok: true,
       async json() {
         return quote({
+          ...routeFieldsFromUrl(parsed),
           fromAmount: '1000000000000000000',
           toAmount,
           gasAmount: '10000000000000000',
@@ -85,6 +130,7 @@ test('builds a Polygon route to the listing currency token', async () => {
       ok: true,
       async json() {
         return quote({
+          ...routeFieldsFromUrl(parsed),
           fromAmount: '1000000000000000000',
           toAmount: parsed.searchParams.get('toAmount'),
           gasAmount: '10000000000000000',
@@ -120,6 +166,7 @@ test('falls back to exact-source LI.FI quotes when exact-output routing is unava
       ok: true,
       async json() {
         return quote({
+          ...routeFieldsFromUrl(parsed),
           fromAmount,
           toAmount: enough ? '97000000' : '10000000',
           toAmountMin: enough ? '96000000' : '10000000',
@@ -159,6 +206,30 @@ test('builds a same-chain native AVAX continuous commit transfer into the fund p
   assert.equal(result.route.transactionRequest.value, '1000000000000000000');
 });
 
+test('builds a same-chain USDC continuous commit transfer into the escrow', async () => {
+  const escrowAddress = '0x2222222222222222222222222222222222222222';
+  const avalancheUsdc = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
+  const result = await buildContinuousCommitRoute({
+    fromChainId: 43114,
+    fromToken: avalancheUsdc,
+    fromAmountRaw: '100000000',
+    fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    escrowAddress,
+    settlementToken: avalancheUsdc,
+  }, async () => {
+    throw new Error('LI.FI should not be called for same-chain USDC settlement');
+  });
+
+  assert.equal(result.settlementToken, avalancheUsdc);
+  assert.equal(result.escrowAddress, escrowAddress);
+  assert.equal(result.route.tool, 'erc20-transfer');
+  assert.equal(result.route.toAmountRaw, '100000000');
+  assert.equal(result.route.transactionRequest.to, avalancheUsdc);
+  assert.equal(result.route.transactionRequest.value, '0');
+  assert.match(result.route.transactionRequest.data, /^0xa9059cbb/);
+  assert.ok(result.route.transactionRequest.data.toLowerCase().includes(escrowAddress.toLowerCase().replace(/^0x/, '').padStart(64, '0')));
+});
+
 test('builds a LI.FI continuous commit route to native AVAX in the fund proxy', async () => {
   const calls = [];
   const fetchImpl = async (url) => {
@@ -168,6 +239,7 @@ test('builds a LI.FI continuous commit route to native AVAX in the fund proxy', 
       ok: true,
       async json() {
         return quote({
+          ...routeFieldsFromUrl(parsed),
           fromAmount: parsed.searchParams.get('fromAmount'),
           toAmount: '990000000000000000',
           toAmountMin: '980000000000000000',
@@ -192,6 +264,46 @@ test('builds a LI.FI continuous commit route to native AVAX in the fund proxy', 
   assert.equal(result.route.toAmountMinRaw, '980000000000000000');
 });
 
+test('builds a LI.FI continuous commit route to USDC in the per-commit escrow', async () => {
+  const calls = [];
+  const escrowAddress = '0x2222222222222222222222222222222222222222';
+  const fundProxyAddress = '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f';
+  const avalancheUsdc = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    calls.push(parsed);
+    return {
+      ok: true,
+      async json() {
+        return quote({
+          ...routeFieldsFromUrl(parsed),
+          fromAmount: parsed.searchParams.get('fromAmount'),
+          toAmount: '99000000',
+          toAmountMin: '98000000',
+          tool: 'stargateV2Bus',
+        });
+      },
+    };
+  };
+
+  const result = await buildContinuousCommitRoute({
+    fromChainId: 8453,
+    fromToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    fromAmountRaw: '100000000',
+    fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    escrowAddress,
+    settlementAddress: fundProxyAddress,
+    settlementToken: avalancheUsdc,
+  }, fetchImpl);
+
+  assert.equal(calls[0].pathname, '/v1/quote');
+  assert.equal(calls[0].searchParams.get('toToken'), avalancheUsdc);
+  assert.equal(calls[0].searchParams.get('toAddress'), escrowAddress);
+  assert.equal(result.escrowAddress, escrowAddress);
+  assert.equal(result.settlementAddress, escrowAddress);
+  assert.equal(result.route.toAmountMinRaw, '98000000');
+});
+
 test('blocks missing quote inputs', async () => {
   await assert.rejects(() => buildFundingQuotes({ usdcRaw: '', fromAddress: '0x1', toAddress: '0x2' }), /Missing USDC/);
   await assert.rejects(() => buildFundingQuotes({ usdcRaw: '1', fromAddress: '', toAddress: '0x2' }), /Missing Safe/);
@@ -206,6 +318,7 @@ test('builds exact-source SOL route for a Solana recipient', async () => {
       ok: true,
       async json() {
         return quote({
+          ...routeFieldsFromUrl(parsed),
           fromAmount: parsed.searchParams.get('fromAmount'),
           toAmount: '435022602',
           toAmountMin: '430683256',
@@ -241,6 +354,7 @@ test('builds exact-target Solana USDC route for a Solana recipient', async () =>
       ok: true,
       async json() {
         return quote({
+          ...routeFieldsFromUrl(parsed),
           fromAmount: '78324849873298818795',
           toAmount: '732322780',
           toAmountMin: '725017861',
