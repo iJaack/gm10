@@ -85,6 +85,7 @@ function formatWalletTokenStatus(status: WalletTopTokensStatus, error?: string) 
 
 const LIFI_NATIVE_TOKEN = '0x0000000000000000000000000000000000000000' as const;
 const COMMIT_TTL_SECONDS = 20 * 60;
+const PROTECTED_USDC_MINIMUM_BPS = 9900n;
 
 type CommitFeedback = {
     tone: 'error' | 'ready' | 'pending';
@@ -369,7 +370,7 @@ function sameRouteAddress(left?: string, right?: string) {
 
 function protectedUsdcMinimum(previewRaw: bigint) {
     if (previewRaw <= 0n) return 0n;
-    const minimum = (previewRaw * 9950n) / 10000n;
+    const minimum = (previewRaw * PROTECTED_USDC_MINIMUM_BPS) / 10000n;
     return minimum > 0n ? minimum : 1n;
 }
 

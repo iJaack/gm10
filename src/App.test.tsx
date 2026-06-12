@@ -414,8 +414,8 @@ function mockWalletPortfolioTokens(tokens: ReturnType<typeof walletToken>[]) {
                 route: {
                     id: 'lifi-test-route',
                     tool: 'LI.FI',
-                    toAmountRaw: '1000000000000000000',
-                    toAmountMinRaw: '995000000000000000',
+                    toAmountRaw: '100000000',
+                    toAmountMinRaw: '99250000',
                     approvalAddress: '0xAaaaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa',
                     transactionRequest: {
                         to: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
@@ -885,7 +885,7 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/^closed\.$/i)).not.toBeInTheDocument();
     });
 
-    it('registers a commit and submits the LI.FI route without using the legacy invest flow', async () => {
+    it('accepts a USDC route above the 99 percent protected minimum without using the legacy invest flow', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         mockSourceTokenBalances();
         renderAt('/fundraising');
