@@ -7,33 +7,44 @@ const PURCHASE_STATUS = {
   None: 0,
   Approved: 1,
   FundsReleased: 2,
-  Executed: 3,
-  PositionRecorded: 4,
-  Cancelled: 5,
+  FundingConfirmed: 3,
+  Executed: 4,
+  PositionRecorded: 5,
+  Cancelled: 6,
 };
 
 const FUND_ABI = [
-  "function releasePurchaseFunds(bytes32,uint256)",
+  "function confirmPurchaseFunding(bytes32,address,uint256,uint32,address,bytes32,bytes32)",
   "function recordCollectiblePosition(bytes32,(uint8,bytes32,address,bytes32,uint256,bytes32,bytes32,bytes32,bytes32,uint256,bytes32,bytes32))",
   "function stableAccounting() view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)",
 ];
 
 const REGISTRY_ABI = [
   "function collectiblePositionCount() view returns (uint256)",
-  "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
+  "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,address fundingToken,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
   "function recordPurchaseExecution(bytes32,bytes32,bytes32,bytes32)",
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
 
-async function ensureRelease(fund, registry, purchaseKey, amountUsdt6) {
+async function ensureFundingConfirmed(fund, registry, purchaseKey, amountUsdt6, label) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);
   const status = Number(auth.status);
   if (status === PURCHASE_STATUS.Approved) {
-    console.log(`Releasing ${amountUsdt6} for ${purchaseKey}...`);
-    await (await fund.releasePurchaseFunds(purchaseKey, amountUsdt6)).wait();
+    console.log(`Confirming ${amountUsdt6} funding for ${purchaseKey}...`);
+    await (
+      await fund.confirmPurchaseFunding(
+        purchaseKey,
+        auth.fundingToken,
+        amountUsdt6,
+        auth.chainEid,
+        auth.destinationSafe,
+        ethers.id(`${label}-funding-settlement`),
+        ethers.id(`${label}-funding-proof`)
+      )
+    ).wait();
     return;
   }
-  if (status !== PURCHASE_STATUS.FundsReleased && status !== PURCHASE_STATUS.Executed) {
+  if (status !== PURCHASE_STATUS.FundsReleased && status !== PURCHASE_STATUS.FundingConfirmed && status !== PURCHASE_STATUS.Executed) {
     throw new Error(`Unexpected purchase status for ${purchaseKey}: ${auth.status}`);
   }
 }
@@ -41,7 +52,7 @@ async function ensureRelease(fund, registry, purchaseKey, amountUsdt6) {
 async function ensureExecution(registry, purchaseKey, label) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);
   const status = Number(auth.status);
-  if (status === PURCHASE_STATUS.FundsReleased) {
+  if (status === PURCHASE_STATUS.FundsReleased || status === PURCHASE_STATUS.FundingConfirmed) {
     console.log(`Recording execution for ${label}...`);
     await (
       await registry.recordPurchaseExecution(
@@ -98,8 +109,8 @@ async function main() {
   const positionCountBefore = await registry.collectiblePositionCount();
   const resumeTag = process.env.FUJI_PURCHASE_RESUME_TAG || `${Math.floor(Date.now() / 1000)}`;
 
-  await ensureRelease(fund, registry, purchaseAlpha, 20_000_000n);
-  await ensureRelease(fund, registry, purchaseBeta, 25_000_000n);
+  await ensureFundingConfirmed(fund, registry, purchaseAlpha, 20_000_000n, `alpha-${resumeTag}`);
+  await ensureFundingConfirmed(fund, registry, purchaseBeta, 25_000_000n, `beta-${resumeTag}`);
 
   const Collection = await ethers.getContractFactory("MockGm10Collection");
   const collectionAlpha = await Collection.deploy("GM10 Resume Slabs Alpha", "GM10RA", `ipfs://gm10-resume-alpha/${resumeTag}/`);

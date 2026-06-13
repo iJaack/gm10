@@ -8,7 +8,7 @@ const FUND_ABI = [
   "function getRound(uint256) view returns ((uint256 roundId,uint256 targetAmount,uint256 raisedAmount,uint256 tokenPrice,uint256 minInvestment,uint256 maxInvestment,uint256 startTime,uint256 endTime,bool isActive,bool isFinalized))",
   "function stableAccounting() view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)",
   "function invest(uint256) payable",
-  "function releasePurchaseFunds(bytes32,uint256)",
+  "function confirmPurchaseFunding(bytes32,address,uint256,uint32,address,bytes32,bytes32)",
   "function recordCollectiblePosition(bytes32,(uint8,bytes32,address,bytes32,uint256,bytes32,bytes32,bytes32,bytes32,uint256,bytes32,bytes32))",
   "function hasRole(bytes32,address) view returns (bool)",
 ];
@@ -128,9 +128,25 @@ async function main() {
     ethers.id(`beta-mandate-${runTag}`)
   )).wait();
 
-  console.log("Releasing purchase funds...");
-  await (await fund.releasePurchaseFunds(purchaseAlpha, 20_000_000n)).wait();
-  await (await fund.releasePurchaseFunds(purchaseBeta, 25_000_000n)).wait();
+  console.log("Confirming purchase funding...");
+  await (await fund.confirmPurchaseFunding(
+    purchaseAlpha,
+    ethers.ZeroAddress,
+    20_000_000n,
+    chainEid,
+    signerAddress,
+    ethers.id(`alpha-funding-settlement-${runTag}`),
+    ethers.id(`alpha-funding-proof-${runTag}`)
+  )).wait();
+  await (await fund.confirmPurchaseFunding(
+    purchaseBeta,
+    ethers.ZeroAddress,
+    25_000_000n,
+    chainEid,
+    signerAddress,
+    ethers.id(`beta-funding-settlement-${runTag}`),
+    ethers.id(`beta-funding-proof-${runTag}`)
+  )).wait();
 
   console.log("Recording purchase execution...");
   await (await registry.recordPurchaseExecution(
