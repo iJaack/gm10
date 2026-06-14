@@ -13,8 +13,14 @@ const PURCHASE_STATUS = {
   Cancelled: 6,
 };
 
+const PURCHASE_FUNDING_MODES = {
+  Confirm: "confirmPurchaseFunding",
+  LegacyRelease: "legacyRelease",
+};
+
 const FUND_ABI = [
   "function confirmPurchaseFunding(bytes32,address,uint256,uint32,address,bytes32,bytes32)",
+  "function releasePurchaseFunds(bytes32,uint256)",
   "function recordCollectiblePosition(bytes32,(uint8,bytes32,address,bytes32,uint256,bytes32,bytes32,bytes32,bytes32,uint256,bytes32,bytes32))",
   "function stableAccounting() view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)",
 ];
@@ -26,10 +32,24 @@ const REGISTRY_ABI = [
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
 
-async function ensureFundingConfirmed(fund, registry, purchaseKey, amountUsdt6, label) {
+function resolvePurchaseFundingMode(deployment) {
+  const mode = deployment.purchaseFundingMode || PURCHASE_FUNDING_MODES.Confirm;
+  if (!Object.values(PURCHASE_FUNDING_MODES).includes(mode)) {
+    throw new Error(`Unsupported purchaseFundingMode: ${mode}`);
+  }
+  return mode;
+}
+
+async function ensureFundingConfirmed(fund, registry, purchaseKey, amountUsdt6, label, purchaseFundingMode) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);
   const status = Number(auth.status);
   if (status === PURCHASE_STATUS.Approved) {
+    if (purchaseFundingMode === PURCHASE_FUNDING_MODES.LegacyRelease) {
+      console.log(`Releasing ${amountUsdt6} funding for ${purchaseKey} through legacy V3 path...`);
+      await (await fund.releasePurchaseFunds(purchaseKey, amountUsdt6)).wait();
+      return;
+    }
+
     console.log(`Confirming ${amountUsdt6} funding for ${purchaseKey}...`);
     await (
       await fund.confirmPurchaseFunding(
@@ -44,7 +64,12 @@ async function ensureFundingConfirmed(fund, registry, purchaseKey, amountUsdt6, 
     ).wait();
     return;
   }
-  if (status !== PURCHASE_STATUS.FundsReleased && status !== PURCHASE_STATUS.FundingConfirmed && status !== PURCHASE_STATUS.Executed) {
+  if (
+    status !== PURCHASE_STATUS.FundsReleased &&
+    status !== PURCHASE_STATUS.FundingConfirmed &&
+    status !== PURCHASE_STATUS.Executed &&
+    status !== PURCHASE_STATUS.PositionRecorded
+  ) {
     throw new Error(`Unexpected purchase status for ${purchaseKey}: ${auth.status}`);
   }
 }
@@ -91,6 +116,7 @@ async function main() {
   if (!deployment?.proxy || !deployment?.portfolioRegistry) {
     throw new Error(`Fuji deployment metadata is incomplete for key ${deploymentKey}`);
   }
+  const purchaseFundingMode = resolvePurchaseFundingMode(deployment);
 
   const purchaseAlpha = process.env.PURCHASE_ALPHA_KEY;
   const purchaseBeta = process.env.PURCHASE_BETA_KEY;
@@ -108,9 +134,10 @@ async function main() {
   const registry = new ethers.Contract(deployment.portfolioRegistry, REGISTRY_ABI, signer);
   const positionCountBefore = await registry.collectiblePositionCount();
   const resumeTag = process.env.FUJI_PURCHASE_RESUME_TAG || `${Math.floor(Date.now() / 1000)}`;
+  console.log(`Using purchase funding mode: ${purchaseFundingMode}`);
 
-  await ensureFundingConfirmed(fund, registry, purchaseAlpha, 20_000_000n, `alpha-${resumeTag}`);
-  await ensureFundingConfirmed(fund, registry, purchaseBeta, 25_000_000n, `beta-${resumeTag}`);
+  await ensureFundingConfirmed(fund, registry, purchaseAlpha, 20_000_000n, `alpha-${resumeTag}`, purchaseFundingMode);
+  await ensureFundingConfirmed(fund, registry, purchaseBeta, 25_000_000n, `beta-${resumeTag}`, purchaseFundingMode);
 
   const Collection = await ethers.getContractFactory("MockGm10Collection");
   const collectionAlpha = await Collection.deploy("GM10 Resume Slabs Alpha", "GM10RA", `ipfs://gm10-resume-alpha/${resumeTag}/`);
@@ -176,7 +203,16 @@ async function main() {
   console.log("LIQUID_TREASURY_USDT6=" + stableAccounting[2].toString());
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.env.RESUME_PURCHASE_FLOW_FUJI_SKIP_MAIN !== "1") {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  PURCHASE_FUNDING_MODES,
+  PURCHASE_STATUS,
+  ensureFundingConfirmed,
+  resolvePurchaseFundingMode,
+};
