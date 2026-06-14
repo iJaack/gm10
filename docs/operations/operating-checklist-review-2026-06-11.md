@@ -25,6 +25,7 @@ This review hardens the first-pass GM10 operations checklist from the current sa
   - `confirmStableSaleProceeds(bytes32,address,uint256,bool,bytes32,bytes32)`
   - `finalizeSaleWithMarketSnapshot(bytes32,address,MarketSnapshot)`
   - `releaseLpSupportToken(address,address,uint256,uint256,bytes32)` when LP support execution is expected.
+  - `executeLpSupport((address,uint256,uint256,uint8,uint256,bytes32))` when LP support execution is expected.
 - Confirm marketplace approval, chain Safe config, settlement token approval, pause states, and current outstanding sale/LP/buyback accruals.
 - Snapshot starting balances for the fund, Avalanche Safe, source-chain Safe or hot wallet, and any venue custody wallet.
 
