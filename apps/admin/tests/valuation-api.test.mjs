@@ -107,11 +107,17 @@ test('valuation-pack POST generate creates a pack from submitted cards and obser
       assert.equal(response.statusCode, 200);
       assert.equal(response.headers['cache-control'], 'no-store');
       assert.equal(response.payload.pack.cards[0].consensus.status, 'passed');
+      assert.equal(response.payload.sourceReadiness.sourceQuality.find((source) => source.sourceId === 'primary').live, 1);
+      assert.equal(
+        response.payload.sourceReadiness.providers.some((provider) => provider.providerId === 'pokemon-price-tracker'),
+        true,
+      );
 
       const getResponse = responseRecorder();
       await handler({ method: 'GET' }, getResponse);
       assert.equal(getResponse.statusCode, 200);
       assert.equal(getResponse.payload.pack.packId, response.payload.pack.packId);
+      assert.equal(getResponse.payload.sourceReadiness.sourceQuality.length, 3);
     });
   } finally {
     if (previousDir === undefined) {

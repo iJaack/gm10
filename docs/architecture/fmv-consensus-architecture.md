@@ -1,6 +1,6 @@
 # FMV Consensus Architecture
 
-Last updated: 2026-04-21
+Last updated: 2026-06-15
 
 This document is the live architecture record for the GM10 fair market value consensus system. Update it every time work changes FMV consensus behavior, API shape, storage, source ingestion, admin review, scheduled generation, onchain submission, or operational assumptions.
 
@@ -25,6 +25,10 @@ The consensus engine exists and is covered by admin tests. It can build valuatio
 The system has a constrained Courtyard evidence adapter, a PokemonPriceTracker primary-source adapter, a current-registry-mark benchmark, and a card identity resolver. Live registry discovery can replace the placeholder `primary` observation when `POKEMON_PRICE_TRACKER_API_KEY` is configured and the card identity resolver can identify the card by request-time `cardIdentityOverrides`, curated bootstrap portfolio metadata, or Courtyard token metadata. It can replace the placeholder `evidence` observation when the resolved identity includes a Courtyard asset id, or when an explicit runtime Courtyard asset override is injected. Courtyard evidence prefers active sell listings and falls back to Courtyard `fmv_estimate_usd` when no active listing exists. The `benchmark` slot is filled by the current onchain registry mark as a continuity benchmark until a separate benchmark vendor is connected. Packs prefer two valid agreeing sources, but can produce a proposed mark from one valid external market source such as Courtyard when the other provider is unavailable. When the current-registry continuity benchmark agrees with exactly one external market source, the proposed mark uses the external market value, not the old registry mark. A lone current-registry benchmark still stays review-only.
 
 PokemonPriceTracker responses are cached in-memory per warm admin server process. Successful card observations are reused for a bounded TTL, and provider `429` responses produce a zero-confidence primary observation that is also cached for a shorter cooldown period to avoid repeated quota hits during retries.
+
+Valuation pack API responses now include a non-secret source-readiness summary. It reports provider configuration status, including missing PokemonPriceTracker credentials and the still-missing independent benchmark vendor, separately from per-pack source quality counts such as live, missing, or rate-limited observations. The admin UI renders this after pack load/generation so operators can distinguish provider/source-quality gaps from implementation or transaction-path failures.
+
+Onchain mark submission is guarded in the admin UI by a live `VALUATION_MANAGER_ROLE` read against the selected Safe/admin address. Pack read/generate/review authorization can still use broader admin roles, but the submit button stays disabled unless the address has the specific V8 valuation role required by `submitValuationObservation`.
 
 Existing design background lives in `docs/superpowers/specs/2026-04-17-treasury-fmv-consensus-design.md`.
 
@@ -261,6 +265,10 @@ Guardrails:
 
 File: `apps/admin/api/valuation-pack.js`
 
+Related file:
+
+- `apps/admin/server/lib/valuation-readiness.js`
+
 Responsibilities:
 
 - `GET /api/valuation-pack`: return latest pack after read authorization.
@@ -272,6 +280,8 @@ Responsibilities:
 - Generate server-owned pack ids.
 - Discover active cards if no cards are submitted.
 - Save the pack through the pack store.
+- Return `sourceReadiness` on successful read, generate, and update responses.
+- Report source-readiness without exposing provider secrets.
 
 Important constraints:
 
@@ -281,6 +291,8 @@ Important constraints:
 - Malformed `cardIdentityOverrides` are rejected before discovery.
 - Source ids must be trimmed, distinct, and exactly `benchmark`, `evidence`, and `primary`.
 - Empty or omitted `cards` triggers registry discovery. In that path, optional `cardIdentityOverrides` are passed to discovery as runtime metadata hints.
+- `sourceReadiness.providers` is configuration/readiness metadata, not proof that a credentialed provider call succeeded.
+- `sourceReadiness.sourceQuality` is derived from the returned pack observations and should be used to separate missing/rate-limited source evidence from code or contract failures.
 
 ### Valuation Pack Store
 
@@ -355,8 +367,9 @@ Responsibilities:
 - Load the latest valuation pack.
 - Generate a valuation pack manually through server-side provider discovery when source observation overrides are empty.
 - Render source observations, warnings, proposed mark, approval status, source ref, and proof hash.
+- Render source-readiness provider status and per-pack source-quality counts after a pack is loaded or generated.
 - Allow approval only for cards with passing consensus and persist that approval to pack review state.
-- Submit approved passing marks onchain.
+- Submit approved passing marks onchain only when the selected Safe/admin address holds `VALUATION_MANAGER_ROLE`.
 - Persist submitted transaction hashes to pack review state after wallet submission returns a hash.
 
 Onchain submission:
@@ -552,7 +565,7 @@ The following gaps must be addressed before the FMV system is production-complet
 - Reconcile submitted transaction receipt success or failure into durable review state.
 - Add UI regression tests for passing, failing, stale, and partial submission states.
 - Add public freshness labels for latest approved mark timing.
-- Define production provider credentials and rate-limit behavior.
+- Configure and verify production provider credentials without making them repo state.
 - Decide whether failed consensus can ever be overridden, and if so, with what durable audit trail.
 
 ## Work Log
@@ -604,3 +617,12 @@ The following gaps must be addressed before the FMV system is production-complet
 - Added regression coverage for review sidecar merging, API update persistence, malformed update rejection, and update-message authorization.
 - Updated consensus fallback behavior so a valid external market observation, such as Courtyard evidence, can produce a proposed mark when PokemonPriceTracker is unavailable, while a lone current-registry benchmark remains review-only.
 - Fixed continuity-benchmark pair selection so a card like `$645` current registry mark plus `$711.10` Courtyard evidence proposes `$711.10` instead of the older registry mark.
+
+### 2026-06-15
+
+- Added non-secret valuation source-readiness reporting through `sourceReadiness` on valuation pack API responses.
+- Added provider readiness labels for PokemonPriceTracker credentials, the current-registry continuity benchmark, the missing independent benchmark vendor, Courtyard identity-dependent evidence, and Phygitals identity-dependent evidence.
+- Added pack source-quality counts for live, missing, and rate-limited observations, with short examples for review.
+- Updated the admin valuation panel to render provider readiness and source-quality counts after pack load/generation.
+- Hardened onchain mark submission by requiring a live `VALUATION_MANAGER_ROLE` read for the selected Safe/admin address before enabling `submitValuationObservation`.
+- Added focused readiness and API response regression tests.
