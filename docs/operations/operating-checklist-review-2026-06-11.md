@@ -23,7 +23,7 @@ This review hardens the first-pass GM10 operations checklist from the current sa
   - `MANAGER_ROLE` for sale execution, proceeds confirmation, market-snapshot finalization, LP release, and LP execution accounting.
 - Confirm the live fund implementation exposes the selectors needed for the planned path before any funds move:
   - `confirmStableSaleProceeds(bytes32,address,uint256,bool,bytes32,bytes32)`
-  - `finalizeSaleWithMarketSnapshot(bytes32,address,MarketSnapshot)`
+  - `finalizeSaleWithMarketSnapshot(bytes32,address,tuple(int256,uint256,uint256,uint256,uint256,uint256,bytes32,uint64))`
   - `releaseLpSupportToken(address,address,uint256,uint256,bytes32)` when LP support execution is expected.
   - `executeLpSupport((address,uint256,uint256,uint8,uint256,bytes32))` when LP support execution is expected.
 - Confirm marketplace approval, chain Safe config, settlement token approval, pause states, and current outstanding sale/LP/buyback accruals.
@@ -60,6 +60,7 @@ This review hardens the first-pass GM10 operations checklist from the current sa
 - Release only the accrued amount approved for this execution.
 - Quote each swap leg with explicit minimum-output guard, deadline, and route.
 - Execute venue liquidity only after swaps succeed.
+- If LP support is paused, prepare the manager unpause before the accounting call and restore the prior pause state after accounting completes.
 - Call `executeLpSupport(...)` after the external venue action succeeds, because release alone does not decrement accounting.
 - Restore pause state and clear all temporary allowances.
 - Verify LP accrual is decremented, venue custody is correct, residual balances are explained, and allowances are zero.
