@@ -4,6 +4,26 @@ import App from './App';
 import { BUY_PAGE_DEFAULTS, FINALIZED_RAISE_ARCHIVE, ROUND_PROCEEDS_ALLOCATION } from './data/protocol';
 import { CARD_PURCHASE_CONVERSION_BASIS_USDT6 } from './data/strategyCapital';
 
+const PENDING_COMMIT_STORAGE_KEY = 'gm10:continuous-commits:v1';
+
+function ensureLocalStorage() {
+    if (typeof window === 'undefined' || window.localStorage) return;
+    const store = new Map<string, string>();
+    Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        value: {
+            clear: () => store.clear(),
+            getItem: (key: string) => store.get(key) ?? null,
+            removeItem: (key: string) => store.delete(key),
+            setItem: (key: string, value: string) => {
+                store.set(key, value);
+            },
+        },
+    });
+}
+
+ensureLocalStorage();
+
 const wagmiMocks = vi.hoisted(() => ({
     account: {
         address: undefined as `0x${string}` | undefined,
@@ -475,6 +495,8 @@ afterEach(() => {
     wagmiMocks.sendTransactionAsync.mockResolvedValue('0x4444444444444444444444444444444444444444444444444444444444444444');
     wagmiMocks.switchChainAsync.mockReset();
     wagmiMocks.switchChainAsync.mockResolvedValue(undefined);
+    ensureLocalStorage();
+    window.localStorage?.clear();
     window.history.pushState({}, '', '/');
 });
 
@@ -901,6 +923,11 @@ describe('page compression regressions', () => {
         const readyStatus = await screen.findByRole('status');
         expect(readyStatus).toHaveTextContent(/source transaction confirmed/i);
         expect(readyStatus).toHaveClass('v2-up');
+        expect(screen.getByText(/recover registered commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/stored in this browser/i)).toBeInTheDocument();
+        expect(screen.getByText(/waiting settlement/i)).toBeInTheDocument();
+        expect(screen.getByText(/Route tx 0x4444\.\.\.4444/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /settle mint/i })).toBeInTheDocument();
     });
 
     it('settles same-chain routes after the escrow receives settlement tokens', async () => {
@@ -922,6 +949,66 @@ describe('page compression regressions', () => {
         const readyStatus = await screen.findByRole('status');
         expect(readyStatus).toHaveTextContent(/mint complete/i);
         expect(readyStatus).toHaveClass('v2-up');
+    });
+
+    it('recovers a saved cross-chain commit and settles after escrow funding arrives', async () => {
+        const buyer = '0x1234567890123456789012345678901234567890';
+        wagmiMocks.account = {
+            address: buyer,
+            isConnected: true,
+        };
+        wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
+        window.localStorage.setItem(PENDING_COMMIT_STORAGE_KEY, JSON.stringify([
+            {
+                commitId: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                providerRouteId: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                buyer,
+                sourceChainId: 8453,
+                sourceChainLabel: 'Base',
+                sourceTokenSymbol: 'USDC',
+                settlementToken: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+                settlementTokenLabel: 'USDC',
+                usesNativeSettlement: false,
+                escrowAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+                minSettlementAmountRaw: '99000000',
+                routeTool: 'LI.FI',
+                registerTxHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+                routeTxHash: '0x4444444444444444444444444444444444444444444444444444444444444444',
+                createdAt: Date.now(),
+                expiresAt: Math.floor(Date.now() / 1000) + 600,
+                status: 'route_submitted',
+            },
+        ]));
+        wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
+            if (functionName === 'commits') return {
+                escrow: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+                settled: false,
+            };
+            if (functionName === 'balanceOf') return 100_000_000n;
+            return undefined;
+        });
+
+        renderAt('/fundraising');
+
+        expect(await screen.findByText(/recover registered commits/i)).toBeInTheDocument();
+        expect(screen.getByText(/USDC on Base via LI\.FI/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /settle mint/i }));
+
+        await waitFor(() => expect(wagmiMocks.writeContractAsync).toHaveBeenCalledWith(expect.objectContaining({
+            functionName: 'commitSettledRoute',
+            args: [
+                '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                buyer,
+                '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+                100_000_000n,
+            ],
+        })));
+        const readyStatus = await screen.findByRole('status');
+        expect(readyStatus).toHaveTextContent(/mint complete/i);
+        expect(readyStatus).toHaveClass('v2-up');
+        expect(screen.getByText(/mint settled/i)).toBeInTheDocument();
     });
 
     it('shows top wallet source tokens from the live portfolio response, not static fixtures', async () => {

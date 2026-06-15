@@ -512,6 +512,13 @@ export const GM10_CONTINUOUS_MINT_RECEIVER_ABI = [
         type: 'function',
     },
     {
+        inputs: [],
+        name: 'accountedFundAvaxSettlementWei',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
         inputs: [
             { name: 'commitId', type: 'bytes32' },
             { name: 'providerRouteId', type: 'bytes32' },
