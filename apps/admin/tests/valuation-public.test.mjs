@@ -174,6 +174,63 @@ test('valuation-public prefers live marks and keeps submitted marks as per-posit
   ]);
 });
 
+test('valuation-public still returns live marks when submitted pack storage is unavailable', async () => {
+  const freshObservedAt = new Date().toISOString();
+  const handler = createValuationPublicHandler({
+    createValuationPackStoreImpl: () => ({
+      getLatestPack: async () => {
+        throw new Error('Vercel Blob: Failed to fetch blob: 403 Forbidden');
+      },
+    }),
+    fetchActiveTreasuryCardsImpl: async () => [
+      {
+        positionId: 7,
+        cardKey: 'psa:11029260',
+        title: 'Fresh card',
+        currentValueUsdc6: '1100000000',
+        observations: [
+          {
+            sourceId: 'primary',
+            sourceName: 'PokemonPriceTracker',
+            cardKey: 'psa:11029260',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
+            valueUsdc6: '1200000000',
+            currency: 'USD',
+            confidence: 0.9,
+            rawPayloadRef: 'pokemon://latest',
+            sourceUrl: 'https://example.com/primary',
+            matchReason: 'latest market price',
+          },
+          {
+            sourceId: 'benchmark',
+            sourceName: 'Current registry mark',
+            cardKey: 'psa:11029260',
+            observedAt: freshObservedAt,
+            fetchedAt: freshObservedAt,
+            valueUsdc6: '1100000000',
+            currency: 'USD',
+            confidence: 0.85,
+            rawPayloadRef: 'registry://current-mark',
+            sourceUrl: 'https://example.com/registry',
+            matchReason: 'continuity benchmark',
+          },
+        ],
+      },
+    ],
+  });
+  const response = responseRecorder();
+
+  await handler({ method: 'GET' }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.source, 'live');
+  assert.equal(response.payload.submittedPackId, null);
+  assert.deepEqual(response.payload.marks.map((mark) => [mark.positionId, mark.valueUsdc6]), [
+    [7, '1200000000'],
+  ]);
+});
+
 test('valuation-public handles preflight and rejects unsupported methods', async () => {
   const handler = handlerForPack(null);
   const optionsResponse = responseRecorder();

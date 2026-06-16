@@ -82,7 +82,12 @@ export function createValuationPublicHandler({
       const store = createValuationPackStoreImpl({
         localDir: process.env.GM10_VALUATION_LOCAL_DIR || process.cwd(),
       });
-      const pack = await store.getLatestPack();
+      let pack = null;
+      try {
+        pack = await store.getLatestPack();
+      } catch {
+        pack = null;
+      }
       const submittedMarks = (pack?.cards ?? [])
         .map((card) => publicCardMark(card, pack, { requireSubmitted: true }))
         .filter(Boolean);

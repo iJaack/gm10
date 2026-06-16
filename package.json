@@ -19,6 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "admin:test": "npm --workspace gm10-admin test",
     "admin:typecheck": "npm --workspace gm10-admin run typecheck",
+    "admin:prune-valuation-blobs": "node scripts/prune-valuation-blobs.mjs",
     "check": "npm run typecheck && npm run test:web && npm run admin:test && npm run admin:typecheck && npm run build",
     "test": "npm run check && npm --prefix contracts test"
   },
