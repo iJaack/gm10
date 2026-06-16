@@ -1,6 +1,10 @@
 const hre = require("hardhat");
 const { ethers } = hre;
 const deployments = require("../deployments.json");
+const {
+  ensureFundingConfirmed,
+  resolvePurchaseFundingMode,
+} = require("./lib/purchaseFundingMode");
 
 const DEPLOYER_EOA = "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813";
 const FUND_ABI = [
@@ -9,6 +13,7 @@ const FUND_ABI = [
   "function stableAccounting() view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)",
   "function invest(uint256) payable",
   "function confirmPurchaseFunding(bytes32,address,uint256,uint32,address,bytes32,bytes32)",
+  "function releasePurchaseFunds(bytes32,uint256)",
   "function recordCollectiblePosition(bytes32,(uint8,bytes32,address,bytes32,uint256,bytes32,bytes32,bytes32,bytes32,uint256,bytes32,bytes32))",
   "function hasRole(bytes32,address) view returns (bool)",
 ];
@@ -18,6 +23,7 @@ const REGISTRY_ABI = [
   "function setChainSafe(uint32,address,bytes32,bytes32,bool)",
   "function setMarketplaceApproval(bytes32,bool)",
   "function authorizePurchase(bytes32,uint32,bytes32,bytes32,uint256,bytes32)",
+  "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,address fundingToken,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
   "function recordPurchaseExecution(bytes32,bytes32,bytes32,bytes32)",
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
@@ -66,6 +72,7 @@ async function main() {
   if (!deployment?.proxy || !deployment?.portfolioRegistry) {
     throw new Error(`Fuji deployment metadata is incomplete for key ${deploymentKey}`);
   }
+  const purchaseFundingMode = resolvePurchaseFundingMode(deployment);
 
   const [signer] = await ethers.getSigners();
   const signerAddress = await signer.getAddress();
@@ -74,6 +81,7 @@ async function main() {
   }
   console.log(`Using signer: ${signerAddress}`);
   console.log(`Using deployment key: ${deploymentKey}`);
+  console.log(`Using purchase funding mode: ${purchaseFundingMode}`);
 
   const fund = new ethers.Contract(deployment.proxy, FUND_ABI, signer);
   const registry = new ethers.Contract(deployment.portfolioRegistry, REGISTRY_ABI, signer);
@@ -128,25 +136,8 @@ async function main() {
     ethers.id(`beta-mandate-${runTag}`)
   )).wait();
 
-  console.log("Confirming purchase funding...");
-  await (await fund.confirmPurchaseFunding(
-    purchaseAlpha,
-    ethers.ZeroAddress,
-    20_000_000n,
-    chainEid,
-    signerAddress,
-    ethers.id(`alpha-funding-settlement-${runTag}`),
-    ethers.id(`alpha-funding-proof-${runTag}`)
-  )).wait();
-  await (await fund.confirmPurchaseFunding(
-    purchaseBeta,
-    ethers.ZeroAddress,
-    25_000_000n,
-    chainEid,
-    signerAddress,
-    ethers.id(`beta-funding-settlement-${runTag}`),
-    ethers.id(`beta-funding-proof-${runTag}`)
-  )).wait();
+  await ensureFundingConfirmed(fund, registry, purchaseAlpha, 20_000_000n, `alpha-${runTag}`, purchaseFundingMode);
+  await ensureFundingConfirmed(fund, registry, purchaseBeta, 25_000_000n, `beta-${runTag}`, purchaseFundingMode);
 
   console.log("Recording purchase execution...");
   await (await registry.recordPurchaseExecution(

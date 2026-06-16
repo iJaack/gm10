@@ -1,22 +1,14 @@
 const hre = require("hardhat");
 const { ethers } = hre;
 const deployments = require("../deployments.json");
+const {
+  PURCHASE_FUNDING_MODES,
+  PURCHASE_STATUS,
+  ensureFundingConfirmed,
+  resolvePurchaseFundingMode,
+} = require("./lib/purchaseFundingMode");
 
 const DEPLOYER_EOA = "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813";
-const PURCHASE_STATUS = {
-  None: 0,
-  Approved: 1,
-  FundsReleased: 2,
-  FundingConfirmed: 3,
-  Executed: 4,
-  PositionRecorded: 5,
-  Cancelled: 6,
-};
-
-const PURCHASE_FUNDING_MODES = {
-  Confirm: "confirmPurchaseFunding",
-  LegacyRelease: "legacyRelease",
-};
 
 const FUND_ABI = [
   "function confirmPurchaseFunding(bytes32,address,uint256,uint32,address,bytes32,bytes32)",
@@ -31,48 +23,6 @@ const REGISTRY_ABI = [
   "function recordPurchaseExecution(bytes32,bytes32,bytes32,bytes32)",
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
-
-function resolvePurchaseFundingMode(deployment) {
-  const mode = deployment.purchaseFundingMode || PURCHASE_FUNDING_MODES.Confirm;
-  if (!Object.values(PURCHASE_FUNDING_MODES).includes(mode)) {
-    throw new Error(`Unsupported purchaseFundingMode: ${mode}`);
-  }
-  return mode;
-}
-
-async function ensureFundingConfirmed(fund, registry, purchaseKey, amountUsdt6, label, purchaseFundingMode) {
-  const auth = await registry.getPurchaseAuthorization(purchaseKey);
-  const status = Number(auth.status);
-  if (status === PURCHASE_STATUS.Approved) {
-    if (purchaseFundingMode === PURCHASE_FUNDING_MODES.LegacyRelease) {
-      console.log(`Releasing ${amountUsdt6} funding for ${purchaseKey} through legacy V3 path...`);
-      await (await fund.releasePurchaseFunds(purchaseKey, amountUsdt6)).wait();
-      return;
-    }
-
-    console.log(`Confirming ${amountUsdt6} funding for ${purchaseKey}...`);
-    await (
-      await fund.confirmPurchaseFunding(
-        purchaseKey,
-        auth.fundingToken,
-        amountUsdt6,
-        auth.chainEid,
-        auth.destinationSafe,
-        ethers.id(`${label}-funding-settlement`),
-        ethers.id(`${label}-funding-proof`)
-      )
-    ).wait();
-    return;
-  }
-  if (
-    status !== PURCHASE_STATUS.FundsReleased &&
-    status !== PURCHASE_STATUS.FundingConfirmed &&
-    status !== PURCHASE_STATUS.Executed &&
-    status !== PURCHASE_STATUS.PositionRecorded
-  ) {
-    throw new Error(`Unexpected purchase status for ${purchaseKey}: ${auth.status}`);
-  }
-}
 
 async function ensureExecution(registry, purchaseKey, label) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);

@@ -1,15 +1,13 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-process.env.RESUME_PURCHASE_FLOW_FUJI_SKIP_MAIN = "1";
 const {
   PURCHASE_FUNDING_MODES,
   ensureFundingConfirmed,
   resolvePurchaseFundingMode,
-} = require("../scripts/resumePurchaseFlowFuji");
-delete process.env.RESUME_PURCHASE_FLOW_FUJI_SKIP_MAIN;
+} = require("../scripts/lib/purchaseFundingMode");
 
-describe("resumePurchaseFlowFuji funding compatibility", function () {
+describe("Fuji script purchase funding compatibility", function () {
   const purchaseKey = ethers.id("resume-funding-compatibility");
   const amountUsdt6 = 20_000_000n;
   const fundingToken = "0x0000000000000000000000000000000000000001";
