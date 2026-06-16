@@ -103,6 +103,7 @@ type PendingContinuousCommit = {
     usesNativeSettlement: boolean;
     escrowAddress: `0x${string}`;
     minSettlementAmountRaw: string;
+    quotedSettlementAmountRaw?: string;
     routeTool?: string;
     registerTxHash?: `0x${string}`;
     routeTxHash?: `0x${string}`;
@@ -425,6 +426,7 @@ function readPendingContinuousCommits() {
             && isAddressLike(commit?.settlementToken)
             && isAddressLike(commit?.escrowAddress)
             && typeof commit?.minSettlementAmountRaw === 'string'
+            && (commit?.quotedSettlementAmountRaw === undefined || typeof commit?.quotedSettlementAmountRaw === 'string')
             && typeof commit?.expiresAt === 'number'
             && typeof commit?.createdAt === 'number'
             && ['registered', 'route_submitted', 'settled'].includes(commit?.status),
@@ -437,7 +439,11 @@ function readPendingContinuousCommits() {
 function writePendingContinuousCommits(commits: PendingContinuousCommit[]) {
     const storage = pendingCommitStorage();
     if (!storage) return;
-    storage.setItem(PENDING_COMMIT_STORAGE_KEY, JSON.stringify(commits.slice(0, 10)));
+    try {
+        storage.setItem(PENDING_COMMIT_STORAGE_KEY, JSON.stringify(commits.slice(0, 10)));
+    } catch {
+        // Browsers can expose localStorage but reject writes in private, full, or restricted contexts.
+    }
 }
 
 function commitSettledFromReadResult(commit: unknown) {
@@ -462,6 +468,12 @@ function commitAccountedFundAvaxBeforeFromReadResult(commit: unknown) {
         return (commit as { accountedFundAvaxBefore: bigint }).accountedFundAvaxBefore;
     }
     return 0n;
+}
+
+function pendingNativeSettlementCap(pending: PendingContinuousCommit) {
+    const quotedAmount = pending.quotedSettlementAmountRaw ? BigInt(pending.quotedSettlementAmountRaw) : 0n;
+    if (quotedAmount > 0n) return quotedAmount;
+    return BigInt(pending.minSettlementAmountRaw);
 }
 
 function FundraisingContent() {
@@ -661,6 +673,7 @@ function FundraisingContent() {
             const minSettlementAmount = BigInt(pending.minSettlementAmountRaw);
             let settledBalance: bigint;
             if (pending.usesNativeSettlement) {
+                const settlementCap = pendingNativeSettlementCap(pending);
                 const fundBalance = await avalanchePublicClient.getBalance({ address: pending.escrowAddress });
                 const accountedFundAvaxSettlementWei = await avalanchePublicClient.readContract({
                     address: receiverAddress,
@@ -673,7 +686,8 @@ function FundraisingContent() {
                 const accountedDelta = typeof accountedFundAvaxSettlementWei === 'bigint' && accountedFundAvaxSettlementWei > accountedBefore
                     ? accountedFundAvaxSettlementWei - accountedBefore
                     : 0n;
-                settledBalance = fundBalanceDelta > accountedDelta ? fundBalanceDelta - accountedDelta : 0n;
+                const availableSettlement = fundBalanceDelta > accountedDelta ? fundBalanceDelta - accountedDelta : 0n;
+                settledBalance = availableSettlement > settlementCap ? settlementCap : availableSettlement;
             } else {
                 const escrowBalance = await avalanchePublicClient.readContract({
                     address: pending.settlementToken,
@@ -819,7 +833,7 @@ function FundraisingContent() {
                 return { route: quotedRoute, routeTx: quotedRouteTx as LifiTransactionRequest & { to: `0x${string}` } };
             };
 
-            const registerCommitAndReadEscrow = async (minSettlementAmount: bigint) => {
+            const registerCommitAndReadEscrow = async (minSettlementAmount: bigint, quotedSettlementAmount?: bigint) => {
                 setCommitFeedback({ tone: 'pending', message: `Registering the ${settlementLabel} settlement checkpoint on Avalanche...` });
                 await switchChainAsync({ chainId: GM10_CHAIN_ID });
                 const registerHash = await writeContractAsync({
@@ -857,6 +871,7 @@ function FundraisingContent() {
                     usesNativeSettlement,
                     escrowAddress: registeredEscrow,
                     minSettlementAmountRaw: minSettlementAmount.toString(),
+                    quotedSettlementAmountRaw: quotedSettlementAmount && quotedSettlementAmount > 0n ? quotedSettlementAmount.toString() : undefined,
                     registerTxHash: registerHash,
                     createdAt: Date.now(),
                     expiresAt: Number(expiresAt),
@@ -874,8 +889,9 @@ function FundraisingContent() {
                 setCommitFeedback({ tone: 'pending', message: 'Quoting native AVAX settlement into the fund proxy...' });
                 ({ route, routeTx } = await quoteRoute({ settlementAddress: GM10_PRIMARY_DEPLOYMENT.proxy.address }));
                 minSettlementAmount = BigInt(route.toAmountMinRaw || route.toAmountRaw || '0');
+                const quotedSettlementAmount = BigInt(route.toAmountRaw || route.toAmountMinRaw || '0');
                 if (minSettlementAmount <= 0n) throw new Error('Route did not return a native AVAX settlement amount.');
-                ({ escrowAddress } = await registerCommitAndReadEscrow(minSettlementAmount));
+                ({ escrowAddress } = await registerCommitAndReadEscrow(minSettlementAmount, quotedSettlementAmount));
                 updatePendingCommit(commitId, { routeTool: route.tool });
             } else {
                 minSettlementAmount = protectedUsdcMinimum(settlementAmountUsdt6);

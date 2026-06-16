@@ -1011,6 +1011,82 @@ describe('page compression regressions', () => {
         expect(screen.getByText(/mint settled/i)).toBeInTheDocument();
     });
 
+    it('caps native recovery settlement to the saved route quote', async () => {
+        const buyer = '0x1234567890123456789012345678901234567890';
+        wagmiMocks.account = {
+            address: buyer,
+            isConnected: true,
+        };
+        wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
+        window.localStorage.setItem(PENDING_COMMIT_STORAGE_KEY, JSON.stringify([
+            {
+                commitId: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                providerRouteId: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                buyer,
+                sourceChainId: 8453,
+                sourceChainLabel: 'Base',
+                sourceTokenSymbol: 'USDC',
+                settlementToken: '0x0000000000000000000000000000000000000000',
+                settlementTokenLabel: 'native AVAX',
+                usesNativeSettlement: true,
+                escrowAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+                minSettlementAmountRaw: '90',
+                quotedSettlementAmountRaw: '100',
+                routeTool: 'LI.FI',
+                registerTxHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+                routeTxHash: '0x4444444444444444444444444444444444444444444444444444444444444444',
+                createdAt: Date.now(),
+                expiresAt: Math.floor(Date.now() / 1000) + 600,
+                status: 'route_submitted',
+            },
+        ]));
+        wagmiMocks.getBalance.mockResolvedValue(200n);
+        wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
+            if (functionName === 'commits') return {
+                escrow: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+                settled: false,
+                fundAvaxBalanceBefore: 0n,
+                accountedFundAvaxBefore: 0n,
+            };
+            if (functionName === 'accountedFundAvaxSettlementWei') return 0n;
+            return undefined;
+        });
+
+        renderAt('/fundraising');
+
+        expect(await screen.findByText(/recover registered commits/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /settle mint/i }));
+
+        await waitFor(() => expect(wagmiMocks.writeContractAsync).toHaveBeenCalledWith(expect.objectContaining({
+            functionName: 'commitSettledRoute',
+            args: [
+                '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                buyer,
+                '0x0000000000000000000000000000000000000000',
+                100n,
+            ],
+        })));
+    });
+
+    it('keeps fundraising usable when saved commit storage cannot be written', async () => {
+        const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('Storage unavailable');
+        });
+        wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
+
+        try {
+            renderAt('/fundraising');
+
+            expect((await screen.findAllByText(/continuous round/i)).length).toBeGreaterThan(0);
+            expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
+        } finally {
+            setItemSpy.mockRestore();
+        }
+    });
+
     it('shows top wallet source tokens from the live portfolio response, not static fixtures', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         wagmiMocks.account = {
