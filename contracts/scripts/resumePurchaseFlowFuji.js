@@ -5,6 +5,7 @@ const {
   PURCHASE_FUNDING_MODES,
   PURCHASE_STATUS,
   ensureFundingConfirmed,
+  normalizePurchaseStatus,
   resolvePurchaseFundingMode,
 } = require("./lib/purchaseFundingMode");
 
@@ -24,9 +25,9 @@ const REGISTRY_ABI = [
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
 
-async function ensureExecution(registry, purchaseKey, label) {
+async function ensureExecution(registry, purchaseKey, label, purchaseFundingMode) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);
-  const status = Number(auth.status);
+  const status = normalizePurchaseStatus(auth.status, purchaseFundingMode);
   if (status === PURCHASE_STATUS.FundsReleased || status === PURCHASE_STATUS.FundingConfirmed) {
     console.log(`Recording execution for ${label}...`);
     await (
@@ -44,9 +45,9 @@ async function ensureExecution(registry, purchaseKey, label) {
   }
 }
 
-async function ensurePosition(fund, registry, purchaseKey, input) {
+async function ensurePosition(fund, registry, purchaseKey, input, purchaseFundingMode) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);
-  const status = Number(auth.status);
+  const status = normalizePurchaseStatus(auth.status, purchaseFundingMode);
   if (status === PURCHASE_STATUS.Executed) {
     await (await fund.recordCollectiblePosition(purchaseKey, input)).wait();
     return;
@@ -98,8 +99,8 @@ async function main() {
   await (await collectionAlpha.mint(signerAddress)).wait();
   await (await collectionBeta.mint(signerAddress)).wait();
 
-  await ensureExecution(registry, purchaseAlpha, `alpha-${resumeTag}`);
-  await ensureExecution(registry, purchaseBeta, `beta-${resumeTag}`);
+  await ensureExecution(registry, purchaseAlpha, `alpha-${resumeTag}`, purchaseFundingMode);
+  await ensureExecution(registry, purchaseBeta, `beta-${resumeTag}`, purchaseFundingMode);
 
   const alphaPositionId = positionCountBefore + 1n;
   const betaPositionId = positionCountBefore + 2n;
@@ -117,7 +118,7 @@ async function main() {
     18_000_000n,
     ethers.id(`resume-alpha-metadata-${resumeTag}`),
     ethers.id(`resume-alpha-position-proof-${resumeTag}`),
-  ]);
+  ], purchaseFundingMode);
 
   await ensurePosition(fund, registry, purchaseBeta, [
     0,
@@ -132,7 +133,7 @@ async function main() {
     22_000_000n,
     ethers.id(`resume-beta-metadata-${resumeTag}`),
     ethers.id(`resume-beta-position-proof-${resumeTag}`),
-  ]);
+  ], purchaseFundingMode);
 
   const [stableAccounting, position1, position2] = await Promise.all([
     fund.stableAccounting(),
@@ -163,6 +164,8 @@ if (process.env.RESUME_PURCHASE_FLOW_FUJI_SKIP_MAIN !== "1") {
 module.exports = {
   PURCHASE_FUNDING_MODES,
   PURCHASE_STATUS,
+  ensureExecution,
   ensureFundingConfirmed,
+  ensurePosition,
   resolvePurchaseFundingMode,
 };
