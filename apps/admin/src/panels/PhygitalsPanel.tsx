@@ -406,7 +406,7 @@ export function PhygitalsPanel() {
         setSafeBatchHash(undefined);
         setIsBatchSubmitting(true);
         try {
-            if (!safeAppInfo.isSafeApp) throw new Error('Open admin.gm10.xyz inside the Avalanche Treasury Safe to submit a Safe batch.');
+            if (!safeAppInfo.isSafeApp) throw new Error('Open admin.gm10.xyz inside the Avalanche Treasury Safe on app.safe.global or wallet.ash.center to submit a Safe batch.');
             if (safeAppInfo.chainId !== AVALANCHE_CHAIN_ID) throw new Error('Open the Treasury Safe on Avalanche before submitting the batch.');
             if (!MAINNET.portfolioRegistry || !purchase.purchaseKey.trim()) throw new Error('Resolve a card before authorizing the purchase.');
             const quote = fundingQuote ?? (await quoteSolanaUsdcFunding());

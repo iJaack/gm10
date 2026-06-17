@@ -2,6 +2,9 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAdminRole } from '../hooks/useAdminRole';
 import { useSafeAppInfo } from '../hooks/useSafeAppInfo';
 
+const SAFE_APP_HOSTS_LABEL = 'app.safe.global or wallet.ash.center';
+const AVALANCHE_TREASURY_SAFE_APP_URL = 'https://app.safe.global/apps/open?safe=avax:0x39971795266a794a8156271729A07994952a6FAD&appUrl=https%3A%2F%2Fadmin.gm10.xyz';
+
 function GateShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-6">
@@ -35,7 +38,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
                 </h1>
                 <p className="mt-4 text-[0.92rem] leading-[1.6] text-[var(--text-secondary)]">
                     Open this app inside the Treasury Safe on{' '}
-                    <span className="text-[var(--text-primary)]">app.safe.global</span>,
+                    <span className="text-[var(--text-primary)]">{SAFE_APP_HOSTS_LABEL}</span>,
                     then connect with Safe. Direct Ledger connections are not enough — privileged roles belong to the Safe.
                 </p>
                 <div className="mt-8 flex justify-center">
@@ -91,7 +94,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
                 <div className="mt-8">
                     <a
                         className="inline-flex items-center justify-center rounded-md border border-[var(--accent)] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[#0b0a14] transition-colors hover:bg-[#ffd75b] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
-                        href="https://app.safe.global/apps/open?safe=avax:0x39971795266a794a8156271729A07994952a6FAD&appUrl=https%3A%2F%2Fadmin.gm10.xyz"
+                        href={AVALANCHE_TREASURY_SAFE_APP_URL}
                         target="_blank"
                         rel="noreferrer"
                     >
@@ -108,7 +111,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
                 <div className="label-font" style={{ color: 'var(--accent-red)' }}>Not authorized</div>
                 <p className="mt-4 text-[0.92rem] leading-[1.6] text-[var(--text-secondary)]">
                     This wallet does not hold MANAGER_ROLE, OPERATOR_ROLE, or DEFAULT_ADMIN_ROLE on the fund contract.
-                    Use the Treasury Safe app connection for production operations.
+                    Use the Treasury Safe app connection on {SAFE_APP_HOSTS_LABEL} for production operations.
                 </p>
                 {assumedTreasurySafeRoles && (
                     <p className="mt-3 text-xs text-[var(--text-tertiary)]">
