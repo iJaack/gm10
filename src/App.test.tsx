@@ -1087,6 +1087,43 @@ describe('page compression regressions', () => {
         }
     });
 
+    it('drops saved commits with invalid settlement amounts before rendering recovery cards', async () => {
+        const buyer = '0x1234567890123456789012345678901234567890';
+        wagmiMocks.account = {
+            address: buyer,
+            isConnected: true,
+        };
+        wagmiMocks.readContractData.continuousMintPaused = false;
+        mockSourceTokenBalances();
+        window.localStorage.setItem(PENDING_COMMIT_STORAGE_KEY, JSON.stringify([
+            {
+                commitId: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                providerRouteId: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                buyer,
+                sourceChainId: 8453,
+                sourceChainLabel: 'Base',
+                sourceTokenSymbol: 'USDC',
+                settlementToken: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+                settlementTokenLabel: 'USDC',
+                usesNativeSettlement: false,
+                escrowAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+                minSettlementAmountRaw: 'not-a-decimal',
+                routeTool: 'LI.FI',
+                registerTxHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+                routeTxHash: '0x4444444444444444444444444444444444444444444444444444444444444444',
+                createdAt: Date.now(),
+                expiresAt: Math.floor(Date.now() / 1000) + 600,
+                status: 'route_submitted',
+            },
+        ]));
+
+        renderAt('/fundraising');
+
+        expect((await screen.findAllByText(/continuous round/i)).length).toBeGreaterThan(0);
+        expect(screen.getByText(/^commit preview$/i)).toBeInTheDocument();
+        expect(screen.queryByText(/recover registered commits/i)).not.toBeInTheDocument();
+    });
+
     it('shows top wallet source tokens from the live portfolio response, not static fixtures', async () => {
         wagmiMocks.readContractData.continuousMintPaused = false;
         wagmiMocks.account = {

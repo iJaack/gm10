@@ -413,6 +413,10 @@ function pendingCommitStorage() {
     }
 }
 
+function isDecimalBigintString(value: unknown) {
+    return typeof value === 'string' && /^[0-9]+$/.test(value);
+}
+
 function readPendingContinuousCommits() {
     const storage = pendingCommitStorage();
     if (!storage) return [];
@@ -425,8 +429,8 @@ function readPendingContinuousCommits() {
             && isAddressLike(commit?.buyer)
             && isAddressLike(commit?.settlementToken)
             && isAddressLike(commit?.escrowAddress)
-            && typeof commit?.minSettlementAmountRaw === 'string'
-            && (commit?.quotedSettlementAmountRaw === undefined || typeof commit?.quotedSettlementAmountRaw === 'string')
+            && isDecimalBigintString(commit?.minSettlementAmountRaw)
+            && (commit?.quotedSettlementAmountRaw === undefined || isDecimalBigintString(commit?.quotedSettlementAmountRaw))
             && typeof commit?.expiresAt === 'number'
             && typeof commit?.createdAt === 'number'
             && ['registered', 'route_submitted', 'settled'].includes(commit?.status),
