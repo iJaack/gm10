@@ -39,6 +39,27 @@ export type ValuationPack = {
     cards: ValuationPackCard[];
 };
 
+export type ValuationSourceReadiness = {
+    providers: Array<{
+        sourceId: string;
+        providerId: string;
+        sourceName: string;
+        status: 'configured' | 'missing_auth' | 'missing_provider' | 'available_with_identity';
+        detail: string;
+    }>;
+    sourceQuality: Array<{
+        sourceId: string;
+        live: number;
+        missing: number;
+        rateLimited: number;
+        examples: Array<{
+            positionId: number;
+            sourceName: string;
+            reason: string;
+        }>;
+    }>;
+};
+
 type ValuationPackCardInput = Pick<
     ValuationPackCard,
     'positionId' | 'cardKey' | 'title' | 'currentValueUsdc6' | 'observations'
@@ -62,10 +83,12 @@ type GenerateValuationPackInput = {
 
 type ValuationPackResponse = {
     pack: ValuationPack | null;
+    sourceReadiness?: ValuationSourceReadiness;
 };
 
 type GenerateValuationPackResponse = {
     pack: ValuationPack;
+    sourceReadiness?: ValuationSourceReadiness;
     error?: string;
 };
 
@@ -127,7 +150,7 @@ export async function generateValuationPack(input: GenerateValuationPackInput, a
         throw new Error(payload.error || `Valuation pack returned ${response.status}`);
     }
 
-    return payload as { pack: ValuationPack };
+    return payload as { pack: ValuationPack; sourceReadiness?: ValuationSourceReadiness };
 }
 
 export async function updateValuationPackCard(input: UpdateValuationPackCardInput, auth: ValuationPackAuth) {
@@ -152,5 +175,5 @@ export async function updateValuationPackCard(input: UpdateValuationPackCardInpu
         throw new Error(payload.error || `Valuation pack returned ${response.status}`);
     }
 
-    return payload as { pack: ValuationPack };
+    return payload as { pack: ValuationPack; sourceReadiness?: ValuationSourceReadiness };
 }

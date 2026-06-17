@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { buildValuationPack } from '../server/lib/valuation.js';
 import { authorizeValuationPackRead, authorizeValuationPackWrite } from '../server/lib/valuation-auth.js';
 import { fetchActiveTreasuryCards } from '../server/lib/valuation-chain.js';
+import { buildValuationSourceReadiness } from '../server/lib/valuation-readiness.js';
 import { createValuationPackStore } from '../server/lib/valuation-store.js';
 
 const REQUIRED_SOURCE_IDS = ['benchmark', 'evidence', 'primary'];
@@ -49,6 +50,13 @@ function createValuationPackId(date) {
 
 function respondError(response, statusCode, message) {
   response.status(statusCode).json({ error: message });
+}
+
+function respondPack(response, pack) {
+  response.status(200).json({
+    pack,
+    sourceReadiness: buildValuationSourceReadiness({ pack }),
+  });
 }
 
 function isNonEmptyString(value) {
@@ -172,7 +180,7 @@ export function createValuationPackHandler({
       }
 
       const pack = await store.getLatestPack();
-      response.status(200).json({ pack });
+      respondPack(response, pack);
       return;
     }
 
@@ -210,7 +218,7 @@ export function createValuationPackHandler({
             return;
           }
 
-          response.status(200).json({ pack });
+          respondPack(response, pack);
         } catch (error) {
           respondError(response, 500, error instanceof Error ? error.message : 'Unable to update valuation pack card');
         }
@@ -245,7 +253,7 @@ export function createValuationPackHandler({
           respondError(response, 500, error instanceof Error ? error.message : 'Unable to save valuation pack');
           return;
         }
-        response.status(200).json({ pack });
+        respondPack(response, pack);
       } catch (error) {
         const statusCode = error?.statusCode === 500 ? 500 : 400;
         respondError(response, statusCode, error instanceof Error ? error.message : 'Unable to generate valuation pack');
