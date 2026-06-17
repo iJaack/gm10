@@ -28,6 +28,9 @@ This review hardens the first-pass GM10 operations checklist from the current sa
   - `setContinuousAccrualControls(bool,bool,bool,int256)` when LP support is paused and accounting must be unpaused/restored.
   - `releaseLpSupportToken(address,address,uint256,uint256,bytes32)` when LP support execution is expected.
   - `executeLpSupport((address,uint256,uint256,uint8,uint256,bytes32))` when LP support execution is expected.
+- Confirm the live registry implementation exposes the V2 selectors needed for the planned external-proceeds path before any source-chain funds move:
+  - `recordExternalSaleProceeds(bytes32,uint32,address,uint256,uint8,bytes32,bytes32)`
+  - `confirmSaleProceedsReceivedV2(bytes32,address,uint256,uint256,bytes32,bytes32)`
 - Confirm marketplace approval, chain Safe config, settlement token approval, pause states, and current outstanding sale/LP/buyback accruals.
 - Snapshot starting balances for the fund, Avalanche Safe, source-chain Safe or hot wallet, and any venue custody wallet.
 
