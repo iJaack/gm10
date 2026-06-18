@@ -278,7 +278,7 @@ function PortfolioContent() {
     const strategyPnlPercent = CARD_PURCHASE_CONVERSION_BASIS_USD > 0
         ? (strategyPnlUsd / CARD_PURCHASE_CONVERSION_BASIS_USD) * 100
         : 0;
-    const strategyPnlDirection = strategyPnlUsd > 0
+    const strategyPnlDirection: 'up' | 'down' | 'flat' = strategyPnlUsd > 0
         ? 'up'
         : strategyPnlUsd < 0
             ? 'down'

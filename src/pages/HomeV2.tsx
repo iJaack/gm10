@@ -22,7 +22,7 @@ import {
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useStrategyCapitalTotals } from '../hooks/useStrategyCapitalTotals';
 import { useTheme } from '../hooks/useTheme';
-import { FINALIZED_RAISE_ARCHIVE, HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
+import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 import { CARD_PURCHASE_CONVERSION_BASIS_USD } from '../data/strategyCapital';
 
 /* ─────────────────────────────────────────────── */
