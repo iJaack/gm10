@@ -3,6 +3,7 @@ const { ethers } = hre;
 const deployments = require("../deployments.json");
 const {
   ensureFundingConfirmed,
+  purchaseAuthorizationAbiForFundingMode,
   resolvePurchaseFundingMode,
 } = require("./lib/purchaseFundingMode");
 
@@ -23,7 +24,6 @@ const REGISTRY_ABI = [
   "function setChainSafe(uint32,address,bytes32,bytes32,bool)",
   "function setMarketplaceApproval(bytes32,bool)",
   "function authorizePurchase(bytes32,uint32,bytes32,bytes32,uint256,bytes32)",
-  "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,address fundingToken,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
   "function recordPurchaseExecution(bytes32,bytes32,bytes32,bytes32)",
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
@@ -84,7 +84,14 @@ async function main() {
   console.log(`Using purchase funding mode: ${purchaseFundingMode}`);
 
   const fund = new ethers.Contract(deployment.proxy, FUND_ABI, signer);
-  const registry = new ethers.Contract(deployment.portfolioRegistry, REGISTRY_ABI, signer);
+  const registry = new ethers.Contract(
+    deployment.portfolioRegistry,
+    [
+      ...REGISTRY_ABI,
+      purchaseAuthorizationAbiForFundingMode(purchaseFundingMode),
+    ],
+    signer
+  );
 
   await ensureRequiredRoles(fund, signerAddress);
 

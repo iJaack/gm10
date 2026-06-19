@@ -7,6 +7,7 @@ const {
   PURCHASE_STATUS,
   ensureFundingConfirmed,
   normalizePurchaseStatus,
+  purchaseAuthorizationAbiForFundingMode,
   resolvePurchaseFundingMode,
 } = require("../scripts/lib/purchaseFundingMode");
 
@@ -14,6 +15,8 @@ process.env.RESUME_PURCHASE_FLOW_FUJI_SKIP_MAIN = "1";
 const {
   ensureExecution,
   ensurePosition,
+  findPositionIdByPurchaseKey,
+  registryAbiForPurchaseFundingMode,
 } = require("../scripts/resumePurchaseFlowFuji");
 delete process.env.RESUME_PURCHASE_FLOW_FUJI_SKIP_MAIN;
 
@@ -23,6 +26,9 @@ describe("Fuji script purchase funding compatibility", function () {
   const fundingToken = "0x0000000000000000000000000000000000000001";
   const destinationSafe = "0x0000000000000000000000000000000000000002";
   const chainEid = 43113;
+  const marketplaceId = ethers.id("resume-marketplace");
+  const assetRef = ethers.id("resume-asset");
+  const mandateHash = ethers.id("resume-mandate");
 
   function registryWithApprovedPurchase() {
     return {
@@ -102,6 +108,44 @@ describe("Fuji script purchase funding compatibility", function () {
     expect(resolvePurchaseFundingMode({})).to.equal(PURCHASE_FUNDING_MODES.Confirm);
   });
 
+  it("selects the legacy purchase authorization ABI for legacy funding mode", function () {
+    const legacyAbi = purchaseAuthorizationAbiForFundingMode(PURCHASE_FUNDING_MODES.LegacyRelease);
+    const confirmAbi = purchaseAuthorizationAbiForFundingMode(PURCHASE_FUNDING_MODES.Confirm);
+    expect(legacyAbi).to.not.include("fundingToken");
+    expect(confirmAbi).to.include("fundingToken");
+    expect(registryAbiForPurchaseFundingMode(PURCHASE_FUNDING_MODES.LegacyRelease)).to.include(legacyAbi);
+  });
+
+  it("decodes legacy purchase authorizations with the legacy tuple ABI", function () {
+    const legacyInterface = new ethers.Interface([
+      purchaseAuthorizationAbiForFundingMode(PURCHASE_FUNDING_MODES.LegacyRelease),
+    ]);
+    const confirmInterface = new ethers.Interface([
+      purchaseAuthorizationAbiForFundingMode(PURCHASE_FUNDING_MODES.Confirm),
+    ]);
+    const legacyResult = legacyInterface.encodeFunctionResult("getPurchaseAuthorization", [[
+      purchaseKey,
+      LEGACY_PURCHASE_STATUS.Executed,
+      chainEid,
+      marketplaceId,
+      assetRef,
+      amountUsdt6,
+      amountUsdt6,
+      destinationSafe,
+      ethers.ZeroHash,
+      1n,
+      mandateHash,
+      ethers.id("execution"),
+      ethers.id("settlement"),
+      ethers.id("proof"),
+    ]]);
+
+    const [decoded] = legacyInterface.decodeFunctionResult("getPurchaseAuthorization", legacyResult);
+    expect(Number(decoded.status)).to.equal(LEGACY_PURCHASE_STATUS.Executed);
+    expect(() => confirmInterface.decodeFunctionResult("getPurchaseAuthorization", legacyResult))
+      .to.throw();
+  });
+
   it("normalizes legacy executed and position-recorded status ordinals", function () {
     expect(normalizePurchaseStatus(
       LEGACY_PURCHASE_STATUS.Executed,
@@ -157,6 +201,33 @@ describe("Fuji script purchase funding compatibility", function () {
       [],
       PURCHASE_FUNDING_MODES.LegacyRelease
     );
+  });
+
+  it("finds an existing position by purchase key instead of assuming append order", async function () {
+    const otherPurchaseKey = ethers.id("other-purchase");
+    const registry = {
+      collectiblePositionCount: async () => 3n,
+      getCollectiblePosition: async (positionId) => ({
+        originPurchaseKey: positionId === 2n ? purchaseKey : otherPurchaseKey,
+      }),
+    };
+
+    expect(await findPositionIdByPurchaseKey(registry, purchaseKey)).to.equal(2n);
+  });
+
+  it("throws when a completed resume cannot find the purchase position", async function () {
+    const registry = {
+      collectiblePositionCount: async () => 1n,
+      getCollectiblePosition: async () => ({ originPurchaseKey: ethers.id("other-purchase") }),
+    };
+
+    let error;
+    try {
+      await findPositionIdByPurchaseKey(registry, purchaseKey);
+    } catch (err) {
+      error = err;
+    }
+    expect(error?.message).to.equal(`No recorded position found for purchase ${purchaseKey}`);
   });
 
   it("rejects unknown funding modes", function () {

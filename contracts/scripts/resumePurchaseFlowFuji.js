@@ -6,6 +6,7 @@ const {
   PURCHASE_STATUS,
   ensureFundingConfirmed,
   normalizePurchaseStatus,
+  purchaseAuthorizationAbiForFundingMode,
   resolvePurchaseFundingMode,
 } = require("./lib/purchaseFundingMode");
 
@@ -18,12 +19,18 @@ const FUND_ABI = [
   "function stableAccounting() view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)",
 ];
 
-const REGISTRY_ABI = [
+const REGISTRY_COMMON_ABI = [
   "function collectiblePositionCount() view returns (uint256)",
-  "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,address fundingToken,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
   "function recordPurchaseExecution(bytes32,bytes32,bytes32,bytes32)",
   "function getCollectiblePosition(uint256) view returns ((uint256 id,bytes32 originPurchaseKey,uint32 chainEid,bytes32 marketplaceId,uint8 custodyMode,bytes32 tokenStandard,address evmCollection,bytes32 nonEvmCollection,uint256 tokenId,bytes32 nonEvmTokenId,bytes32 externalAssetId,bytes32 categoryId,bytes32 marketplaceProvenanceRef,uint256 acquisitionPriceUsdt6,uint256 currentValueUsdt6,uint256 lastNavMarkUsdt6,uint256 acquisitionDate,uint256 lastValuationAt,uint8 status,bytes32 metadataHash,bytes32 proofHash))",
 ];
+
+function registryAbiForPurchaseFundingMode(purchaseFundingMode) {
+  return [
+    ...REGISTRY_COMMON_ABI,
+    purchaseAuthorizationAbiForFundingMode(purchaseFundingMode),
+  ];
+}
 
 async function ensureExecution(registry, purchaseKey, label, purchaseFundingMode) {
   const auth = await registry.getPurchaseAuthorization(purchaseKey);
@@ -57,6 +64,18 @@ async function ensurePosition(fund, registry, purchaseKey, input, purchaseFundin
   }
 }
 
+async function findPositionIdByPurchaseKey(registry, purchaseKey) {
+  const expectedPurchaseKey = purchaseKey.toLowerCase();
+  const positionCount = await registry.collectiblePositionCount();
+  for (let positionId = 1n; positionId <= positionCount; positionId++) {
+    const position = await registry.getCollectiblePosition(positionId);
+    if (position.originPurchaseKey.toLowerCase() === expectedPurchaseKey) {
+      return positionId;
+    }
+  }
+  throw new Error(`No recorded position found for purchase ${purchaseKey}`);
+}
+
 async function main() {
   if (hre.network.name !== "fuji") {
     throw new Error("This script is only intended for Fuji");
@@ -82,8 +101,11 @@ async function main() {
   }
 
   const fund = new ethers.Contract(deployment.proxy, FUND_ABI, signer);
-  const registry = new ethers.Contract(deployment.portfolioRegistry, REGISTRY_ABI, signer);
-  const positionCountBefore = await registry.collectiblePositionCount();
+  const registry = new ethers.Contract(
+    deployment.portfolioRegistry,
+    registryAbiForPurchaseFundingMode(purchaseFundingMode),
+    signer
+  );
   const resumeTag = process.env.FUJI_PURCHASE_RESUME_TAG || `${Math.floor(Date.now() / 1000)}`;
   console.log(`Using purchase funding mode: ${purchaseFundingMode}`);
 
@@ -101,9 +123,6 @@ async function main() {
 
   await ensureExecution(registry, purchaseAlpha, `alpha-${resumeTag}`, purchaseFundingMode);
   await ensureExecution(registry, purchaseBeta, `beta-${resumeTag}`, purchaseFundingMode);
-
-  const alphaPositionId = positionCountBefore + 1n;
-  const betaPositionId = positionCountBefore + 2n;
 
   await ensurePosition(fund, registry, purchaseAlpha, [
     0,
@@ -134,6 +153,11 @@ async function main() {
     ethers.id(`resume-beta-metadata-${resumeTag}`),
     ethers.id(`resume-beta-position-proof-${resumeTag}`),
   ], purchaseFundingMode);
+
+  const [alphaPositionId, betaPositionId] = await Promise.all([
+    findPositionIdByPurchaseKey(registry, purchaseAlpha),
+    findPositionIdByPurchaseKey(registry, purchaseBeta),
+  ]);
 
   const [stableAccounting, position1, position2] = await Promise.all([
     fund.stableAccounting(),
@@ -167,5 +191,7 @@ module.exports = {
   ensureExecution,
   ensureFundingConfirmed,
   ensurePosition,
+  findPositionIdByPurchaseKey,
+  registryAbiForPurchaseFundingMode,
   resolvePurchaseFundingMode,
 };

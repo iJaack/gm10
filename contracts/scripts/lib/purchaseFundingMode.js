@@ -25,12 +25,28 @@ const PURCHASE_FUNDING_MODES = {
   LegacyRelease: "legacyRelease",
 };
 
+const PURCHASE_AUTHORIZATION_ABI = {
+  [PURCHASE_FUNDING_MODES.Confirm]:
+    "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,address fundingToken,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
+  [PURCHASE_FUNDING_MODES.LegacyRelease]:
+    "function getPurchaseAuthorization(bytes32) view returns ((bytes32 purchaseKey,uint8 status,uint32 chainEid,bytes32 marketplaceId,bytes32 assetRef,uint256 maxSpendUsdt6,uint256 releasedUsdt6,address destinationSafe,bytes32 destinationSafeAlt,uint256 approvedAt,bytes32 mandateHash,bytes32 executionRef,bytes32 settlementRef,bytes32 proofHash))",
+};
+
 function resolvePurchaseFundingMode(deployment) {
   const mode = deployment.purchaseFundingMode || PURCHASE_FUNDING_MODES.Confirm;
   if (!Object.values(PURCHASE_FUNDING_MODES).includes(mode)) {
     throw new Error(`Unsupported purchaseFundingMode: ${mode}`);
   }
   return mode;
+}
+
+function purchaseAuthorizationAbiForFundingMode(purchaseFundingMode) {
+  const mode = purchaseFundingMode || PURCHASE_FUNDING_MODES.Confirm;
+  const abi = PURCHASE_AUTHORIZATION_ABI[mode];
+  if (!abi) {
+    throw new Error(`Unsupported purchaseFundingMode: ${mode}`);
+  }
+  return abi;
 }
 
 function normalizePurchaseStatus(status, purchaseFundingMode) {
@@ -97,5 +113,6 @@ module.exports = {
   PURCHASE_STATUS,
   ensureFundingConfirmed,
   normalizePurchaseStatus,
+  purchaseAuthorizationAbiForFundingMode,
   resolvePurchaseFundingMode,
 };
