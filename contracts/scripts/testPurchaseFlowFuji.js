@@ -1,6 +1,11 @@
 const hre = require("hardhat");
 const { ethers } = hre;
 const deployments = require("../deployments.json");
+const {
+  ensureFundingConfirmed,
+  purchaseAuthorizationAbiForFundingMode,
+  resolvePurchaseFundingMode,
+} = require("./lib/purchaseFundingMode");
 
 const DEPLOYER_EOA = "0x5cA0A679025B6c7dA08a70be3b244399fF0D7813";
 const FUND_ABI = [
@@ -8,6 +13,7 @@ const FUND_ABI = [
   "function getRound(uint256) view returns ((uint256 roundId,uint256 targetAmount,uint256 raisedAmount,uint256 tokenPrice,uint256 minInvestment,uint256 maxInvestment,uint256 startTime,uint256 endTime,bool isActive,bool isFinalized))",
   "function stableAccounting() view returns (uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)",
   "function invest(uint256) payable",
+  "function confirmPurchaseFunding(bytes32,address,uint256,uint32,address,bytes32,bytes32)",
   "function releasePurchaseFunds(bytes32,uint256)",
   "function recordCollectiblePosition(bytes32,(uint8,bytes32,address,bytes32,uint256,bytes32,bytes32,bytes32,bytes32,uint256,bytes32,bytes32))",
   "function hasRole(bytes32,address) view returns (bool)",
@@ -66,6 +72,7 @@ async function main() {
   if (!deployment?.proxy || !deployment?.portfolioRegistry) {
     throw new Error(`Fuji deployment metadata is incomplete for key ${deploymentKey}`);
   }
+  const purchaseFundingMode = resolvePurchaseFundingMode(deployment);
 
   const [signer] = await ethers.getSigners();
   const signerAddress = await signer.getAddress();
@@ -74,9 +81,17 @@ async function main() {
   }
   console.log(`Using signer: ${signerAddress}`);
   console.log(`Using deployment key: ${deploymentKey}`);
+  console.log(`Using purchase funding mode: ${purchaseFundingMode}`);
 
   const fund = new ethers.Contract(deployment.proxy, FUND_ABI, signer);
-  const registry = new ethers.Contract(deployment.portfolioRegistry, REGISTRY_ABI, signer);
+  const registry = new ethers.Contract(
+    deployment.portfolioRegistry,
+    [
+      ...REGISTRY_ABI,
+      purchaseAuthorizationAbiForFundingMode(purchaseFundingMode),
+    ],
+    signer
+  );
 
   await ensureRequiredRoles(fund, signerAddress);
 
@@ -128,9 +143,8 @@ async function main() {
     ethers.id(`beta-mandate-${runTag}`)
   )).wait();
 
-  console.log("Releasing purchase funds...");
-  await (await fund.releasePurchaseFunds(purchaseAlpha, 20_000_000n)).wait();
-  await (await fund.releasePurchaseFunds(purchaseBeta, 25_000_000n)).wait();
+  await ensureFundingConfirmed(fund, registry, purchaseAlpha, 20_000_000n, `alpha-${runTag}`, purchaseFundingMode);
+  await ensureFundingConfirmed(fund, registry, purchaseBeta, 25_000_000n, `beta-${runTag}`, purchaseFundingMode);
 
   console.log("Recording purchase execution...");
   await (await registry.recordPurchaseExecution(

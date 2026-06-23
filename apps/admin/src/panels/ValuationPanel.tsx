@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { formatUnits } from 'viem';
+import { formatUnits, keccak256, toHex } from 'viem';
 import { useAccount, useReadContract, useReadContracts, useSignMessage, useWriteContract } from 'wagmi';
 import { FUND_ADMIN_ABI, REGISTRY_ABI } from '../abis';
 import { MAINNET } from '../addresses';
@@ -14,11 +14,14 @@ import {
     type SourceObservation,
     type ValuationPack,
     type ValuationPackCard,
+    type ValuationSourceReadiness,
     updateValuationPackCard,
 } from '../lib/valuationClient';
 
 const COMPARABLE_SALES = 2 as const;
 const MAX_ACTIVE_POSITIONS = 200;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+const VALUATION_MANAGER_ROLE = keccak256(toHex('VALUATION_MANAGER_ROLE'));
 
 type RegistryPosition = {
     id: bigint;
@@ -141,6 +144,12 @@ function parseCardIdentityOverrides(json: string) {
     return parsed as CardIdentityOverrideMap;
 }
 
+function providerReadinessStatus(status: ValuationSourceReadiness['providers'][number]['status']) {
+    if (status === 'configured') return READ_STATUS.live;
+    if (status === 'available_with_identity') return READ_STATUS.partial;
+    return READ_STATUS.unavailable;
+}
+
 function PackCardView({
     card,
     approved,
@@ -249,6 +258,7 @@ function PackCardView({
 
 export function ValuationPanel() {
     const [pack, setPack] = useState<ValuationPack | null>(null);
+    const [sourceReadiness, setSourceReadiness] = useState<ValuationSourceReadiness | null>(null);
     const [sourceObservationsJson, setSourceObservationsJson] = useState('');
     const [cardIdentityJson, setCardIdentityJson] = useState('');
     const [approvedCards, setApprovedCards] = useState<Record<string, true>>({});
@@ -264,6 +274,16 @@ export function ValuationPanel() {
         fallbackSafeAddress: MAINNET.treasurySafe,
         fallbackSignerAddress: MAINNET.teamWallet,
     }) as `0x${string}` | undefined;
+    const {
+        data: hasValuationManagerRole,
+        isLoading: isValuationRoleLoading,
+    } = useReadContract({
+        address: MAINNET.fundProxy,
+        abi: FUND_ADMIN_ABI,
+        functionName: 'hasRole',
+        args: [VALUATION_MANAGER_ROLE, authAddress ?? ZERO_ADDRESS],
+        query: { enabled: Boolean(authAddress) },
+    });
     const isAuthLoading = false;
     const { signMessageAsync, error: signError, isPending: isSigning } = useSignMessage();
     const { writeContractAsync, data: txHash, error: txError, isPending, reset } = useWriteContract();
@@ -339,6 +359,7 @@ export function ValuationPanel() {
             ...input,
         }, auth);
         setPack(payload.pack);
+        setSourceReadiness(payload.sourceReadiness ?? null);
         return payload.pack;
     }
 
@@ -357,6 +378,7 @@ export function ValuationPanel() {
             const signature = await signMessageAsync({ message });
             const payload = await fetchLatestValuationPack({ address: authAddress, message, signature });
             setPack(payload.pack);
+            setSourceReadiness(payload.sourceReadiness ?? null);
             clearApprovals();
         } catch (error) {
             setLocalError(error instanceof Error ? error.message : 'Unable to load latest valuation pack.');
@@ -392,6 +414,7 @@ export function ValuationPanel() {
                 cardIdentityOverrides,
             }, { address: authAddress, message, signature });
             setPack(payload.pack);
+            setSourceReadiness(payload.sourceReadiness ?? null);
             clearApprovals();
         } catch (error) {
             setLocalError(error instanceof Error ? error.message : 'Unable to generate valuation pack.');
@@ -429,6 +452,10 @@ export function ValuationPanel() {
         if (card.consensus.status !== 'passed') return;
         const approved = card.decision === 'approved' || Boolean(approvedCards[String(card.positionId)]);
         if (!card.consensus.proposedValueUsdc6 || !approved || isPending) return;
+        if (hasValuationManagerRole !== true) {
+            setLocalError('The selected admin address does not hold VALUATION_MANAGER_ROLE on the fund proxy.');
+            return;
+        }
         const positionKey = String(card.positionId);
         setLocalError('');
         setPersistingCards((current) => ({ ...current, [positionKey]: true }));
@@ -494,6 +521,18 @@ export function ValuationPanel() {
                 { label: activeCards.length ? `${activeCards.length} active positions` : 'positions unavailable', status: activeCards.length ? READ_STATUS.live : READ_STATUS.unavailable },
                 { label: pack ? 'pack loaded' : 'pack not loaded', status: pack ? READ_STATUS.live : READ_STATUS.unavailable },
                 { label: isAuthLoading ? 'Safe context loading' : 'Safe context ready', status: isAuthLoading ? READ_STATUS.partial : READ_STATUS.live },
+                {
+                    label: isValuationRoleLoading
+                        ? 'valuation role checking'
+                        : hasValuationManagerRole
+                            ? 'valuation role ready'
+                            : 'valuation role missing',
+                    status: isValuationRoleLoading
+                        ? READ_STATUS.partial
+                        : hasValuationManagerRole
+                            ? READ_STATUS.live
+                            : READ_STATUS.partial,
+                },
                 { label: localError ? 'local error' : 'no local errors', status: localError ? READ_STATUS.error : READ_STATUS.live },
             ]}
         >
@@ -560,6 +599,35 @@ export function ValuationPanel() {
                                     )}
                                 </div>
 
+                                {sourceReadiness ? (
+                                    <div className="grid gap-3">
+                                        <div className="grid gap-2 md:grid-cols-2">
+                                            {sourceReadiness.providers.map((provider) => (
+                                                <MetricCard
+                                                    key={provider.providerId}
+                                                    label={provider.sourceName}
+                                                    value={provider.status.replace(/_/g, ' ')}
+                                                    status={providerReadinessStatus(provider.status)}
+                                                    sourceLabel={provider.sourceId}
+                                                    detail={provider.detail}
+                                                />
+                                            ))}
+                                        </div>
+                                        {sourceReadiness.sourceQuality.length > 0 ? (
+                                            <LedgerPanel
+                                                title="Source quality"
+                                                caption="Live and missing observations in the loaded valuation pack."
+                                                rows={sourceReadiness.sourceQuality.map((source) => ({
+                                                    label: source.sourceId,
+                                                    value: `${source.live} live · ${source.missing} missing · ${source.rateLimited} rate limited`,
+                                                    status: source.missing || source.rateLimited ? READ_STATUS.partial : READ_STATUS.live,
+                                                    detail: source.examples[0]?.reason ?? 'pack observations',
+                                                }))}
+                                            />
+                                        ) : null}
+                                    </div>
+                                ) : null}
+
                                 {localError ? (
                                     <div className="rounded-lg border border-[rgba(232,69,58,0.35)] bg-[rgba(232,69,58,0.12)] px-3 py-2 text-sm text-[var(--accent-red)]">
                                         {localError}
@@ -589,10 +657,12 @@ export function ValuationPanel() {
                                             const isCardPersisting = Boolean(persistingCards[String(card.positionId)]);
                                             const canSubmit =
                                                 approved &&
+                                                hasValuationManagerRole === true &&
                                                 card.consensus.status === 'passed' &&
                                                 Boolean(card.consensus.proposedValueUsdc6) &&
                                                 !card.submittedTxHash &&
                                                 !isCardPersisting &&
+                                                !isValuationRoleLoading &&
                                                 !isPending;
 
                                             return (

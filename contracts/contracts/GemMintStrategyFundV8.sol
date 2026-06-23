@@ -16,6 +16,9 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
+    uint256 private constant WORKFLOW_BPS = 10_000;
+    bytes32 private constant VALUATION_MANAGER_ROLE = keccak256("VALUATION_MANAGER_ROLE");
+
     address internal canonicalUsdt;
     address internal avaxUsdFeed;
     address public portfolioRegistry;
@@ -61,6 +64,13 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
     address internal immutable tokenomicsController;
 
     event ContinuousAccrualInitialized(int256 mintSpreadBps);
+    event PurchaseFundingConfirmed(
+        bytes32 indexed purchaseKey,
+        address indexed fundingToken,
+        uint256 amountUsdt6,
+        uint32 destinationChainEid,
+        address destinationSafe
+    );
     event ContinuousMintSettled(
         bytes32 indexed commitId,
         address indexed buyer,
@@ -118,6 +128,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
     error SettlementAlreadyAccounted();
     error InvalidSettlementAmount();
     error UnsupportedSettlementTokenDecimals();
+    error DeprecatedPurchaseRelease();
 
     /// @custom:oz-upgrades-unsafe-allow constructor state-variable-immutable
     constructor(address _tokenomicsController) {
@@ -143,6 +154,89 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
 
     function redeem(uint256) external pure {
         revert RedemptionsDisabled();
+    }
+
+    function releasePurchaseFunds(bytes32, uint256) external pure {
+        revert DeprecatedPurchaseRelease();
+    }
+
+    function confirmPurchaseFunding(
+        bytes32 purchaseKey,
+        address fundingToken,
+        uint256 amountUsdt6,
+        uint32 destinationChainEid,
+        address destinationSafe,
+        bytes32 settlementRef,
+        bytes32 proofHash
+    ) external onlyRole(MANAGER_ROLE) {
+        if (destinationSafe == address(0) || settlementRef == bytes32(0) || proofHash == bytes32(0)) {
+            revert InvalidParameters();
+        }
+        if (liquidTreasuryUsdt6 < amountUsdt6 + holderDistributionAccruedUsdt6) revert InsufficientFreeBalance();
+
+        IGm10PortfolioRegistry(portfolioRegistry).confirmPurchaseFunding(
+            purchaseKey,
+            fundingToken,
+            amountUsdt6,
+            destinationChainEid,
+            destinationSafe,
+            settlementRef,
+            proofHash
+        );
+
+        liquidTreasuryUsdt6 -= amountUsdt6;
+        outstandingPurchaseReleasesUsdt6 += amountUsdt6;
+        _syncStableNav();
+
+        emit PurchaseFundingConfirmed(
+            purchaseKey,
+            fundingToken,
+            amountUsdt6,
+            destinationChainEid,
+            destinationSafe
+        );
+    }
+
+    function recordCollectiblePosition(bytes32 purchaseKey, Gm10Types.PositionInput calldata input)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        (, uint256 acquisitionPriceUsdt6, uint256 releasedUsdt6) =
+            IGm10PortfolioRegistry(portfolioRegistry).recordCollectiblePosition(purchaseKey, input);
+
+        outstandingPurchaseReleasesUsdt6 -= releasedUsdt6;
+        canonicalPortfolioValueUsdt6 += acquisitionPriceUsdt6;
+
+        if (releasedUsdt6 > acquisitionPriceUsdt6) {
+            liquidTreasuryUsdt6 += releasedUsdt6 - acquisitionPriceUsdt6;
+        }
+
+        _syncStableNav();
+    }
+
+    function submitValuationObservation(
+        uint256 positionId,
+        Gm10Types.ValuationSourceType sourceType,
+        bytes32 sourceRef,
+        uint256 candidateValueUsdt6,
+        bytes32 proofHash
+    ) external onlyRole(VALUATION_MANAGER_ROLE) {
+        (uint256 oldValueUsdt6, uint256 appliedValueUsdt6) =
+            IGm10PortfolioRegistry(portfolioRegistry).submitValuationObservation(
+                positionId,
+                sourceType,
+                sourceRef,
+                candidateValueUsdt6,
+                weeklyNavCapBps,
+                proofHash
+            );
+
+        if (appliedValueUsdt6 > oldValueUsdt6) {
+            canonicalPortfolioValueUsdt6 += appliedValueUsdt6 - oldValueUsdt6;
+        } else if (oldValueUsdt6 > appliedValueUsdt6) {
+            canonicalPortfolioValueUsdt6 -= oldValueUsdt6 - appliedValueUsdt6;
+        }
+        _syncStableNav();
     }
 
     function previewContinuousMint(uint256 settlementAmountUsdt6)

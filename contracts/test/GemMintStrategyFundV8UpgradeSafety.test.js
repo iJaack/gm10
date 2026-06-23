@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
 const { ethers, upgrades } = hre;
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 
 async function deployDirectV8({ initializeBase = false } = {}) {
   const [
@@ -265,5 +265,106 @@ describe("GemMintStrategyFundV8 upgrade", function () {
     expect(await fund.buybackPaused()).to.equal(true);
     expect(await fund.lpSupportPaused()).to.equal(true);
     expect(await fund.mintSpreadBps()).to.equal(-500n);
+  });
+
+  it("keeps fund-mediated purchase and valuation registry paths executable after upgrade", async function () {
+    const ctx = await loadFixture(deployV7ProxyFixture);
+    const now = await time.latest();
+    await ctx.fund.connect(ctx.ops).createFundraisingRound(
+      ethers.parseEther("10"),
+      ethers.parseEther("1"),
+      0n,
+      ethers.parseEther("100"),
+      now,
+      now + 3600
+    );
+    const roundId = await ctx.fund.currentRoundId();
+    await ctx.fund.connect(ctx.owner).invest(roundId, { value: ethers.parseEther("1") });
+
+    const proxyAddress = await ctx.fund.getAddress();
+    const FundV8 = await ethers.getContractFactory("GemMintStrategyFundV8", ctx.governance);
+    const fund = await upgrades.upgradeProxy(proxyAddress, FundV8, {
+      kind: "uups",
+      unsafeAllow: ["constructor", "state-variable-immutable"],
+      constructorArgs: [await ctx.controller.getAddress()],
+      call: { fn: "initializeV8", args: [] },
+    });
+    await fund.waitForDeployment();
+
+    const marketId = ethers.id("COURTYARD");
+    const chainEid = 30109;
+    const purchaseKey = ethers.id("v8-admin-registry-purchase");
+    const purchaseAmountUsdt6 = 10_000_000n;
+    const acquisitionPriceUsdt6 = 8_000_000n;
+
+    await ctx.portfolioRegistry.connect(ctx.governance).setChainSafe(
+      chainEid,
+      ctx.owner.address,
+      ethers.ZeroHash,
+      ethers.id("POLYGON_SAFE"),
+      true
+    );
+    await ctx.portfolioRegistry.connect(ctx.governance).setMarketplaceApproval(marketId, true);
+    await ctx.portfolioRegistry.connect(ctx.governance).authorizePurchaseV2(
+      purchaseKey,
+      chainEid,
+      marketId,
+      ethers.id("v8-asset-ref"),
+      await ctx.usdt.getAddress(),
+      purchaseAmountUsdt6,
+      ethers.id("v8-mandate")
+    );
+
+    await expect(fund.connect(ctx.ops).confirmPurchaseFunding(
+      purchaseKey,
+      await ctx.usdt.getAddress(),
+      purchaseAmountUsdt6,
+      chainEid,
+      ctx.owner.address,
+      ethers.id("v8-funding-settlement"),
+      ethers.id("v8-funding-proof")
+    ))
+      .to.emit(fund, "PurchaseFundingConfirmed")
+      .withArgs(purchaseKey, await ctx.usdt.getAddress(), purchaseAmountUsdt6, chainEid, ctx.owner.address);
+
+    await ctx.portfolioRegistry.connect(ctx.ops).recordPurchaseExecution(
+      purchaseKey,
+      ethers.id("v8-buy-execution"),
+      ethers.id("v8-buy-settlement"),
+      ethers.id("v8-buy-proof")
+    );
+
+    await fund.connect(ctx.ops).recordCollectiblePosition(purchaseKey, {
+      custodyMode: 0,
+      tokenStandard: ethers.id("ERC721"),
+      evmCollection: ctx.ops.address,
+      nonEvmCollection: ethers.ZeroHash,
+      tokenId: 1n,
+      nonEvmTokenId: ethers.ZeroHash,
+      externalAssetId: ethers.id("v8-collectible"),
+      categoryId: ethers.id("pokemon-slab"),
+      marketplaceProvenanceRef: ethers.id("v8-marketplace-provenance"),
+      acquisitionPriceUsdt6,
+      metadataHash: ethers.id("v8-metadata"),
+      proofHash: ethers.id("v8-position-proof"),
+    });
+
+    let stableAccounting = await fund.stableAccounting();
+    expect(stableAccounting[0]).to.equal(acquisitionPriceUsdt6);
+    expect(stableAccounting[3]).to.equal(0n);
+
+    await fund.connect(ctx.ops).submitValuationObservation(
+      1n,
+      1,
+      ethers.id("v8-exact-trade-mark"),
+      11_000_000n,
+      ethers.id("v8-valuation-proof")
+    );
+
+    stableAccounting = await fund.stableAccounting();
+    expect(stableAccounting[0]).to.equal(11_000_000n);
+
+    const observation = await ctx.portfolioRegistry.getLatestValuationObservation(1n);
+    expect(observation.appliedValueUsdt6).to.equal(11_000_000n);
   });
 });
