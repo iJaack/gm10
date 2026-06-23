@@ -24,6 +24,7 @@ const MAX_MESSAGE_FUTURE_MS = 60 * 1000;
 export const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
 export const MANAGER_ROLE = keccak256(toHex('MANAGER_ROLE'));
 export const OPERATOR_ROLE = keccak256(toHex('OPERATOR_ROLE'));
+export const VALUATION_MANAGER_ROLE = keccak256(toHex('VALUATION_MANAGER_ROLE'));
 
 const HAS_ROLE_ABI = [
   {
@@ -135,13 +136,21 @@ function validateMessageWindow(message, now = Date.now(), action = 'generate') {
   return signedAt >= now - MAX_MESSAGE_AGE_MS && signedAt <= now + MAX_MESSAGE_FUTURE_MS;
 }
 
-async function hasAuthorizedRole(address, { client, fundProxyAddress } = {}) {
+function rolesForAction(action) {
+  const baseRoles = [DEFAULT_ADMIN_ROLE, MANAGER_ROLE, OPERATOR_ROLE];
+  if (action === 'read' || action === 'update') {
+    return [...baseRoles, VALUATION_MANAGER_ROLE];
+  }
+  return baseRoles;
+}
+
+async function hasAuthorizedRole(address, { action = 'generate', client, fundProxyAddress } = {}) {
   const publicClient = client ?? createPublicClient({
     chain: avalanche,
     transport: http(getRpcUrl()),
   });
   const targetFundProxyAddress = fundProxyAddress ?? getFundProxyAddress();
-  const roles = [DEFAULT_ADMIN_ROLE, MANAGER_ROLE, OPERATOR_ROLE];
+  const roles = rolesForAction(action);
   const results = await Promise.all(roles.map((role) => publicClient.readContract({
     address: targetFundProxyAddress,
     abi: HAS_ROLE_ABI,
@@ -266,7 +275,7 @@ export async function authorizeValuationPackRequest(request, { action = 'generat
   }
 
   try {
-    const isAuthorized = await hasAuthorizedRole(signedAddress, { client });
+    const isAuthorized = await hasAuthorizedRole(signedAddress, { action, client });
     if (!isAuthorized) {
       return { ok: false, statusCode: 401, message: 'Unauthorized valuation pack request' };
     }

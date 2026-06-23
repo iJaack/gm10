@@ -4,6 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import {
   authorizeValuationPackWrite,
   DEFAULT_ADMIN_ROLE,
+  VALUATION_MANAGER_ROLE,
 } from '../server/lib/valuation-auth.js';
 
 const nowIso = '2026-04-20T13:45:00.000Z';
@@ -64,6 +65,38 @@ test('valuation auth accepts update messages for write authorization', async () 
 
   assert.equal(result.ok, true);
   assert.equal(result.address, account.address);
+});
+
+test('valuation auth allows valuation managers to update packs but not generate them', async () => {
+  const updateMessage = `GM10 valuation pack update:${nowIso}`;
+  const account = privateKeyToAccount('0x59c6995e998f97a5a0044966f094538e7dae00f4796e4d02a3de79cf11af3b8c');
+  const updateSignature = await account.signMessage({ message: updateMessage });
+  const roleChecks = [];
+  const client = {
+    async readContract({ functionName, args }) {
+      assert.equal(functionName, 'hasRole');
+      roleChecks.push(args[0]);
+      return args[0] === VALUATION_MANAGER_ROLE && args[1] === account.address;
+    },
+  };
+
+  const updateResult = await authorizeValuationPackWrite(request({
+    address: account.address,
+    signature: updateSignature,
+    signedMessage: updateMessage,
+  }), { action: 'update', client, now });
+
+  assert.equal(updateResult.ok, true);
+  assert.equal(roleChecks.includes(VALUATION_MANAGER_ROLE), true);
+
+  const generateSignature = await account.signMessage({ message });
+  const generateResult = await authorizeValuationPackWrite(request({
+    address: account.address,
+    signature: generateSignature,
+  }), { client, now });
+
+  assert.equal(generateResult.ok, false);
+  assert.equal(generateResult.statusCode, 401);
 });
 
 test('valuation auth accepts Safe EIP-1271 signatures and checks roles on the Safe address', async () => {
