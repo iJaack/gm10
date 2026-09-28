@@ -3,6 +3,7 @@ import { LZ_EID_AVALANCHE, LZ_EID_POLYGON } from '../data/gm10Config';
 import {
     deriveFujiRoundState,
     isPortfolioHoldingStatus,
+    normalizeCourtyardFmvMarks,
     resolvePortfolioActivityForPosition,
     resolveCardCustody,
     resolvePortfolioActivityType,
@@ -16,6 +17,19 @@ import {
 const AVAX_WEI = 10n ** 18n;
 const polygonSafe = '0x39971795266a794a8156271729A07994952a6FAD' as const;
 const polygonHotWallet = '0xc6E01B7A2e8D842447ED43d30FE89Ae9a9077b50' as const;
+
+describe('Courtyard FMV response', () => {
+    it('keeps only positive, attributable estimates', () => {
+        const validSource = `https://courtyard.io/asset/${'a'.repeat(64)}`;
+        expect(normalizeCourtyardFmvMarks([
+            { ok: true, mark: { positionId: 2, valueUsdc6: '504700000', fetchedAt: '2026-09-28T15:00:00Z', sourceUrl: validSource } },
+            { ok: true, mark: { positionId: 3, valueUsdc6: '0', fetchedAt: '2026-09-28T15:00:00Z', sourceUrl: validSource } },
+            { ok: true, mark: { positionId: 4, valueUsdc6: '700000000', fetchedAt: 'bad', sourceUrl: validSource } },
+        ])).toEqual({
+            2: { valueUsdt6: 504700000n, generatedAt: '2026-09-28T15:00:00Z', sourceUrl: validSource },
+        });
+    });
+});
 
 const round2Terms = {
     roundId: 2n,
