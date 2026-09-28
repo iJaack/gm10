@@ -42,7 +42,7 @@ export function calculatePortfolioValueSummary(
         : undefined;
     const activeCurrentMark = platformNavUsdt6 ?? totals.onchainCurrentMarkUsdt6;
     const strategyCurrentValueUsdt6 = activeCurrentMark + (options.liquidTreasuryUsdt6 ?? 0n);
-    const unrealizedPnlUsdt6 = strategyCurrentValueUsdt6 - totals.costBasisUsdt6;
+    const unrealizedPnlUsdt6 = activeCurrentMark - totals.costBasisUsdt6;
     const unrealizedPnlPercent = totals.costBasisUsdt6 === 0n
         ? 0
         : (Number(unrealizedPnlUsdt6) / Number(totals.costBasisUsdt6)) * 100;

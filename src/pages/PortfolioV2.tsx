@@ -22,7 +22,6 @@ import {
     LedgerRow,
     SectionLabel,
 } from '../components/v2/primitives';
-import { CARD_PURCHASE_CONVERSION_BASIS_USD } from '../data/strategyCapital';
 import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
 import type { Gm10PortfolioActivity, Gm10PortfolioPosition } from '../hooks/useFujiProof';
 
@@ -276,26 +275,23 @@ function PortfolioContent() {
     const cashAccountingAt = cashAccountingTimestamp && cashAccountingTimestamp > 0n
         ? new Date(Number(cashAccountingTimestamp) * 1000).toLocaleDateString()
         : undefined;
-    const strategyCurrentValueUsd = Number(formatUnits(portfolio.valueSummary.strategyCurrentValueUsdt6, 6));
-    const strategyPnlUsd = strategyCurrentValueUsd - CARD_PURCHASE_CONVERSION_BASIS_USD;
-    const strategyPnlPercent = CARD_PURCHASE_CONVERSION_BASIS_USD > 0
-        ? (strategyPnlUsd / CARD_PURCHASE_CONVERSION_BASIS_USD) * 100
-        : 0;
-    const strategyPnlDirection: 'up' | 'down' | 'flat' = strategyPnlUsd > 0
-        ? 'up'
-        : strategyPnlUsd < 0
-            ? 'down'
-            : 'flat';
+    const cardPnlUsd = Number(formatUnits(portfolio.valueSummary.unrealizedPnlUsdt6, 6));
+    const cardPnlPercent = portfolio.valueSummary.unrealizedPnlPercent;
 
     const summaryStats = [
-        { label: 'COST', value: figuresReady ? portfolio.proofSummary.costBasisLabel : '—' },
-        { label: hasCourtyardFmv ? 'COURTYARD EST. FMV' : 'CARD MARKS', value: figuresReady ? portfolio.proofSummary.onchainCurrentMarkLabel : '—' },
-        { label: 'CASH FUNDS', value: figuresReady ? portfolio.proofSummary.liquidTreasuryLabel : '—' },
+        { label: 'ACTIVE CARD COST', value: figuresReady ? portfolio.proofSummary.costBasisLabel : '—' },
         {
-            label: hasCourtyardFmv ? 'EST. STRATEGY VALUE' : 'STRATEGY VALUE',
+            label: hasCourtyardFmv ? 'COURTYARD EST. FMV' : 'CARD MARKS',
+            value: figuresReady ? portfolio.proofSummary.onchainCurrentMarkLabel : '—',
+            secondaryValue: figuresReady && hasCourtyardFmv
+                ? `CARD P/L ${formatSignedUsd(cardPnlUsd)} (${formatSignedPercent(cardPnlPercent)})`
+                : undefined,
+            tone: portfolio.valueSummary.unrealizedPnlDirection,
+        },
+        { label: 'ACCOUNTED CASH', value: figuresReady ? portfolio.proofSummary.liquidTreasuryLabel : '—' },
+        {
+            label: hasCourtyardFmv ? 'EST. CARDS + CASH' : 'CARDS + CASH',
             value: figuresReady ? portfolio.proofSummary.strategyCurrentValueLabel : '—',
-            secondaryValue: figuresReady ? `P/L ${formatSignedUsd(strategyPnlUsd)} (${formatSignedPercent(strategyPnlPercent)})` : undefined,
-            tone: strategyPnlDirection,
         },
     ];
 
@@ -325,11 +321,19 @@ function PortfolioContent() {
                         </Display>
                         <p className="mt-4 max-w-[86ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis stays the acquisition price. Card values show active holdings only. Strategy value adds finalized cash funds, and P/L is measured against AVAX converted into USDC for card buying.
+                            Active card cost is the recorded purchase price of cards still held. Card values show active holdings only. Adding accounted cash to card value gives the estimated cards plus cash total.
                         </p>
                     </div>
 
                     <SummaryStrip stats={summaryStats} />
+                    {figuresReady && hasCourtyardFmv ? (
+                        <p className="max-w-[90ch] pb-3 text-[0.8rem] leading-[1.6] text-[var(--text-primary)]">
+                            {portfolio.proofSummary.costBasisLabel} active card cost → {portfolio.proofSummary.onchainCurrentMarkLabel} estimated FMV
+                            {' '}({formatSignedUsd(cardPnlUsd)}, {formatSignedPercent(cardPnlPercent)} unrealized card P/L).
+                            {' '}{portfolio.proofSummary.onchainCurrentMarkLabel} FMV + {portfolio.proofSummary.liquidTreasuryLabel} accounted cash
+                            {' '}= {portfolio.proofSummary.strategyCurrentValueLabel} estimated cards plus cash.
+                        </p>
+                    ) : null}
                     <p className="max-w-[90ch] pb-4 text-[0.76rem] leading-[1.6] text-[var(--ink-muted)]">
                         {!figuresReady ? (
                             portfolio.positionsStatus === 'unavailable' || portfolio.stableAccountingError
@@ -338,7 +342,7 @@ function PortfolioContent() {
                         ) : hasCourtyardFmv ? (
                             <>
                                 Courtyard estimated fair market values for all {portfolio.positions.length} lots, fetched {courtyardFetchedAt ? new Date(courtyardFetchedAt).toLocaleString() : 'recently'}.
-                                {' '}These are indicative prices, not executable sale proceeds or an onchain NAV update. Registry card marks: {portfolio.proofSummary.registryCurrentMarkLabel}.
+                                {' '}Card P/L excludes cash and previously sold cards; it is not a strategy return. Courtyard prices are indicative, not executable sale proceeds or an onchain NAV update. Registry card marks: {portfolio.proofSummary.registryCurrentMarkLabel}.
                             </>
                         ) : (
                             <>
