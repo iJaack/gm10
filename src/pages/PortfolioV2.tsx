@@ -319,7 +319,7 @@ function PortfolioContent() {
                         <Display as="h1" className="mt-4 text-[clamp(2.5rem,6vw,4.5rem)]">
                             Collection
                         </Display>
-                        <p className="mt-4 max-w-[86ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
+                        <p className="mt-4 text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
                             Active card cost is the recorded purchase price of cards still held. Card values show active holdings only. Adding accounted cash to card value gives the estimated cards plus cash total.
                         </p>
@@ -327,14 +327,14 @@ function PortfolioContent() {
 
                     <SummaryStrip stats={summaryStats} />
                     {figuresReady && hasCourtyardFmv ? (
-                        <p className="max-w-[90ch] pb-3 text-[0.8rem] leading-[1.6] text-[var(--text-primary)]">
+                        <p className="pb-3 text-[0.8rem] leading-[1.6] text-[var(--text-primary)]">
                             {portfolio.proofSummary.costBasisLabel} active card cost → {portfolio.proofSummary.onchainCurrentMarkLabel} estimated FMV
                             {' '}({formatSignedUsd(cardPnlUsd)}, {formatSignedPercent(cardPnlPercent)} unrealized card P/L).
                             {' '}{portfolio.proofSummary.onchainCurrentMarkLabel} FMV + {portfolio.proofSummary.liquidTreasuryLabel} accounted cash
                             {' '}= {portfolio.proofSummary.strategyCurrentValueLabel} estimated cards plus cash.
                         </p>
                     ) : null}
-                    <p className="max-w-[90ch] pb-4 text-[0.76rem] leading-[1.6] text-[var(--ink-muted)]">
+                    <p className="pb-4 text-[0.76rem] leading-[1.6] text-[var(--ink-muted)]">
                         {!figuresReady ? (
                             portfolio.positionsStatus === 'unavailable' || portfolio.stableAccountingError
                                 ? 'Onchain portfolio accounting is unavailable; strategy figures cannot be verified.'
