@@ -42,6 +42,7 @@ const wagmiMocks = vi.hoisted(() => ({
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
     portfolioValueSummary: undefined as any,
+    portfolioStatus: 'ready' as 'ready' | 'loading' | 'unavailable',
     fetch: vi.fn(),
     reset: vi.fn(),
     writeContract: vi.fn(),
@@ -234,6 +235,8 @@ vi.mock('./hooks/useFujiProof', () => ({
             },
         ],
         collectiblePositionCount: 2,
+        positionsStatus: wagmiMocks.portfolioStatus,
+        stableAccounting: [0n, 0n, 10_000000n],
         positions: [
             {
                 positionId: 1,
@@ -483,6 +486,7 @@ afterEach(() => {
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
     wagmiMocks.portfolioValueSummary = undefined;
+    wagmiMocks.portfolioStatus = 'ready';
     wagmiMocks.fetch.mockReset();
     wagmiMocks.reset.mockClear();
     wagmiMocks.writeContract.mockClear();
@@ -1226,6 +1230,15 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/^continuous sourcing$/i)).not.toBeInTheDocument();
+    });
+
+    it('does not show a portfolio loss before onchain positions load', async () => {
+        wagmiMocks.portfolioStatus = 'loading';
+        renderAt('/portfolio');
+
+        expect(await screen.findByRole('heading', { name: /^collection$/i })).toBeInTheDocument();
+        expect(screen.getAllByText(/loading portfolio data/i).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/^P\/L [-+]/i)).not.toBeInTheDocument();
     });
 
     it('renders the holder dashboard with gated claim and market rows', async () => {

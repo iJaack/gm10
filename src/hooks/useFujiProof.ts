@@ -35,6 +35,7 @@ const MAX_PUBLIC_POSITIONS = 40;
 const DEFAULT_PLATFORM_NAV: PlatformNavState = { status: 'unavailable' };
 const AVAX_WEI = 10n ** 18n;
 const PUBLIC_VALUATION_REFRESH_INTERVAL_MS = 30_000;
+const COURTYARD_FMV_REFRESH_INTERVAL_MS = 5 * 60_000;
 const ROUND_STATE_REFRESH_INTERVAL_MS = 15_000;
 const SALE_ACTIVITY_REFRESH_INTERVAL_MS = 30_000;
 const PORTFOLIO_REGISTRY_EVENTS_FROM_BLOCK = 85_000_000n;
@@ -287,6 +288,8 @@ export type Gm10PortfolioPosition = {
     tokenId: string;
     acquisition: string;
     currentValue: string;
+    markSource?: 'courtyard' | 'public' | 'registry';
+    markObservedAt?: string;
     lastNavMark: string;
     acquisitionDateLabel: string;
     acquisitionTimestamp: number;
@@ -301,6 +304,38 @@ export type Gm10PortfolioPosition = {
     courtyardUrl?: string;
     proofUrl?: string;
 };
+
+type CourtyardFmvMark = PublicValuationOverride & {
+    sourceUrl: string;
+};
+
+type CourtyardMetadataResult = {
+    ok: boolean;
+    metadata?: CardMetadata & { positionId?: number };
+    mark?: {
+        positionId: number;
+        valueUsdc6: string;
+        fetchedAt: string;
+        sourceUrl: string;
+    };
+};
+
+export function normalizeCourtyardFmvMarks(results: readonly CourtyardMetadataResult[]) {
+    const marks: Record<number, CourtyardFmvMark> = {};
+    for (const item of results) {
+        const mark = item.mark;
+        if (!item.ok || !mark || !Number.isSafeInteger(mark.positionId) || mark.positionId <= 0) continue;
+        if (!/^\d+$/.test(mark.valueUsdc6) || BigInt(mark.valueUsdc6) <= 0n) continue;
+        if (!Number.isFinite(Date.parse(mark.fetchedAt))) continue;
+        if (!/^https:\/\/courtyard\.io\/asset\/[a-f0-9]{64}$/.test(mark.sourceUrl)) continue;
+        marks[mark.positionId] = {
+            valueUsdt6: BigInt(mark.valueUsdc6),
+            generatedAt: mark.fetchedAt,
+            sourceUrl: mark.sourceUrl,
+        };
+    }
+    return marks;
+}
 
 export type Gm10PortfolioActivity = {
     id: string;
@@ -451,6 +486,7 @@ function normalizePosition(
     liveMetadata?: CardMetadata,
     valuationOverride?: PublicValuationOverride,
     owner?: `0x${string}`,
+    markSource: Gm10PortfolioPosition['markSource'] = 'registry',
 ): Gm10PortfolioPosition {
     const positionId = Number(raw.id);
     const metadata = metadataForPosition(positionId, liveMetadata);
@@ -481,6 +517,10 @@ function normalizePosition(
         tokenId: raw.tokenId.toString(),
         acquisition: formatUsdt6(raw.acquisitionPriceUsdt6),
         currentValue: formatUsdt6(currentValueUsdt6),
+        markSource: activeValuationOverride ? markSource : 'registry',
+        markObservedAt: activeValuationOverride?.generatedAt ?? (raw.lastValuationAt > 0n
+            ? new Date(Number(raw.lastValuationAt) * 1000).toISOString()
+            : undefined),
         lastNavMark: formatUsdt6(raw.lastNavMarkUsdt6),
         acquisitionDateLabel: formatDate(raw.acquisitionDate),
         acquisitionTimestamp: Number(raw.acquisitionDate),
@@ -590,16 +630,20 @@ export function useFujiRoundState() {
     };
 }
 
-export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAULT_PLATFORM_NAV) {
+export function useFujiPortfolioPositions(
+    platformNav: PlatformNavState = DEFAULT_PLATFORM_NAV,
+    options: { preferCourtyardFmv?: boolean } = {},
+) {
     const contractState = useFujiContracts(GM10_PRIMARY_DEPLOYMENT);
     const { address } = useAccount();
     const publicClient = usePublicClient({ chainId: GM10_CHAIN_ID });
     const fallbackAvaxUsd = useAvaxPrice();
     const [liveMetadataByKey, setLiveMetadataByKey] = useState<Record<string, CardMetadata>>({});
     const [publicValuationOverrides, setPublicValuationOverrides] = useState<Record<number, PublicValuationOverride>>({});
+    const [courtyardFmvMarks, setCourtyardFmvMarks] = useState<Record<number, CourtyardFmvMark>>({});
     const [saleActivityByPositionId, setSaleActivityByPositionId] = useState<Record<number, Gm10PortfolioSaleActivity>>({});
 
-    const { data: collectiblePositionCount } = useReadContract({
+    const { data: collectiblePositionCount, isError: positionCountError } = useReadContract({
         address: contractState.portfolioRegistryAddress ?? ZERO_ADDRESS,
         abi: GM10_PORTFOLIO_REGISTRY_ABI,
         functionName: 'collectiblePositionCount',
@@ -618,12 +662,12 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         args: [positionId],
     } as const)), [contractState.portfolioRegistryAddress, positionIds]);
 
-    const { data: positionReads } = useReadContracts({
+    const { data: positionReads, isError: positionsReadError } = useReadContracts({
         contracts: positionContracts,
         query: { enabled: Boolean(contractState.portfolioRegistryAddress && positionContracts.length > 0) },
     });
 
-    const { data: stableAccounting } = useReadContract({
+    const { data: stableAccounting, isError: stableAccountingError } = useReadContract({
         address: contractState.proxyAddress ?? ZERO_ADDRESS,
         abi: GM10_FUND_ABI,
         functionName: 'stableAccounting',
@@ -774,19 +818,23 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         return owners;
     }, [custodyReadPositions, custodyReads]);
 
-    const liveMetadataRequestKey = useMemo(() => rawPositions
+    const liveMetadataRequestKey = useMemo(() => holdingRawPositions
         .map(positionMetadataKey)
-        .join('|'), [rawPositions]);
+        .join('|'), [holdingRawPositions]);
 
     useEffect(() => {
-        const positionsToResolve = rawPositions;
+        const positionsToResolve = holdingRawPositions;
         if (positionsToResolve.length === 0) {
             setLiveMetadataByKey({});
+            setCourtyardFmvMarks({});
             return;
         }
 
-        const controller = new AbortController();
+        let activeController: AbortController | undefined;
         async function loadMetadata() {
+            activeController?.abort();
+            const controller = new AbortController();
+            activeController = controller;
             try {
                 const response = await fetch('/api/nft-metadata', {
                     method: 'POST',
@@ -803,9 +851,7 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                 });
 
                 if (!response.ok) throw new Error(`NFT metadata returned ${response.status}`);
-                const payload = await response.json() as {
-                    positions?: Array<{ ok: boolean; metadata?: CardMetadata & { positionId?: number } }>;
-                };
+                const payload = await response.json() as { positions?: CourtyardMetadataResult[] };
                 const next: Record<string, CardMetadata> = {};
                 for (const item of payload.positions ?? []) {
                     if (!item.ok || !item.metadata?.positionId) continue;
@@ -814,14 +860,22 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
                     next[positionMetadataKey(raw)] = item.metadata;
                 }
                 setLiveMetadataByKey(next);
+                setCourtyardFmvMarks(normalizeCourtyardFmvMarks(payload.positions ?? []));
             } catch {
-                if (!controller.signal.aborted) setLiveMetadataByKey({});
+                if (!controller.signal.aborted) {
+                    setLiveMetadataByKey({});
+                    setCourtyardFmvMarks({});
+                }
             }
         }
 
         void loadMetadata();
-        return () => controller.abort();
-    }, [liveMetadataRequestKey, rawPositions]);
+        const intervalId = window.setInterval(() => { void loadMetadata(); }, COURTYARD_FMV_REFRESH_INTERVAL_MS);
+        return () => {
+            window.clearInterval(intervalId);
+            activeController?.abort();
+        };
+    }, [holdingRawPositions, liveMetadataRequestKey]);
 
     useEffect(() => {
         let activeController: AbortController | undefined;
@@ -924,14 +978,25 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         };
     }, [contractState.portfolioRegistryAddress, publicClient, soldPositionIds]);
 
+    const hasCompleteCourtyardFmv = Boolean(options.preferCourtyardFmv && holdingRawPositions.length > 0
+        && holdingRawPositions.every((raw) => courtyardFmvMarks[Number(raw.id)]));
+    const positionsStatus = positionCountError || positionsReadError || positionReads?.some((read) => read.status === 'failure')
+        ? 'unavailable'
+        : collectiblePositionCount !== undefined
+            && (positionIds.length === 0 || (positionReads?.length === positionIds.length && positionReads.every((read) => read.status === 'success')))
+            ? 'ready'
+            : 'loading';
     const positions = useMemo(() => holdingRawPositions
         .map((raw) => normalizePosition(
             raw,
             liveMetadataByKey[positionMetadataKey(raw)],
-            publicValuationOverrides[Number(raw.id)],
+            hasCompleteCourtyardFmv
+                ? courtyardFmvMarks[Number(raw.id)]
+                : publicValuationOverrides[Number(raw.id)],
             ownerByPositionKey[positionMetadataKey(raw)],
+            hasCompleteCourtyardFmv ? 'courtyard' : 'public',
         ))
-        .sort((a, b) => a.positionId - b.positionId), [holdingRawPositions, liveMetadataByKey, ownerByPositionKey, publicValuationOverrides]);
+        .sort((a, b) => a.positionId - b.positionId), [courtyardFmvMarks, hasCompleteCourtyardFmv, holdingRawPositions, liveMetadataByKey, ownerByPositionKey, publicValuationOverrides]);
     const activityPositions = useMemo(() => rawPositions
         .map((raw) => normalizePosition(
             raw,
@@ -967,6 +1032,10 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
         () => calculatePortfolioValueSummary(positions, platformNav, { liquidTreasuryUsdt6 }),
         [liquidTreasuryUsdt6, platformNav, positions],
     );
+    const registryCurrentMarkUsdt6 = holdingRawPositions.reduce(
+        (total, raw) => total + raw.currentValueUsdt6,
+        0n,
+    );
     const hasPublicValuationOverrides = Object.keys(publicValuationOverrides).length > 0;
 
     const activity = useMemo<Gm10PortfolioActivity[]>(() => sortPortfolioActivityNewestFirst(activityPositions
@@ -991,9 +1060,11 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
     return {
         ...contractState,
         positions,
+        positionsStatus,
         activity,
         valueSummary,
         stableAccounting,
+        stableAccountingError,
         navPerToken,
         referenceNav: holderAccounting.referenceNav,
         circulatingSupply,
@@ -1005,12 +1076,16 @@ export function useFujiPortfolioPositions(platformNav: PlatformNavState = DEFAUL
             holdingsChipLabel: `${positions.length} acquired card${positions.length === 1 ? '' : 's'}`,
             costBasisLabel: formatUsdt6(valueSummary.costBasisUsdt6),
             onchainCurrentMarkLabel: formatUsdt6(valueSummary.onchainCurrentMarkUsdt6),
+            registryCurrentMarkLabel: formatUsdt6(registryCurrentMarkUsdt6),
+            courtyardFmvMarkCount: holdingRawPositions.filter((raw) => courtyardFmvMarks[Number(raw.id)]).length,
             strategyCurrentValueLabel: formatUsdt6(valueSummary.strategyCurrentValueUsdt6),
             platformNavLabel: valueSummary.platformNavUsdt6 !== undefined ? formatUsdt6(valueSummary.platformNavUsdt6) : 'Unavailable',
             unrealizedPnlLabel: formatUsdt6(valueSummary.unrealizedPnlUsdt6),
             unrealizedPnlPercentLabel: formatPercent(valueSummary.unrealizedPnlPercent),
             unrealizedPnlDirection: valueSummary.unrealizedPnlDirection,
-            unrealizedSourceLabel: valueSummary.unrealizedSource === 'courtyard'
+            unrealizedSourceLabel: hasCompleteCourtyardFmv
+                ? 'Courtyard per-card estimated FMV'
+                : valueSummary.unrealizedSource === 'courtyard'
                 ? 'Courtyard profile NAV'
                 : hasPublicValuationOverrides
                     ? 'Submitted FMV marks'

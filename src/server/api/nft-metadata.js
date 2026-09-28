@@ -1,5 +1,13 @@
+import http2 from 'node:http2';
+
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const MAX_BATCH_SIZE = 40;
+const COURTYARD_COLLECTION = '0x251BE3A17Af4892035C37ebf5890F4a4D889dcAD';
+const COURTYARD_CUSTODY_ADDRESSES = [
+    process.env.GM10_POLYGON_COURTYARD_SAFE_ADDRESS || '0x39971795266a794a8156271729A07994952a6FAD',
+    process.env.GM10_POLYGON_COURTYARD_HOT_WALLET_ADDRESS || '0xc6E01B7A2e8D842447ED43d30FE89Ae9a9077b50',
+].map((address) => address.toLowerCase());
+const COURTYARD_API_ORIGIN = 'https://api.courtyard.io';
 const BROWSER_HEADERS = {
     Accept: 'application/json,text/plain,*/*',
     'Accept-Language': 'en-US,en;q=0.9',
@@ -99,7 +107,92 @@ async function fetchMetadata(tokenUri) {
 function getAttribute(payload, names) {
     const attributes = Array.isArray(payload?.attributes) ? payload.attributes : [];
     const wanted = new Set(names.map((name) => name.toLowerCase()));
-    return attributes.find((attribute) => wanted.has(String(attribute.trait_type ?? attribute.type ?? '').toLowerCase()))?.value;
+    return attributes.find((attribute) => wanted.has(String(attribute.trait_type ?? attribute.type ?? attribute.name ?? '').toLowerCase()))?.value;
+}
+
+export function normalizeCourtyardPosition(position, asset, fetchedAt = new Date().toISOString()) {
+    const tokenId = BigInt(position.tokenId);
+    const assetId = tokenId.toString(16).padStart(64, '0');
+    const priceUsdc6 = Math.round(Number(asset?.fmv_estimate_usd) * 1_000_000);
+    if (
+        String(asset?.chain).toLowerCase() !== 'polygon'
+        || String(asset?.contract).toLowerCase() !== String(position.collection).toLowerCase()
+        || String(asset?.proof_of_integrity).toLowerCase() !== assetId
+        || String(asset?.token_id) !== tokenId.toString()
+        || !COURTYARD_CUSTODY_ADDRESSES.includes(String(asset?.owner?.address).toLowerCase())
+        || !Number.isSafeInteger(priceUsdc6)
+        || priceUsdc6 <= 0
+    ) {
+        throw new Error('Courtyard asset identity, custody, or FMV did not verify');
+    }
+
+    const title = String(asset.title || `Position #${position.positionId}`);
+    const subtitle = [getAttribute(asset, ['set']), getAttribute(asset, ['grade'])].filter(Boolean).join(', ') || undefined;
+    const sourceUrl = `https://courtyard.io/asset/${assetId}`;
+    return {
+        metadata: {
+            positionId: position.positionId,
+            title,
+            subtitle,
+            imageSrc: String(asset.image || asset.cropped_image || '/brand/cover-pokeball-night.webp'),
+            imageAlt: `${title} — GM10 position #${position.positionId}`,
+            courtyardUrl: sourceUrl,
+            proofUrl: sourceUrl,
+            note: 'Card identity and estimated FMV fetched from Courtyard and matched to the registry token.',
+        },
+        mark: {
+            positionId: position.positionId,
+            valueUsdc6: String(priceUsdc6),
+            fetchedAt,
+            sourceUrl,
+        },
+    };
+}
+
+async function fetchCourtyardPosition(position) {
+    const tokenId = BigInt(position.tokenId);
+    if (tokenId < 0n || tokenId >= 2n ** 256n) throw new Error('Invalid Courtyard token id');
+    const assetId = tokenId.toString(16).padStart(64, '0');
+    const asset = await new Promise((resolve, reject) => {
+        const session = http2.connect(COURTYARD_API_ORIGIN);
+        const request = session.request({
+            ':method': 'GET',
+            ':path': `/index/asset/${assetId}`,
+            accept: 'application/json',
+            referer: 'https://courtyard.io/',
+            'user-agent': 'GM10ValuationBot/1.0 (+https://gm10.xyz)',
+        });
+        let status = 0;
+        let body = '';
+        let finished = false;
+        const timer = setTimeout(() => request.destroy(new Error('Courtyard asset timed out')), 8_000);
+        const finish = (error, value) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            session.destroy();
+            if (error) reject(error);
+            else resolve(value);
+        };
+        session.on('error', finish);
+        request.on('error', finish);
+        request.on('response', (headers) => { status = Number(headers[':status']); });
+        request.setEncoding('utf8');
+        request.on('data', (chunk) => {
+            body += chunk;
+            if (body.length > 2_000_000) request.destroy(new Error('Courtyard asset response too large'));
+        });
+        request.on('end', () => {
+            if (status !== 200) return finish(new Error(`Courtyard asset returned ${status}`));
+            try {
+                finish(null, JSON.parse(body));
+            } catch {
+                finish(new Error('Courtyard asset returned invalid JSON'));
+            }
+        });
+        request.end();
+    });
+    return normalizeCourtyardPosition(position, asset);
 }
 
 function normalizePayload(position, tokenUri, payload) {
@@ -123,13 +216,21 @@ function normalizePayload(position, tokenUri, payload) {
 }
 
 async function resolvePosition(position) {
-    if (!Number.isInteger(Number(position.positionId))) throw new Error('Invalid position id');
+    if (!Number.isSafeInteger(Number(position.positionId)) || Number(position.positionId) <= 0) throw new Error('Invalid position id');
     if (!ADDRESS_RE.test(String(position.collection ?? ''))) throw new Error('Invalid collection address');
     if (!/^\d+$/.test(String(position.tokenId ?? ''))) throw new Error('Invalid token id');
 
+    if (Number(position.chainEid) === 30109 && String(position.collection).toLowerCase() === COURTYARD_COLLECTION.toLowerCase()) {
+        try {
+            return await fetchCourtyardPosition(position);
+        } catch {
+            // Keep tokenURI metadata available if Courtyard cannot provide a verified FMV.
+        }
+    }
+
     const tokenUri = await rpcCall(position.chainEid, position.collection, position.tokenId);
     const payload = await fetchMetadata(tokenUri);
-    return normalizePayload(position, tokenUri, payload);
+    return { metadata: normalizePayload(position, tokenUri, payload) };
 }
 
 export default async function handler(request, response) {
@@ -145,7 +246,7 @@ export default async function handler(request, response) {
         const positions = Array.isArray(body.positions) ? body.positions.slice(0, MAX_BATCH_SIZE) : [];
         const results = await Promise.all(positions.map(async (position) => {
             try {
-                return { ok: true, metadata: await resolvePosition(position) };
+                return { ok: true, ...await resolvePosition(position) };
             } catch (error) {
                 return {
                     ok: false,

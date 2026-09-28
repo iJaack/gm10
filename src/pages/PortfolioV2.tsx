@@ -23,9 +23,8 @@ import {
     SectionLabel,
 } from '../components/v2/primitives';
 import { CARD_PURCHASE_CONVERSION_BASIS_USD } from '../data/strategyCapital';
-import { useCourtyardProfileNav } from '../hooks/useCourtyardProfileNav';
 import { useFujiPortfolioPositions } from '../hooks/useFujiProof';
-import type { Gm10PortfolioPosition } from '../hooks/useFujiProof';
+import type { Gm10PortfolioActivity, Gm10PortfolioPosition } from '../hooks/useFujiProof';
 
 /* ── Summary strip ─────────────────────────────────────── */
 
@@ -110,7 +109,9 @@ function LotCard({ position }: { position: Gm10PortfolioPosition }) {
                         <DataMono className="text-[var(--text-primary)]">{position.acquisition}</DataMono>
                     </div>
                     <div>
-                        <Caption className="block text-[0.6rem] uppercase tracking-[0.08em] text-[var(--ink-faint)]">Mark</Caption>
+                        <Caption className="block text-[0.6rem] uppercase tracking-[0.08em] text-[var(--ink-faint)]">
+                            {position.markSource === 'courtyard' ? 'Est. FMV' : 'Mark'}
+                        </Caption>
                         <DataMono className="text-[var(--text-primary)]">{position.currentValue}</DataMono>
                     </div>
                 </div>
@@ -187,9 +188,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
 
 /* ── ActivityLedger ────────────────────────────────────── */
 
-function ActivityLedger() {
-    const portfolio = useFujiPortfolioPositions();
-    const items = portfolio.activity;
+function ActivityLedger({ items }: { items: Gm10PortfolioActivity[] }) {
     return (
         <section className="px-4 py-12">
             <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
@@ -267,12 +266,16 @@ function formatSignedPercent(value: number) {
 }
 
 function PortfolioContent() {
-    const platformNav = useCourtyardProfileNav();
-    const portfolio = useFujiPortfolioPositions({
-        status: platformNav.status,
-        netWorthUsd: platformNav.netWorthUsd,
-    });
+    const portfolio = useFujiPortfolioPositions({ status: 'unavailable' }, { preferCourtyardFmv: true });
     const [view, setView] = useState<ViewMode>('grid');
+    const figuresReady = portfolio.positionsStatus === 'ready' && portfolio.stableAccounting !== undefined;
+    const hasCourtyardFmv = portfolio.positionsStatus === 'ready' && portfolio.positions.length > 0
+        && portfolio.positions.every((position) => position.markSource === 'courtyard');
+    const courtyardFetchedAt = hasCourtyardFmv ? portfolio.positions[0].markObservedAt : undefined;
+    const cashAccountingTimestamp = portfolio.stableAccounting?.[1];
+    const cashAccountingAt = cashAccountingTimestamp && cashAccountingTimestamp > 0n
+        ? new Date(Number(cashAccountingTimestamp) * 1000).toLocaleDateString()
+        : undefined;
     const strategyCurrentValueUsd = Number(formatUnits(portfolio.valueSummary.strategyCurrentValueUsdt6, 6));
     const strategyPnlUsd = strategyCurrentValueUsd - CARD_PURCHASE_CONVERSION_BASIS_USD;
     const strategyPnlPercent = CARD_PURCHASE_CONVERSION_BASIS_USD > 0
@@ -285,13 +288,13 @@ function PortfolioContent() {
             : 'flat';
 
     const summaryStats = [
-        { label: 'COST', value: portfolio.proofSummary.costBasisLabel },
-        { label: 'CARD MARKS', value: portfolio.proofSummary.onchainCurrentMarkLabel },
-        { label: 'CASH FUNDS', value: portfolio.proofSummary.liquidTreasuryLabel },
+        { label: 'COST', value: figuresReady ? portfolio.proofSummary.costBasisLabel : '—' },
+        { label: hasCourtyardFmv ? 'COURTYARD EST. FMV' : 'CARD MARKS', value: figuresReady ? portfolio.proofSummary.onchainCurrentMarkLabel : '—' },
+        { label: 'CASH FUNDS', value: figuresReady ? portfolio.proofSummary.liquidTreasuryLabel : '—' },
         {
-            label: 'STRATEGY VALUE',
-            value: portfolio.proofSummary.strategyCurrentValueLabel,
-            secondaryValue: `P/L ${formatSignedUsd(strategyPnlUsd)} (${formatSignedPercent(strategyPnlPercent)})`,
+            label: hasCourtyardFmv ? 'EST. STRATEGY VALUE' : 'STRATEGY VALUE',
+            value: figuresReady ? portfolio.proofSummary.strategyCurrentValueLabel : '—',
+            secondaryValue: figuresReady ? `P/L ${formatSignedUsd(strategyPnlUsd)} (${formatSignedPercent(strategyPnlPercent)})` : undefined,
             tone: strategyPnlDirection,
         },
     ];
@@ -307,7 +310,7 @@ function PortfolioContent() {
                             {' · '}
                             <span className="text-[var(--text-primary)]">Portfolio</span>
                             {' · '}
-                            <span>Lots {portfolio.positions.length}</span>
+                            <span>Lots {portfolio.positionsStatus === 'ready' ? portfolio.positions.length : '—'}</span>
                         </DataMono>
                         <DataMono className="text-[0.7rem] text-[var(--ink-faint)] tracking-[0.04em]">
                             SYNCED WITH REGISTRY
@@ -322,11 +325,29 @@ function PortfolioContent() {
                         </Display>
                         <p className="mt-4 max-w-[86ch] text-[0.98rem] leading-[1.7] text-[var(--ink-muted)]">
                             Every lot is a graded card position with custody, provenance, and marks tracked through marketplace records and onchain registry data.
-                            Cost basis stays the acquisition price. Card marks show active holdings only. Strategy value adds finalized cash funds, and P/L is measured against AVAX converted into USDC for card buying.
+                            Cost basis stays the acquisition price. Card values show active holdings only. Strategy value adds finalized cash funds, and P/L is measured against AVAX converted into USDC for card buying.
                         </p>
                     </div>
 
                     <SummaryStrip stats={summaryStats} />
+                    <p className="max-w-[90ch] pb-4 text-[0.76rem] leading-[1.6] text-[var(--ink-muted)]">
+                        {!figuresReady ? (
+                            portfolio.positionsStatus === 'unavailable' || portfolio.stableAccountingError
+                                ? 'Onchain portfolio accounting is unavailable; strategy figures cannot be verified.'
+                                : 'Loading portfolio data…'
+                        ) : hasCourtyardFmv ? (
+                            <>
+                                Courtyard estimated fair market values for all {portfolio.positions.length} lots, fetched {courtyardFetchedAt ? new Date(courtyardFetchedAt).toLocaleString() : 'recently'}.
+                                {' '}These are indicative prices, not executable sale proceeds or an onchain NAV update. Registry card marks: {portfolio.proofSummary.registryCurrentMarkLabel}.
+                            </>
+                        ) : (
+                            <>
+                                Courtyard estimates available for {portfolio.proofSummary.courtyardFmvMarkCount ?? 0} of {portfolio.positions.length} lots.
+                                {' '}Showing registry or submitted marks until every active lot has a verified Courtyard estimate; these may be stale.
+                            </>
+                        )}
+                        {figuresReady && cashAccountingAt ? ` Cash funds reflect onchain accounting dated ${cashAccountingAt}.` : ''}
+                    </p>
                 </div>
             </section>
 
@@ -335,7 +356,7 @@ function PortfolioContent() {
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
                     {/* View toggle + count */}
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                        <SectionLabel>Holdings ({portfolio.positions.length})</SectionLabel>
+                        <SectionLabel>Holdings ({portfolio.positionsStatus === 'ready' ? portfolio.positions.length : '—'})</SectionLabel>
                         <div className="flex items-center gap-3">
                             <Caption className="text-[var(--ink-faint)] uppercase tracking-[0.08em]">View</Caption>
                             <div className="inline-flex items-center rounded-full border border-[var(--border)] p-0.5">
@@ -357,7 +378,11 @@ function PortfolioContent() {
                         </div>
                     </div>
 
-                    {portfolio.positions.length === 0 ? (
+                    {portfolio.positionsStatus !== 'ready' ? (
+                        <div className="py-16 text-center">
+                            <Caption>{portfolio.positionsStatus === 'unavailable' ? 'Holdings unavailable.' : 'Loading portfolio data…'}</Caption>
+                        </div>
+                    ) : portfolio.positions.length === 0 ? (
                         <div className="py-16 text-center">
                             <Caption>No lots recorded onchain yet.</Caption>
                         </div>
@@ -378,7 +403,7 @@ function PortfolioContent() {
                                 <span />
                                 <span>Title</span>
                                 <span className="text-right">Cost</span>
-                                <span className="text-right">Mark</span>
+                                <span className="text-right">{hasCourtyardFmv ? 'Est. FMV' : 'Mark'}</span>
                                 <span>Status</span>
                                 <span>Chain</span>
                                 <span>Acquired</span>
@@ -392,7 +417,7 @@ function PortfolioContent() {
                 </div>
             </section>
 
-            <ActivityLedger />
+            <ActivityLedger items={portfolio.activity} />
         </main>
     );
 }
