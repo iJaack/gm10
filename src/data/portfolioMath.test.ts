@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { calculatePortfolioValueSummary, dollarsToUsdt6 } from './portfolioMath';
 
 describe('portfolio value summary', () => {
-    it('separates cost basis, card marks, platform NAV, cash, and strategy P/L', () => {
+    it('keeps cash out of unrealized card P/L', () => {
         const summary = calculatePortfolioValueSummary([
             { acquisitionPriceUsdt6: 96_000000n, currentValueUsdt6: 100_000000n },
             { acquisitionPriceUsdt6: 250_000000n, currentValueUsdt6: 260_000000n },
@@ -12,8 +12,8 @@ describe('portfolio value summary', () => {
         expect(summary.onchainCurrentMarkUsdt6).toBe(360_000000n);
         expect(summary.platformNavUsdt6).toBe(400_000000n);
         expect(summary.strategyCurrentValueUsdt6).toBe(440_000000n);
-        expect(summary.unrealizedPnlUsdt6).toBe(94_000000n);
-        expect(summary.unrealizedPnlPercent).toBeCloseTo(27.1676, 4);
+        expect(summary.unrealizedPnlUsdt6).toBe(54_000000n);
+        expect(summary.unrealizedPnlPercent).toBeCloseTo(15.6069, 4);
         expect(summary.unrealizedPnlDirection).toBe('up');
         expect(summary.unrealizedSource).toBe('courtyard');
     });

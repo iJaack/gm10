@@ -42,6 +42,7 @@ const wagmiMocks = vi.hoisted(() => ({
     holderDashboard: undefined as any,
     portfolioProofSummary: undefined as any,
     portfolioValueSummary: undefined as any,
+    portfolioPositions: undefined as any,
     portfolioStatus: 'ready' as 'ready' | 'loading' | 'unavailable',
     fetch: vi.fn(),
     reset: vi.fn(),
@@ -237,7 +238,7 @@ vi.mock('./hooks/useFujiProof', () => ({
         collectiblePositionCount: 2,
         positionsStatus: wagmiMocks.portfolioStatus,
         stableAccounting: [0n, 0n, 10_000000n],
-        positions: [
+        positions: wagmiMocks.portfolioPositions ?? [
             {
                 positionId: 1,
                 title: 'Gengar VMAX',
@@ -298,6 +299,9 @@ vi.mock('./hooks/useFujiProof', () => ({
         },
         valueSummary: wagmiMocks.portfolioValueSummary ?? {
             strategyCurrentValueUsdt6: 50_000000n,
+            unrealizedPnlUsdt6: 0n,
+            unrealizedPnlPercent: 0,
+            unrealizedPnlDirection: 'flat',
         },
     }),
 }));
@@ -486,6 +490,7 @@ afterEach(() => {
     wagmiMocks.holderDashboard = undefined;
     wagmiMocks.portfolioProofSummary = undefined;
     wagmiMocks.portfolioValueSummary = undefined;
+    wagmiMocks.portfolioPositions = undefined;
     wagmiMocks.portfolioStatus = 'ready';
     wagmiMocks.fetch.mockReset();
     wagmiMocks.reset.mockClear();
@@ -1205,24 +1210,17 @@ describe('page compression regressions', () => {
                 isFinalized: true,
             },
         };
-        wagmiMocks.portfolioProofSummary = {
-            strategyCurrentValueLabel: '$18,000.00',
-        };
-        wagmiMocks.portfolioValueSummary = {
-            strategyCurrentValueUsdt6: 18_000_000000n,
-        };
-
         renderAt('/portfolio');
 
         expect(await screen.findByRole('heading', { name: /^collection$/i })).toBeInTheDocument();
         expect(screen.getByText(/marketplace records and onchain registry data/i)).toBeInTheDocument();
+        expect(screen.getByText(/^active card cost$/i)).toBeInTheDocument();
         expect(screen.getByText(/^card marks$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^cash funds$/i)).toBeInTheDocument();
-        expect(screen.getByText(/^strategy value$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^accounted cash$/i)).toBeInTheDocument();
+        expect(screen.getByText(/^cards \+ cash$/i)).toBeInTheDocument();
         expect(screen.queryByText(/^2 recorded positions$/i)).not.toBeInTheDocument();
-        expect(screen.getByText(/P\/L \+\$3,246\.09 \(\+22\.0%\)/i)).toHaveClass('v2-up');
-        expect(screen.queryByText(/P\/L .* \+22\.0%/i)).not.toBeInTheDocument();
-        expect(screen.getAllByText(/cost basis/i).length).toBeGreaterThan(0);
+        expect(screen.queryByText(/^P\/L [-+]/i)).not.toBeInTheDocument();
+        expect(screen.getAllByText(/\$40\.00/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/gengar vmax/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/recorded card #2/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/^activity ledger$/i)).toBeInTheDocument();
@@ -1230,6 +1228,42 @@ describe('page compression regressions', () => {
         expect(screen.queryByText(/resume slabs/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/data model/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/^continuous sourcing$/i)).not.toBeInTheDocument();
+    });
+
+    it('reconciles Courtyard card value, active card cost, and accounted cash', async () => {
+        wagmiMocks.portfolioPositions = [{
+            positionId: 1,
+            title: 'Gengar VMAX',
+            imageSrc: '/brand/cover-pokeball-night.webp',
+            imageAlt: 'Gengar card',
+            chain: 'Polygon',
+            statusLabel: 'Active',
+            acquisition: '$100.00',
+            currentValue: '$80.00',
+            markSource: 'courtyard',
+            acquisitionDateLabel: 'Apr 15, 2026',
+            courtyardUrl: 'https://courtyard.io/asset/test',
+        }];
+        wagmiMocks.portfolioProofSummary = {
+            costBasisLabel: '$100.00',
+            onchainCurrentMarkLabel: '$80.00',
+            liquidTreasuryLabel: '$20.00',
+            strategyCurrentValueLabel: '$100.00',
+            registryCurrentMarkLabel: '$95.00',
+        };
+        wagmiMocks.portfolioValueSummary = {
+            strategyCurrentValueUsdt6: 100_000000n,
+            unrealizedPnlUsdt6: -20_000000n,
+            unrealizedPnlPercent: -20,
+            unrealizedPnlDirection: 'down',
+        };
+
+        renderAt('/portfolio');
+
+        expect(await screen.findByText(/^courtyard est\. fmv$/i)).toBeInTheDocument();
+        expect(screen.getByText(/CARD P\/L -\$20\.00 \(-20\.0%\)/i)).toHaveClass('v2-down');
+        expect(screen.getByText(/^est\. cards \+ cash$/i)).toBeInTheDocument();
+        expect(document.querySelector('main')?.textContent).toContain('$80.00 FMV + $20.00 accounted cash = $100.00 estimated cards plus cash.');
     });
 
     it('does not show a portfolio loss before onchain positions load', async () => {
