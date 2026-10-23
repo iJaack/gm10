@@ -95,4 +95,39 @@ describe("GemMintStrategyFundV8 buyback and LP execution", function () {
     await expect(fund.executeLpSupport({ ...valid, pairedAvaxAmount: 6_000_000n }))
       .to.be.revertedWithCustomError(fund, "InsufficientFreeBalance");
   });
+
+  it("releases LP support only once for the accrued budget", async function () {
+    const { fund, lfj } = await deployMockV8();
+    const MockERC20 = await ethers.getContractFactory("MockERC20");
+    const usdc = await MockERC20.deploy("Mock USDC", "USDC");
+    await usdc.waitForDeployment();
+    await usdc.setDecimalsForTest(6);
+    await fund.setSaleSettlementToken(await usdc.getAddress(), true, 6);
+    await fund.setMarketSupportAccrualsForTest(0n, 10_000_000n);
+    await usdc.mint(await fund.getAddress(), 10_000_000n);
+
+    await fund.releaseLpSupportToken(
+      await usdc.getAddress(),
+      lfj.address,
+      6_000_000n,
+      6_000_000n,
+      ethers.id("lp-release")
+    );
+
+    expect(await fund.lpSupportAccruedUsdt6()).to.equal(4_000_000n);
+    expect(await usdc.balanceOf(lfj.address)).to.equal(6_000_000n);
+    await expect(fund.releaseLpSupportToken(
+      await usdc.getAddress(),
+      lfj.address,
+      6_000_000n,
+      6_000_000n,
+      ethers.id("lp-release-again")
+    )).to.be.revertedWithCustomError(fund, "InsufficientFreeBalance");
+
+    await expect(fund.connect(lfj).setSaleSettlementToken(await usdc.getAddress(), true, 18))
+      .to.be.revertedWithCustomError(fund, "AccessControlUnauthorizedAccount");
+    await expect(fund.setSaleSettlementToken(await usdc.getAddress(), true, 18))
+      .to.be.revertedWithCustomError(fund, "InvalidParameters");
+    expect(await fund.saleSettlementTokenDecimals(await usdc.getAddress())).to.equal(6);
+  });
 });

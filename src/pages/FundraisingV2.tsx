@@ -110,7 +110,7 @@ type PendingContinuousCommit = {
     settleTxHash?: `0x${string}`;
     createdAt: number;
     expiresAt: number;
-    status: 'registered' | 'route_submitted' | 'settled';
+    status: 'registered' | 'route_submitted' | 'settled' | 'refunded';
 };
 
 type LifiTransactionRequest = {
@@ -433,7 +433,7 @@ function readPendingContinuousCommits() {
             && (commit?.quotedSettlementAmountRaw === undefined || isDecimalBigintString(commit?.quotedSettlementAmountRaw))
             && typeof commit?.expiresAt === 'number'
             && typeof commit?.createdAt === 'number'
-            && ['registered', 'route_submitted', 'settled'].includes(commit?.status),
+            && ['registered', 'route_submitted', 'settled', 'refunded'].includes(commit?.status),
         );
     } catch {
         return [];
@@ -456,22 +456,6 @@ function commitSettledFromReadResult(commit: unknown) {
         return (commit as { settled: boolean }).settled;
     }
     return false;
-}
-
-function commitFundAvaxBalanceBeforeFromReadResult(commit: unknown) {
-    if (Array.isArray(commit) && typeof commit[9] === 'bigint') return commit[9];
-    if (commit && typeof commit === 'object' && typeof (commit as { fundAvaxBalanceBefore?: unknown }).fundAvaxBalanceBefore === 'bigint') {
-        return (commit as { fundAvaxBalanceBefore: bigint }).fundAvaxBalanceBefore;
-    }
-    return 0n;
-}
-
-function commitAccountedFundAvaxBeforeFromReadResult(commit: unknown) {
-    if (Array.isArray(commit) && typeof commit[10] === 'bigint') return commit[10];
-    if (commit && typeof commit === 'object' && typeof (commit as { accountedFundAvaxBefore?: unknown }).accountedFundAvaxBefore === 'bigint') {
-        return (commit as { accountedFundAvaxBefore: bigint }).accountedFundAvaxBefore;
-    }
-    return 0n;
 }
 
 function pendingNativeSettlementCap(pending: PendingContinuousCommit) {
@@ -678,20 +662,8 @@ function FundraisingContent() {
             let settledBalance: bigint;
             if (pending.usesNativeSettlement) {
                 const settlementCap = pendingNativeSettlementCap(pending);
-                const fundBalance = await avalanchePublicClient.getBalance({ address: pending.escrowAddress });
-                const accountedFundAvaxSettlementWei = await avalanchePublicClient.readContract({
-                    address: receiverAddress,
-                    abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
-                    functionName: 'accountedFundAvaxSettlementWei',
-                });
-                const fundBalanceBefore = commitFundAvaxBalanceBeforeFromReadResult(commit);
-                const accountedBefore = commitAccountedFundAvaxBeforeFromReadResult(commit);
-                const fundBalanceDelta = fundBalance > fundBalanceBefore ? fundBalance - fundBalanceBefore : 0n;
-                const accountedDelta = typeof accountedFundAvaxSettlementWei === 'bigint' && accountedFundAvaxSettlementWei > accountedBefore
-                    ? accountedFundAvaxSettlementWei - accountedBefore
-                    : 0n;
-                const availableSettlement = fundBalanceDelta > accountedDelta ? fundBalanceDelta - accountedDelta : 0n;
-                settledBalance = availableSettlement > settlementCap ? settlementCap : availableSettlement;
+                const escrowBalance = await avalanchePublicClient.getBalance({ address: pending.escrowAddress });
+                settledBalance = escrowBalance > settlementCap ? settlementCap : escrowBalance;
             } else {
                 const escrowBalance = await avalanchePublicClient.readContract({
                     address: pending.settlementToken,
@@ -732,6 +704,50 @@ function FundraisingContent() {
             setCommitFeedback({
                 tone: 'error',
                 message: caught instanceof Error ? caught.message : 'Registered commit could not be settled.',
+            });
+        } finally {
+            setSettlingCommitId(null);
+        }
+    }
+
+    async function handleRefundPendingCommit(pending: PendingContinuousCommit) {
+        setCommitFeedback(null);
+        if (!address) {
+            setCommitFeedback({ tone: 'error', message: 'Reconnect the wallet that registered this commit before requesting a refund.' });
+            return;
+        }
+        if (!sameRouteAddress(address, pending.buyer)) {
+            setCommitFeedback({ tone: 'error', message: 'This registered commit belongs to a different buyer wallet.' });
+            return;
+        }
+        if (!commitReceiverAddress) {
+            setCommitFeedback({ tone: 'error', message: 'Mint route missing: no verified Avalanche settlement receiver is configured.' });
+            return;
+        }
+
+        setSettlingCommitId(pending.commitId);
+        try {
+            await switchChainAsync({ chainId: GM10_CHAIN_ID });
+            const refundHash = await writeContractAsync({
+                address: commitReceiverAddress,
+                abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
+                functionName: 'refundCommit',
+                args: [pending.commitId],
+            });
+            const refundReceipt = await avalanchePublicClient?.waitForTransactionReceipt({ hash: refundHash });
+            if (refundReceipt && refundReceipt.status !== 'success') throw new Error('Commit refund reverted.');
+            updatePendingCommit(pending.commitId, {
+                status: 'refunded',
+                settleTxHash: refundHash,
+            });
+            setCommitFeedback({
+                tone: 'ready',
+                message: `Refund sent for commit ${formatShortAddress(pending.commitId)}.`,
+            });
+        } catch (caught) {
+            setCommitFeedback({
+                tone: 'error',
+                message: caught instanceof Error ? caught.message : 'Registered commit could not be refunded.',
             });
         } finally {
             setSettlingCommitId(null);
@@ -862,7 +878,7 @@ function FundraisingContent() {
                     args: [commitId],
                 });
                 const registeredEscrow = commitEscrowFromReadResult(commit);
-                if (!registeredEscrow) throw new Error('Commit registered, but fund settlement address was not readable.');
+                if (!registeredEscrow) throw new Error('Commit registered, but the settlement escrow was not readable.');
                 const pendingCommit: PendingContinuousCommit = {
                     commitId,
                     providerRouteId,
@@ -890,12 +906,22 @@ function FundraisingContent() {
             let minSettlementAmount: bigint;
             let escrowAddress: `0x${string}`;
             if (usesNativeSettlement) {
-                setCommitFeedback({ tone: 'pending', message: 'Quoting native AVAX settlement into the fund proxy...' });
-                ({ route, routeTx } = await quoteRoute({ settlementAddress: GM10_PRIMARY_DEPLOYMENT.proxy.address }));
+                setCommitFeedback({ tone: 'pending', message: 'Quoting native AVAX settlement into the commit escrow...' });
+                const predictedEscrow = await avalanchePublicClient.readContract({
+                    address: commitReceiverAddress,
+                    abi: GM10_CONTINUOUS_MINT_RECEIVER_ABI,
+                    functionName: 'predictEscrow',
+                    args: [commitId],
+                });
+                if (!isAddressLike(predictedEscrow)) throw new Error('Commit escrow could not be predicted.');
+                ({ route, routeTx } = await quoteRoute({ escrowAddress: predictedEscrow }));
                 minSettlementAmount = BigInt(route.toAmountMinRaw || route.toAmountRaw || '0');
                 const quotedSettlementAmount = BigInt(route.toAmountRaw || route.toAmountMinRaw || '0');
                 if (minSettlementAmount <= 0n) throw new Error('Route did not return a native AVAX settlement amount.');
                 ({ escrowAddress } = await registerCommitAndReadEscrow(minSettlementAmount, quotedSettlementAmount));
+                if (!sameRouteAddress(escrowAddress, predictedEscrow)) {
+                    throw new Error('Quoted escrow did not match the registered commit.');
+                }
                 updatePendingCommit(commitId, { routeTool: route.tool });
             } else {
                 minSettlementAmount = protectedUsdcMinimum(settlementAmountUsdt6);
@@ -927,7 +953,7 @@ function FundraisingContent() {
                 }
             }
 
-            const destinationLabel = usesNativeSettlement ? 'fund proxy' : 'settlement escrow';
+            const destinationLabel = 'settlement escrow';
             setCommitFeedback({ tone: 'pending', message: `Submitting ${route.tool || 'LI.FI'} route into the ${destinationLabel} ${formatShortAddress(escrowAddress)}...` });
             const routeHash = await sendTransactionAsync({
                 to: routeTx.to,
@@ -957,7 +983,9 @@ function FundraisingContent() {
             }
 
             let settledBalance = BigInt(route.toAmountRaw || route.toAmountMinRaw || '0');
-            if (!usesNativeSettlement) {
+            if (usesNativeSettlement) {
+                settledBalance = await avalanchePublicClient.getBalance({ address: escrowAddress });
+            } else {
                 const escrowBalance = await avalanchePublicClient.readContract({
                     address: settlementTokenAddress,
                     abi: ERC20_ROUTE_ABI,
@@ -1164,7 +1192,7 @@ function FundraisingContent() {
                                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                                         <div>
                                                             <DataMono className="block text-[0.76rem] font-bold text-[var(--text-primary)]">
-                                                                {formatShortAddress(pending.commitId)} · {pending.status === 'settled' ? 'settled' : expired ? 'expired' : 'waiting settlement'}
+                                                                {formatShortAddress(pending.commitId)} · {pending.status === 'settled' ? 'settled' : pending.status === 'refunded' ? 'refunded' : expired ? 'expired' : 'waiting settlement'}
                                                             </DataMono>
                                                             <DataMono className="mt-1 block text-[0.68rem] leading-snug text-[var(--ink-muted)]">
                                                                 {pending.sourceTokenSymbol} on {pending.sourceChainLabel} via {pending.routeTool || 'route'} · min {formatSettlementAmount(minSettlementAmount, pending.usesNativeSettlement)} · escrow {formatShortAddress(pending.escrowAddress)}
@@ -1175,19 +1203,36 @@ function FundraisingContent() {
                                                                 </DataMono>
                                                             ) : null}
                                                         </div>
-                                                        {pending.status === 'settled' ? (
-                                                            <DataMono className="text-[0.72rem] font-bold uppercase tracking-[0.06em] v2-up">
-                                                                Mint settled
+                                                        {pending.status === 'refunded' ? (
+                                                            <DataMono className="text-[0.72rem] font-bold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                                                                Refunded
                                                             </DataMono>
                                                         ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => void handleSettlePendingCommit(pending)}
-                                                                disabled={expired || settlingCommitId === pending.commitId}
-                                                                className="v2-mono shrink-0 rounded-full border border-[var(--accent-brass)] px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:bg-[var(--accent-muted)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:text-[var(--ink-muted)]"
-                                                            >
-                                                                {settlingCommitId === pending.commitId ? 'Checking...' : 'Settle mint'}
-                                                            </button>
+                                                            <div className="flex shrink-0 items-center gap-2">
+                                                                {pending.status === 'settled' ? (
+                                                                    <DataMono className="text-[0.72rem] font-bold uppercase tracking-[0.06em] v2-up">
+                                                                        Mint settled
+                                                                    </DataMono>
+                                                                ) : null}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => void handleRefundPendingCommit(pending)}
+                                                                    disabled={settlingCommitId === pending.commitId}
+                                                                    className="v2-mono rounded-full border border-[var(--rule-strong)] px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:text-[var(--ink-muted)]"
+                                                                >
+                                                                    Refund
+                                                                </button>
+                                                                {pending.status === 'settled' ? null : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => void handleSettlePendingCommit(pending)}
+                                                                        disabled={expired || settlingCommitId === pending.commitId}
+                                                                        className="v2-mono rounded-full border border-[var(--accent-brass)] px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:bg-[var(--accent-muted)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:text-[var(--ink-muted)]"
+                                                                    >
+                                                                        {settlingCommitId === pending.commitId ? 'Checking...' : 'Settle mint'}
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1209,7 +1254,7 @@ function FundraisingContent() {
                                 {[
                                     ['NAV-backed token price', fmtUsdc(navPerTokenUsdt6)],
                                     ['Mint spread', fmtSpread(mintSpreadBps)],
-                                    ['Settlement', sameRouteAddress(settlementTokenAddress, LIFI_NATIVE_TOKEN) ? 'Native AVAX' : 'USDC escrow'],
+                                    ['Settlement', sameRouteAddress(settlementTokenAddress, LIFI_NATIVE_TOKEN) ? 'Native AVAX escrow' : 'USDC escrow'],
                                     ['Raised all-time', totalRaisedLabel],
                                 ].map(([label, value]) => (
                                     <div key={label} className="rounded-xl border border-[var(--rule)] bg-[var(--bg-secondary)] px-3 py-2.5">

@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const { ethers } = hre;
 const fs = require("fs");
 
-const MANAGER_ROLE = ethers.id("MANAGER_ROLE");
+const CONTINUOUS_MINT_ROLE = ethers.id("CONTINUOUS_MINT_ROLE");
 const NATIVE_AVAX = ethers.ZeroAddress;
 
 function requireAddress(name) {
@@ -71,15 +71,16 @@ async function main() {
   ], fundProxy, deployer);
 
   if (grantManagerRole) {
-    const tx = await fund.grantRole(MANAGER_ROLE, receiverAddress);
+    const tx = await fund.grantRole(CONTINUOUS_MINT_ROLE, receiverAddress);
     console.log("  grantRole tx     :", tx.hash);
     await tx.wait();
-    console.log("  Manager role     :", await fund.hasRole(MANAGER_ROLE, receiverAddress));
+    console.log("  Mint role        :", await fund.hasRole(CONTINUOUS_MINT_ROLE, receiverAddress));
   } else {
-    const grantData = fund.interface.encodeFunctionData("grantRole", [MANAGER_ROLE, receiverAddress]);
-    console.log("  Manager role     :", await fund.hasRole(MANAGER_ROLE, receiverAddress));
+    const grantData = fund.interface.encodeFunctionData("grantRole", [CONTINUOUS_MINT_ROLE, receiverAddress]);
+    console.log("  Mint role        :", await fund.hasRole(CONTINUOUS_MINT_ROLE, receiverAddress));
     console.log("  Grant calldata   :", grantData);
-    console.log("  Set GRANT_MANAGER_ROLE=true only when the connected signer can grant MANAGER_ROLE directly.");
+    console.log("  Set GRANT_MANAGER_ROLE=true only when the connected signer can grant CONTINUOUS_MINT_ROLE directly.");
+    console.log("  Do not grant MANAGER_ROLE to the receiver.");
   }
 }
 
