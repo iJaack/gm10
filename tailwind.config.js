@@ -3,6 +3,8 @@ export default {
     content: [
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
+        // This test quotes selectors and colors. Leave it out of class extraction so the build does not emit them.
+        "!./src/index.contrast.test.ts",
     ],
     theme: {
         extend: {

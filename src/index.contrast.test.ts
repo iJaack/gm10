@@ -238,8 +238,21 @@ function focusVisibleOutlineColor(): string | undefined {
 function selectorTargets(selector: string, pseudo: ':focus' | ':focus-visible'): boolean {
     return selectorList(selector).some((part) => {
         if (pseudo === ':focus-visible') return part.includes(':focus-visible');
-        return /:focus(?!-visible)/.test(part);
+        return hasMouseFocusPseudo(part);
     });
+}
+
+/** True when the selector has :focus and that hit is not the :focus-visible pseudo. */
+function hasMouseFocusPseudo(selector: string): boolean {
+    const marker = ':focus';
+    let from = 0;
+    while (from < selector.length) {
+        const at = selector.indexOf(marker, from);
+        if (at === -1) return false;
+        if (!selector.startsWith('-visible', at + marker.length)) return true;
+        from = at + marker.length;
+    }
+    return false;
 }
 
 function usesFillAccent(rule: CssRule): boolean {
