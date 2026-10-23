@@ -186,24 +186,38 @@ test('falls back to exact-source LI.FI quotes when exact-output routing is unava
   assert.ok(calls.some((call) => call.startsWith('/v1/quote:')));
 });
 
-test('builds a same-chain native AVAX continuous commit transfer into the fund proxy', async () => {
+test('builds a same-chain native AVAX continuous commit transfer into the commit escrow', async () => {
+  const escrowAddress = '0x2222222222222222222222222222222222222222';
   const result = await buildContinuousCommitRoute({
     fromChainId: 43114,
     fromToken: '0x0000000000000000000000000000000000000000',
     fromAmountRaw: '1000000000000000000',
     fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    escrowAddress,
     settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
     settlementToken: '0x0000000000000000000000000000000000000000',
   }, async () => {
     throw new Error('LI.FI should not be called for same-chain native AVAX');
   });
 
-  assert.equal(result.settlementAddress, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.settlementAddress, escrowAddress);
+  assert.equal(result.escrowAddress, escrowAddress);
   assert.equal(result.settlementToken, '0x0000000000000000000000000000000000000000');
   assert.equal(result.route.tool, 'native-transfer');
   assert.equal(result.route.toAmountRaw, '1000000000000000000');
-  assert.equal(result.route.transactionRequest.to, '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(result.route.transactionRequest.to, escrowAddress);
   assert.equal(result.route.transactionRequest.value, '1000000000000000000');
+  await assert.rejects(
+    () => buildContinuousCommitRoute({
+      fromChainId: 43114,
+      fromToken: '0x0000000000000000000000000000000000000000',
+      fromAmountRaw: '1000000000000000000',
+      fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+      settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
+      settlementToken: '0x0000000000000000000000000000000000000000',
+    }, async () => { throw new Error('unused'); }),
+    /per-commit escrow/,
+  );
 });
 
 test('builds a same-chain USDC continuous commit transfer into the escrow', async () => {
@@ -230,7 +244,7 @@ test('builds a same-chain USDC continuous commit transfer into the escrow', asyn
   assert.ok(result.route.transactionRequest.data.toLowerCase().includes(escrowAddress.toLowerCase().replace(/^0x/, '').padStart(64, '0')));
 });
 
-test('builds a LI.FI continuous commit route to native AVAX in the fund proxy', async () => {
+test('builds a LI.FI continuous commit route to native AVAX in the commit escrow', async () => {
   const calls = [];
   const fetchImpl = async (url) => {
     const parsed = new URL(url);
@@ -249,19 +263,22 @@ test('builds a LI.FI continuous commit route to native AVAX in the fund proxy', 
     };
   };
 
+  const escrowAddress = '0x2222222222222222222222222222222222222222';
   const result = await buildContinuousCommitRoute({
     fromChainId: 8453,
     fromToken: '0x0000000000000000000000000000000000000000',
     fromAmountRaw: '1000000000000000000',
     fromAddress: '0x39971795266a794a8156271729A07994952a6FAD',
+    escrowAddress,
     settlementAddress: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f',
     settlementToken: '0x0000000000000000000000000000000000000000',
   }, fetchImpl);
 
   assert.equal(calls[0].pathname, '/v1/quote');
   assert.equal(calls[0].searchParams.get('toToken'), '0x0000000000000000000000000000000000000000');
-  assert.equal(calls[0].searchParams.get('toAddress'), '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f');
+  assert.equal(calls[0].searchParams.get('toAddress'), escrowAddress);
   assert.equal(result.route.toAmountMinRaw, '980000000000000000');
+  assert.equal(result.settlementAddress, escrowAddress);
 });
 
 test('builds a LI.FI continuous commit route to USDC in the per-commit escrow', async () => {

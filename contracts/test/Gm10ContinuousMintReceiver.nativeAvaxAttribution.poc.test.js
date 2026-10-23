@@ -47,6 +47,7 @@ async function deployContinuousMintReceiverFixture() {
   const MockERC20 = await ethers.getContractFactory("MockERC20");
   const usdc = await MockERC20.deploy("Mock USDC", "USDC");
   await usdc.waitForDeployment();
+  await usdc.setDecimalsForTest(6);
 
   const Receiver = await ethers.getContractFactory("Gm10ContinuousMintReceiver");
   const receiver = await Receiver.deploy(
@@ -57,20 +58,9 @@ async function deployContinuousMintReceiverFixture() {
     6
   );
   await receiver.waitForDeployment();
-  await fund.grantManagerForTest(await receiver.getAddress());
+  await fund.grantContinuousMintForTest(await receiver.getAddress());
 
-  return {
-    fund,
-    controller,
-    receiver,
-    usdc,
-    owner,
-    buyer,
-    treasury,
-    attacker,
-    thirdParty,
-    MockERC20,
-  };
+  return { fund, controller, receiver, usdc, owner, buyer, treasury, attacker, thirdParty, MockERC20 };
 }
 
 async function latestTimestamp() {
@@ -88,182 +78,114 @@ async function registerNative(receiver, signer, commitId, providerRouteId, minSe
   );
 }
 
-describe("Gm10ContinuousMintReceiver native AVAX attribution PoC", function () {
-  it("lets a non-paying caller settle another buyer's AVAX and stick the payer", async function () {
-    const { fund, controller, receiver, buyer, attacker } = await deployContinuousMintReceiverFixture();
+describe("native AVAX settlement attribution regression", function () {
+  it("pays the buyer who funded that commit escrow and leaves the other commit untouched", async function () {
+    const { fund, receiver, buyer, attacker } = await deployContinuousMintReceiverFixture();
     const payment = ethers.parseEther("1");
-    const attackerMin = 1n;
     const expiresAt = (await latestTimestamp()) + 3600;
-    const attackerCommitId = ethers.id("poc-attacker-commit");
-    const attackerRouteId = ethers.id("poc-attacker-route");
-    const buyerCommitId = ethers.id("poc-buyer-commit");
-    const buyerRouteId = ethers.id("poc-buyer-route");
-    const quotedUsdt6 = 9_120000n;
-    const [buyerCatch18, segmentCatchEach18] = await fund.previewContinuousMint(quotedUsdt6);
-    const attackerBalanceBefore = await ethers.provider.getBalance(attacker.address);
+    const attackerCommitId = ethers.id("regression-attacker-commit");
+    const attackerRouteId = ethers.id("regression-attacker-route");
+    const buyerCommitId = ethers.id("regression-buyer-commit");
+    const buyerRouteId = ethers.id("regression-buyer-route");
+    const [buyerCatch18] = await fund.previewContinuousMint(9_120000n);
 
-    await registerNative(receiver, attacker, attackerCommitId, attackerRouteId, attackerMin, expiresAt);
+    await registerNative(receiver, attacker, attackerCommitId, attackerRouteId, 1n, expiresAt);
     await registerNative(receiver, buyer, buyerCommitId, buyerRouteId, payment, expiresAt);
+    const attackerEscrow = (await receiver.commits(attackerCommitId)).escrow;
+    const buyerEscrow = (await receiver.commits(buyerCommitId)).escrow;
+    expect(attackerEscrow).to.not.equal(buyerEscrow);
+    expect(attackerEscrow).to.equal(await receiver.predictEscrow(attackerCommitId));
+    expect(buyerEscrow).to.equal(await receiver.predictEscrow(buyerCommitId));
 
-    const attackerCommit = await receiver.commits(attackerCommitId);
-    const buyerCommit = await receiver.commits(buyerCommitId);
-    expect(attackerCommit.escrow).to.equal(await fund.getAddress());
-    expect(buyerCommit.escrow).to.equal(await fund.getAddress());
-    expect(attackerCommit.fundAvaxBalanceBefore).to.equal(buyerCommit.fundAvaxBalanceBefore);
-    expect(attackerCommit.accountedFundAvaxBefore).to.equal(buyerCommit.accountedFundAvaxBefore);
-
-    await buyer.sendTransaction({ to: await fund.getAddress(), value: payment });
-
-    await receiver.connect(attacker).commitSettledRoute(
-      attackerCommitId,
-      attackerRouteId,
-      attacker.address,
-      NATIVE_AVAX,
-      payment
-    );
-
-    expect(await fund.balanceOf(attacker.address)).to.equal(buyerCatch18);
-    expect(await fund.balanceOf(buyer.address)).to.equal(0n);
-    expect(await ethers.provider.getBalance(await fund.getAddress())).to.equal(
-      attackerCommit.fundAvaxBalanceBefore + payment
-    );
-    expect(await receiver.accountedFundAvaxSettlementWei()).to.equal(payment);
-    expect(await fund.accountedFundAvaxSettlementWei()).to.equal(payment);
-    expect((await fund.stableAccounting()).liquidTreasury).to.equal(100_000_000n + ((quotedUsdt6 * 9_000n) / 10_000n));
-    for (let segment = 0; segment < 5; segment += 1) {
-      const recipient = await controller.segmentRecipient(segment);
-      expect(await fund.balanceOf(recipient)).to.equal(segmentCatchEach18);
-    }
+    await buyer.sendTransaction({ to: buyerEscrow, value: payment });
 
     await expect(
-      receiver.connect(buyer).commitSettledRoute(
-        buyerCommitId,
-        buyerRouteId,
-        buyer.address,
+      receiver.connect(attacker).commitSettledRoute(
+        attackerCommitId,
+        attackerRouteId,
+        attacker.address,
         NATIVE_AVAX,
         payment
       )
     ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
 
-    const buyerCommitAfter = await receiver.commits(buyerCommitId);
-    expect(buyerCommitAfter.settled).to.equal(false);
-    expect(await ethers.provider.getBalance(attacker.address)).to.be.closeTo(attackerBalanceBefore, ethers.parseEther("0.01"));
+    await receiver.connect(buyer).commitSettledRoute(
+      buyerCommitId,
+      buyerRouteId,
+      buyer.address,
+      NATIVE_AVAX,
+      payment
+    );
+
+    expect(await fund.balanceOf(buyer.address)).to.equal(buyerCatch18);
+    expect(await fund.balanceOf(attacker.address)).to.equal(0n);
+    expect(await ethers.provider.getBalance(buyerEscrow)).to.equal(0n);
+    expect(await ethers.provider.getBalance(await fund.getAddress())).to.equal(payment);
   });
 
-  it("lets a pre-registered caller claim AVAX that a third party sent to the fund", async function () {
+  it("does not mint for AVAX sent to the fund instead of the commit escrow", async function () {
     const { fund, receiver, attacker, thirdParty } = await deployContinuousMintReceiverFixture();
     const inflow = ethers.parseEther("2");
     const expiresAt = (await latestTimestamp()) + 86_400;
-    const commitId = ethers.id("poc-third-party-inflow");
-    const routeId = ethers.id("poc-third-party-route");
-    const [expectedCatch] = await fund.previewContinuousMint(18_240000n);
+    const commitId = ethers.id("regression-third-party-inflow");
+    const routeId = ethers.id("regression-third-party-route");
 
     await registerNative(receiver, attacker, commitId, routeId, 1n, expiresAt);
-    const snapshot = (await receiver.commits(commitId)).fundAvaxBalanceBefore;
-
     await thirdParty.sendTransaction({ to: await fund.getAddress(), value: inflow });
 
-    await receiver.connect(attacker).commitSettledRoute(
-      commitId,
-      routeId,
-      attacker.address,
-      NATIVE_AVAX,
-      inflow
-    );
-
-    expect(await fund.balanceOf(attacker.address)).to.equal(expectedCatch);
-    expect(await fund.balanceOf(thirdParty.address)).to.equal(0n);
-    expect(await ethers.provider.getBalance(await fund.getAddress())).to.equal(snapshot + inflow);
-  });
-
-  it("does not let a caller claim AVAX that was already in the fund at registration", async function () {
-    const { fund, receiver, attacker, thirdParty } = await deployContinuousMintReceiverFixture();
-    const preexisting = ethers.parseEther("5");
-    const expiresAt = (await latestTimestamp()) + 3600;
-    const commitId = ethers.id("poc-preexisting-balance");
-    const routeId = ethers.id("poc-preexisting-route");
-
-    await thirdParty.sendTransaction({ to: await fund.getAddress(), value: preexisting });
-    await registerNative(receiver, attacker, commitId, routeId, preexisting, expiresAt);
-
     await expect(
-      receiver.connect(attacker).commitSettledRoute(
-        commitId,
-        routeId,
-        attacker.address,
-        NATIVE_AVAX,
-        preexisting
-      )
+      receiver.connect(attacker).commitSettledRoute(commitId, routeId, attacker.address, NATIVE_AVAX, inflow)
     ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
     expect(await fund.balanceOf(attacker.address)).to.equal(0n);
   });
 
-  it("leaves a native payer unable to settle or reclaim after the fund balance drops", async function () {
+  it("returns escrowed AVAX to the buyer and blocks a later mint", async function () {
     const { fund, receiver, buyer } = await deployContinuousMintReceiverFixture();
     const payment = ethers.parseEther("1");
     const expiresAt = (await latestTimestamp()) + 600;
-    const commitId = ethers.id("poc-balance-drop");
-    const routeId = ethers.id("poc-balance-drop-route");
+    const commitId = ethers.id("regression-refund");
+    const routeId = ethers.id("regression-refund-route");
 
     await registerNative(receiver, buyer, commitId, routeId, payment, expiresAt);
-    const snapshot = (await receiver.commits(commitId)).fundAvaxBalanceBefore;
-    await buyer.sendTransaction({ to: await fund.getAddress(), value: payment });
+    const escrow = (await receiver.commits(commitId)).escrow;
+    await buyer.sendTransaction({ to: escrow, value: payment });
 
-    await hre.network.provider.send("hardhat_setBalance", [
-      await fund.getAddress(),
-      ethers.toQuantity(snapshot),
-    ]);
+    await expect(receiver.connect(buyer).refundCommit(commitId))
+      .to.emit(receiver, "ContinuousCommitRefunded")
+      .withArgs(commitId, buyer.address, NATIVE_AVAX, payment);
+    expect(await ethers.provider.getBalance(escrow)).to.equal(0n);
+    expect((await receiver.commits(commitId)).cancelled).to.equal(true);
 
+    await buyer.sendTransaction({ to: escrow, value: payment });
     await expect(
       receiver.connect(buyer).commitSettledRoute(commitId, routeId, buyer.address, NATIVE_AVAX, payment)
-    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+    ).to.be.revertedWithCustomError(receiver, "CommitCancelled");
+    await expect(receiver.connect(buyer).refundCommit(commitId))
+      .to.emit(receiver, "ContinuousCommitRefunded")
+      .withArgs(commitId, buyer.address, NATIVE_AVAX, payment);
 
     await time.increaseTo(expiresAt + 1);
-    await hre.network.provider.send("hardhat_setBalance", [
-      await fund.getAddress(),
-      ethers.toQuantity(snapshot + payment),
-    ]);
-
-    await expect(
-      receiver.connect(buyer).commitSettledRoute(commitId, routeId, buyer.address, NATIVE_AVAX, payment)
-    ).to.be.revertedWithCustomError(receiver, "CommitExpired");
-
-    const commit = await receiver.commits(commitId);
-    expect(commit.settled).to.equal(false);
-    expect(commit.escrow).to.equal(await fund.getAddress());
     expect(await fund.balanceOf(buyer.address)).to.equal(0n);
-    const functionNames = receiver.interface.fragments
-      .filter((fragment) => fragment.type === "function")
-      .map((fragment) => fragment.name);
-    expect(functionNames).to.not.include.members([
-      "cancelCommit",
-      "refund",
-      "refundCommit",
-      "claimRefund",
-      "expireCommit",
-    ]);
-    expect(await ethers.provider.getBalance(await fund.getAddress())).to.equal(snapshot + payment);
   });
 
-  it("prices an approved ERC20 only from admin-supplied decimals and treats it as 1 USD", async function () {
+  it("keeps the registered decimal snapshot when a token changes its reported decimals", async function () {
     const { fund, receiver, buyer, attacker, owner, MockERC20 } = await deployContinuousMintReceiverFixture();
     const volatile = await MockERC20.deploy("Volatile Receipt", "VOL");
     await volatile.waitForDeployment();
-    expect(await volatile.decimals()).to.equal(18n);
 
     await expect(
-      receiver.connect(attacker).configureSettlementToken(await volatile.getAddress(), true, 0)
+      receiver.connect(attacker).configureSettlementToken(await volatile.getAddress(), true, 18)
     ).to.be.revertedWithCustomError(receiver, "AccessControlUnauthorizedAccount");
+    await expect(
+      receiver.connect(owner).configureSettlementToken(await volatile.getAddress(), true, 6)
+    ).to.be.revertedWithCustomError(receiver, "InvalidParameters");
 
     await receiver.connect(owner).configureSettlementToken(await volatile.getAddress(), true, 18);
     const oneToken = ethers.parseEther("1");
-    const oneUsd = 1_000_000n;
-    const [catchForOneUsd] = await fund.previewContinuousMint(oneUsd);
-    const [catchIfDecimalsWereSix] = await fund.previewContinuousMint(oneToken);
-    expect(catchIfDecimalsWereSix / catchForOneUsd).to.equal(10n ** 12n);
+    const [catchForOneUsd] = await fund.previewContinuousMint(1_000_000n);
     const expiresAt = (await latestTimestamp()) + 3600;
-    const commitId = ethers.id("poc-admin-decimals-18");
-    const routeId = ethers.id("poc-admin-decimals-18-route");
+    const commitId = ethers.id("regression-decimal-snapshot");
+    const routeId = ethers.id("regression-decimal-snapshot-route");
 
     await receiver.connect(buyer).registerCommit(
       commitId,
@@ -273,9 +195,9 @@ describe("Gm10ContinuousMintReceiver native AVAX attribution PoC", function () {
       oneToken,
       expiresAt
     );
+    await volatile.setDecimalsForTest(6);
     const escrow = (await receiver.commits(commitId)).escrow;
     await volatile.mint(escrow, oneToken);
-
     await receiver.connect(buyer).commitSettledRoute(
       commitId,
       routeId,
@@ -285,31 +207,6 @@ describe("Gm10ContinuousMintReceiver native AVAX attribution PoC", function () {
     );
 
     expect(await fund.balanceOf(buyer.address)).to.equal(catchForOneUsd);
-
-    await receiver.connect(owner).configureSettlementToken(await volatile.getAddress(), true, 6);
-    const inflatedCommitId = ethers.id("poc-admin-decimals-6");
-    const inflatedRouteId = ethers.id("poc-admin-decimals-6-route");
-    const [inflatedCatch] = await fund.previewContinuousMint(oneToken);
-    expect(inflatedCatch).to.be.gt(catchForOneUsd);
-
-    await receiver.connect(buyer).registerCommit(
-      inflatedCommitId,
-      inflatedRouteId,
-      buyer.address,
-      await volatile.getAddress(),
-      oneToken,
-      expiresAt
-    );
-    const inflatedEscrow = (await receiver.commits(inflatedCommitId)).escrow;
-    await volatile.mint(inflatedEscrow, oneToken);
-    await receiver.connect(buyer).commitSettledRoute(
-      inflatedCommitId,
-      inflatedRouteId,
-      buyer.address,
-      await volatile.getAddress(),
-      oneToken
-    );
-
-    expect(await fund.balanceOf(buyer.address)).to.equal(catchForOneUsd + inflatedCatch);
+    expect((await receiver.commits(commitId)).settlementDecimals).to.equal(18);
   });
 });

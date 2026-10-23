@@ -17,6 +17,8 @@ interface IGm10ContinuousMintReceiver {
         uint256 settledAmount
     ) external returns (uint256 buyerCatch18);
 
+    function predictEscrow(bytes32 commitId) external view returns (address escrow);
+
     function registerCommit(
         bytes32 commitId,
         bytes32 providerRouteId,
@@ -25,6 +27,8 @@ interface IGm10ContinuousMintReceiver {
         uint256 minSettlementAmount,
         uint64 expiresAt
     ) external returns (address escrow);
+
+    function refundCommit(bytes32 commitId) external returns (uint256 refundedAmount);
 
     function retryOftDelivery(bytes32 commitId) external payable;
 

@@ -322,8 +322,11 @@ export async function buildContinuousCommitRoute({
   const normalizedSettlementToken = String(settlementToken || NATIVE_TOKEN).trim();
   assertEvmAddress(normalizedSettlementToken, 'Avalanche settlement token');
   const usesNativeSettlement = normalizedSettlementToken === NATIVE_TOKEN;
-  const destinationAddress = usesNativeSettlement ? settlementAddress || escrowAddress : escrowAddress;
-  assertEvmAddress(destinationAddress, usesNativeSettlement ? 'Avalanche settlement receiver' : 'per-commit escrow');
+  if (usesNativeSettlement && !escrowAddress) {
+    throw new Error('Native AVAX settlement requires the per-commit escrow');
+  }
+  const destinationAddress = escrowAddress || settlementAddress;
+  assertEvmAddress(destinationAddress, 'per-commit escrow');
   const sourceToken = String(fromToken || NATIVE_TOKEN).trim();
   if (sourceToken !== NATIVE_TOKEN) assertEvmAddress(sourceToken, 'source token');
 

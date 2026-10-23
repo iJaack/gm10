@@ -48,7 +48,7 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
     await fund.syncStableNavForTest();
     await fund.grantGovernanceForTest(owner.address);
     await fund.setContinuousAccrualControls(false, true, true, -500);
-    await fund.grantManagerForTest(owner.address);
+    await fund.grantContinuousMintForTest(owner.address);
 
     const commitId = ethers.id("settled-route-1");
     const buyer = ethers.Wallet.createRandom().address;
@@ -94,7 +94,7 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
     await fund.setAvaxPricingForTest(await avaxUsdFeed.getAddress(), 86_400n);
     await fund.grantGovernanceForTest(owner.address);
     await fund.setContinuousAccrualControls(false, true, true, -500);
-    await fund.grantManagerForTest(owner.address);
+    await fund.grantContinuousMintForTest(owner.address);
 
     const commitId = ethers.id("native-avax-route-1");
     const buyer = ethers.Wallet.createRandom().address;
@@ -116,5 +116,18 @@ describe("GemMintStrategyFundV8 continuous mint", function () {
 
     await expect(fund.settleContinuousMintFromAvax(ethers.id("native-avax-route-2"), buyer, avaxAmount))
       .to.be.revertedWithCustomError(fund, "InsufficientSettlementBalance");
+  });
+
+  it("does not let a general manager mint without the continuous mint role", async function () {
+    const { fund, owner } = await deployMockV8();
+    await fund.mintForTest(owner.address, ethers.parseEther("100"));
+    await fund.setStableAccountingForTest(100_000_000n, 0n, 0n, 0n, 0n, 0n);
+    await fund.syncStableNavForTest();
+    await fund.grantGovernanceForTest(owner.address);
+    await fund.setContinuousAccrualControls(false, true, true, -500);
+    await fund.grantManagerForTest(owner.address);
+
+    await expect(fund.settleContinuousMint(ethers.id("manager-cannot-mint"), owner.address, 1_000_000n))
+      .to.be.revertedWithCustomError(fund, "AccessControlUnauthorizedAccount");
   });
 });
