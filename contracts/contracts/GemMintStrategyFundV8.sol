@@ -8,6 +8,7 @@ import "./interfaces/IGm10ContinuousSaleRouter.sol";
 import "./interfaces/IGm10PortfolioRegistry.sol";
 import "./interfaces/IGm10TokenomicsV7Controller.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -18,6 +19,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
 
     uint256 private constant WORKFLOW_BPS = 10_000;
     bytes32 private constant VALUATION_MANAGER_ROLE = keccak256("VALUATION_MANAGER_ROLE");
+    bytes32 public constant CONTINUOUS_MINT_ROLE = keccak256("CONTINUOUS_MINT_ROLE");
 
     address internal canonicalUsdt;
     address internal avaxUsdFeed;
@@ -114,6 +116,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         bytes32 proofHash
     );
     event LpVenueCustodyModeUpdated(address indexed venue, uint8 mode);
+    event SaleSettlementTokenSet(address indexed token, bool approved, uint8 decimals);
     event ContinuousAccrualControlsUpdated(
         bool continuousMintPaused,
         bool buybackPaused,
@@ -254,7 +257,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
 
     function settleContinuousMint(bytes32 commitId, address buyer, uint256 settlementAmountUsdt6)
         external
-        onlyRole(MANAGER_ROLE)
+        onlyRole(CONTINUOUS_MINT_ROLE)
         returns (uint256 buyerCatch18)
     {
         return _settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
@@ -262,7 +265,7 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
 
     function settleContinuousMintFromAvax(bytes32 commitId, address buyer, uint256 avaxAmountWei)
         external
-        onlyRole(MANAGER_ROLE)
+        onlyRole(CONTINUOUS_MINT_ROLE)
         returns (uint256 buyerCatch18)
     {
         if (avaxAmountWei == 0) revert InvalidParameters();
@@ -341,8 +344,29 @@ contract GemMintStrategyFundV8 is Gm10FundStorageV2 {
         if (amountUsdt6 > lpSupportAccruedUsdt6) revert InsufficientFreeBalance();
         if (_normalizeStableToUsdt6(token, tokenAmount) != amountUsdt6) revert InvalidSettlementAmount();
 
+        lpSupportAccruedUsdt6 -= amountUsdt6;
+        uint256 accounted = accountedSettlementBalance[token];
+        if (accounted >= tokenAmount) {
+            accountedSettlementBalance[token] = accounted - tokenAmount;
+        } else {
+            accountedSettlementBalance[token] = 0;
+        }
         IERC20(token).safeTransfer(to, tokenAmount);
         emit LpSupportTokenReleased(token, to, amountUsdt6, tokenAmount, proofHash);
+    }
+
+    function setSaleSettlementToken(address token, bool approved, uint8 decimals_)
+        external
+        onlyRole(GOVERNANCE_ROLE)
+    {
+        if (token == address(0)) revert InvalidParameters();
+        if (approved) {
+            if (decimals_ < 6 || decimals_ > 18) revert InvalidParameters();
+            if (decimals_ != IERC20Metadata(token).decimals()) revert InvalidParameters();
+        }
+        approvedSaleSettlementToken[token] = approved;
+        saleSettlementTokenDecimals[token] = decimals_;
+        emit SaleSettlementTokenSet(token, approved, decimals_);
     }
 
     function setContinuousAccrualControls(

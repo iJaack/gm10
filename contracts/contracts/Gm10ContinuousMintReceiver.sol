@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -22,13 +23,22 @@ contract Gm10ContinuousCommitEscrow {
     address public immutable receiver;
 
     error UnauthorizedCommitCaller();
+    error TransferFailed();
 
     constructor(address receiver_) {
         receiver = receiver_;
     }
 
+    receive() external payable {}
+
     function release(address token, address to, uint256 amount) external {
         if (msg.sender != receiver) revert UnauthorizedCommitCaller();
+        if (to == address(0) || amount == 0) revert TransferFailed();
+        if (token == address(0)) {
+            (bool ok,) = to.call{value: amount}("");
+            if (!ok) revert TransferFailed();
+            return;
+        }
         IERC20(token).safeTransfer(to, amount);
     }
 }
@@ -56,6 +66,8 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         uint256 mintedBuyerCatch18;
         uint256 fundAvaxBalanceBefore;
         uint256 accountedFundAvaxBefore;
+        bool cancelled;
+        uint8 settlementDecimals;
     }
 
     IGm10ContinuousMintFund public immutable fund;
@@ -82,6 +94,12 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         uint256 settledAmount,
         uint256 buyerCatch18
     );
+    event ContinuousCommitRefunded(
+        bytes32 indexed commitId,
+        address indexed buyer,
+        address settlementToken,
+        uint256 refundedAmount
+    );
 
     error ZeroAddress();
     error InvalidParameters();
@@ -89,6 +107,7 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
     error CommitAlreadyRegistered();
     error CommitNotRegistered();
     error CommitAlreadySettled();
+    error CommitCancelled();
     error CommitMismatch();
     error CommitExpired();
     error UnauthorizedCommitCaller();
@@ -112,11 +131,24 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         }
     }
 
-    function configureSettlementToken(address token, bool approved, uint8 decimals)
+    function configureSettlementToken(address token, bool approved, uint8 decimals_)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _configureSettlementToken(token, approved, decimals);
+        _configureSettlementToken(token, approved, decimals_);
+    }
+
+    function predictEscrow(bytes32 commitId) public view returns (address) {
+        bytes32 creationHash = keccak256(abi.encodePacked(
+            type(Gm10ContinuousCommitEscrow).creationCode,
+            abi.encode(address(this))
+        ));
+        return address(uint160(uint256(keccak256(abi.encodePacked(
+            bytes1(0xff),
+            address(this),
+            commitId,
+            creationHash
+        )))));
     }
 
     function registerCommit(
@@ -135,11 +167,11 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
             minSettlementAmount == 0 ||
             expiresAt <= block.timestamp
         ) revert InvalidParameters();
-        if (!settlementTokens[settlementToken].approved) revert UnsupportedSettlementToken();
+        SettlementTokenConfig memory tokenConfig = settlementTokens[settlementToken];
+        if (!tokenConfig.approved) revert UnsupportedSettlementToken();
         if (commits[commitId].buyer != address(0)) revert CommitAlreadyRegistered();
-        escrow = settlementToken == NATIVE_AVAX
-            ? address(fund)
-            : address(new Gm10ContinuousCommitEscrow(address(this)));
+
+        escrow = address(new Gm10ContinuousCommitEscrow{salt: commitId}(address(this)));
 
         commits[commitId] = ContinuousCommit({
             providerRouteId: providerRouteId,
@@ -151,8 +183,10 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
             settled: false,
             settledAmount: 0,
             mintedBuyerCatch18: 0,
-            fundAvaxBalanceBefore: settlementToken == NATIVE_AVAX ? address(fund).balance : 0,
-            accountedFundAvaxBefore: settlementToken == NATIVE_AVAX ? accountedFundAvaxSettlementWei : 0
+            fundAvaxBalanceBefore: 0,
+            accountedFundAvaxBefore: 0,
+            cancelled: false,
+            settlementDecimals: tokenConfig.decimals
         });
 
         emit ContinuousCommitRegistered(
@@ -175,6 +209,7 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         ContinuousCommit storage commit = commits[commitId];
         if (commit.buyer == address(0)) revert CommitNotRegistered();
         if (commit.settled) revert CommitAlreadySettled();
+        if (commit.cancelled) revert CommitCancelled();
         if (msg.sender != commit.buyer && !hasRole(OPERATOR_ROLE, msg.sender)) revert UnauthorizedCommitCaller();
         if (
             commit.providerRouteId != providerRouteId ||
@@ -183,32 +218,21 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         ) revert CommitMismatch();
         if (block.timestamp > commit.expiresAt) revert CommitExpired();
         if (settledAmount < commit.minSettlementAmount) revert InvalidParameters();
+        if (_escrowBalance(commit) < settledAmount) revert InsufficientSettlementBalance();
+
         commit.settled = true;
         commit.settledAmount = settledAmount;
 
         if (settlementToken == NATIVE_AVAX) {
-            uint256 fundBalanceDelta = address(fund).balance > commit.fundAvaxBalanceBefore
-                ? address(fund).balance - commit.fundAvaxBalanceBefore
-                : 0;
-            uint256 accountedSinceRegistration = accountedFundAvaxSettlementWei > commit.accountedFundAvaxBefore
-                ? accountedFundAvaxSettlementWei - commit.accountedFundAvaxBefore
-                : 0;
-            uint256 unaccountedDelta = fundBalanceDelta > accountedSinceRegistration
-                ? fundBalanceDelta - accountedSinceRegistration
-                : 0;
-            if (unaccountedDelta < settledAmount) revert InsufficientSettlementBalance();
-
+            _escrow(commit).release(NATIVE_AVAX, address(fund), settledAmount);
             accountedFundAvaxSettlementWei += settledAmount;
             buyerCatch18 = fund.settleContinuousMintFromAvax(commitId, buyer, settledAmount);
         } else {
-            SettlementTokenConfig memory tokenConfig = settlementTokens[settlementToken];
-            if (!tokenConfig.approved) revert UnsupportedSettlementToken();
-            if (IERC20(settlementToken).balanceOf(commit.escrow) < settledAmount) revert InsufficientSettlementBalance();
-
-            uint256 settlementAmountUsdt6 = _toUsdt6(settledAmount, tokenConfig.decimals);
+            if (!settlementTokens[settlementToken].approved) revert UnsupportedSettlementToken();
+            uint256 settlementAmountUsdt6 = _toUsdt6(settledAmount, commit.settlementDecimals);
             if (settlementAmountUsdt6 == 0) revert InvalidParameters();
             buyerCatch18 = fund.settleContinuousMint(commitId, buyer, settlementAmountUsdt6);
-            Gm10ContinuousCommitEscrow(commit.escrow).release(settlementToken, treasury, settledAmount);
+            _escrow(commit).release(settlementToken, treasury, settledAmount);
         }
 
         commit.mintedBuyerCatch18 = buyerCatch18;
@@ -223,16 +247,42 @@ contract Gm10ContinuousMintReceiver is AccessControl, ReentrancyGuard {
         );
     }
 
-    function _configureSettlementToken(address token, bool approved, uint8 decimals) internal {
-        if (token == address(0) && decimals != 18) revert InvalidParameters();
-        if (decimals > 18) revert InvalidParameters();
-        settlementTokens[token] = SettlementTokenConfig({ approved: approved, decimals: decimals });
-        emit SettlementTokenConfigured(token, approved, decimals);
+    function refundCommit(bytes32 commitId) external nonReentrant returns (uint256 refundedAmount) {
+        ContinuousCommit storage commit = commits[commitId];
+        if (commit.buyer == address(0)) revert CommitNotRegistered();
+        if (msg.sender != commit.buyer && !hasRole(OPERATOR_ROLE, msg.sender)) revert UnauthorizedCommitCaller();
+        if (!commit.settled) commit.cancelled = true;
+
+        refundedAmount = _escrowBalance(commit);
+        if (refundedAmount == 0) revert InsufficientSettlementBalance();
+        _escrow(commit).release(commit.settlementToken, commit.buyer, refundedAmount);
+
+        emit ContinuousCommitRefunded(commitId, commit.buyer, commit.settlementToken, refundedAmount);
     }
 
-    function _toUsdt6(uint256 amount, uint8 decimals) internal pure returns (uint256) {
-        if (decimals == 6) return amount;
-        if (decimals > 6) return amount / (10 ** (decimals - 6));
-        return amount * (10 ** (6 - decimals));
+    function _configureSettlementToken(address token, bool approved, uint8 decimals_) internal {
+        if (decimals_ > 18) revert InvalidParameters();
+        if (token == NATIVE_AVAX) {
+            if (decimals_ != 18) revert InvalidParameters();
+        } else if (approved && IERC20Metadata(token).decimals() != decimals_) {
+            revert InvalidParameters();
+        }
+        settlementTokens[token] = SettlementTokenConfig({ approved: approved, decimals: decimals_ });
+        emit SettlementTokenConfigured(token, approved, decimals_);
+    }
+
+    function _escrow(ContinuousCommit storage commit) internal view returns (Gm10ContinuousCommitEscrow) {
+        return Gm10ContinuousCommitEscrow(payable(commit.escrow));
+    }
+
+    function _escrowBalance(ContinuousCommit storage commit) internal view returns (uint256) {
+        if (commit.settlementToken == NATIVE_AVAX) return commit.escrow.balance;
+        return IERC20(commit.settlementToken).balanceOf(commit.escrow);
+    }
+
+    function _toUsdt6(uint256 amount, uint8 decimals_) internal pure returns (uint256) {
+        if (decimals_ == 6) return amount;
+        if (decimals_ > 6) return amount / (10 ** (decimals_ - 6));
+        return amount * (10 ** (6 - decimals_));
     }
 }
