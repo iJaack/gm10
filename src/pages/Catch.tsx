@@ -142,7 +142,7 @@ function WaterfallCard({
     return (
         <div className="flex w-full max-w-sm flex-col items-center">
             <div className="w-full rounded-xl border-2 bg-[var(--bg-secondary)] px-5 py-4 text-center" style={{ borderColor: color }}>
-                <div className="v2-mono text-[0.68rem] font-bold uppercase tracking-[0.14em]" style={{ color }}>{step}</div>
+                <div className="v2-mono text-[0.68rem] font-bold uppercase tracking-[0.14em]" style={{ color: color === 'var(--accent)' ? 'var(--accent-text)' : color }}>{step}</div>
                 <div className="mt-1 text-[0.92rem] font-bold text-[var(--text-primary)]">{label}</div>
                 <div className="mt-0.5 text-[0.75rem] text-[var(--text-secondary)]">{detail}</div>
             </div>
@@ -376,7 +376,7 @@ function CatchContent() {
                         {pageCopy.body}
                     </p>
                     <div className="mt-6 flex flex-wrap gap-6">
-                        <Link to={pageCopy.primaryCtaTo} className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
+                        <Link to={pageCopy.primaryCtaTo} className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-text)] hover:text-[var(--text-primary)]">
                             → {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
                         </Link>
                         <Link to={pageCopy.secondaryCtaTo} className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--ink-muted)] hover:text-[var(--text-primary)]">
@@ -396,7 +396,7 @@ function CatchContent() {
                         <ScrollReveal key={stat.label} delay={Math.min(index + 1, 3) as 1 | 2 | 3}>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 transition-colors hover:border-[var(--border-strong)]">
                                 <div className="flex items-center gap-2">
-                                    <span className="v2-mono inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-[var(--border)] px-1.5 text-[0.68rem] font-bold text-[var(--accent-brass)]" aria-hidden>{stat.code}</span>
+                                    <span className="v2-mono inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-[var(--border)] px-1.5 text-[0.68rem] font-bold text-[var(--accent-text)]" aria-hidden>{stat.code}</span>
                                     <span className="label-font">{stat.label}</span>
                                 </div>
                                 <div className="mt-2 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">{stat.value}</div>
@@ -422,7 +422,7 @@ function CatchContent() {
                     {SYSTEM_FLOW_STEPS.map((step, index) => (
                         <ScrollReveal key={step.title} delay={(index + 1) as 1 | 2 | 3}>
                             <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-colors hover:border-[var(--border-strong)]">
-                                <div className="label-font text-[var(--accent)]">0{index + 1}</div>
+                                <div className="label-font text-[var(--accent-text)]">0{index + 1}</div>
                                 <h3 className="mt-3 text-lg font-bold text-[var(--text-primary)]">{step.title}</h3>
                                 <p className="mt-2 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{step.body}</p>
                             </div>
@@ -558,7 +558,7 @@ function CatchContent() {
                 <div className="mt-6 flex flex-col gap-0 min-[900px]:flex-row min-[900px]:items-stretch">
                     {GOVERNANCE_PHASES.flatMap((phase, index) => {
                         const circleClass = index === 0
-                            ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent-text)]'
                             : 'border-[var(--border-strong)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]';
                         const items = [
                             <ScrollReveal key={phase.phase} delay={(index + 1) as 1 | 2 | 3} className="flex min-[900px]:flex-1">
@@ -580,8 +580,8 @@ function CatchContent() {
                                     </div>
                                     <div className={`mb-4 flex-1 rounded-2xl border bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] min-[900px]:mb-0 min-[900px]:flex min-[900px]:flex-col ${index === 0 ? 'border-[var(--accent)]/30' : 'border-[var(--border)]'}`}>
                                         <div className="flex items-center gap-2">
-                                            <span className="label-font text-[var(--accent)]">{phase.phase}</span>
-                                            {index === 0 && <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--accent)]">Current</span>}
+                                            <span className="label-font text-[var(--accent-text)]">{phase.phase}</span>
+                                            {index === 0 && <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--accent-text)]">Current</span>}
                                         </div>
                                         <h4 className="mt-2.5 text-[0.95rem] font-bold text-[var(--text-primary)]">{phase.title}</h4>
                                         <p className="mt-1.5 text-[0.84rem] leading-[1.6] text-[var(--text-secondary)]">{phase.detail}</p>

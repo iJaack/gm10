@@ -29,7 +29,7 @@ export default function FujiGuard({ children }: Props) {
                 >
                     <span style={{ color: 'var(--text-secondary)' }}>
                         Wrong network — this app runs on{' '}
-                        <span style={{ color: 'var(--accent)' }} className="font-semibold">
+                        <span style={{ color: 'var(--accent-text)' }} className="font-semibold">
                             {GM10_NETWORK_LABEL}
                         </span>
                         . Switch to Avalanche Mainnet to interact with the protocol.

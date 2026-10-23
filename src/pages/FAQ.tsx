@@ -38,7 +38,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
                         </Display>
                     </div>
                     <span
-                        className="v2-mono shrink-0 text-[1rem] text-[var(--accent-brass)] transition-transform duration-300"
+                        className="v2-mono shrink-0 text-[1rem] text-[var(--accent-text)] transition-transform duration-300"
                         style={{ transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)' }}
                         aria-hidden
                     >
@@ -112,7 +112,7 @@ function FAQContent() {
                         {roundAvailability}
                     </p>
                     <div className="mt-6 flex flex-wrap gap-6">
-                        <Link to="/fundraising" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
+                        <Link to="/fundraising" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-text)] hover:text-[var(--text-primary)]">
                             → {getRoundPrimaryCtaLabel(roundState.isRoundOpen)}
                         </Link>
                         <Link to="/fundraising#proof" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--ink-muted)] hover:text-[var(--text-primary)]">

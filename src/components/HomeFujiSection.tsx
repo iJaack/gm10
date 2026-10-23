@@ -32,7 +32,7 @@ function HomeFujiSectionContent() {
                             <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${roundState.isRoundOpen ? 'animate-ping bg-[var(--accent-green)]' : 'bg-[var(--accent)]'}`} />
                             <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${roundState.isRoundOpen ? 'bg-[var(--accent-green)]' : 'bg-[var(--accent)]'}`} />
                         </span>
-                        <span className={`label-font ${roundState.isRoundOpen ? 'text-[var(--accent-green)]' : 'text-[var(--accent)]'}`}>
+                        <span className={`label-font ${roundState.isRoundOpen ? 'text-[var(--accent-green)]' : 'text-[var(--accent-text)]'}`}>
                             {roundState.isRoundOpen ? 'Live proof' : 'Proof stays live'}
                         </span>
                     </div>
