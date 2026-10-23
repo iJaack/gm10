@@ -222,7 +222,7 @@ function Round1Archive() {
                 <div className="mt-6 flex flex-wrap gap-6">
                     <a
                         href="/portfolio"
-                        className="v2-mono text-[0.82rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                        className="v2-mono text-[0.82rem] tracking-[0.05em] text-[var(--accent-text)] hover:text-[var(--text-primary)]"
                     >
                         → View the collection
                     </a>
@@ -253,7 +253,7 @@ function Proof() {
                                 href={link.snowtraceUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="v2-mono text-[0.82rem] text-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                className="v2-mono text-[0.82rem] text-[var(--accent-text)] hover:text-[var(--text-primary)]"
                             >
                                 → Snowtrace
                             </a>,
@@ -326,7 +326,7 @@ function PostCloseLedger({ archiveRaisedAvax }: { archiveRaisedAvax: number }) {
                     </div>
                     <div className="text-right">
                         <Caption className="block text-[0.65rem] font-bold uppercase tracking-[0.08em] text-[var(--ink-faint)]">Finalized</Caption>
-                        <DataMono className="mt-1 block text-[1.12rem] font-bold text-[var(--accent-brass)]">
+                        <DataMono className="mt-1 block text-[1.12rem] font-bold text-[var(--accent-text)]">
                             Block {ROUND_2_CLOSE_LEDGER.finalizedBlock.toLocaleString('en-US')}
                         </DataMono>
                         <DataMono className="text-[0.72rem] font-semibold text-[var(--ink-muted)]">
@@ -1031,7 +1031,7 @@ function FundraisingContent() {
                             <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,0.46fr)]">
                                 <div className="rounded-xl border border-[var(--accent-brass)]/70 bg-[var(--bg-primary)]/55 px-4 py-3 shadow-[0_0_20px_var(--accent-muted)]">
                                     <div className="flex items-baseline justify-between gap-4">
-                                        <Caption className="block text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-brass)]">Commit amount</Caption>
+                                        <Caption className="block text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-text)]">Commit amount</Caption>
                                         <DataMono className="text-[0.72rem] font-semibold tracking-[0.04em] text-[var(--ink-muted)]">
                                             {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
                                         </DataMono>
@@ -1061,7 +1061,7 @@ function FundraisingContent() {
                                                     setCommitFeedback(null);
                                                 }}
                                                 disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
-                                                className="v2-mono inline-flex min-h-11 items-center rounded-full border border-[var(--rule-strong)] px-3 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                                className="v2-mono inline-flex min-h-11 items-center rounded-full border border-[var(--rule-strong)] px-3 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-text)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
                                             >
                                                 Max
                                             </button>
@@ -1118,7 +1118,7 @@ function FundraisingContent() {
                                 </div>
                                 <div>
                                     <Caption className="block text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Buyer receives</Caption>
-                                    <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--accent-brass)]">
+                                    <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--accent-text)]">
                                         {buyerCatch} <span className="text-[0.78rem] font-semibold">$CATCH</span>
                                     </DataMono>
                                 </div>
@@ -1185,7 +1185,7 @@ function FundraisingContent() {
                                                                 type="button"
                                                                 onClick={() => void handleSettlePendingCommit(pending)}
                                                                 disabled={expired || settlingCommitId === pending.commitId}
-                                                                className="v2-mono shrink-0 rounded-full border border-[var(--accent-brass)] px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:bg-[var(--accent-muted)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:text-[var(--ink-muted)]"
+                                                                className="v2-mono shrink-0 rounded-full border border-[var(--accent-brass)] px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-text)] hover:bg-[var(--accent-muted)] disabled:cursor-not-allowed disabled:border-[var(--rule-strong)] disabled:text-[var(--ink-muted)]"
                                                             >
                                                                 {settlingCommitId === pending.commitId ? 'Checking...' : 'Settle mint'}
                                                             </button>
@@ -1237,7 +1237,7 @@ function FundraisingContent() {
                     <div className="mt-8 grid gap-3 wide:grid-cols-2 min-[1100px]:grid-cols-4">
                         {CONTINUOUS_COMMIT_RAILS.map((rail, index) => (
                             <div key={rail.label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
-                                <DataMono className="text-[0.72rem] text-[var(--accent-brass)]">0{index + 1}</DataMono>
+                                <DataMono className="text-[0.72rem] text-[var(--accent-text)]">0{index + 1}</DataMono>
                                 <h3 className="mt-3 text-[0.95rem] font-bold text-[var(--text-primary)]">{rail.label}</h3>
                                 <p className="mt-2 text-[0.78rem] leading-[1.55] text-[var(--ink-muted)]">{rail.detail}</p>
                             </div>
@@ -1261,7 +1261,7 @@ function FundraisingContent() {
                             <div key={bucket.label}>
                                 <div className="min-[900px]:hidden border-b border-[var(--rule)] py-5">
                                     <div className="flex items-baseline justify-between gap-4">
-                                        <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}</DataMono>
+                                        <DataMono className="text-[var(--accent-text)] text-[0.9rem]">{bucket.percent}</DataMono>
                                         <div className="text-right text-[var(--text-primary)]">{bucket.label}</div>
                                     </div>
                                     <p className="mt-2 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">{bucket.detail}</p>
@@ -1270,7 +1270,7 @@ function FundraisingContent() {
                                     <LedgerRow
                                         columns="90px 1fr"
                                         cells={[
-                                            <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}</DataMono>,
+                                            <DataMono className="text-[var(--accent-text)] text-[0.9rem]">{bucket.percent}</DataMono>,
                                             <span>
                                                 <span className="text-[var(--text-primary)]">{bucket.label}</span>
                                                 <span className="ml-3 text-[var(--ink-faint)]"> {bucket.detail}</span>
@@ -1305,7 +1305,7 @@ function FundraisingContent() {
                     <Display className="text-[clamp(1.2rem,2.4vw,1.6rem)]">
                         Questions about the terms?
                     </Display>
-                    <a href="/faq" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
+                    <a href="/faq" className="v2-mono text-[0.88rem] tracking-[0.05em] text-[var(--accent-text)] hover:text-[var(--text-primary)]">
                         → FAQ
                     </a>
                 </div>

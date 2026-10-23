@@ -20,10 +20,12 @@
     --bg-overlay: rgba(0, 0, 0, 0.6);
     --text-primary: #f5f0e8;
     --text-secondary: rgba(245, 240, 232, 0.58);
-    --text-tertiary: rgba(245, 240, 232, 0.32);
+    --text-tertiary: rgba(245, 240, 232, 0.55);
     --border: rgba(255, 255, 255, 0.07);
     --border-strong: rgba(255, 255, 255, 0.14);
     --accent: #f0c030;
+    --accent-text: #f0c030;
+    --focus: var(--accent-text);
     --accent-blue: #4fa8e0;
     --accent-green: #4ec98a;
     --accent-red: #e8453a;
@@ -89,11 +91,13 @@
     --bg-elevated: #fffdf8;
     --bg-overlay: rgba(0, 0, 0, 0.18);
     --text-primary: #1a1510;
-    --text-secondary: rgba(26, 21, 16, 0.62);
-    --text-tertiary: rgba(26, 21, 16, 0.45);
+    --text-secondary: rgba(26, 21, 16, 0.72);
+    --text-tertiary: rgba(26, 21, 16, 0.66);
     --border: rgba(0, 0, 0, 0.1);
     --border-strong: rgba(0, 0, 0, 0.18);
     --accent: #d4960a;
+    --accent-text: #7d5800;
+    --focus: var(--accent-text);
     --accent-blue: #2874a6;
     --accent-green: #2d8f5c;
     --accent-red: #c03028;
@@ -162,6 +166,7 @@ body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     /* Ambient gradients added per-theme below */
     font-size: 16px;
+    font-weight: 400;
     line-height: 1.6;
     letter-spacing: -0.011em;
     min-height: 100vh;
@@ -204,6 +209,11 @@ a {
     color: inherit;
 }
 
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
 /* ── TYPOGRAPHY ── */
 
 .heading-font {
@@ -212,6 +222,8 @@ a {
     letter-spacing: -0.03em;
 }
 
+/* Tertiary uppercase labels stay semibold so they stay distinct from
+   secondary body copy (400) when the two alphas sit close together. */
 .label-font {
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     font-size: 0.7rem;
@@ -339,7 +351,7 @@ a {
 }
 
 .pixel-label-warning {
-    color: var(--accent);
+    color: var(--accent-text);
     border-color: rgba(201, 168, 76, 0.2);
 }
 
@@ -404,7 +416,12 @@ a {
     font-size: 0.88rem;
     font-weight: 500;
     letter-spacing: -0.01em;
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+        background-color 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        color 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 260ms cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
 }
 
@@ -428,7 +445,7 @@ a {
 }
 
 .pixel-menu-link:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -495,6 +512,7 @@ a {
 .pixel-stat-detail {
     margin-top: 0.7rem;
     font-size: 0.92rem;
+    font-weight: 400;
     line-height: 1.7;
     color: var(--text-secondary);
 }
@@ -571,6 +589,7 @@ a {
     margin-top: 0.2rem;
     color: var(--text-secondary);
     font-size: 0.78rem;
+    font-weight: 400;
     letter-spacing: -0.01em;
 }
 
@@ -586,13 +605,14 @@ a {
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
 }
 
 .pixel-message-body {
     margin-top: 0.6rem;
     color: var(--text-secondary);
     font-size: 0.95rem;
+    font-weight: 400;
     line-height: 1.7;
 }
 
@@ -824,7 +844,7 @@ a {
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-text);
 }
 
 /* Caption — inline secondary text. */

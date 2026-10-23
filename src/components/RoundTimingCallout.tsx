@@ -56,7 +56,7 @@ export function RoundTimingCallout({
             <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" aria-hidden />
             <div>
                 <div>
-                    <div className="label-font text-[var(--accent)]">
+                    <div className="label-font text-[var(--accent-text)]">
                         Continuous round
                     </div>
                     <div className={`${compact ? 'mt-1 text-[1.05rem]' : 'mt-2 text-[1.45rem] sm:text-[1.75rem]'} font-extrabold tracking-[-0.035em] text-[var(--text-primary)]`}>

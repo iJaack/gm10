@@ -74,7 +74,7 @@ function HomeContent() {
                         {HOME_GM10_ADVANTAGES.map((item, index) => (
                             <ScrollReveal key={item.title} delay={(index + 1) as 1 | 2 | 3}>
                                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/90 p-6 backdrop-blur-sm transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]">
-                                    <div className="label-font text-[var(--accent)]">GM10 advantage</div>
+                                    <div className="label-font text-[var(--accent-text)]">GM10 advantage</div>
                                     <h3 className="mt-3 text-lg font-bold tracking-[-0.02em] text-[var(--text-primary)]">{item.title}</h3>
                                     <p className="mt-3 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">{item.body}</p>
                                 </div>
@@ -99,7 +99,7 @@ function HomeContent() {
                         {EXPOSURE_STEPS.map((step, index) => (
                             <ScrollReveal key={step.title} delay={(index + 1) as 1 | 2 | 3}>
                                 <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]">
-                                    <span className="label-font text-[var(--accent)]">0{index + 1}</span>
+                                    <span className="label-font text-[var(--accent-text)]">0{index + 1}</span>
                                     <h3 className="mt-3 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">{step.title}</h3>
                                     <p className="mt-3 text-[0.92rem] leading-[1.7] text-[var(--text-secondary)]">{step.body}</p>
                                 </div>

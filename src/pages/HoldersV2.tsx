@@ -174,7 +174,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                                 href={liveChartUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="v2-mono text-[0.72rem] tracking-[0.08em] uppercase text-[var(--accent-brass)] transition-colors hover:text-[var(--text-primary)] md:text-[0.78rem]"
+                                className="v2-mono text-[0.72rem] tracking-[0.08em] uppercase text-[var(--accent-text)] transition-colors hover:text-[var(--text-primary)] md:text-[0.78rem]"
                             >
                                 Live DEX chart ↗
                             </a>
@@ -649,7 +649,7 @@ function ProtocolStats() {
             </div>
             <div className="mt-3 flex items-baseline justify-between text-[0.78rem] text-[var(--ink-faint)] tabular-nums">
                 <span>0</span>
-                <span className="text-[1.05rem] font-bold text-[var(--accent)]">{supplyPct.toFixed(1)}%</span>
+                <span className="text-[1.05rem] font-bold text-[var(--accent-text)]">{supplyPct.toFixed(1)}%</span>
                 <span>{fmtCatch(totalSupplyNum)} total</span>
             </div>
         </div>
@@ -682,7 +682,7 @@ function ProtocolStats() {
                         <Caption className="uppercase tracking-[0.1em] text-[var(--ink-faint)]">
                             Profit-eligible
                         </Caption>
-                        <DataMono className="mt-1 block text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent)] md:text-[2.2rem]">
+                        <DataMono className="mt-1 block text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--accent-text)] md:text-[2.2rem]">
                             {fmtPct(supplyPct)}
                         </DataMono>
                     </div>
@@ -961,7 +961,7 @@ function PoolRow({ pool, avaxUsd }: { pool: MarketPool; avaxUsd: number }) {
                     {pool.priceChange24h !== undefined ? `${isUp ? '▲' : '▼'} ${Math.abs(pool.priceChange24h).toFixed(2)}%` : '—'}
                 </span>,
                 pool.url ? (
-                    <a href={pool.url} target="_blank" rel="noreferrer" className="v2-mono text-[var(--accent-brass)] hover:text-[var(--text-primary)]">
+                    <a href={pool.url} target="_blank" rel="noreferrer" className="v2-mono text-[var(--accent-text)] hover:text-[var(--text-primary)]">
                         [pool]
                     </a>
                 ) : (

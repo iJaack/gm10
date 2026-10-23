@@ -77,14 +77,14 @@ function LotCard({ position }: { position: Gm10PortfolioPosition }) {
                     className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.02]"
                     loading="lazy"
                 />
-                <DataMono className="absolute left-3 top-3 text-[0.64rem] tracking-[0.12em] text-[var(--accent-brass)]">
+                <DataMono className="absolute left-3 top-3 text-[0.64rem] tracking-[0.12em] text-[var(--accent-text)]">
                     LOT {lotNumber}
                 </DataMono>
                 <DataMono className="absolute right-3 top-3 text-[0.62rem] tracking-[0.08em] uppercase text-[var(--ink-faint)]">
                     {position.chain}
                 </DataMono>
                 {position.statusLabel !== 'Active' ? (
-                    <DataMono className="absolute left-3 bottom-3 bg-[var(--bg-secondary)] px-2.5 py-1 text-[0.58rem] uppercase tracking-[0.08em] text-[var(--accent-brass)]">
+                    <DataMono className="absolute left-3 bottom-3 bg-[var(--bg-secondary)] px-2.5 py-1 text-[0.58rem] uppercase tracking-[0.08em] text-[var(--accent-text)]">
                         {position.statusLabel}
                     </DataMono>
                 ) : null}
@@ -117,7 +117,7 @@ function LotCard({ position }: { position: Gm10PortfolioPosition }) {
 
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--rule)] text-[0.7rem]">
                     <DataMono className="text-[var(--ink-faint)]">{position.acquisitionDateLabel}</DataMono>
-                    <span className="v2-mono text-[var(--accent-brass)] group-hover:text-[var(--text-primary)] transition-colors">
+                    <span className="v2-mono text-[var(--accent-text)] group-hover:text-[var(--text-primary)] transition-colors">
                         {position.courtyardUrl ? '→ Courtyard' : `→ ${position.chain === 'Polygon' ? 'Polygonscan' : 'Snowtrace'}`}
                     </span>
                 </div>
@@ -136,7 +136,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
             align="center"
             cellAlign={['center', 'center', 'left', 'right', 'right', 'left', 'left', 'left', 'right']}
             cells={[
-                <DataMono className="text-[0.7rem] text-[var(--accent-brass)] tracking-[0.1em]">
+                <DataMono className="text-[0.7rem] text-[var(--accent-text)] tracking-[0.1em]">
                     {lotNumber}
                 </DataMono>,
                 <img
@@ -155,7 +155,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
                 </div>,
                 <DataMono className="text-right text-[var(--text-primary)]">{position.acquisition}</DataMono>,
                 <DataMono className="text-right text-[var(--text-primary)]">{position.currentValue}</DataMono>,
-                <DataMono className={`text-[0.68rem] uppercase ${position.statusLabel === 'PENDING TRANSFER' ? 'text-[var(--accent-brass)]' : 'text-[var(--ink-faint)]'}`}>
+                <DataMono className={`text-[0.68rem] uppercase ${position.statusLabel === 'PENDING TRANSFER' ? 'text-[var(--accent-text)]' : 'text-[var(--ink-faint)]'}`}>
                     {position.statusLabel}
                 </DataMono>,
                 <DataMono className="text-[var(--ink-faint)] uppercase text-[0.7rem]">{position.chain}</DataMono>,
@@ -166,7 +166,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
                             href={position.courtyardUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="v2-mono text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors"
+                            className="v2-mono text-[var(--accent-text)] hover:text-[var(--text-primary)] transition-colors"
                         >
                             [courtyard]
                         </a>

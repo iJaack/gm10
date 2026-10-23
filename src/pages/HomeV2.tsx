@@ -360,7 +360,7 @@ function StrategyChapters() {
                         {HOME_GM10_ADVANTAGES.map((advantage, idx) => (
                             <div key={advantage.title} className="border-t border-[var(--rule)] pt-4">
                                 <div className="flex items-baseline gap-3">
-                                    <DataMono className="text-[0.72rem] tracking-[0.1em] text-[var(--accent-brass)]">
+                                    <DataMono className="text-[0.72rem] tracking-[0.1em] text-[var(--accent-text)]">
                                         {String(idx + 1).padStart(2, '0')}
                                     </DataMono>
                                     <h3 className="text-[1rem] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">
@@ -403,7 +403,7 @@ function HoldingsMarquee() {
                         {lotCount} {lotWord} acquired so far. More will follow as rounds close and cards get greenlit.
                     </p>
                 </div>
-                <Link to="/portfolio" className="v2-mono text-[0.82rem] tracking-[0.05em] text-[var(--accent-brass)] hover:text-[var(--text-primary)] transition-colors">
+                <Link to="/portfolio" className="v2-mono text-[0.82rem] tracking-[0.05em] text-[var(--accent-text)] hover:text-[var(--text-primary)] transition-colors">
                     → View the collection
                 </Link>
             </div>
