@@ -130,7 +130,7 @@ export function LedgerRow({ cells, columns, className = '', align = 'baseline', 
                         ? 'text-center'
                         : '';
                 return (
-                    <div key={i} className={`${i === 0 ? 'v2-caption' : 'v2-mono'} ${alignClass}`.trim()}>
+                    <div key={i} className={`min-w-0 ${i === 0 ? 'v2-caption' : 'v2-mono'} ${alignClass}`.trim()}>
                         {cell}
                     </div>
                 );

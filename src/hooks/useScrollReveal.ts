@@ -11,13 +11,20 @@ export function useScrollReveal(options: UseScrollRevealOptions = {}) {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (mql.matches) {
             setIsVisible(true);
-            return;
         }
 
+        const onChange = () => {
+            if (mql.matches) setIsVisible(true);
+        };
+        mql.addEventListener('change', onChange);
+
         const element = ref.current;
-        if (!element) return;
+        if (!element || mql.matches) {
+            return () => mql.removeEventListener('change', onChange);
+        }
 
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -30,7 +37,10 @@ export function useScrollReveal(options: UseScrollRevealOptions = {}) {
         );
 
         observer.observe(element);
-        return () => observer.disconnect();
+        return () => {
+            mql.removeEventListener('change', onChange);
+            observer.disconnect();
+        };
     }, [threshold, rootMargin]);
 
     return { ref, isVisible };

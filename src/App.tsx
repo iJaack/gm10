@@ -23,9 +23,9 @@ function App() {
             <Router>
                 <SmoothScroll />
                 <ScrollToTop />
-                <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
+                <div className="app-shell min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
                     <NavbarV2 />
-                    <div className="flex-grow">
+                    <div className="site-content flex-grow">
                         <Suspense fallback={<main className="px-4 py-24" />}>
                             <Routes>
                                 <Route path="/" element={<Home />} />

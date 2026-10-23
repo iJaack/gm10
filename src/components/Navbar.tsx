@@ -91,30 +91,39 @@ export default function Navbar() {
         };
     }, [mobileMenuOpen]);
 
+    useEffect(() => {
+        const mql = window.matchMedia('(min-width: 900px)');
+        const onChange = () => {
+            if (mql.matches) setMobileMenuOpen(false);
+        };
+        mql.addEventListener('change', onChange);
+        return () => mql.removeEventListener('change', onChange);
+    }, []);
+
     return (
         <>
             <header
-                className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+                className={`site-header fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
                     scrolled || mobileMenuOpen
                         ? 'border-b border-[var(--border)] bg-[var(--bg-primary)]/90 backdrop-blur-xl'
                         : 'bg-transparent'
                 }`}
             >
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] px-4">
+                <div className="site-container px-4">
                     <div className={`flex items-center justify-between gap-3 transition-all duration-300 ${scrolled ? 'h-14' : 'h-16'}`}>
-                        <Link to="/" className="flex items-center gap-2 text-[var(--text-primary)]">
+                        <Link to="/" className="flex min-h-11 shrink-0 items-center gap-2 text-[var(--text-primary)]">
                             <Logo size={28} />
                             <div className="holo-shimmer font-['Inter'] text-[0.95rem] font-bold tracking-[-0.02em]">
                                 GM10
                             </div>
                         </Link>
 
-                        <nav className="hidden lg:flex items-center gap-1">
+                        <nav className="hidden min-w-0 min-[900px]:flex items-center gap-0.5">
                             {PUBLIC_NAV_LINKS.map((link) => (
                                 <Link
                                     key={link.to}
                                     to={link.to}
-                                    className={`rounded-full px-4 py-1.5 text-[0.88rem] font-medium transition-all duration-200 ${
+                                    className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-2.5 text-[0.88rem] font-medium transition-all duration-200 min-[1100px]:px-4 ${
                                         isLinkActive(location.pathname, location.hash, link.to)
                                             ? 'bg-[var(--surface-active)] text-[var(--text-primary)]'
                                             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'
@@ -129,7 +138,7 @@ export default function Navbar() {
                             <button
                                 type="button"
                                 onClick={toggle}
-                                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                                className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
                                 aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                             >
                                 {theme === 'dark' ? (
@@ -139,7 +148,7 @@ export default function Navbar() {
                                 )}
                             </button>
 
-                            <div className="hidden lg:block">
+                            <div className="hidden min-[900px]:block">
                                 <Web3Providers>
                                     <NavbarWalletCta />
                                 </Web3Providers>
@@ -147,7 +156,7 @@ export default function Navbar() {
 
                             <button
                                 type="button"
-                                className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)]"
+                                className="min-[900px]:hidden flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)]"
                                 onClick={() => setMobileMenuOpen((value) => !value)}
                                 aria-expanded={mobileMenuOpen}
                                 aria-label="Toggle navigation menu"
@@ -164,18 +173,18 @@ export default function Navbar() {
             </header>
 
             <div
-                className={`fixed inset-0 z-40 transition-all duration-300 lg:hidden ${
+                className={`fixed inset-0 z-40 transition-all duration-300 min-[900px]:hidden ${
                     mobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
                 }`}
             >
                 <div className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-                <div className="absolute inset-x-4 top-20 rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5 shadow-[var(--shadow-lg)]">
+                <div className="nav-menu-panel absolute rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5 shadow-[var(--shadow-lg)]">
                     <div className="grid gap-1">
                         {PUBLIC_NAV_LINKS.map((link) => (
                             <Link
                                 key={link.to}
                                 to={link.to}
-                                className={`rounded-xl px-4 py-3 text-[0.95rem] font-medium transition-colors ${
+                                className={`flex min-h-11 items-center rounded-xl px-4 text-[0.95rem] font-medium transition-colors ${
                                     isLinkActive(location.pathname, location.hash, link.to)
                                         ? 'bg-[var(--surface-active)] text-[var(--text-primary)]'
                                         : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'

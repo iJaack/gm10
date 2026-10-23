@@ -25,11 +25,11 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
             <div className="border-b border-[var(--rule)]">
                 <button
                     type="button"
-                    className="flex w-full items-baseline justify-between gap-6 py-5 text-left transition-colors hover:bg-[var(--surface-hover)]"
+                    className="flex min-h-11 w-full items-baseline justify-between gap-4 py-5 text-left transition-colors hover:bg-[var(--surface-hover)] wide:gap-6"
                     onClick={() => setIsOpen((v) => !v)}
                     aria-expanded={isOpen}
                 >
-                    <div className="flex items-baseline gap-6 flex-1 min-w-0">
+                    <div className="flex min-w-0 flex-1 items-baseline gap-4 wide:gap-6">
                         <DataMono className="shrink-0 text-[0.7rem] tracking-[0.1em] text-[var(--ink-faint)]">
                             {num}
                         </DataMono>
@@ -45,17 +45,11 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
                         +
                     </span>
                 </button>
-                <div
-                    ref={bodyRef}
-                    className="overflow-hidden"
-                    style={{
-                        maxHeight: isOpen ? `${bodyRef.current?.scrollHeight ?? 300}px` : '0px',
-                        opacity: isOpen ? 1 : 0,
-                        transition: 'max-height 400ms cubic-bezier(0.16,1,0.3,1), opacity 300ms ease',
-                    }}
-                >
-                    <div className="pl-16 pb-6 pr-4">
-                        <p className="text-[0.94rem] leading-[1.7] text-[var(--ink-muted)]">{answer}</p>
+                <div className={`grid transition-[grid-template-rows,opacity] duration-300 motion-reduce:transition-none ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div ref={bodyRef} className="overflow-hidden">
+                        <div className="pb-6 pr-4 pl-8 wide:pl-16">
+                            <p className="text-[0.94rem] leading-[1.7] text-[var(--ink-muted)]">{answer}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -71,7 +65,7 @@ function FAQContent() {
     return (
         <main>
             <section className="px-4 pt-28 md:pt-32 pb-4">
-                <div className="mx-auto max-w-[min(1200px,calc(100vw-48px))]">
+                <div className="site-container site-container-copy">
                     {/* Breadcrumb */}
                     <div className="flex flex-wrap items-center gap-3 text-[0.7rem] v2-mono tracking-[0.08em] uppercase text-[var(--ink-faint)]">
                         <Link to="/" className="hover:text-[var(--text-primary)]">Gm10</Link>
@@ -94,7 +88,7 @@ function FAQContent() {
 
             {/* Questions */}
             <section className="px-4 pt-12 pb-16">
-                <div className="mx-auto max-w-[min(1200px,calc(100vw-48px))]">
+                <div className="site-container site-container-copy">
                     <Hairline strong />
                     {FAQ_TOPICS.map((faq, index) => (
                         <FAQItem
@@ -109,7 +103,7 @@ function FAQContent() {
 
             {/* Closer */}
             <section className="px-4 py-20 border-t border-[var(--rule)]">
-                <div className="mx-auto max-w-[min(1200px,calc(100vw-48px))]">
+                <div className="site-container site-container-copy">
                     <SectionLabel>Go next</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.5rem,3vw,2.2rem)] max-w-[32ch]">
                         Ready to act on it?

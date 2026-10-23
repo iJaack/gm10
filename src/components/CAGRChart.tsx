@@ -91,7 +91,7 @@ export default function CAGRChart() {
 
     return (
         <div ref={ref} className="bg-[var(--bg-secondary)] px-4 py-10 transition-colors md:px-8 md:py-14">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+            <div className="site-container">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <div className="label-font">📈 Collectibles Market Growth</div>

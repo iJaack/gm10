@@ -100,7 +100,7 @@ function PortfolioContent() {
     ];
 
     return (
-        <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+        <Page containerClassName="site-container">
             <section>
                 <ScrollReveal>
                     <div className="flex flex-wrap items-center gap-2">

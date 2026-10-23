@@ -6,11 +6,13 @@
 
 import { useEffect } from 'react';
 import Lenis from 'lenis';
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 
 export default function SmoothScroll() {
+    const reducedMotion = usePrefersReducedMotion();
+
     useEffect(() => {
-        const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-        if (mql.matches) return;
+        if (reducedMotion) return;
 
         const lenis = new Lenis({
             duration: 1.2,
@@ -30,7 +32,7 @@ export default function SmoothScroll() {
             cancelAnimationFrame(rafId);
             lenis.destroy();
         };
-    }, []);
+    }, [reducedMotion]);
 
     return null;
 }

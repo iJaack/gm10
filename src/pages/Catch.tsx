@@ -354,7 +354,7 @@ function CatchContent() {
     return (
         <main>
             <div className="px-4 pt-28 md:pt-32 pb-4">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
 
             {/* ── HEADER ── */}
             <section>
@@ -386,7 +386,7 @@ function CatchContent() {
                 </ScrollReveal>
 
                 {/* Quick stats */}
-                <div className="mt-8 grid gap-3 sm:grid-cols-4">
+                <div className="mt-8 grid gap-3 wide:grid-cols-2 min-[1100px]:grid-cols-4">
                     {[
                         { code: 'NAV', label: 'Pricing model', value: '5% below risk-free price', unit: 'Primary commits mint at 95% of NAV' },
                         { code: 'OPEN', label: 'Supply model', value: 'Dynamic supply', unit: 'Per-commit issuance' },
@@ -418,7 +418,7 @@ function CatchContent() {
                     </p>
                 </ScrollReveal>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-3">
+                <div className="mt-6 grid gap-3 wide:grid-cols-2 min-[900px]:grid-cols-3">
                     {SYSTEM_FLOW_STEPS.map((step, index) => (
                         <ScrollReveal key={step.title} delay={(index + 1) as 1 | 2 | 3}>
                             <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-colors hover:border-[var(--border-strong)]">
@@ -462,7 +462,7 @@ function CatchContent() {
                     </p>
                 </ScrollReveal>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-3">
+                <div className="mt-6 grid gap-3 wide:grid-cols-2 min-[900px]:grid-cols-3">
                     {NAV_RULES.map((rule, index) => (
                         <ScrollReveal key={rule.title} delay={(index + 1) as 1 | 2 | 3}>
                             <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 transition-colors hover:border-[var(--border-strong)]">
@@ -475,7 +475,7 @@ function CatchContent() {
                 </div>
 
                 <ScrollReveal delay={1}>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mt-4 grid gap-3 wide:grid-cols-2 min-[1100px]:grid-cols-4">
                         {[
                             { label: 'Backing value', desc: 'Cards plus liquid treasury that backs $CATCH' },
                             { label: 'Excluded buckets', desc: 'Liquidity-execution reserves are not counted as backing' },
@@ -524,7 +524,7 @@ function CatchContent() {
                         <div className="relative w-full">
                             {/* Horizontal bar spans center of col1 to center of col3. */}
                             <div className="absolute top-0 left-[16.666%] right-[16.666%] h-px bg-[var(--border-strong)]" />
-                            <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-3 pt-5 wide:grid-cols-3">
                                 {([
                                     { label: 'Buying power', route: 'New inventory', color: '#0ea5e9', desc: 'Profit can stay liquid for the next card purchase' },
                                     { label: 'LP support', route: 'Market depth', color: '#10b981', desc: 'Accrued support pairs CATCH with AVAX/WAVAX on configured venues' },
@@ -555,16 +555,16 @@ function CatchContent() {
                     </h3>
                 </ScrollReveal>
 
-                <div className="mt-6 flex flex-col gap-0 md:flex-row md:items-stretch">
+                <div className="mt-6 flex flex-col gap-0 min-[900px]:flex-row min-[900px]:items-stretch">
                     {GOVERNANCE_PHASES.flatMap((phase, index) => {
                         const circleClass = index === 0
                             ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                             : 'border-[var(--border-strong)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]';
                         const items = [
-                            <ScrollReveal key={phase.phase} delay={(index + 1) as 1 | 2 | 3} className="flex md:flex-1">
-                                <div className="flex w-full md:flex-1 md:flex-col">
-                                    {/* Mobile: vertical stem on left */}
-                                    <div className="mr-4 flex flex-col items-center md:hidden">
+                            <ScrollReveal key={phase.phase} delay={(index + 1) as 1 | 2 | 3} className="flex min-[900px]:flex-1">
+                                <div className="flex w-full min-[900px]:flex-1 min-[900px]:flex-col">
+                                    {/* Narrow: vertical stem on left */}
+                                    <div className="mr-4 flex flex-col items-center min-[900px]:hidden">
                                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[0.78rem] font-extrabold ${circleClass}`}>
                                             {index + 1}
                                         </div>
@@ -573,12 +573,12 @@ function CatchContent() {
                                         )}
                                     </div>
                                     {/* Desktop: number centered above card */}
-                                    <div className="mb-4 hidden justify-center md:flex">
+                                    <div className="mb-4 hidden justify-center min-[900px]:flex">
                                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[0.78rem] font-extrabold ${circleClass}`}>
                                             {index + 1}
                                         </div>
                                     </div>
-                                    <div className={`mb-4 flex-1 rounded-2xl border bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] md:mb-0 md:flex md:flex-col ${index === 0 ? 'border-[var(--accent)]/30' : 'border-[var(--border)]'}`}>
+                                    <div className={`mb-4 flex-1 rounded-2xl border bg-[var(--bg-secondary)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] min-[900px]:mb-0 min-[900px]:flex min-[900px]:flex-col ${index === 0 ? 'border-[var(--accent)]/30' : 'border-[var(--border)]'}`}>
                                         <div className="flex items-center gap-2">
                                             <span className="label-font text-[var(--accent)]">{phase.phase}</span>
                                             {index === 0 && <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-[var(--accent)]">Current</span>}
@@ -591,7 +591,7 @@ function CatchContent() {
                         ];
                         if (index < GOVERNANCE_PHASES.length - 1) {
                             items.push(
-                                <div key={`arrow-${index}`} className="hidden shrink-0 items-start pt-1.5 md:flex">
+                                <div key={`arrow-${index}`} className="hidden shrink-0 items-start pt-1.5 min-[900px]:flex">
                                     <span className="text-lg text-[var(--text-tertiary)]">→</span>
                                 </div>
                             );

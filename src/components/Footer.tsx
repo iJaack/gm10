@@ -22,11 +22,11 @@ function FooterRoundCta() {
 
 export default function Footer() {
     return (
-        <footer className="relative z-10 px-4 py-16">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+        <footer className="site-footer relative z-10 px-4 pt-16">
+            <div className="site-container">
                 <div className="relative pt-12 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--border-strong)] before:to-transparent">
-                    <div className="grid gap-12 xl:grid-cols-[1.2fr_0.7fr_0.9fr] xl:gap-16">
-                        <ScrollReveal>
+                    <div className="grid gap-10 wide:grid-cols-2 wide:gap-12 xl:grid-cols-[1.2fr_0.7fr_0.9fr] xl:gap-16">
+                        <ScrollReveal className="wide:col-span-2 xl:col-span-1">
                             <div className="max-w-md">
                                 <div className="text-[0.95rem] font-bold tracking-[-0.02em] text-[var(--text-primary)]">GM10</div>
                                 <h2 className="mt-4 text-2xl font-bold leading-tight tracking-[-0.03em] text-[var(--text-primary)]">

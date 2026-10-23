@@ -38,7 +38,7 @@ function SummaryStrip({
     }[];
 }) {
     return (
-        <div className="grid gap-3 py-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 py-6 wide:grid-cols-2 min-[900px]:grid-cols-4">
             {stats.map((s) => (
                 <div key={s.label} className="flex min-h-[6.25rem] flex-col justify-between gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-4 transition-colors hover:border-[var(--border-strong)]">
                     <Label as="span" className="text-[0.65rem]">{s.label}</Label>
@@ -190,7 +190,7 @@ function LotRow({ position }: { position: Gm10PortfolioPosition }) {
 function ActivityLedger({ items }: { items: Gm10PortfolioActivity[] }) {
     return (
         <section className="px-4 py-12">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <SectionLabel>Activity ledger</SectionLabel>
                 <Hairline className="mt-4" />
                 {items.length === 0 ? (
@@ -199,7 +199,7 @@ function ActivityLedger({ items }: { items: Gm10PortfolioActivity[] }) {
                     </div>
                 ) : (
                     <div>
-                        <div className="md:hidden divide-y divide-[var(--rule)]">
+                        <div className="min-[900px]:hidden divide-y divide-[var(--rule)]">
                             {items.map((item) => (
                                 <div key={item.id} className="py-5">
                                     <div className="flex items-baseline justify-between gap-4">
@@ -214,7 +214,7 @@ function ActivityLedger({ items }: { items: Gm10PortfolioActivity[] }) {
                                 </div>
                             ))}
                         </div>
-                        <div className="hidden md:block">
+                        <div className="hidden min-[900px]:block">
                             {items.map((item) => (
                                 <LedgerRow
                                     key={item.id}
@@ -298,7 +298,7 @@ function PortfolioContent() {
     return (
         <main>
             <section className="px-4 pt-28 md:pt-32 pb-4">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
                     {/* Breadcrumb */}
                     <div className="flex flex-wrap items-center gap-3 text-[0.7rem]">
                         <DataMono className="text-[var(--ink-faint)] tracking-[0.08em] uppercase">
@@ -357,7 +357,7 @@ function PortfolioContent() {
 
             {/* Gallery — Grid or Ledger */}
             <section className="px-4 pt-4 pb-10">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
                     {/* View toggle + count */}
                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                         <SectionLabel>Holdings ({portfolio.positionsStatus === 'ready' ? portfolio.positions.length : '—'})</SectionLabel>
@@ -369,7 +369,7 @@ function PortfolioContent() {
                                         key={m}
                                         type="button"
                                         onClick={() => setView(m)}
-                                        className={`v2-mono px-3 py-1 text-[0.72rem] tracking-[0.04em] rounded-full transition-colors ${
+                                        className={`v2-mono inline-flex min-h-11 items-center px-4 text-[0.72rem] tracking-[0.04em] rounded-full transition-colors ${
                                             view === m
                                                 ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                                                 : 'text-[var(--ink-muted)] hover:text-[var(--text-primary)]'
@@ -391,16 +391,17 @@ function PortfolioContent() {
                             <Caption>No lots recorded onchain yet.</Caption>
                         </div>
                     ) : view === 'grid' ? (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid gap-4 wide:grid-cols-2 min-[900px]:grid-cols-3 xl:grid-cols-4">
                             {portfolio.positions.map((position) => (
                                 <LotCard key={position.positionId} position={position} />
                             ))}
                         </div>
                     ) : (
-                        <div>
+                        <div className="min-w-0 max-w-full overflow-x-auto">
+                            <div className="min-w-[920px]">
                             {/* Column headers */}
                             <div
-                                className="hidden md:grid gap-4 items-center py-2 border-b border-[var(--rule-strong)] text-[0.62rem] uppercase tracking-[0.1em] text-[var(--ink-faint)] v2-mono"
+                                className="grid gap-4 items-center py-2 border-b border-[var(--rule-strong)] text-[0.62rem] uppercase tracking-[0.1em] text-[var(--ink-faint)] v2-mono"
                                 style={{ gridTemplateColumns: '48px 64px 1fr 120px 120px 130px 90px 120px 100px' }}
                             >
                                 <span>Lot</span>
@@ -416,6 +417,7 @@ function PortfolioContent() {
                             {portfolio.positions.map((position) => (
                                 <LotRow key={position.positionId} position={position} />
                             ))}
+                            </div>
                         </div>
                     )}
                 </div>
