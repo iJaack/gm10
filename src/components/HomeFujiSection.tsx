@@ -25,7 +25,7 @@ function HomeFujiSectionContent() {
 
     return (
         <section id="proof" className="px-4 py-16 md:py-24">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+            <div className="site-container">
                 <ScrollReveal>
                     <div className="flex items-center gap-2">
                         <span className="relative flex h-2.5 w-2.5">

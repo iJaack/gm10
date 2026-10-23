@@ -22,7 +22,7 @@ function HomeContent() {
             <Hero />
 
             <section id="why-market" className="border-b border-[var(--border)] px-4 py-16 md:py-24">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                <div className="site-container">
                     <ScrollReveal>
                         <div>
                             <div className="label-font">Why this market</div>
@@ -57,7 +57,7 @@ function HomeContent() {
                         : 'radial-gradient(ellipse 80% 60% at 12% 30%, rgba(79,168,224,0.10) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 84% 28%, rgba(240,192,48,0.08) 0%, transparent 70%), var(--bg-primary)',
                 }}
             >
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                <div className="site-container">
                     <ScrollReveal>
                         <div>
                             <div className="label-font">Why GM10</div>
@@ -85,7 +85,7 @@ function HomeContent() {
             </section>
 
             <section id="how-it-works" className="border-b border-[var(--border)] px-4 py-16 md:py-24">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                <div className="site-container">
                     <ScrollReveal>
                         <div>
                             <div className="label-font">How continuous commits work</div>
@@ -112,7 +112,7 @@ function HomeContent() {
             <HomeFujiSection />
 
             <section id="investor-objections" className="border-y border-[var(--border)] px-4 py-16 md:py-24">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                <div className="site-container">
                     <ScrollReveal>
                         <div>
                             <div className="label-font">Investor objections</div>
@@ -136,7 +136,7 @@ function HomeContent() {
             </section>
 
             <section className="px-4 py-16 md:py-24">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+                <div className="site-container">
                     <ScrollReveal>
                         <div className="rounded-3xl border border-[var(--border)] bg-[var(--bg-secondary)] px-6 py-12 text-center shadow-[var(--shadow-sm)]">
                             <div className="label-font">Next step</div>

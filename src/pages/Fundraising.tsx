@@ -165,7 +165,7 @@ function FundraisingContent() {
     }
 
     return (
-        <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+        <Page containerClassName="site-container">
             {/* Status bar */}
             <ScrollReveal>
                 <div className="flex flex-wrap gap-2">

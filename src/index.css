@@ -4,6 +4,13 @@
 
 /* ── DESIGN TOKENS ── */
 
+:root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+}
+
 :root,
 [data-theme='dark'] {
     --bg-primary: #0b0a14;
@@ -141,6 +148,13 @@
 
 /* ── BASE ── */
 
+html {
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: calc(4.5rem + var(--safe-top));
+}
+
 body {
     margin: 0;
     color: var(--text-primary);
@@ -151,6 +165,9 @@ body {
     line-height: 1.6;
     letter-spacing: -0.011em;
     min-height: 100vh;
+    min-height: 100dvh;
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -177,8 +194,10 @@ body {
         var(--bg-primary);
 }
 
-#root {
+#root,
+.min-h-screen {
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 a {
@@ -896,6 +915,175 @@ a {
     }
     .v2-grain::before {
         display: none;
+    }
+    .v2-ticker-track,
+    .holdings-marquee,
+    [data-rk] [role="dialog"],
+    [data-rk] [role="document"] {
+        animation: none !important;
+    }
+    .v2-ticker-outer {
+        overflow-x: auto;
+    }
+}
+
+/* ── Viewport shell ── */
+
+.site-header {
+    padding-top: var(--safe-top);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+}
+
+.site-content {
+    padding-top: var(--safe-top);
+}
+
+.site-footer {
+    padding-bottom: calc(4rem + var(--safe-bottom));
+}
+
+.site-container {
+    width: 100%;
+    max-width: 90rem;
+    margin-inline: auto;
+    min-width: 0;
+}
+
+/* Grid items default to min-width: auto, so a long <select> option or
+   nowrap label can stretch the page on the 466px outer display. */
+.site-container .grid,
+.site-container .grid > * {
+    min-width: 0;
+}
+
+.site-container select,
+.site-container input,
+.site-container textarea {
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (min-width: 1024px) {
+    .site-container {
+        max-width: 112.5rem;
+    }
+}
+
+.site-container-copy {
+    max-width: 75rem;
+}
+
+.nav-menu-panel {
+    left: max(1rem, var(--safe-left));
+    right: max(1rem, var(--safe-right));
+    top: calc(4.75rem + var(--safe-top));
+    bottom: max(1rem, var(--safe-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Hero splits into two columns only between phone width and desktop,
+   so the 466px outer display stays stacked and large desktops stay editorial. */
+.duo-hero-copy,
+.duo-hero-capital {
+    min-width: 0;
+}
+
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .duo-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(200px, 0.8fr);
+        gap: 1.75rem 2rem;
+        align-items: end;
+    }
+
+    .duo-hero-capital {
+        margin-top: 0;
+    }
+}
+
+.hero-cover {
+    object-fit: cover;
+    object-position: center 42%;
+}
+
+@media (min-aspect-ratio: 4/5) {
+    .hero-cover {
+        object-position: center 50%;
+    }
+}
+
+@keyframes v2-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-33.333%); }
+}
+
+@media (max-width: 799px) {
+    .duo-stack-ledger {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 0.35rem;
+    }
+}
+
+/* RainbowKit dialogs use 100vw and, on desktop UA, a 720px min-width.
+   Keep connect / account / chain modals inside the live viewport,
+   including the 466px outer display and short landscape heights.
+   Class names match the installed @rainbow-me/rainbowkit build. */
+[data-rk] [role="dialog"] {
+    padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left));
+    box-sizing: border-box;
+}
+
+[data-rk] [role="document"] {
+    /* The RainbowKit overlay is larger than the viewport (its click-catcher
+       padding), so percentage widths center on the wrong box. Size from the
+       viewport instead. */
+    width: min(480px, calc(100vw - var(--safe-left) - var(--safe-right) - 32px)) !important;
+    max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 32px) !important;
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px);
+    overflow: auto;
+}
+
+[data-rk] [role="document"] button {
+    min-height: 44px;
+}
+
+[data-rk] ._1ckjpok1,
+[data-rk] ._1ckjpok2,
+[data-rk] ._1ckjpok3,
+[data-rk] ._1ckjpok4,
+[data-rk] ._1ckjpok6 {
+    width: min(480px, calc(100vw - var(--safe-left) - var(--safe-right) - 32px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 32px) !important;
+    box-sizing: border-box !important;
+}
+
+@media (max-width: 839px), (max-height: 520px) {
+    [data-rk] [role="dialog"] {
+        align-items: center !important;
+    }
+
+    [data-rk] ._1ckjpok7 {
+        top: auto !important;
+        margin-top: 0 !important;
+        padding-bottom: 0 !important;
+        border-radius: 24px !important;
+    }
+
+    [data-rk] ._9pm4ki5 {
+        max-width: 100% !important;
+        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px);
+        overflow: auto;
+    }
+
+    [data-rk] ._1vwt0cg2,
+    [data-rk] ._18dqw9x0,
+    [data-rk] ._18dqw9x1,
+    [data-rk] ._1am14410 {
+        max-height: min(420px, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 160px));
     }
 }
 

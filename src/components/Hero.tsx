@@ -38,7 +38,7 @@ export default function Hero() {
                 />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="relative z-10 site-container">
                 <div className="max-w-[44rem] lg:max-w-none">
                     <div className="label-font scan-reveal scan-delay-1" style={{ color: onPhoto.muted }}>
                         Onchain collectible exposure

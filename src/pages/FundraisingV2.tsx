@@ -183,7 +183,7 @@ function Round1Archive() {
 
     return (
         <section className="px-4 py-20 border-t border-[var(--rule)]">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <SectionLabel>Round 01 · Archive</SectionLabel>
                 <Display as="h2" className="mt-4 text-[clamp(1.8rem,3.5vw,2.6rem)]">
                     Round 1 closed early: capital filled in 45 hours.
@@ -195,7 +195,7 @@ function Round1Archive() {
                 </p>
 
                 <div className="mt-10 border-t border-[var(--rule)]">
-                    <div className="md:hidden divide-y divide-[var(--rule)]">
+                    <div className="min-[900px]:hidden divide-y divide-[var(--rule)]">
                         {archiveRows.map((row) => (
                             <div key={row.label} className="py-5">
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>
@@ -208,7 +208,7 @@ function Round1Archive() {
                             </div>
                         ))}
                     </div>
-                    <div className="hidden md:block">
+                    <div className="hidden min-[900px]:block">
                         {archiveRows.map((row) => (
                             <LedgerRow key={row.label} columns="240px 1fr 240px" cells={[
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>,
@@ -238,13 +238,14 @@ function Proof() {
     const round = useFujiRoundState();
     return (
         <section className="px-4 py-10 border-t border-[var(--rule)] md:py-12">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <SectionLabel>Proof surface</SectionLabel>
                 <Hairline className="mt-4" />
                 {round.links.map((link) => (
                     <LedgerRow
                         key={link.label}
-                        columns="220px 1fr auto"
+                        className="duo-stack-ledger"
+                        columns="minmax(0,220px) minmax(0,1fr) auto"
                         cells={[
                             <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{link.label}</Caption>,
                             <DataMono className="break-all text-[0.78rem] text-[var(--text-primary)]">{link.address ?? 'pending'}</DataMono>,
@@ -336,12 +337,12 @@ function PostCloseLedger({ archiveRaisedAvax }: { archiveRaisedAvax: number }) {
                 <div className="mt-2 border-t border-[var(--rule)]">
                     {totalRows.map((row) => (
                         <div key={row.label}>
-                            <div className="md:hidden border-b border-[var(--rule)] py-3">
+                            <div className="min-[900px]:hidden border-b border-[var(--rule)] py-3">
                                 <Caption className="uppercase tracking-[0.06em] text-[var(--ink-faint)]">{row.label}</Caption>
                                 <DataMono className="mt-1.5 block text-[0.9rem] text-[var(--text-primary)]">{row.value}</DataMono>
                                 <p className="mt-1 text-[0.8rem] leading-[1.45] text-[var(--ink-muted)]">{row.detail}</p>
                             </div>
-                            <div className="hidden md:block">
+                            <div className="hidden min-[900px]:block">
                                 <LedgerRow
                                     columns="170px 1fr 150px"
                                     className="py-2.5"
@@ -1001,7 +1002,7 @@ function FundraisingContent() {
         <main>
             {/* Compact continuous commit surface */}
             <section className="px-4 pt-24 pb-12 md:pt-28">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
                     <div className="flex flex-wrap items-center gap-3 text-[0.7rem]">
                         <DataMono className="text-[var(--ink-faint)] tracking-[0.08em] uppercase">
                             <a href="/" className="hover:text-[var(--text-primary)]">Gm10</a>
@@ -1013,8 +1014,8 @@ function FundraisingContent() {
                         </DataMono>
                     </div>
 
-                    <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start xl:grid-cols-[minmax(0,1fr)_380px]">
-                        <div className="rounded-2xl border border-[var(--rule-strong)] bg-[var(--bg-secondary)] p-4 shadow-[0_0_0_1px_var(--accent-muted)] md:p-5">
+                    <div className="mt-6 grid min-w-0 gap-4 min-[840px]:grid-cols-[minmax(0,1fr)_minmax(220px,340px)] min-[840px]:items-start xl:grid-cols-[minmax(0,1fr)_380px]">
+                        <div className="min-w-0 rounded-2xl border border-[var(--rule-strong)] bg-[var(--bg-secondary)] p-4 shadow-[0_0_0_1px_var(--accent-muted)] md:p-5">
                             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--rule)] pb-3">
                                 <div>
                                     <SectionLabel>Commit preview</SectionLabel>
@@ -1035,7 +1036,7 @@ function FundraisingContent() {
                                             {fmtUsdc(settlementAmountUsdt6, '0 USDC')} equivalent
                                         </DataMono>
                                     </div>
-                                    <div className="mt-2 flex items-center gap-3">
+                                    <div className="mt-2 flex flex-wrap items-center gap-3">
                                         <input
                                             value={amount}
                                             onChange={(e) => {
@@ -1046,7 +1047,7 @@ function FundraisingContent() {
                                             placeholder={selectedSourceToken?.symbol === 'USDC' ? '100.00' : '1.00'}
                                             disabled={!selectedSourceToken}
                                             inputMode="decimal"
-                                            className="w-full min-w-0 bg-transparent v2-mono text-[clamp(2.25rem,4vw,3.25rem)] font-bold leading-none tracking-[-0.03em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
+                                            className="min-h-11 min-w-0 flex-1 basis-[8rem] bg-transparent v2-mono text-[clamp(1.75rem,8vw,3.25rem)] font-bold leading-none tracking-[-0.03em] text-[var(--text-primary)] outline-none placeholder:text-[var(--ink-faint)]"
                                         />
                                         <div className="flex shrink-0 items-center gap-2">
                                             <button
@@ -1060,7 +1061,7 @@ function FundraisingContent() {
                                                     setCommitFeedback(null);
                                                 }}
                                                 disabled={!selectedSourceToken || (sourceBalanceRaw !== undefined ? sourceBalanceRaw <= 0n : selectedSourceToken.balance <= 0)}
-                                                className="v2-mono rounded-full border border-[var(--rule-strong)] px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
+                                                className="v2-mono inline-flex min-h-11 items-center rounded-full border border-[var(--rule-strong)] px-3 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-[var(--accent-brass)] hover:border-[var(--accent-brass)] hover:text-[var(--text-primary)]"
                                             >
                                                 Max
                                             </button>
@@ -1085,7 +1086,7 @@ function FundraisingContent() {
                                             setCommitFeedback(null);
                                         }}
                                         disabled={sourceTokens.length === 0}
-                                        className="mt-2 h-10 w-full rounded-lg border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-2 v2-mono text-[0.8rem] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
+                                        className="mt-2 min-h-11 w-full rounded-lg border border-[var(--rule-strong)] bg-[var(--bg-primary)] px-2 v2-mono text-base font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent-brass)]"
                                     >
                                         {sourceTokens.length > 0 ? sourceTokens.map((token) => (
                                             <option key={token.id} value={token.id}>
@@ -1105,7 +1106,7 @@ function FundraisingContent() {
                                 </div>
                             </div>
 
-                            <div className="mt-3 grid gap-2 rounded-xl bg-[var(--accent-muted)] p-3 sm:grid-cols-3">
+                            <div className="mt-3 grid gap-2 rounded-xl bg-[var(--accent-muted)] p-3 wide:grid-cols-3">
                                 <div>
                                     <Caption className="block text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--text-primary)]">Route settles</Caption>
                                     <DataMono className="mt-1 block text-[1.2rem] font-bold text-[var(--text-primary)]">
@@ -1198,14 +1199,14 @@ function FundraisingContent() {
                             ) : null}
                         </div>
 
-                        <aside className="rounded-2xl border border-[var(--rule)] bg-[var(--bg-secondary)] p-4">
+                        <aside className="min-w-0 rounded-2xl border border-[var(--rule)] bg-[var(--bg-secondary)] p-4">
                             <div className="flex items-center justify-between gap-3">
                                 <SectionLabel>Live mechanics</SectionLabel>
                                 <DataMono className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--ink-faint)]">
                                     Avalanche
                                 </DataMono>
                             </div>
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                            <div className="mt-3 grid gap-2 wide:grid-cols-2 min-[840px]:grid-cols-1">
                                 {[
                                     ['NAV-backed token price', fmtUsdc(navPerTokenUsdt6)],
                                     ['Mint spread', fmtSpread(mintSpreadBps)],
@@ -1225,7 +1226,7 @@ function FundraisingContent() {
 
             {/* Continuous commit rail */}
             <section className="px-4 py-16 border-t border-[var(--rule)]">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
                     <SectionLabel>Continuous round</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[58ch]">
                         The next commit flow is infinite: every settled route mints immediately.
@@ -1233,7 +1234,7 @@ function FundraisingContent() {
                     <p className="mt-2 max-w-[72ch] text-[0.84rem] leading-[1.7] text-[var(--ink-muted)]">
                         Commit from any LI.FI or Mobula-supported chain and token. The route settles on Avalanche first, then CATCH is minted for that commit.
                     </p>
-                    <div className="mt-8 grid gap-3 md:grid-cols-4">
+                    <div className="mt-8 grid gap-3 wide:grid-cols-2 min-[1100px]:grid-cols-4">
                         {CONTINUOUS_COMMIT_RAILS.map((rail, index) => (
                             <div key={rail.label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
                                 <DataMono className="text-[0.72rem] text-[var(--accent-brass)]">0{index + 1}</DataMono>
@@ -1247,7 +1248,7 @@ function FundraisingContent() {
 
             {/* Allocation preview */}
             <section className="px-4 py-16 border-t border-[var(--rule)]">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
                     <SectionLabel>Value routing</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[56ch]">
                         Every continuous commit has an immediate route. It does not wait for a round close.
@@ -1258,14 +1259,14 @@ function FundraisingContent() {
                     <div className="mt-8 border-t border-[var(--rule)]">
                         {continuousAllocationRows.map((bucket) => (
                             <div key={bucket.label}>
-                                <div className="md:hidden border-b border-[var(--rule)] py-5">
+                                <div className="min-[900px]:hidden border-b border-[var(--rule)] py-5">
                                     <div className="flex items-baseline justify-between gap-4">
                                         <DataMono className="text-[var(--accent-brass)] text-[0.9rem]">{bucket.percent}</DataMono>
                                         <div className="text-right text-[var(--text-primary)]">{bucket.label}</div>
                                     </div>
                                     <p className="mt-2 text-[0.86rem] leading-[1.55] text-[var(--ink-muted)]">{bucket.detail}</p>
                                 </div>
-                                <div className="hidden md:block">
+                                <div className="hidden min-[900px]:block">
                                     <LedgerRow
                                         columns="90px 1fr"
                                         cells={[
@@ -1284,7 +1285,7 @@ function FundraisingContent() {
             </section>
 
             <section className="px-4 py-[3.4rem] border-t border-[var(--rule)]">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+                <div className="site-container">
                     <SectionLabel>Finalized raise archive</SectionLabel>
                     <Display as="div" className="mt-4 text-[clamp(1.4rem,2.8vw,2rem)] max-w-[56ch]">
                         Round 1 and Round 2 totals are archived, not the current purchase mechanic.
@@ -1300,7 +1301,7 @@ function FundraisingContent() {
 
             {/* closer */}
             <section className="px-4 py-10 border-t border-[var(--rule)] md:py-12">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] flex flex-wrap items-center justify-between gap-4">
+                <div className="site-container flex flex-wrap items-center justify-between gap-4">
                     <Display className="text-[clamp(1.2rem,2.4vw,1.6rem)]">
                         Questions about the terms?
                     </Display>

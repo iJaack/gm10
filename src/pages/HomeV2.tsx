@@ -21,6 +21,7 @@ import {
 } from '../components/v2/primitives';
 import { useFujiPortfolioPositions, useFujiRoundState } from '../hooks/useFujiProof';
 import { useStrategyCapitalTotals } from '../hooks/useStrategyCapitalTotals';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { useTheme } from '../hooks/useTheme';
 import { HOME_GM10_ADVANTAGES, ROUND_2_CLOSE_LEDGER } from '../data/protocol';
 import { CARD_PURCHASE_CONVERSION_BASIS_USD } from '../data/strategyCapital';
@@ -76,7 +77,7 @@ function Hero() {
                     aria-hidden
                     loading="eager"
                     decoding="async"
-                    className="h-full w-full object-cover object-center"
+                    className="hero-cover h-full w-full"
                 />
                 <div
                     className="absolute inset-0"
@@ -88,13 +89,14 @@ function Hero() {
                 />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                <div className="max-w-[44rem] lg:max-w-none">
+            <div className="relative z-10 site-container">
+                <div className="duo-hero">
+                <div className="duo-hero-copy max-w-[44rem] lg:max-w-none">
                     <div className="label-font" style={{ color: onPhoto.muted }}>
                         Onchain collectible exposure
                     </div>
                     <h1
-                        className="mt-5 max-w-[18ch] lg:max-w-none text-[2.9rem] font-extrabold leading-[1.02] tracking-[-0.04em] sm:text-[3.5rem] lg:text-[4.35rem]"
+                        className="mt-5 max-w-[min(18ch,100%)] text-[clamp(2.9rem,7.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-0.04em] lg:max-w-none lg:text-[4.35rem]"
                         style={{ color: onPhoto.primary, textShadow: onPhoto.shadow }}
                     >
                         Exposure to the 'mons you can't $CATCH alone.
@@ -131,7 +133,8 @@ function Hero() {
                     </div>
 
                     {/* Continuous capital callout */}
-                    <div className="mt-6 max-w-[42rem] lg:max-w-[42%]">
+                </div>
+                    <div className="duo-hero-capital mt-6 max-w-[42rem] lg:max-w-[42%]">
                         <div
                             className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]/85 backdrop-blur-sm px-5 py-4"
                         >
@@ -168,16 +171,16 @@ const PEAK_SALE_HISTORY = [55000, 90000, 195000, 370000, 900000, 5_275_000, 6_90
 function Thesis() {
     return (
         <section className="px-4 py-16 md:py-20 border-t border-[var(--rule)]">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <SectionLabel>The thesis</SectionLabel>
                 <blockquote className="mt-8">
-                    <Display as="p" className="text-[clamp(2.4rem,5.5vw,4rem)] max-w-[20ch] md:max-w-none">
+                    <Display as="p" className="text-[clamp(2.4rem,5.5vw,4rem)] max-w-[min(20ch,100%)] lg:max-w-none">
                         Trophy-tier Pokémon cards already trade like a
                         {' '}<DisplayItalic>serious alternative asset class.</DisplayItalic>
                     </Display>
                 </blockquote>
 
-                <div className="mt-16 grid gap-12 md:grid-cols-[0.5fr_0.5fr_1fr] md:items-end">
+                <div className="mt-10 grid gap-8 wide:grid-cols-[minmax(0,220px)_minmax(0,1fr)] wide:items-end lg:mt-16 lg:grid-cols-[minmax(0,240px)_minmax(0,0.75fr)_minmax(0,1.1fr)] lg:gap-12">
                     <div className="flex justify-center md:justify-start">
                         <img
                             src="/brand/evidence-bg.webp"
@@ -197,7 +200,7 @@ function Thesis() {
                             </DataMono>
                         </div>
                     </div>
-                    <div className="max-w-[48ch]">
+                    <div className="max-w-[48ch] wide:col-span-2 lg:col-span-1">
                         <p className="text-[1.05rem] leading-[1.7] text-[var(--text-primary)]">
                             <DisplayItalic className="text-[1.2rem]">Pikachu Illustrator PSA 10.</DisplayItalic>{' '}
                             Goldin Auctions, February 2026. Logan Paul sold it to AJ Scaramucci.
@@ -318,9 +321,9 @@ function StrategyChapters() {
 
     return (
         <section className="px-4 py-12 md:py-16 border-t border-[var(--rule)]">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <SectionLabel>The track record</SectionLabel>
-                <div className="mt-6 grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+                <div className="mt-6 grid gap-8 wide:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)] wide:items-start lg:gap-10">
                     {/* Left: headline + chart */}
                     <div>
                         <h2 className="text-[clamp(1.8rem,3.4vw,2.6rem)] font-extrabold tracking-[-0.035em] leading-[1.1] text-[var(--text-primary)] max-w-[22ch]">
@@ -382,16 +385,18 @@ function StrategyChapters() {
 
 function HoldingsMarquee() {
     const portfolio = useFujiPortfolioPositions();
+    const reducedMotion = usePrefersReducedMotion();
     if (portfolio.positions.length === 0) {
         return null;
     }
     const lotCount = portfolio.positions.length;
     const lotWord = lotCount === 1 ? 'lot' : 'lots';
-    // loop the cards so the marquee scrolls continuously
-    const loop = [...portfolio.positions, ...portfolio.positions, ...portfolio.positions];
+    const loop = reducedMotion
+        ? portfolio.positions
+        : [...portfolio.positions, ...portfolio.positions, ...portfolio.positions];
     return (
-        <section className="overflow-hidden border-t border-[var(--rule)] py-16 md:py-20">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))] px-4 mb-8 flex items-center justify-between">
+        <section className={`border-t border-[var(--rule)] py-16 md:py-20 ${reducedMotion ? '' : 'overflow-hidden'}`}>
+            <div className="site-container px-4 mb-8 flex flex-col gap-4 wide:flex-row wide:items-end wide:justify-between">
                 <div className="max-w-[44rem]">
                     <SectionLabel>Current holdings</SectionLabel>
                     <p className="mt-3 text-[1rem] leading-[1.6] text-[var(--text-primary)]">
@@ -404,16 +409,20 @@ function HoldingsMarquee() {
             </div>
 
             <div
-                className="flex gap-8 whitespace-nowrap"
-                style={{ animation: 'v2-marquee 40s linear infinite' }}
-                onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = 'paused')}
-                onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = 'running')}
+                className={`holdings-marquee flex gap-4 px-4 wide:gap-8 wide:px-0 ${reducedMotion ? 'flex-wrap' : 'whitespace-nowrap'}`}
+                style={reducedMotion ? undefined : { animation: 'v2-marquee 40s linear infinite' }}
+                onMouseEnter={(e) => {
+                    if (!reducedMotion) e.currentTarget.style.animationPlayState = 'paused';
+                }}
+                onMouseLeave={(e) => {
+                    if (!reducedMotion) e.currentTarget.style.animationPlayState = 'running';
+                }}
             >
                 {loop.map((position, i) => (
                     <Link
                         key={`${position.positionId}-${i}`}
                         to="/portfolio"
-                        className="group block shrink-0 w-[260px]"
+                        className="group block w-[min(100%,260px)] shrink-0"
                     >
                         <div className="overflow-hidden rounded-[0.5rem] bg-[var(--bg-secondary)] aspect-[3/4]">
                             <img
@@ -436,15 +445,6 @@ function HoldingsMarquee() {
                     </Link>
                 ))}
             </div>
-            <style>{`
-                @keyframes v2-marquee {
-                    from { transform: translateX(0); }
-                    to   { transform: translateX(-33.333%); }
-                }
-                @media (prefers-reduced-motion: reduce) {
-                    [style*='v2-marquee'] { animation: none !important; }
-                }
-            `}</style>
         </section>
     );
 }

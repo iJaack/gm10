@@ -87,7 +87,7 @@ function HoldersContent() {
     const pnlIsNegative = typeof pnlValue === 'string' && pnlValue.startsWith('-');
 
     return (
-        <Page containerClassName="mx-auto max-w-[min(1440px,calc(100vw-48px))]">
+        <Page containerClassName="site-container">
             {/* Header */}
             <section>
                 <ScrollReveal>

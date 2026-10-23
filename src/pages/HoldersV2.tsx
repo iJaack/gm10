@@ -132,7 +132,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
 
     return (
         <section className="px-4 pt-28 md:pt-32 pb-8">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-3 text-[0.7rem]">
                     <DataMono className="text-[var(--ink-faint)] tracking-[0.08em] uppercase">
@@ -146,7 +146,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                 </div>
 
                 {/* Price headline */}
-                <div className="mt-10 grid items-end gap-x-8 gap-y-5 lg:grid-cols-[minmax(300px,max-content)_minmax(180px,240px)_minmax(260px,1fr)]">
+                <div className="mt-10 grid items-end gap-x-8 gap-y-5 min-[900px]:grid-cols-[minmax(0,1.3fr)_minmax(140px,220px)_minmax(0,1fr)]">
                     <div className="min-w-0">
                         <Label>CATCH / USD</Label>
                         <Display as="div" className="mt-2 text-[clamp(3rem,8vw,6rem)]">
@@ -159,7 +159,7 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                             </DataMono>
                         ) : null}
                     </div>
-                    <div className="flex min-w-[180px] flex-col gap-1.5 pb-1 lg:justify-self-center lg:pb-3">
+                    <div className="flex min-w-0 flex-col gap-1.5 pb-1 min-[900px]:justify-self-center min-[900px]:pb-3">
                         {hasLiveChange ? (
                             <DataMono className={isUp ? 'v2-up text-[1.2rem] md:text-[1.35rem]' : 'v2-down text-[1.2rem] md:text-[1.35rem]'}>
                                 {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% <span className="text-[var(--ink-faint)] text-[0.8rem] ml-1">24h</span>
@@ -185,9 +185,9 @@ function MarketHeader({ market }: { market: CatchMarketState }) {
                         )}
                     </div>
                     {canComparePremium ? (
-                        <div className="flex min-w-0 flex-col gap-1 pb-1 md:gap-2 lg:justify-self-end lg:pb-3 lg:text-right">
+                        <div className="flex min-w-0 flex-col gap-1 pb-1 md:gap-2 min-[900px]:justify-self-end min-[900px]:pb-3 min-[900px]:text-right">
                             <span
-                                className={`inline-flex self-start items-center gap-2 rounded-full px-3 py-1 text-[0.82rem] font-semibold md:gap-2.5 md:px-5 md:py-2 md:text-[1.08rem] lg:self-end lg:px-6 lg:py-2.5 lg:text-[1.16rem] xl:text-[1.24rem] ${
+                                className={`inline-flex min-h-11 self-start items-center gap-2 rounded-full px-3 text-[0.82rem] font-semibold md:gap-2.5 md:px-5 md:text-[1.08rem] min-[900px]:self-end min-[900px]:px-6 min-[900px]:text-[1.16rem] xl:text-[1.24rem] ${
                                     atPar
                                         ? 'border border-[var(--border)] text-[var(--ink-muted)]'
                                         : isPremium
@@ -249,8 +249,8 @@ function OverviewCards({ market }: { market: CatchMarketState }) {
 
     return (
         <section className="px-4 pt-4 pb-8">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
-                <div className="grid gap-4 md:grid-cols-3">
+            <div className="site-container">
+                <div className="grid gap-4 wide:grid-cols-2 min-[900px]:grid-cols-3">
                     {cards.map((c) => (
                         <div
                             key={c.label}
@@ -329,10 +329,10 @@ function CompositionDonut() {
 
     return (
         <section className="px-4 pb-12">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <SectionLabel>Protocol composition</SectionLabel>
                 <Hairline className="mt-4" />
-                <div className="mt-6 grid gap-8 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
+                <div className="mt-6 grid gap-8 min-[720px]:grid-cols-[minmax(140px,180px)_minmax(0,1fr)] min-[720px]:items-start">
                     <div className="flex justify-center md:justify-start lg:items-center">
                         <svg viewBox="0 0 180 180" width="180" height="180" aria-hidden>
                             {paths.map((p, i) => (
@@ -415,7 +415,7 @@ function StatRowItem({ row }: { row: StatRow }) {
             : row.hintTone === 'down' ? 'v2-down'
                 : 'text-[var(--ink-faint)]';
     return (
-        <div className="grid gap-4 border-b border-[var(--rule)] py-5 items-center md:grid-cols-[1fr_auto] md:gap-8 last:border-b-0">
+        <div className="grid gap-4 border-b border-[var(--rule)] py-5 items-center wide:grid-cols-[minmax(0,1fr)_auto] wide:gap-8 last:border-b-0">
             <div className="min-w-0">
                 <div className="text-[0.82rem] font-semibold text-[var(--text-primary)]">{row.label}</div>
                 <div className="mt-1 text-[0.78rem] text-[var(--ink-faint)]">{row.detail}</div>
@@ -436,7 +436,7 @@ function StatRowItem({ row }: { row: StatRow }) {
                     </div>
                 ) : null}
             </div>
-            <div className="text-right md:min-w-[180px]">
+            <div className="min-w-0 text-right">
                 <DataMono className={`block ${row.valueClassName ?? 'text-[1.15rem]'} font-bold tracking-[-0.01em] tabular-nums text-[var(--text-primary)]`}>
                     {row.value}
                 </DataMono>
@@ -479,13 +479,13 @@ function StatGroup({
     const count = metricCount ?? rows.length;
 
     const rowsNode = rows.length > 0 ? (
-        <div className={`mt-2 ${rowsColumns === 2 ? 'grid gap-x-8 md:grid-cols-2' : ''}`}>
+        <div className={`mt-2 ${rowsColumns === 2 ? 'grid gap-x-8 wide:grid-cols-2' : ''}`}>
             {rows.map((row) => <StatRowItem key={row.label} row={row} />)}
         </div>
     ) : null;
 
     const body = layout === 'side-by-side' && chart ? (
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-start">
+        <div className="mt-6 grid gap-8 wide:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] items-start">
             <div className="min-w-0">{chart}</div>
             <div className="min-w-0">{rightNode ?? rowsNode}</div>
         </div>
@@ -698,7 +698,7 @@ function ProtocolStats() {
                         ariaLabel={`Supply split. ${fmtCatch(eligibleSupplyNum)} is circulating holder supply and ${fmtCatch(excludedSupplyNum)} is excluded system supply.`}
                     />
                 </div>
-                <div className="mt-3 grid gap-2 text-[0.76rem] md:grid-cols-2">
+                <div className="mt-3 grid gap-2 text-[0.76rem] wide:grid-cols-2">
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2">
                         <DataMono className="block text-[var(--ink-faint)]">Profit-eligible</DataMono>
                         <DataMono className="mt-1 block font-semibold text-[var(--text-primary)]">
@@ -713,7 +713,7 @@ function ProtocolStats() {
                     </div>
                 </div>
             </div>
-            <div className="mt-4 grid gap-6 md:grid-cols-[240px_1fr] md:items-center">
+            <div className="mt-4 grid gap-6 min-[800px]:grid-cols-[minmax(160px,240px)_minmax(0,1fr)] min-[800px]:items-center">
                 <DonutChart
                     slices={TOKEN_ALLOCATION.map((b, i) => ({
                         label: b.label,
@@ -784,7 +784,7 @@ function ProtocolStats() {
 
     return (
         <section className="px-4 pt-4 pb-12">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <div className="flex items-baseline justify-between">
                     <SectionLabel>Protocol accounting</SectionLabel>
                     <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
@@ -793,7 +793,7 @@ function ProtocolStats() {
                 </div>
 
                 {/* Supply + Valuation — two cards side by side on lg, stretched to equal height */}
-                <div className="mt-8 grid gap-6 lg:grid-cols-2 items-stretch [&>section]:mt-0 [&>section]:h-full">
+                <div className="mt-8 grid gap-6 wide:grid-cols-2 items-stretch [&>section]:mt-0 [&>section]:h-full">
                     <StatGroup
                         title="Supply"
                         description="Live minted $CATCH. The gradient portion is held by outside wallets and shares in protocol profits. The remainder is protocol-owned (treasury, vesting, LP) and does not receive distributions."
@@ -839,7 +839,7 @@ function AccountSection() {
 
     return (
         <section className="px-4 pt-2 pb-10">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 {!holder.isConnected ? (
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
                         <div className="min-w-0">
@@ -1015,7 +1015,7 @@ function LiquiditySection() {
 
     return (
         <section className="px-4 pt-8 pb-24">
-            <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] lg:max-w-[min(1800px,calc(100vw-64px))]">
+            <div className="site-container">
                 <div className="flex items-baseline justify-between">
                     <SectionLabel>Markets</SectionLabel>
                     <DataMono className="text-[0.7rem] text-[var(--ink-faint)]">
@@ -1038,7 +1038,7 @@ function LiquiditySection() {
                         </DataMono>
                     </header>
 
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="mt-5 grid gap-4 wide:grid-cols-2 min-[900px]:grid-cols-3 xl:grid-cols-5">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] p-5">
                             <Caption className="block text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                                 Spot price
@@ -1102,7 +1102,7 @@ function LiquiditySection() {
                         <p className="mt-1 text-[0.72rem] leading-[1.5] text-[var(--ink-faint)]">
                             Onchain liquidity is read from pool reserves and token balances. 24h volume is shown only when an indexer reports it.
                         </p>
-                        <div className="mt-4 grid gap-6 md:grid-cols-2">
+                        <div className="mt-4 grid gap-6 wide:grid-cols-2">
                             <div>
                                 <div className="text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                                     Onchain liquidity
@@ -1273,7 +1273,7 @@ function LiquiditySection() {
                         );
                     })()}
 
-                    <div className="mt-8 overflow-x-auto border-t border-[var(--rule)] pt-5">
+                    <div className="mt-8 min-w-0 max-w-full overflow-x-auto border-t border-[var(--rule)] pt-5">
                         <div className="min-w-[920px]">
                             <div
                                 className="grid gap-4 py-2 text-[0.64rem] tracking-[0.08em] uppercase text-[var(--ink-faint)] v2-mono border-b border-[var(--rule)]"
