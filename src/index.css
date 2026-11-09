@@ -13,33 +13,31 @@
 
 :root,
 [data-theme='dark'] {
-    --bg-primary: #0b0a14;
-    --bg-secondary: #131220;
-    --bg-tertiary: #1c1a2c;
-    --bg-elevated: #201e30;
-    --bg-overlay: rgba(0, 0, 0, 0.6);
+    --bg-primary: #120f0c;
+    --bg-secondary: #1a1612;
+    --bg-tertiary: #231e19;
+    --bg-elevated: #26201a;
+    --bg-overlay: rgba(18, 15, 12, 0.6);
     --text-primary: #f5f0e8;
-    --text-secondary: rgba(245, 240, 232, 0.58);
-    --text-tertiary: rgba(245, 240, 232, 0.55);
-    --border: rgba(255, 255, 255, 0.07);
-    --border-strong: rgba(255, 255, 255, 0.14);
+    --ink-2: #cfc6b8;
+    --on-accent: #120f0c;
+    --text-secondary: rgba(245, 240, 232, 0.72);
+    --text-tertiary: rgba(245, 240, 232, 0.58);
+    --border: rgba(245, 240, 232, 0.07);
+    --border-strong: rgba(245, 240, 232, 0.14);
     --accent: #f0c030;
     --accent-text: #f0c030;
     --focus: var(--accent-text);
     --accent-blue: #4fa8e0;
     --accent-green: #4ec98a;
     --accent-red: #e8453a;
-    --surface-hover: rgba(255, 255, 255, 0.04);
-    --surface-active: rgba(255, 255, 255, 0.07);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
-    /* Holo / Pokémon accent extras */
-    --holo-from: #f0c030;
-    --holo-via: #e8453a;
-    --holo-to: #4fa8e0;
+    --surface-hover: rgba(245, 240, 232, 0.04);
+    --surface-active: rgba(245, 240, 232, 0.07);
+    --shadow-sm: 0 1px 2px rgba(8, 6, 4, 0.35);
+    --shadow-md: 0 4px 16px rgba(8, 6, 4, 0.3);
+    --shadow-lg: 0 12px 40px rgba(8, 6, 4, 0.4);
+    /* Brass highlight */
     --gold-glow: rgba(240, 192, 48, 0.12);
-    --red-glow: rgba(232, 69, 58, 0.08);
     /* Logo */
     --logo-dome-light: #4a90d9;
     --logo-dome-dark: #1a3a6b;
@@ -49,20 +47,11 @@
     --logo-button: #22d3ee;
     --logo-button-ring: rgba(34, 211, 238, 0.35);
     /* Display case */
-    --case-bg-top: #07111f;
-    --case-bg-bottom: #020609;
-    --case-frame: rgba(90, 160, 220, 0.45);
-    --case-shelf: rgba(60, 110, 170, 0.3);
-    --case-shelf-edge: rgba(100, 170, 230, 0.5);
-    --card-slot: rgba(20, 50, 90, 0.45);
-    --card-slot-top: rgba(40, 80, 130, 0.6);
-    --neon-ring: #22d3ee;
-    --neon-ring-outer: rgba(34, 211, 238, 0.35);
-    --light-ray: rgba(34, 211, 238, 0.12);
-    --case-reflection: rgba(34, 211, 238, 0.06);
+    --case-shelf: var(--bg-tertiary);
+    --card-slot: var(--bg-elevated);
 
     /* ── v2 tokens, mapped to production visual language ── */
-    --ink: var(--bg-primary);                    /* navy-black base */
+    --ink: var(--bg-primary);                    /* warm dark base */
     --paper: var(--text-primary);
     --surface: var(--bg-secondary);
     --surface-elevated: var(--bg-elevated);
@@ -86,31 +75,29 @@
 
 [data-theme='light'] {
     --bg-primary: #faf7f0;
-    --bg-secondary: #f2ede4;
+    --bg-secondary: #fffdf8;
     --bg-tertiary: #e8e2d6;
     --bg-elevated: #fffdf8;
-    --bg-overlay: rgba(0, 0, 0, 0.18);
+    --bg-overlay: rgba(8, 6, 4, 0.18);
     --text-primary: #1a1510;
+    --ink-2: #4f463c;
+    --on-accent: #1a1510;
     --text-secondary: rgba(26, 21, 16, 0.72);
     --text-tertiary: rgba(26, 21, 16, 0.66);
-    --border: rgba(0, 0, 0, 0.1);
-    --border-strong: rgba(0, 0, 0, 0.18);
-    --accent: #d4960a;
+    --border: rgba(8, 6, 4, 0.1);
+    --border-strong: rgba(8, 6, 4, 0.18);
+    --accent: #b07a00;
     --accent-text: #7d5800;
     --focus: var(--accent-text);
     --accent-blue: #2874a6;
     --accent-green: #2d8f5c;
     --accent-red: #c03028;
-    --surface-hover: rgba(0, 0, 0, 0.03);
-    --surface-active: rgba(0, 0, 0, 0.06);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-    --holo-from: #d4960a;
-    --holo-via: #c03028;
-    --holo-to: #2874a6;
-    --gold-glow: rgba(212, 150, 10, 0.08);
-    --red-glow: rgba(192, 48, 40, 0.05);
+    --surface-hover: rgba(8, 6, 4, 0.03);
+    --surface-active: rgba(8, 6, 4, 0.06);
+    --shadow-sm: 0 1px 2px rgba(8, 6, 4, 0.06);
+    --shadow-md: 0 4px 16px rgba(8, 6, 4, 0.08);
+    --shadow-lg: 0 12px 40px rgba(8, 6, 4, 0.12);
+    --gold-glow: rgba(176, 122, 0, 0.08);
     /* Logo */
     --logo-dome-light: #2563eb;
     --logo-dome-dark: #1e40af;
@@ -119,18 +106,9 @@
     --logo-divider: #3b82f6;
     --logo-button: #0891b2;
     --logo-button-ring: rgba(8, 145, 178, 0.3);
-    /* Display case — light mode: transparent background, very subtle elements */
-    --case-bg-top: transparent;
-    --case-bg-bottom: transparent;
-    --case-frame: transparent;
-    --case-shelf: rgba(30, 60, 120, 0.08);
-    --case-shelf-edge: rgba(30, 60, 120, 0.15);
-    --card-slot: rgba(30, 60, 120, 0.07);
-    --card-slot-top: transparent;
-    --neon-ring: #0891b2;
-    --neon-ring-outer: rgba(8, 145, 178, 0.15);
-    --light-ray: rgba(8, 145, 178, 0.06);
-    --case-reflection: transparent;
+    /* Display case — flat surfaces */
+    --case-shelf: var(--bg-tertiary);
+    --card-slot: var(--bg-elevated);
 
     /* ── v2 tokens (light) — mapped to production light palette ── */
     --ink: var(--bg-primary);
@@ -141,7 +119,7 @@
     --rule-strong: var(--border-strong);
     --card-border: var(--border);
     --accent-brass: var(--accent);
-    --accent-muted: rgba(212, 150, 10, 0.1);
+    --accent-muted: rgba(176, 122, 0, 0.1);
     --data-up: var(--accent-green);
     --data-down: var(--accent-red);
     --ticker-glow: var(--accent);
@@ -164,7 +142,6 @@ body {
     color: var(--text-primary);
     background: var(--bg-primary);
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    /* Ambient gradients added per-theme below */
     font-size: 16px;
     font-weight: 400;
     line-height: 1.6;
@@ -175,28 +152,7 @@ body {
     padding-right: var(--safe-right);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-[data-theme='dark'] body {
-    background:
-        /* Pokémon card-back inspired swirl hints */
-        radial-gradient(ellipse 35% 35% at 50% 50%, rgba(240, 192, 48, 0.03), transparent),
-        radial-gradient(ellipse 45% 40% at 12% 6%, rgba(232, 69, 58, 0.05), transparent),
-        radial-gradient(ellipse 40% 35% at 88% 10%, rgba(79, 168, 224, 0.05), transparent),
-        radial-gradient(ellipse 55% 45% at 50% 92%, rgba(90, 50, 140, 0.06), transparent),
-        /* Subtle pokéball center line */
-        linear-gradient(180deg, transparent 48.5%, rgba(232, 69, 58, 0.015) 49%, rgba(232, 69, 58, 0.015) 51%, transparent 51.5%),
-        var(--bg-primary);
-}
-
-[data-theme='light'] body {
-    background:
-        radial-gradient(ellipse 35% 35% at 50% 50%, rgba(212, 150, 10, 0.03), transparent),
-        radial-gradient(ellipse 45% 40% at 12% 6%, rgba(192, 48, 40, 0.03), transparent),
-        radial-gradient(ellipse 40% 35% at 88% 10%, rgba(40, 116, 166, 0.025), transparent),
-        linear-gradient(180deg, transparent 48.5%, rgba(192, 48, 40, 0.012) 49%, rgba(192, 48, 40, 0.012) 51%, transparent 51.5%),
-        var(--bg-primary);
+    transition: background-color 200ms ease, color 200ms ease;
 }
 
 #root,
@@ -251,7 +207,7 @@ a {
     border-radius: 16px;
     background: var(--bg-secondary);
     box-shadow: var(--shadow-sm);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 200ms ease;
 }
 
 .pixel-window:hover {
@@ -321,7 +277,7 @@ a {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-tertiary);
-    transition: background-color 0.3s ease;
+    transition: background-color 200ms ease;
 }
 
 /* ── LABELS (CHIPS) ── */
@@ -342,12 +298,12 @@ a {
     line-height: 1;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 200ms ease, border-color 200ms ease;
 }
 
 .pixel-label-live {
-    color: var(--accent-blue);
-    border-color: rgba(107, 163, 199, 0.2);
+    color: var(--accent-text);
+    border-color: var(--accent-muted);
 }
 
 .pixel-label-warning {
@@ -378,12 +334,12 @@ a {
 .pixel-meter-fill {
     height: 100%;
     border-radius: inherit;
-    background: var(--accent-blue);
-    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--accent);
+    transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pixel-meter-fill-live {
-    background: var(--accent-blue);
+    background: var(--accent);
 }
 
 .pixel-meter-fill-warning {
@@ -428,20 +384,20 @@ a {
 .pixel-menu-link:hover {
     background: var(--surface-hover);
     border-color: var(--border-strong);
-    box-shadow: 0 0 12px rgba(79, 168, 224, 0.06);
+    box-shadow: var(--shadow-sm);
 }
 
 .pixel-menu-link-active {
-    background: linear-gradient(135deg, var(--accent), #e8a008);
-    color: #1a1510;
+    background: var(--accent);
+    color: var(--on-accent);
     border-color: transparent;
     font-weight: 600;
 }
 
 .pixel-menu-link-active:hover {
     opacity: 0.92;
-    background: linear-gradient(135deg, var(--accent), #e8a008);
-    box-shadow: 0 0 16px var(--gold-glow), 0 2px 8px rgba(0, 0, 0, 0.2);
+    background: var(--accent);
+    box-shadow: 0 0 16px var(--gold-glow), 0 2px 8px rgba(8, 6, 4, 0.2);
 }
 
 .pixel-menu-link:focus-visible {
@@ -539,7 +495,7 @@ a {
     border: 1px solid var(--border);
     background: var(--bg-secondary);
     box-shadow: var(--shadow-md);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 200ms ease, border-color 200ms ease;
 }
 
 .hero-anchor-card {
@@ -616,82 +572,20 @@ a {
     line-height: 1.7;
 }
 
-/* ── POKÉMON / HOLO EFFECTS ── */
+/* ── STATIC CARD ACCENTS ── */
 
-/* Holographic shimmer border — for hero cards and featured elements */
-.holo-border {
-    position: relative;
-}
-
-.holo-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    background: linear-gradient(
-        135deg,
-        var(--holo-from) 0%,
-        var(--holo-via) 35%,
-        var(--holo-to) 65%,
-        var(--holo-from) 100%
-    );
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    z-index: -1;
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
-    padding: 1.5px;
-}
-
-.holo-border:hover::before {
-    opacity: 0.5;
-}
-
-/* Gold accent glow for key CTAs */
 .gold-glow {
-    box-shadow: 0 0 20px var(--gold-glow), 0 0 60px rgba(240, 192, 48, 0.04);
-}
-
-/* Subtle holo shimmer animation for special elements */
-@keyframes holo-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    box-shadow: var(--shadow-sm);
 }
 
 .holo-shimmer {
-    background: linear-gradient(
-        90deg,
-        var(--holo-from),
-        var(--holo-via),
-        var(--holo-to),
-        var(--holo-from)
-    );
-    background-size: 300% 100%;
-    animation: holo-shift 6s ease-in-out infinite;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-/* Card-back inspired subtle texture overlay */
-.card-back-texture::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background:
-        radial-gradient(circle at 30% 30%, var(--gold-glow), transparent 50%),
-        radial-gradient(circle at 70% 70%, var(--red-glow), transparent 50%);
-    pointer-events: none;
-    opacity: 0.5;
+    color: var(--accent-text);
 }
 
 /* ── ANIMATIONS ── */
 
 .scan-reveal {
-    animation: scan-reveal 600ms ease-out both;
+    animation: scan-reveal 200ms ease-out 1 both;
 }
 
 .scan-delay-1 { animation-delay: 100ms; }
@@ -700,22 +594,16 @@ a {
 .scan-delay-4 { animation-delay: 400ms; }
 
 @keyframes scan-reveal {
-    from {
-        opacity: 0;
-        transform: translateY(16px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .scroll-fade-up {
     opacity: 0;
     transform: translateY(20px);
     transition:
-        opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
-        transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+        opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-fade-up.is-visible {
@@ -728,36 +616,6 @@ a {
 .scroll-delay-3 { transition-delay: 240ms; }
 .scroll-delay-4 { transition-delay: 320ms; }
 .scroll-delay-5 { transition-delay: 400ms; }
-
-@keyframes float-gentle {
-    0%, 100% { transform: translateY(0) rotate(var(--card-rotate, 0deg)); }
-    50% { transform: translateY(-8px) rotate(var(--card-rotate, 0deg)); }
-}
-
-.float-gentle {
-    animation: float-gentle 6s ease-in-out infinite;
-}
-
-.float-gentle-delay-1 { animation-delay: -2s; }
-.float-gentle-delay-2 { animation-delay: -4s; }
-
-@keyframes pulse-glow {
-    0%, 100% { transform: scale(1); opacity: 0.6; }
-    50% { transform: scale(1.04); opacity: 1; }
-}
-
-.pulse-glow {
-    animation: pulse-glow 8s ease-in-out infinite;
-}
-
-@keyframes rotate-orb {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.rotate-orb {
-    animation: rotate-orb 12s linear infinite;
-}
 
 /* ── SECTION BORDER ── */
 
@@ -778,25 +636,18 @@ a {
 /* ── REDUCED MOTION ── */
 
 @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+
     .scroll-fade-up {
         opacity: 1;
         transform: none;
         transition: none;
     }
 
-    .scan-reveal,
-    .scan-delay-1,
-    .scan-delay-2,
-    .scan-delay-3,
-    .scan-delay-4 {
-        animation: none !important;
-    }
-
-    .float-gentle,
-    .pulse-glow,
-    .rotate-orb {
-        animation: none !important;
-    }
 }
 
 @media (min-width: 768px) {
@@ -856,16 +707,16 @@ a {
     color: var(--ink-muted);
 }
 
-/* Gradient divider — production style */
+/* Flat dividers */
 .v2-rule {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    background: var(--border);
     border: 0;
     width: 100%;
 }
 .v2-rule-strong {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+    background: var(--border-strong);
     border: 0;
     width: 100%;
 }
@@ -899,10 +750,10 @@ a {
 
 /* Price flash — briefly highlight changed numbers */
 .v2-flash-up {
-    animation: v2-flash-up 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: v2-flash-up 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .v2-flash-down {
-    animation: v2-flash-down 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: v2-flash-down 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes v2-flash-up {
     0%   { background: rgba(16, 185, 129, 0.25); }

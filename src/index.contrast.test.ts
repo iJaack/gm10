@@ -41,6 +41,30 @@ describe('gm10 focus token and contrast (src/index.css)', () => {
         expect(problems).toEqual([]);
     });
 
+    it('uses the Forma v2 palette in both themes', () => {
+        const palettes = [
+            ['light', {
+                '--bg-primary': '#faf7f0', '--bg-secondary': '#fffdf8',
+                '--text-primary': '#1a1510', '--ink-2': '#4f463c',
+                '--accent': '#b07a00', '--on-accent': '#1a1510',
+            }],
+            ['dark', {
+                '--bg-primary': '#120f0c', '--bg-secondary': '#1a1612',
+                '--bg-tertiary': '#231e19', '--bg-elevated': '#26201a',
+                '--text-primary': '#f5f0e8', '--ink-2': '#cfc6b8',
+                '--accent': '#f0c030', '--on-accent': '#120f0c',
+            }],
+        ] as const;
+        const problems = palettes.flatMap(([theme, expected]) =>
+            Object.entries(expected).map(([token, hex]) => expectColor(theme, token, hexColor(hex))),
+        ).filter((problem): problem is string => problem !== null);
+        expect(problems).toEqual([]);
+    });
+
+    it('keeps pure black out of the theme stylesheet', () => {
+        expect(indexCss).not.toMatch(/#000\b|#000000|:\s*black\b/i);
+    });
+
     it('defines --focus as var(--accent-text) in both themes', () => {
         const problems = (['light', 'dark'] as const).flatMap((theme) => {
             const value = themeTokens(theme).get('--focus');
@@ -85,12 +109,12 @@ describe('gm10 focus token and contrast (src/index.css)', () => {
         expect(problems).toEqual([]);
     });
 
-    it('raises tertiary and light secondary text alphas and keeps dark secondary at 0.58', () => {
+    it('uses the specified secondary and tertiary ink opacities', () => {
         const problems = [
-            expectColor('dark', '--text-tertiary', rgbaColor(245, 240, 232, 0.55)),
+            expectColor('dark', '--text-tertiary', rgbaColor(245, 240, 232, 0.58)),
             expectColor('light', '--text-tertiary', rgbaColor(26, 21, 16, 0.66)),
             expectColor('light', '--text-secondary', rgbaColor(26, 21, 16, 0.72)),
-            expectColor('dark', '--text-secondary', rgbaColor(245, 240, 232, 0.58)),
+            expectColor('dark', '--text-secondary', rgbaColor(245, 240, 232, 0.72)),
         ].filter((problem): problem is string => problem !== null);
 
         expect(problems).toEqual([]);
@@ -106,7 +130,7 @@ describe('gm10 focus token and contrast (src/index.css)', () => {
             const declared = ruleDeclaration(selector, 'color');
             return (['dark', 'light'] as const).flatMap((theme) => {
                 const expected = theme === 'dark'
-                    ? rgbaColor(245, 240, 232, 0.55)
+                    ? rgbaColor(245, 240, 232, 0.58)
                     : rgbaColor(26, 21, 16, 0.66);
                 const resolved = declared ? resolveColor(declared, themeTokens(theme)) : null;
                 if (resolved && sameColor(resolved, expected)) return [];

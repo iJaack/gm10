@@ -13,7 +13,7 @@ export default function Hero() {
         secondary: theme === 'dark' ? 'rgba(255,255,255,0.86)' : 'rgba(15,14,10,0.82)',
         muted: theme === 'dark' ? 'rgba(255,255,255,0.62)' : 'rgba(15,14,10,0.56)',
         shadow: theme === 'dark'
-            ? '0 1px 4px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.7)'
+            ? '0 1px 4px rgba(8,6,4,1), 0 0 16px rgba(8,6,4,0.9), 0 0 40px rgba(8,6,4,0.7)'
             : '0 1px 4px rgba(255,255,255,1), 0 0 16px rgba(255,255,255,0.95), 0 0 40px rgba(255,255,255,0.75)',
     };
 
@@ -32,7 +32,7 @@ export default function Hero() {
                     className="absolute inset-0"
                     style={{
                         background: theme === 'dark'
-                            ? 'linear-gradient(120deg, rgba(11,10,20,0.72) 0%, rgba(11,10,20,0.44) 48%, rgba(11,10,20,0.18) 100%)'
+                            ? 'linear-gradient(120deg, rgba(18,15,12,0.72) 0%, rgba(18,15,12,0.44) 48%, rgba(18,15,12,0.18) 100%)'
                             : 'linear-gradient(120deg, rgba(250,247,240,0.70) 0%, rgba(250,247,240,0.42) 48%, rgba(250,247,240,0.16) 100%)',
                     }}
                 />
@@ -52,10 +52,10 @@ export default function Hero() {
                     <div
                         className="mt-6 max-w-[38rem] lg:max-w-none rounded-3xl px-5 py-4 scan-reveal scan-delay-2"
                         style={{
-                            background: theme === 'dark' ? 'rgba(11,10,20,0.55)' : 'rgba(255,255,255,0.72)',
+                            background: theme === 'dark' ? 'rgba(18,15,12,0.55)' : 'rgba(255,255,255,0.72)',
                             backdropFilter: 'blur(14px)',
                             WebkitBackdropFilter: 'blur(14px)',
-                            border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+                            border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(8,6,4,0.06)',
                         }}
                     >
                         <p className="text-[1.08rem] leading-[1.72] sm:text-[1.14rem]" style={{ color: onPhoto.secondary }}>
@@ -87,7 +87,7 @@ export default function Hero() {
                             key={item.label}
                             className={`rounded-2xl border border-[var(--border)] px-5 py-4 backdrop-blur-sm scan-reveal scan-delay-${Math.min(index + 2, 3)}`}
                             style={{
-                                background: theme === 'dark' ? 'rgba(11,10,20,0.58)' : 'rgba(255,255,255,0.66)',
+                                background: theme === 'dark' ? 'rgba(18,15,12,0.58)' : 'rgba(255,255,255,0.66)',
                             }}
                         >
                             <div className="label-font" style={{ color: onPhoto.muted }}>{item.label}</div>
