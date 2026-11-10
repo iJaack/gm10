@@ -159,12 +159,10 @@ function AllocationPieChart({ slices, previewStatus }: { slices: AllocationSlice
     return (
         <div className="relative flex flex-col items-center gap-8 lg:flex-row lg:items-start lg:gap-12">
             {/* SVG Pie */}
-            <div className="relative shrink-0">
+            <div className="relative w-[400px] max-w-full shrink-0">
                 <svg
                     viewBox="0 0 400 400"
-                    width="400"
-                    height="400"
-                    className="drop-shadow-lg"
+                    className="h-auto w-full max-w-full drop-shadow-lg"
                     onMouseLeave={() => { setTooltip(null); setActiveIndex(null); }}
                 >
                     {slices.map((slice, i) => {

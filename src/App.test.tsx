@@ -811,6 +811,17 @@ describe('page compression regressions', () => {
         expect(within(screen.getByRole('main')).queryByRole('button', { name: /connect wallet/i })).not.toBeInTheDocument();
     });
 
+    it('keeps the catch allocation pie fluid on narrow screens and capped at 400px', () => {
+        const { container } = renderAt('/catch');
+        const pie = container.querySelector('svg[viewBox="0 0 400 400"]');
+
+        expect(pie).toBeInTheDocument();
+        expect(pie).toHaveClass('w-full', 'max-w-full', 'h-auto');
+        expect(pie).not.toHaveAttribute('width');
+        expect(pie).not.toHaveAttribute('height');
+        expect(pie?.parentElement).toHaveClass('w-[400px]', 'max-w-full', 'shrink-0');
+    });
+
     it('shows post-round token mechanics and total raised on the catch page', async () => {
         wagmiMocks.roundState = {
             roundId: 2,
