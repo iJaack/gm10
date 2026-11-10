@@ -43,6 +43,7 @@ async function deployContinuousMintReceiverFixture() {
   const MockERC20 = await ethers.getContractFactory("MockERC20");
   const usdc = await MockERC20.deploy("Mock USDC", "USDC");
   await usdc.waitForDeployment();
+  await usdc.setDecimalsForTest(6);
 
   const Receiver = await ethers.getContractFactory("Gm10ContinuousMintReceiver");
   const receiver = await Receiver.deploy(
@@ -53,7 +54,7 @@ async function deployContinuousMintReceiverFixture() {
     6
   );
   await receiver.waitForDeployment();
-  await fund.grantManagerForTest(await receiver.getAddress());
+  await fund.grantContinuousMintForTest(await receiver.getAddress());
 
   return { fund, controller, receiver, usdc, owner, buyer, treasury, attacker };
 }
@@ -82,13 +83,19 @@ describe("Gm10ContinuousMintReceiver", function () {
       .withArgs(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, minSettlement, expiresAt);
 
     const registeredCommit = await receiver.commits(commitId);
-    expect(registeredCommit.escrow).to.equal(await fund.getAddress());
+    expect(registeredCommit.escrow).to.equal(await receiver.predictEscrow(commitId));
+    expect(registeredCommit.escrow).to.not.equal(await fund.getAddress());
 
     await expect(
       receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
     ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
 
     await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+    await expect(
+      receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
+    ).to.be.revertedWithCustomError(receiver, "InsufficientSettlementBalance");
+
+    await buyer.sendTransaction({ to: registeredCommit.escrow, value: settledAmount });
 
     await expect(
       receiver.connect(buyer).commitSettledRoute(commitId, providerRouteId, buyer.address, ethers.ZeroAddress, settledAmount)
@@ -130,7 +137,7 @@ describe("Gm10ContinuousMintReceiver", function () {
   });
 
   it("does not double-count overlapping native AVAX checkpoints", async function () {
-    const { fund, receiver, buyer, attacker, owner } = await deployContinuousMintReceiverFixture();
+    const { receiver, buyer, attacker } = await deployContinuousMintReceiverFixture();
     const firstCommitId = ethers.id("native-avax-route-settlement-3a");
     const secondCommitId = ethers.id("native-avax-route-settlement-3b");
     const firstProviderRouteId = ethers.id("native-avax-route-3a");
@@ -155,7 +162,7 @@ describe("Gm10ContinuousMintReceiver", function () {
       expiresAt
     );
 
-    await owner.sendTransaction({ to: await fund.getAddress(), value: settledAmount });
+    await buyer.sendTransaction({ to: (await receiver.commits(firstCommitId)).escrow, value: settledAmount });
     await receiver.connect(buyer).commitSettledRoute(
       firstCommitId,
       firstProviderRouteId,

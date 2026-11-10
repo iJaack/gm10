@@ -1,5 +1,7 @@
 /**
- * Grant or revoke MANAGER_ROLE for a continuous mint receiver through the treasury Safe.
+ * Grant or revoke CONTINUOUS_MINT_ROLE for a continuous mint receiver through the treasury Safe.
+ * The receiver must not receive MANAGER_ROLE. Run this only after the fund upgrade that
+ * checks CONTINUOUS_MINT_ROLE on settleContinuousMint and settleContinuousMintFromAvax.
  *
  * Usage:
  *   LEDGER_ADDRESS=0x... SAFE_ADDRESS=0x... RECEIVER_ADDRESS=0x... DEPLOYMENT_KEY=avalanche \
@@ -15,7 +17,7 @@ const { ethers } = hre;
 const fs = require("fs");
 
 const OPERATION_CALL = 0;
-const MANAGER_ROLE = ethers.id("MANAGER_ROLE");
+const CONTINUOUS_MINT_ROLE = ethers.id("CONTINUOUS_MINT_ROLE");
 const SAFE_ABI = [
   "function getOwners() view returns (address[])",
   "function getThreshold() view returns (uint256)",
@@ -83,35 +85,35 @@ async function main() {
     throw new Error("Connected signer is not a Safe owner; cannot use prevalidated owner signature.");
   }
 
-  const alreadyManager = await fund.hasRole(MANAGER_ROLE, receiverAddress);
-  const managerRoleAdmin = await fund.getRoleAdmin(MANAGER_ROLE);
+  const alreadyManager = await fund.hasRole(CONTINUOUS_MINT_ROLE, receiverAddress);
+  const managerRoleAdmin = await fund.getRoleAdmin(CONTINUOUS_MINT_ROLE);
   const safeCanAdmin = await fund.hasRole(managerRoleAdmin, safeAddress);
   if (!safeCanAdmin && ((roleAction === "grant" && !alreadyManager) || (roleAction === "revoke" && alreadyManager))) {
-    throw new Error(`Safe ${safeAddress} does not hold MANAGER_ROLE admin ${managerRoleAdmin} on ${fundProxy}`);
+    throw new Error(`Safe ${safeAddress} does not hold CONTINUOUS_MINT_ROLE admin ${managerRoleAdmin} on ${fundProxy}`);
   }
 
-  console.log(`${roleAction === "grant" ? "Granting" : "Revoking"} continuous mint receiver manager role`);
+  console.log(`${roleAction === "grant" ? "Granting" : "Revoking"} continuous mint role`);
   console.log("  Network        :", hre.network.name);
   console.log("  Fund proxy     :", fundProxy);
   console.log("  Safe           :", safeAddress);
   console.log("  Signer         :", signerAddress);
   console.log("  Receiver       :", receiverAddress);
-  console.log("  Manager role   :", alreadyManager);
+  console.log("  Mint role      :", alreadyManager);
   console.log("  Role admin     :", managerRoleAdmin);
   console.log("  Safe can admin :", safeCanAdmin);
 
   if (roleAction === "grant" && alreadyManager) {
-    console.log("  Receiver already has MANAGER_ROLE; no transaction needed.");
+    console.log("  Receiver already has CONTINUOUS_MINT_ROLE; no transaction needed.");
     return;
   }
   if (roleAction === "revoke" && !alreadyManager) {
-    console.log("  Receiver already lacks MANAGER_ROLE; no transaction needed.");
+    console.log("  Receiver already lacks CONTINUOUS_MINT_ROLE; no transaction needed.");
     return;
   }
 
   const data = fund.interface.encodeFunctionData(
     roleAction === "grant" ? "grantRole" : "revokeRole",
-    [MANAGER_ROLE, receiverAddress],
+    [CONTINUOUS_MINT_ROLE, receiverAddress],
   );
   await ethers.provider.call({ from: safeAddress, to: fundProxy, data });
   console.log("  Static call    : ok");
@@ -138,11 +140,11 @@ async function main() {
   );
   console.log("  Tx             :", tx.hash);
   const receipt = await tx.wait();
-  const hasRoleAfter = await fund.hasRole(MANAGER_ROLE, receiverAddress);
+  const hasRoleAfter = await fund.hasRole(CONTINUOUS_MINT_ROLE, receiverAddress);
   console.log("  Confirmed block:", receipt.blockNumber);
-  console.log("  Manager role   :", hasRoleAfter);
-  if (roleAction === "grant" && !hasRoleAfter) throw new Error("Receiver still lacks MANAGER_ROLE after grant transaction");
-  if (roleAction === "revoke" && hasRoleAfter) throw new Error("Receiver still has MANAGER_ROLE after revoke transaction");
+  console.log("  Mint role      :", hasRoleAfter);
+  if (roleAction === "grant" && !hasRoleAfter) throw new Error("Receiver still lacks CONTINUOUS_MINT_ROLE after grant transaction");
+  if (roleAction === "revoke" && hasRoleAfter) throw new Error("Receiver still has CONTINUOUS_MINT_ROLE after revoke transaction");
 
   const roleRecord = {
       timestamp: new Date().toISOString(),

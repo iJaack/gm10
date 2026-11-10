@@ -68,6 +68,10 @@ contract MockGemMintStrategyFundV8 is GemMintStrategyFundV8 {
         _grantRole(MANAGER_ROLE, account);
     }
 
+    function grantContinuousMintForTest(address account) external {
+        _grantRole(CONTINUOUS_MINT_ROLE, account);
+    }
+
     function grantGovernanceForTest(address account) external {
         _grantRole(GOVERNANCE_ROLE, account);
     }

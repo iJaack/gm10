@@ -483,6 +483,7 @@ afterEach(() => {
     wagmiMocks.readContract.mockReset();
     wagmiMocks.readContract.mockImplementation(async ({ functionName }: { functionName?: string }) => {
         if (functionName === 'commits') return { escrow: '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f' };
+        if (functionName === 'predictEscrow') return '0x574Be007cC7CFe17AAdfc893Ec8E2f4c4528fe0f';
         if (functionName === 'balanceOf') return 100_000_000n;
         return undefined;
     });

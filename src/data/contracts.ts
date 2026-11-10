@@ -479,6 +479,20 @@ export const GM10_CONTINUOUS_MINT_RECEIVER_ABI = [
         type: 'event',
     },
     {
+        inputs: [{ name: 'commitId', type: 'bytes32' }],
+        name: 'predictEscrow',
+        outputs: [{ name: 'escrow', type: 'address' }],
+        stateMutability: 'view',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'commitId', type: 'bytes32' }],
+        name: 'refundCommit',
+        outputs: [{ name: 'refundedAmount', type: 'uint256' }],
+        stateMutability: 'nonpayable',
+        type: 'function',
+    },
+    {
         inputs: [
             { name: 'commitId', type: 'bytes32' },
             { name: 'providerRouteId', type: 'bytes32' },
